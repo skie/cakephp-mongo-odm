@@ -1,0 +1,61 @@
+# Dependencies
+/vendor/
+/node_modules/
+/tools/
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+/logs/
+*.log
+
+# Runtime data
+/tmp/
+/cache/
+*.cache
+
+# Test coverage
+/coverage/
+.phpunit.cache/
+clover.xml
+*.coverage
+
+# Build artifacts
+/build/
+/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# PHPUnit
+phpunit.xml
+
+# PHPStan
+#phpstan-baseline.neon
+
+# Psalm
+psalm-baseline.xml
+
+# Composer
+composer.lock
+/composer.phar
+
+# Lock files
+package-lock.json
+yarn.lock
+redis.stub.php

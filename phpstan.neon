@@ -1,0 +1,19 @@
+includes:
+    - phpstan-baseline.neon
+    - vendor/cakedc/cakephp-phpstan/extension.neon
+
+parameters:
+    level: 7
+    paths:
+        - src
+    bootstrapFiles:
+        - tests/bootstrap.php
+    cakeDC:
+        appNamespace: Crustum\Mongo
+    tmpDir: build/phpstan
+    ignoreErrors:
+        -
+            identifier: new.static
+            reportUnmatched: false
+
+services:

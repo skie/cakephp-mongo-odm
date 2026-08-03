@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    beStrictAboutTestsThatDoNotTestAnything="false"
+    processIsolation="false"
+    displayDetailsOnTestsThatTriggerDeprecations="true"
+    stopOnFailure="false">
+
+    <testsuites>
+        <testsuite name="TestCase">
+            <directory suffix="Test.php">tests/TestCase</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src/</directory>
+        </include>
+    </source>
+
+    <extensions>
+        <bootstrap class="Cake\TestSuite\Fixture\Extension\PHPUnitExtension"/>
+    </extensions>
+
+    <php>
+        <ini name="memory_limit" value="-1"/>
+        <env name="APP_ENV" value="testing"/>
+        <env name="MONGO_TESTING" value="1"/>
+        <env name="FIXTURE_SCHEMA_METADATA" value="tests/schema.php"/>
+    </php>
+</phpunit>

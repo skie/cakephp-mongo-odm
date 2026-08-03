@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+      - '1.x'
+  pull_request:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testsuite:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '8.2'
+            dependencies: lowest
+          - php-version: '8.3'
+            dependencies: highest
+          - php-version: '8.4'
+            dependencies: highest
+          - php-version: '8.5'
+            dependencies: highest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, intl
+        coverage: pcov
+        ini-values: apc.enable_cli = 1, zend.assertions = 1, pcov.directory = src
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.composer/cache
+        key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+
+    - name: composer install
+      run: |
+        if [[ "${{ matrix.dependencies }}" == 'lowest' ]]; then
+          composer update --prefer-lowest --prefer-stable --prefer-dist --no-progress
+        else
+          composer install --prefer-dist --no-progress
+        fi
+
+    - name: Run PHPUnit
+      run: vendor/bin/phpunit --configuration=phpunit.xml.dist
+
+  cs-stan:
+    name: Coding Standard & Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl
+        coverage: none
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.composer/cache
+        key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+
+    - name: composer install
+      run: composer install --prefer-dist --no-progress
+
+    - name: Run PHP CodeSniffer
+      run: composer cs-check
+
+    - name: Run phpstan
+      run: composer stan

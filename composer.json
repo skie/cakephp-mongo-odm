@@ -1,0 +1,78 @@
+{
+    "name": "crustum/mongo",
+    "description": "Mongo plugin for CakePHP",
+    "type": "cakephp-plugin",
+    "license": "MIT",
+    "keywords": [
+        "cakephp",
+        "crustum",
+        "mongo"
+    ],
+    "authors": [
+        {
+            "name": "Evgeny Tomenko",
+            "homepage": "https://github.com/skie"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "cakephp/cakephp": "^5.4",
+        "crustum/plugin-manifest": "^1.0"
+    },
+    "require-dev": {
+        "cakedc/cakephp-phpstan": "^4.3",
+        "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5",
+        "cakephp/cakephp-codesniffer": "^5.0",
+        "phpstan/phpstan": "^2.2.2,<2.2.6",
+        "rector/rector": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Crustum\\Mongo\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Crustum\\Mongo\\Test\\": "tests/",
+            "TestApp\\": "tests/TestApp/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@rector-check",
+            "@test",
+            "@analyse"
+        ],
+        "fix": [
+            "@cs-fix",
+            "@rector-fix",
+            "@cs-fix",
+            "@analyse"
+        ],
+        "analyse": [
+            "@stan"
+        ],
+        "cs-check": "phpcs -p --standard=phpcs.xml src/ tests/",
+        "cs-fix": "phpcbf --standard=phpcs.xml src/ tests/",
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite=Unit",
+        "test:integration": "phpunit --testsuite=Integration",
+        "rector-check": "vendor/bin/rector process --dry-run",
+        "rector-fix": "vendor/bin/rector process",
+        "stan": "phpstan analyse src/",
+        "stan-baseline": "phpstan analyse --generate-baseline"
+    },
+    "extra": {
+        "installer-name": "Mongo"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "cakephp/plugin-installer": true,
+            "php-http/discovery": false
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
