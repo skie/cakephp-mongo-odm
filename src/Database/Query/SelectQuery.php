@@ -4,6 +4,9 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Query;
 
 use Closure;
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use InvalidArgumentException;
 use IteratorAggregate;
 use Traversable;
 
@@ -17,7 +20,7 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * @inheritDoc
      */
-    public function where(array|string|Closure|null $conditions, bool $overwrite = false): static
+    public function where(Closure|MongoExpressionInterface|array|string|null $conditions, bool $overwrite = false): static
     {
         $this->builder->where($conditions, $overwrite);
 
@@ -27,10 +30,10 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Adds conditions with an `$and` operator.
      *
-     * @param \Closure|array|string $conditions The conditions to add.
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string $conditions The conditions to add.
      * @return $this
      */
-    public function andWhere(array|string|Closure $conditions): static
+    public function andWhere(Closure|MongoExpressionInterface|array|string $conditions): static
     {
         $this->builder->andWhere($conditions);
 
@@ -40,12 +43,18 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Sets the field projection.
      *
-     * @param array|string $fields Fields to include/exclude.
+     * A `Closure` receives the query and must return the fields to project.
+     *
+     * @param \Closure|array|string $fields Fields to include/exclude.
      * @param bool $overwrite Whether to overwrite the existing projection.
      * @return $this
      */
-    public function select(array|string $fields, bool $overwrite = false): static
+    public function select(Closure|array|string $fields, bool $overwrite = false): static
     {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
         $this->builder->select($fields, $overwrite);
 
         return $this;
@@ -54,12 +63,18 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Sets the sort order.
      *
-     * @param array|string $fields Fields to sort by.
+     * A `Closure` receives the query and must return the fields to sort by.
+     *
+     * @param \Closure|array|string $fields Fields to sort by.
      * @param bool $overwrite Whether to overwrite the existing sort.
      * @return $this
      */
-    public function orderBy(array|string $fields, bool $overwrite = false): static
+    public function orderBy(Closure|array|string $fields, bool $overwrite = false): static
     {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
         $this->builder->orderBy($fields, $overwrite);
 
         return $this;
@@ -92,6 +107,37 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
+     * Sets the result page using limit/skip.
+     *
+     * Page numbers start at 1. When no limit is set it defaults to 25.
+     *
+     * @param int $page The page number.
+     * @param int|null $limit The page size.
+     * @return $this
+     * @throws \InvalidArgumentException When the page number is below 1.
+     */
+    public function page(int $page, ?int $limit = null): static
+    {
+        if ($page < 1) {
+            throw new InvalidArgumentException('Pages must start at 1.');
+        }
+
+        if ($limit !== null) {
+            $this->limit($limit);
+        }
+
+        $limit = $this->builder->getLimit();
+        if ($limit === null) {
+            $limit = 25;
+            $this->limit($limit);
+        }
+
+        $this->skip(($page - 1) * $limit);
+
+        return $this;
+    }
+
+    /**
      * Adds aggregation pipeline stage(s).
      *
      * @param array $stages Pipeline stages to add.
@@ -118,9 +164,64 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
+     * Returns all documents as an array.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function all(): array
+    {
+        $result = $this->execute();
+
+        return $result instanceof Traversable ? iterator_to_array($result, false) : [];
+    }
+
+    /**
+     * Returns the first document or `null`.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function first(): ?array
+    {
+        $documents = $this->all();
+
+        return $documents[0] ?? null;
+    }
+
+    /**
+     * Returns the number of matching documents.
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return 0;
+        }
+
+        return $connection->getCollection($this->collection)->countDocuments($this->builder->getFilter());
+    }
+
+    /**
+     * Returns the distinct values for a field.
+     *
+     * @param string $field The field name.
+     * @return list<mixed>
+     */
+    public function distinct(string $field): array
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return [];
+        }
+
+        return array_values($connection->getCollection($this->collection)->distinct($field, $this->builder->getFilter()));
+    }
+
+    /**
      * Returns an iterator over the executed results.
      *
-     * @return \Traversable
+     * @return \Traversable<int, array<string, mixed>>
      */
     public function getIterator(): Traversable
     {

@@ -344,7 +344,15 @@ class QueryBuilder
                             }
 
                             if ($nestedConditions !== []) {
-                                $parsed[] = [$nestedOp => $nestedConditions];
+                                if ($nestedOp === '$not') {
+                                    $parsed[] = ['$nor' => [$nestedConditions]];
+                                } else {
+                                    $parsed[] = [$nestedOp => array_map(
+                                        static fn(string $field, mixed $condition): array => [$field => $condition],
+                                        array_keys($nestedConditions),
+                                        $nestedConditions,
+                                    )];
+                                }
                             }
 
                             continue;
@@ -457,6 +465,8 @@ class QueryBuilder
                 return ['$nin' => (array)$value];
             case 'like':
                 return ['$regex' => $this->likeToRegex($value)];
+            case 'not like':
+                return ['$not' => ['$regex' => $this->likeToRegex($value)]];
             case 'is not':
                 return $value === null ? ['$exists' => true] : ['$ne' => $value];
             case '!=':

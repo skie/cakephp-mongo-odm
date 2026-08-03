@@ -107,7 +107,7 @@ class TestFixture implements FixtureInterface
             $database->dropCollection($this->table);
             $database->createCollection($this->table, $this->indexSettings);
 
-            if (!empty($this->schema)) {
+            if ($this->schema !== []) {
                 $db->getCollection($this->table)->createIndex($this->schema);
             }
 
@@ -124,7 +124,7 @@ class TestFixture implements FixtureInterface
      */
     public function insert(ConnectionInterface $db): bool
     {
-        if (!$db instanceof Connection || empty($this->records)) {
+        if (!$db instanceof Connection || $this->records === []) {
             return false;
         }
 
@@ -136,6 +136,7 @@ class TestFixture implements FixtureInterface
                 $record['_id'] = new ObjectId($record['id']);
                 unset($record['id']);
             }
+
             $collection->insertOne($record);
         }
 

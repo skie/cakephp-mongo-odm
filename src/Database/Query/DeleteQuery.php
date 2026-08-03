@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Query;
 
 use Closure;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 
 /**
  * Delete query for MongoDB deleteMany operations.
@@ -24,11 +25,11 @@ class DeleteQuery extends Query
     /**
      * Sets the filter conditions.
      *
-     * @param \Closure|array|string|null $conditions The conditions.
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string|null $conditions The conditions.
      * @param bool $overwrite Whether to overwrite existing conditions.
      * @return $this
      */
-    public function where(array|string|Closure|null $conditions, bool $overwrite = false): static
+    public function where(Closure|MongoExpressionInterface|array|string|null $conditions, bool $overwrite = false): static
     {
         $this->builder->where($conditions, $overwrite);
 

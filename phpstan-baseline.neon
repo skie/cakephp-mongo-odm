@@ -553,12 +553,6 @@ parameters:
 			path: src/Database/Query/QueryCompiler.php
 
 		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\QueryFactory\:\:select\(\) return type has no value type specified in iterable type Crustum\\Mongo\\Database\\Query\\SelectQuery\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/QueryFactory.php
-
-		-
 			message: '#^Class Crustum\\Mongo\\Database\\Query\\SelectQuery implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
 			identifier: missingType.generics
 			count: 1
@@ -571,31 +565,7 @@ parameters:
 			path: src/Database/Query/SelectQuery.php
 
 		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:andWhere\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:getIterator\(\) return type has no value type specified in iterable type Traversable\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:limit\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
 			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:options\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:options\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Database/Query/SelectQuery.php
@@ -607,19 +577,7 @@ parameters:
 			path: src/Database/Query/SelectQuery.php
 
 		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:orderBy\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
 			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:pipeline\(\) has parameter \$stages with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:pipeline\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Database/Query/SelectQuery.php
@@ -631,25 +589,7 @@ parameters:
 			path: src/Database/Query/SelectQuery.php
 
 		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:select\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:skip\(\) return type has no value type specified in iterable type \$this\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
 			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:where\(\) has parameter \$conditions with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Database/Query/SelectQuery.php
-
-		-
-			message: '#^Method Crustum\\Mongo\\Database\\Query\\SelectQuery\:\:where\(\) return type has no value type specified in iterable type static\(Crustum\\Mongo\\Database\\Query\\SelectQuery\)\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Database/Query/SelectQuery.php

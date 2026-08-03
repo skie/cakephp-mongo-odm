@@ -84,11 +84,11 @@ class QueryCompiler
     /**
      * Add filter conditions to the query.
      *
-     * @param \Closure|array|string|null $conditions The conditions to add
-     * @param bool                       $overwrite  Whether to overwrite existing conditions
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string|null $conditions The conditions to add
+     * @param bool                                                              $overwrite  Whether to overwrite existing conditions
      * @return $this
      */
-    public function where(array|string|Closure|null $conditions, bool $overwrite = false)
+    public function where(Closure|MongoExpressionInterface|array|string|null $conditions, bool $overwrite = false)
     {
         if ($conditions === null) {
             return $this;
@@ -117,11 +117,19 @@ class QueryCompiler
     /**
      * Add additional conditions using $and operator.
      *
-     * @param \Closure|array|string $conditions The conditions to add
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string $conditions The conditions to add
      * @return $this
      */
-    public function andWhere(array|string|Closure $conditions)
+    public function andWhere(Closure|MongoExpressionInterface|array|string $conditions)
     {
+        if ($conditions instanceof Closure) {
+            $conditions = $conditions($this->expressionBuilder);
+        }
+
+        if ($conditions instanceof MongoExpressionInterface) {
+            $conditions = $conditions->getConditions();
+        }
+
         if ($this->filter === []) {
             return $this->where($conditions);
         }
@@ -140,12 +148,19 @@ class QueryCompiler
     /**
      * Set field projection (which fields to return).
      *
-     * @param array|string $fields    Fields to include/exclude
-     * @param bool         $overwrite Whether to overwrite existing projection
+     * A `Closure` receives the compiler instance and must return the fields
+     * (array or string) to project.
+     *
+     * @param \Closure|array|string $fields    Fields to include/exclude
+     * @param bool                  $overwrite Whether to overwrite existing projection
      * @return $this
      */
-    public function select(array|string $fields, bool $overwrite = false)
+    public function select(Closure|array|string $fields, bool $overwrite = false)
     {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
         if (is_string($fields)) {
             $fields = [$fields];
         }
@@ -167,14 +182,26 @@ class QueryCompiler
     /**
      * Set sort order.
      *
-     * @param array|string $fields    Fields to sort by
-     * @param bool         $overwrite Whether to overwrite existing sort
+     * A `Closure` receives the compiler instance and must return the sort fields
+     * (array or string) to order by.
+     *
+     * @param \Closure|array|string $fields    Fields to sort by
+     * @param bool                  $overwrite Whether to overwrite existing sort
      * @return $this
      */
-    public function orderBy(array|string $fields, bool $overwrite = false)
+    public function orderBy(Closure|array|string $fields, bool $overwrite = false)
     {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
         if (is_string($fields)) {
-            $fields = [$fields => 1];
+            $parts = explode(' ', trim($fields), 2);
+            if (count($parts) === 2) {
+                $fields = [$parts[0] => strtolower($parts[1]) === 'desc' ? -1 : 1];
+            } else {
+                $fields = [$fields => 1];
+            }
         }
 
         $normalized = [];
@@ -367,6 +394,16 @@ class QueryCompiler
     public function getProjection(): array
     {
         return $this->projection;
+    }
+
+    /**
+     * Get the current limit, if any.
+     *
+     * @return int|null
+     */
+    public function getLimit(): ?int
+    {
+        return $this->limit;
     }
 
     /**

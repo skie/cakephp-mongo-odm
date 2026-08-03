@@ -27,7 +27,11 @@ class ConnectionHelper
     {
         ConnectionManager::alias('test', 'default');
         foreach (ConnectionManager::configured() as $connection) {
-            if ($connection === 'test' || $connection === 'default') {
+            if ($connection === 'test') {
+                continue;
+            }
+
+            if ($connection === 'default') {
                 continue;
             }
 

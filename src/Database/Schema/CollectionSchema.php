@@ -101,6 +101,7 @@ class CollectionSchema implements SchemaInterface
                 $collectionInfo = $info;
                 break;
             }
+
             if ($collectionInfo !== null) {
                 if (method_exists($collectionInfo, 'toArray')) {
                     $infoArray = $collectionInfo->toArray();
@@ -119,6 +120,7 @@ class CollectionSchema implements SchemaInterface
         } catch (Exception) {
             $this->validationRules = [];
         }
+
         foreach ($collection->listIndexes() as $index) {
             $this->processIndex($index);
         }

@@ -27,6 +27,7 @@ class ComparisonExpression extends AbstractExpression
         $this->_operator = $operator;
 
         $mongoOperators = [
+            '=' => '$eq',
             '!=' => '$ne',
             '>' => '$gt',
             '>=' => '$gte',
@@ -34,9 +35,9 @@ class ComparisonExpression extends AbstractExpression
             '<=' => '$lte',
         ];
 
-        $operator = $mongoOperators[$operator] ?? $operator;
+        $this->_operator = $mongoOperators[$operator] ?? $operator;
 
-        if ($operator === '$eq') {
+        if ($this->_operator === '$eq') {
             $this->_conditions = [
                 $field => $value,
             ];
@@ -45,7 +46,7 @@ class ComparisonExpression extends AbstractExpression
         }
 
         $this->_conditions = [
-            $field => [$operator => $value],
+            $field => [$this->_operator => $value],
         ];
     }
 

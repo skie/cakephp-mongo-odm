@@ -37,6 +37,7 @@ class SchemaCacheTest extends TestCase
         if (Cache::getConfig('test_schema_cache') !== null) {
             Cache::drop('test_schema_cache');
         }
+
         Cache::setConfig('test_schema_cache', ['className' => 'Array']);
         $this->cache = Cache::pool('test_schema_cache');
 

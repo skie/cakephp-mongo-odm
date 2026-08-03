@@ -107,7 +107,16 @@ class Connection implements ConnectionInterface
      */
     public function getCacher(): CacheInterface
     {
-        return $this->cacher;
+        if ($this->cacher instanceof CacheInterface) {
+            return $this->cacher;
+        }
+
+        $configName = $this->config['cacheMetadata'] ?? '_cake_model_';
+        if (!is_string($configName)) {
+            $configName = '_cake_model_';
+        }
+
+        return $this->cacher = Cache::pool($configName);
     }
 
     /**
@@ -170,13 +179,12 @@ class Connection implements ConnectionInterface
     public function getSchemaCollection(): SchemaCollectionInterface
     {
         $this->schemaCollection ??= new SchemaCollection($this);
+        assert($this->schemaCollection instanceof SchemaCollection);
 
         $cacheName = $this->config['cacheMetadata'] ?? null;
         if ($cacheName !== null) {
             return new CachedSchemaCollection($this->schemaCollection, $this->name, Cache::pool((string)$cacheName));
         }
-
-        $this->schemaCollection = $schema;
 
         return $this->schemaCollection;
     }

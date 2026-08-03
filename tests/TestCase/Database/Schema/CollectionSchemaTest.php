@@ -141,6 +141,7 @@ class CollectionSchemaTest extends TestCase
         $schema = new CollectionSchema('test_users', $mongoCollection, $database);
 
         $schema->addField('email', 'string');
+
         $field = $schema->getField('email');
         $this->assertNotNull($field);
         $this->assertSame('string', $field['type']);
@@ -158,6 +159,7 @@ class CollectionSchemaTest extends TestCase
         $schema = new CollectionSchema('test_users', $mongoCollection, $database);
 
         $schema->addField('name', ['type' => 'string']);
+
         $field = $schema->getField('name');
         $this->assertNotNull($field);
         $this->assertSame('string', $field['type']);
@@ -212,6 +214,7 @@ class CollectionSchemaTest extends TestCase
         $schema = new CollectionSchema('test_users', $mongoCollection, $database);
 
         $schema->addField('name', ['type' => 'string']);
+
         $result = $schema->setFieldType('name', 'text');
         $this->assertSame($schema, $result);
 

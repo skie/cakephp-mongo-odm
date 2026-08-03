@@ -56,13 +56,7 @@ class QueryExpression extends AbstractExpression
     protected function _compile(): array
     {
         $result = [];
-        $conditions = $this->_conditions[$this->conjunction];
-
-        if (count($conditions) === 1 && is_array($conditions[0])) {
-            $conditions = $conditions[0];
-        }
-
-        foreach ($conditions as $condition) {
+        foreach ($this->_conditions[$this->conjunction] as $condition) {
             if ($condition instanceof MongoExpressionInterface) {
                 $result[] = $condition->getConditions();
             } else {
@@ -94,7 +88,7 @@ class QueryExpression extends AbstractExpression
             return reset($result);
         }
 
-        return $result;
+        return array_merge(...$result);
     }
 
     /**
@@ -112,9 +106,15 @@ class QueryExpression extends AbstractExpression
             return $this;
         }
 
-        foreach ($conditions as $condition) {
-            $this->_conditions[$this->conjunction][] = $condition;
+        if (array_is_list($conditions)) {
+            foreach ($conditions as $condition) {
+                $this->add($condition);
+            }
+
+            return $this;
         }
+
+        $this->_conditions[$this->conjunction][] = $conditions;
 
         return $this;
     }

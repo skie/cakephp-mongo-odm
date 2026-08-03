@@ -90,9 +90,11 @@ class SchemaCache
                     'To use schema caching you must require the cakephp/cache package in your composer config.',
                 );
             }
+
             if (Cache::getConfig($cacheConfigName) === null) {
                 Cache::setConfig($cacheConfigName, ['className' => 'Array']);
             }
+
             $connection->cacheMetadata($cacheConfigName);
         }
 
