@@ -48,6 +48,8 @@ use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\Fixture\SchemaLoader;
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\MongoPlugin;
 
 if (!function_exists('ensureDirectoryExists')) {
@@ -116,6 +118,20 @@ if (!getenv('db_dsn')) {
 ConnectionManager::setConfig('test', [
     'url' => getenv('db_dsn'),
     'timezone' => 'UTC',
+]);
+ConnectionManager::setConfig('mongo', [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'host' => '127.0.0.1',
+    'port' => 27017,
+    'database' => 'mongo',
+]);
+ConnectionManager::setConfig('test_mongo', [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'host' => '127.0.0.1',
+    'port' => 27017,
+    'database' => 'test_mongo_db',
 ]);
 ConnectionManager::alias('test', 'default');
 

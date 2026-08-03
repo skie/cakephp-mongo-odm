@@ -1,0 +1,64 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
+
+use Cake\TestSuite\TestCase;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
+
+/**
+ * Test case for UnionWith aggregation stage
+ */
+class UnionWithTest extends TestCase
+{
+    /**
+     * Test basic unionWith stage
+     */
+    public function testBasicUnionWith(): void
+    {
+        $builder = new AggregationBuilder();
+        $builder->unionWith('other_collection');
+
+        $pipeline = $builder->getPipeline();
+        $this->assertCount(1, $pipeline);
+        $this->assertArrayHasKey('$unionWith', $pipeline[0]);
+
+        $unionExpr = $pipeline[0]['$unionWith'];
+        $this->assertEquals('other_collection', $unionExpr['coll']);
+    }
+
+    /**
+     * Test unionWith with pipeline
+     */
+    public function testUnionWithWithPipeline(): void
+    {
+        $builder = new AggregationBuilder();
+        $builder->unionWith('other_collection')
+            ->pipeline([
+                ['$match' => ['status' => 'active']],
+                ['$limit' => 10],
+            ]);
+
+        $pipeline = $builder->getPipeline();
+        $unionExpr = $pipeline[0]['$unionWith'];
+        $this->assertArrayHasKey('pipeline', $unionExpr);
+        $this->assertCount(2, $unionExpr['pipeline']);
+    }
+
+    /**
+     * Test unionWith stage directly
+     */
+    public function testUnionWithStageDirect(): void
+    {
+        $builder = new AggregationBuilder();
+        $stage = new UnionWith($builder, 'other_collection');
+        $stage->pipeline([['$match' => ['status' => 'active']]]);
+
+        $expression = $stage->getExpression();
+        $this->assertArrayHasKey('$unionWith', $expression);
+        $unionExpr = $expression['$unionWith'];
+        $this->assertEquals('other_collection', $unionExpr['coll']);
+        $this->assertArrayHasKey('pipeline', $unionExpr);
+    }
+}

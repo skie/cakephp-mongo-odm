@@ -15,5 +15,10 @@ parameters:
         -
             identifier: new.static
             reportUnmatched: false
+        -
+            # Public library trait: unused within src/ by design (consumers mix it in).
+            identifier: trait.unused
+            path: src/TestSuite/MongoTestTrait.php
+            reportUnmatched: false
 
 services:

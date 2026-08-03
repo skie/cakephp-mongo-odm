@@ -17,10 +17,12 @@
     "require": {
         "php": ">=8.2",
         "cakephp/cakephp": "^5.4",
-        "crustum/plugin-manifest": "^1.0"
+        "crustum/plugin-manifest": "^1.0",
+        "mongodb/mongodb": "1.20"
     },
     "require-dev": {
         "cakedc/cakephp-phpstan": "^4.3",
+        "crustum/essentia": "^1.0",
         "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5",
         "cakephp/cakephp-codesniffer": "^5.0",
         "phpstan/phpstan": "^2.2.2,<2.2.6",
