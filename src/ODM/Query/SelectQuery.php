@@ -253,6 +253,8 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         $query->getBuilder()->where($builder->getFilter());
         $query->getBuilder()->select($builder->getProjection());
         $query->getBuilder()->orderBy($builder->getSort());
+        $query->getBuilder()->groupBy($builder->getGroup());
+        $query->getBuilder()->having($builder->getHaving());
         $query->getBuilder()->limit($builder->getLimit());
         $query->getBuilder()->skip($builder->getSkip());
         $query->getBuilder()->pipeline($builder->getPipeline());

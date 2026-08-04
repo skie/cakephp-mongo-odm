@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Query;
 
+use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\RepositoryInterface;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\DeleteQuery;
@@ -12,6 +13,8 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\Query\UnhydratedSelectQuery;
 use Crustum\Mongo\ODM\Query\UpdateQuery;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use MongoDB\BSON\ObjectId;
+use MongoDB\BSON\UTCDateTime;
 
 final class QueryTest extends TestCase
 {
@@ -71,13 +74,109 @@ final class QueryTest extends TestCase
         self::assertSame('Ada', $query->getValues()[0]['name']);
     }
 
+    public function testInsertConvertsTypedValues(): void
+    {
+        $query = $this->typedQuery(InsertQuery::class);
+        $query->values(['name' => 'Ada', 'created' => '2024-01-02 03:04:05']);
+
+        $document = $query->getValues()[0];
+        self::assertSame('Ada', $document['name']);
+        self::assertInstanceOf(UTCDateTime::class, $document['created']);
+    }
+
+    public function testInsertBackfillsGeneratedId(): void
+    {
+        $document = new Document(['name' => 'Ada']);
+        $query = $this->typedQuery(InsertQuery::class);
+        $query->values($document);
+
+        $id = $document->get('_id');
+        self::assertInstanceOf(ObjectId::class, $id);
+        self::assertSame($id, $query->getValues()[0]['_id']);
+    }
+
+    public function testInsertManyBackfillsGeneratedIds(): void
+    {
+        $first = new Document(['name' => 'Ada']);
+        $second = new Document(['name' => 'Grace']);
+        $query = $this->typedQuery(InsertQuery::class);
+        $query->valuesMany([$first, $second]);
+
+        $documents = $query->getValues();
+        self::assertCount(2, $documents);
+        self::assertInstanceOf(ObjectId::class, $documents[0]['_id']);
+        self::assertInstanceOf(ObjectId::class, $documents[1]['_id']);
+        self::assertSame($first->get('_id'), $documents[0]['_id']);
+        self::assertSame($second->get('_id'), $documents[1]['_id']);
+    }
+
+    public function testUpdateSetConvertsTypedValues(): void
+    {
+        $query = $this->typedQuery(UpdateQuery::class);
+        $query->set(['name' => 'Ada', 'created' => '2024-01-02 03:04:05']);
+
+        $update = $query->getUpdate();
+        self::assertSame('Ada', $update['$set']['name']);
+        self::assertInstanceOf(UTCDateTime::class, $update['$set']['created']);
+    }
+
+    public function testUpdateSetAcceptsDocument(): void
+    {
+        $query = $this->typedQuery(UpdateQuery::class);
+        $query->set(new Document(['name' => 'Ada', 'created' => '2024-01-02 03:04:05']));
+
+        $update = $query->getUpdate();
+        self::assertSame('Ada', $update['$set']['name']);
+        self::assertInstanceOf(UTCDateTime::class, $update['$set']['created']);
+    }
+
+    public function testUnhydratedPreservesAllClauses(): void
+    {
+        $query = (new QueryFactory())->select($this->repository());
+        $query
+            ->where(['active' => true])
+            ->select(['name'])
+            ->orderBy(['name' => 'asc'])
+            ->groupBy(['name'])
+            ->having(['total' => 5])
+            ->limit(10)
+            ->skip(2)
+            ->pipeline([['$set' => ['seen' => true]]]);
+
+        $unhydrated = $query->unhydrated();
+        $builder = $unhydrated->getBuilder();
+
+        self::assertSame(['active' => true], $builder->getFilter());
+        self::assertSame(['name' => 1], $builder->getProjection());
+        self::assertSame(['name' => 1], $builder->getSort());
+        self::assertSame(['name'], $builder->getGroup());
+        self::assertSame(['total' => 5], $builder->getHaving());
+        self::assertSame(10, $builder->getLimit());
+        self::assertSame(2, $builder->getSkip());
+        self::assertSame([['$set' => ['seen' => true]]], $builder->getPipeline());
+    }
+
     /** @return \Cake\Datasource\RepositoryInterface */
     private function repository(): RepositoryInterface
     {
-        $repository = $this->createStub(RepositoryInterface::class);
-        $repository->method('getAlias')->willReturn('users');
-        $repository->method('getRegistryAlias')->willReturn('Users');
+        return new RepositoryStub();
+    }
 
-        return $repository;
+    /**
+     * Builds a query bound to a repository with typed schema fields and a driver.
+     *
+     * @template T of \Crustum\Mongo\ODM\Query\InsertQuery|\Crustum\Mongo\ODM\Query\UpdateQuery|\Crustum\Mongo\ODM\Query\DeleteQuery|\Crustum\Mongo\ODM\Query\SelectQuery|\Crustum\Mongo\ODM\Query\UnhydratedSelectQuery
+     * @param class-string<T> $class The query class.
+     * @return T
+     */
+    private function typedQuery(string $class): mixed
+    {
+        $repository = new RepositoryStub('users', 'Users', [
+            '_id' => 'objectid',
+            'created' => 'datetime',
+            'name' => 'string',
+        ], ConnectionManager::get('test_mongo'));
+
+        return new $class(ConnectionManager::get('test_mongo'), 'users', $repository);
     }
 }

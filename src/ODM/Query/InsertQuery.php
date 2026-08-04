@@ -7,9 +7,14 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\RepositoryInterface;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\InsertQuery as DatabaseInsertQuery;
+use Crustum\Mongo\Database\Type\TypeFactory;
 
 /**
  * ODM insert query that accepts Documents and arrays.
+ *
+ * Values are converted through the repository schema type map before reaching
+ * the database query, and a generated `_id` is back-filled into source
+ * Documents so they reflect the persisted identifier.
  *
  * @see cake60/src/ORM/Query/InsertQuery.php
  */
@@ -39,13 +44,17 @@ class InsertQuery extends DatabaseInsertQuery
     /**
      * Sets a document or array to insert.
      *
+     * The document is converted through the schema type map and given a
+     * generated `_id` when missing; the `_id` is back-filled into the source
+     * Document.
+     *
      * @param \Cake\Datasource\EntityInterface|array<string, mixed> $values Document values.
      * @param bool $overwrite Whether to replace queued values.
      * @return $this
      */
     public function values(array|EntityInterface $values, bool $overwrite = false): static
     {
-        return parent::values($values instanceof EntityInterface ? $values->toArray() : $values, $overwrite);
+        return parent::values($this->prepareDocument($values), $overwrite);
     }
 
     /**
@@ -57,12 +66,43 @@ class InsertQuery extends DatabaseInsertQuery
     public function valuesMany(array $values): static
     {
         $values = array_values(array_map(
-            static fn(array|EntityInterface $value): array => $value instanceof EntityInterface
-                ? $value->toArray()
-                : $value,
+            $this->prepareDocument(...),
             $values,
         ));
 
         return parent::valuesMany($values);
+    }
+
+    /**
+     * Converts a document through the schema type map and ensures an `_id` exists.
+     *
+     * @param \Cake\Datasource\EntityInterface|array<string, mixed> $values The document.
+     * @return array<string, mixed>
+     */
+    protected function prepareDocument(array|EntityInterface $values): array
+    {
+        $document = $this->convertToDatabaseValues($values instanceof EntityInterface ? $values->toArray() : $values);
+
+        if (!isset($document['_id'])) {
+            $document['_id'] = $this->newId();
+            if ($values instanceof EntityInterface) {
+                $values->set('_id', $document['_id']);
+            }
+        }
+
+        return $document;
+    }
+
+    /**
+     * Generates a new identifier through the configured `_id` type.
+     *
+     * @return mixed
+     */
+    protected function newId(): mixed
+    {
+        $types = $this->getTypeMap()->toArray();
+        $type = $types['_id'] ?? 'objectid';
+
+        return TypeFactory::build($type)->newId();
     }
 }

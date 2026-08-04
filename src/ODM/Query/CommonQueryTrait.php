@@ -4,6 +4,9 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Query;
 
 use Cake\Datasource\RepositoryInterface;
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMapTrait;
 
 /**
@@ -102,5 +105,68 @@ trait CommonQueryTrait
         }
 
         return $this;
+    }
+
+    /**
+     * Converts document values through the configured type map defaults.
+     *
+     * Only fields with a configured type are converted; the rest pass through.
+     * Used by the ODM write queries so values reach Mongo in their BSON form
+     * without a separate persister layer.
+     *
+     * @param array<string, mixed> $values The document.
+     * @return array<string, mixed>
+     */
+    protected function convertToDatabaseValues(array $values): array
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return $values;
+        }
+
+        $driver = $connection->getDriver();
+        if (!$driver instanceof MongoDriver) {
+            return $values;
+        }
+
+        $types = $this->getTypeMap()->toArray();
+        foreach ($values as $field => $value) {
+            if (isset($types[$field])) {
+                $values[$field] = $this->convertValueToDatabase($value, $types[$field], $driver);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Converts a single value through its configured type.
+     *
+     * Lists are converted item by item; associative arrays pass through so
+     * Mongo operator expressions stay untouched.
+     *
+     * @param mixed                                 $value The value.
+     * @param string                                $type  The type name.
+     * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver.
+     * @return mixed
+     */
+    protected function convertValueToDatabase(mixed $value, string $type, MongoDriver $driver): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                return array_map(
+                    fn(mixed $item): mixed => $this->convertValueToDatabase($item, $type, $driver),
+                    $value,
+                );
+            }
+
+            return $value;
+        }
+
+        return TypeFactory::build($type)->toDatabase($value, $driver);
     }
 }
