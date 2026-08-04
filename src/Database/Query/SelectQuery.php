@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use Cake\Datasource\ResultSetInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use Crustum\Mongo\Database\ResultSet;
 use InvalidArgumentException;
 use IteratorAggregate;
 use Traversable;
@@ -169,15 +171,18 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
-     * Returns all documents as an array.
+     * Returns all documents as a result set.
      *
-     * @return list<array<string, mixed>>
+     * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
      */
-    public function all(): array
+    public function all(): ResultSetInterface
     {
         $result = $this->execute();
+        if ($result instanceof ResultSetInterface) {
+            return $result;
+        }
 
-        return $result instanceof Traversable ? iterator_to_array($result, false) : [];
+        return new ResultSet($result instanceof Traversable ? $result : (array)$result);
     }
 
     /**
@@ -187,9 +192,9 @@ class SelectQuery extends Query implements IteratorAggregate
      */
     public function first(): ?array
     {
-        $documents = $this->all();
+        $documents = $this->all()->first();
 
-        return $documents[0] ?? null;
+        return is_array($documents) ? $documents : null;
     }
 
     /**
