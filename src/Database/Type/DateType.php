@@ -13,10 +13,46 @@ use MongoDB\BSON\UTCDateTime;
 /**
  * Date type converter
  *
- * Use to convert date data between PHP and MongoDB
+ * Use to convert date data between PHP and MongoDB.
+ *
+ * @see cake60/src/Database/Type/DateType.php
  */
-class DateType extends BaseType
+class DateType extends BaseType implements BatchCastingInterface
 {
+    /**
+     * The formats accepted when parsing string input during `marshal()`.
+     *
+     * @var array<string>
+     */
+    protected array $marshalFormats = [
+        'Y-m-d H:i:s',
+        'Y-m-d',
+    ];
+
+    /**
+     * Whether `marshal()` should use the locale-aware parser.
+     *
+     * @var bool
+     */
+    protected bool $useLocaleMarshal = false;
+
+    /**
+     * The locale-aware format `marshal()` uses when `useLocaleMarshal` is enabled.
+     *
+     * @var string|int|null
+     */
+    protected string|int|null $localeMarshalFormat = null;
+
+    /**
+     * Constructor.
+     *
+     * @param string|null $name The name identifying this type.
+     */
+    public function __construct(?string $name = null)
+    {
+        parent::__construct($name);
+    }
+
     /**
      * Convert date data into the database format
      *
@@ -101,6 +137,22 @@ class DateType extends BaseType
     }
 
     /**
+     * @inheritDoc
+     */
+    public function manyToPHP(array $values, array $fields, MongoDriver $driver): array
+    {
+        foreach ($fields as $field) {
+            if (!array_key_exists($field, $values)) {
+                continue;
+            }
+
+            $values[$field] = $this->toPHP($values[$field], $driver);
+        }
+
+        return $values;
+    }
+
+    /**
      * Marshals request data into PHP DateTime
      *
      * @param mixed $value The value to convert
@@ -117,10 +169,103 @@ class DateType extends BaseType
         }
 
         if (is_string($value)) {
+            if ($this->useLocaleMarshal) {
+                return $this->parseLocaleValue($value);
+            }
+
+            $parsed = $this->parseValue($value);
+            if ($parsed instanceof DateTimeInterface) {
+                return $parsed;
+            }
+
             try {
                 return new DateTime($value);
             } catch (Exception) {
                 return null;
+            }
+        }
+
+        if (!is_array($value)) {
+            return null;
+        }
+
+        if (
+            !isset($value['year'], $value['month'], $value['day']) ||
+            !is_numeric($value['year']) || !is_numeric($value['month']) || !is_numeric($value['day'])
+        ) {
+            return null;
+        }
+
+        $format = sprintf('%d-%02d-%02d', $value['year'], $value['month'], $value['day']);
+
+        return new DateTime($format);
+    }
+
+    /**
+     * Sets whether `marshal()` parses strings using the locale-aware format.
+     *
+     * @param bool $enable Whether to enable.
+     * @return $this
+     */
+    public function useLocaleParser(bool $enable = true): static
+    {
+        $this->useLocaleMarshal = $enable;
+
+        return $this;
+    }
+
+    /**
+     * Sets the locale-aware format used by `marshal()` when locale parsing is enabled.
+     *
+     * @param string|int|null $format The format to use.
+     * @return $this
+     */
+    public function setLocaleFormat(string|int|null $format): static
+    {
+        $this->localeMarshalFormat = $format;
+
+        return $this;
+    }
+
+    /**
+     * Gets the class name used for building objects.
+     *
+     * @return class-string<\DateTime>
+     */
+    public function getDateClassName(): string
+    {
+        return DateTime::class;
+    }
+
+    /**
+     * Converts a string using the configured locale-aware format.
+     *
+     * @param string $value The value to parse.
+     * @return \DateTimeInterface|null
+     */
+    protected function parseLocaleValue(string $value): ?DateTimeInterface
+    {
+        if ($this->localeMarshalFormat === null) {
+            return null;
+        }
+
+        $date = DateTime::createFromFormat((string)$this->localeMarshalFormat, $value);
+
+        return $date === false ? null : $date;
+    }
+
+    /**
+     * Converts a string using the accepted marshal formats.
+     *
+     * @param string $value The value to parse.
+     * @return \DateTimeInterface|null
+     */
+    protected function parseValue(string $value): ?DateTimeInterface
+    {
+        foreach ($this->marshalFormats as $format) {
+            $date = DateTime::createFromFormat($format, $value);
+            if ($date !== false) {
+                return $date;
             }
         }
 

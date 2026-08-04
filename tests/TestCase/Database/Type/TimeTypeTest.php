@@ -7,6 +7,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TimeType;
 use DateTime;
+use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 
@@ -153,5 +154,36 @@ class TimeTypeTest extends TestCase
     public function testMarshalWithInvalidString(): void
     {
         $this->assertNull($this->type->marshal('not-a-time'));
+    }
+
+    public function testManyToPHP(): void
+    {
+        $values = ['start' => '09:15:30', 'other' => 'x'];
+        $result = $this->type->manyToPHP($values, ['start'], $this->driver);
+
+        $this->assertInstanceOf(DateTimeInterface::class, $result['start']);
+        $this->assertSame('09:15:30', $result['start']->format('H:i:s'));
+        $this->assertSame('x', $result['other']);
+    }
+
+    public function testMarshalWithMeridianArray(): void
+    {
+        $result = $this->type->marshal(['hour' => 3, 'minute' => 30, 'second' => 0, 'meridian' => 'pm']);
+        $this->assertInstanceOf(DateTimeInterface::class, $result);
+        $this->assertSame('15:30:00', $result->format('H:i:s'));
+    }
+
+    public function testMarshalWithLocaleParser(): void
+    {
+        $this->type->useLocaleParser()->setLocaleFormat('H.i.s');
+
+        $result = $this->type->marshal('09.15.30');
+        $this->assertInstanceOf(DateTimeInterface::class, $result);
+        $this->assertSame('09:15:30', $result->format('H:i:s'));
+    }
+
+    public function testGetTimeClassName(): void
+    {
+        $this->assertSame(DateTimeImmutable::class, $this->type->getTimeClassName());
     }
 }

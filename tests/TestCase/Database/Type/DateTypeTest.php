@@ -152,4 +152,36 @@ class DateTypeTest extends TestCase
         $result = $this->type->marshal(null);
         $this->assertNull($result);
     }
+
+    public function testManyToPHP(): void
+    {
+        $values = ['created' => '2024-01-02 03:04:05', 'other' => 'x'];
+        $result = $this->type->manyToPHP($values, ['created'], $this->driver);
+
+        $this->assertInstanceOf(DateTime::class, $result['created']);
+        $this->assertSame('x', $result['other']);
+    }
+
+    public function testMarshalWithPartsArray(): void
+    {
+        $this->assertSame(
+            '2024-01-02',
+            $this->type->marshal(['year' => 2024, 'month' => 1, 'day' => 2])->format('Y-m-d'),
+        );
+        $this->assertNull($this->type->marshal(['year' => 'x', 'month' => 1, 'day' => 2]));
+    }
+
+    public function testMarshalWithLocaleParser(): void
+    {
+        $this->type->useLocaleParser()->setLocaleFormat('d.m.Y');
+
+        $result = $this->type->marshal('02.01.2024');
+        $this->assertInstanceOf(DateTime::class, $result);
+        $this->assertSame('2024-01-02', $result->format('Y-m-d'));
+    }
+
+    public function testGetDateClassName(): void
+    {
+        $this->assertSame(DateTime::class, $this->type->getDateClassName());
+    }
 }
