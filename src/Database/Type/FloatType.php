@@ -10,9 +10,24 @@ use InvalidArgumentException;
  * Float type converter
  *
  * Use to convert float data between PHP and MongoDB
+ *
+ * Implements `Incrementable` so float fields can be diffed into `$inc`
+ * updates.
  */
-class FloatType extends BaseType
+class FloatType extends BaseType implements Incrementable
 {
+    /**
+     * @inheritDoc
+     */
+    public function diff(mixed $old, mixed $new): ?float
+    {
+        if ($old === null || $new === null) {
+            return null;
+        }
+
+        return (float)$new - (float)$old;
+    }
+
     /**
      * Checks if the value is not a numeric value
      *

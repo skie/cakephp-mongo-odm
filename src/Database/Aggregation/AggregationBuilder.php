@@ -13,11 +13,14 @@ use Crustum\Mongo\Database\Aggregation\Stage\Facet;
 use Crustum\Mongo\Database\Aggregation\Stage\Fill;
 use Crustum\Mongo\Database\Aggregation\Stage\GeoNear;
 use Crustum\Mongo\Database\Aggregation\Stage\GraphLookup;
+use Crustum\Mongo\Database\Aggregation\Stage\Group;
 use Crustum\Mongo\Database\Aggregation\Stage\IndexStats;
 use Crustum\Mongo\Database\Aggregation\Stage\Limit;
 use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
+use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Merge;
 use Crustum\Mongo\Database\Aggregation\Stage\Out;
+use Crustum\Mongo\Database\Aggregation\Stage\Project;
 use Crustum\Mongo\Database\Aggregation\Stage\Redact;
 use Crustum\Mongo\Database\Aggregation\Stage\ReplaceRoot;
 use Crustum\Mongo\Database\Aggregation\Stage\ReplaceWith;
@@ -26,10 +29,15 @@ use Crustum\Mongo\Database\Aggregation\Stage\Search;
 use Crustum\Mongo\Database\Aggregation\Stage\Set;
 use Crustum\Mongo\Database\Aggregation\Stage\SetWindowFields;
 use Crustum\Mongo\Database\Aggregation\Stage\Skip;
+use Crustum\Mongo\Database\Aggregation\Stage\Sort;
 use Crustum\Mongo\Database\Aggregation\Stage\SortByCount;
 use Crustum\Mongo\Database\Aggregation\Stage\Stage;
 use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
 use Crustum\Mongo\Database\Aggregation\Stage\UnsetStage;
+use Crustum\Mongo\Database\Aggregation\Stage\Unwind;
+use Crustum\Mongo\Database\Aggregation\Stage\VectorSearch;
+use Crustum\Mongo\Database\Expression\FunctionsBuilder;
+use OutOfRangeException;
 
 /**
  * Aggregation pipeline builder for MongoDB
@@ -57,7 +65,7 @@ class AggregationBuilder
             $conditions = $conditions($this);
         }
 
-        $this->_pipeline[] = ['$match' => $conditions];
+        $this->_pipeline[] = new MatchStage($this, $conditions);
 
         return $this;
     }
@@ -70,7 +78,7 @@ class AggregationBuilder
      */
     public function group(array $grouping)
     {
-        $this->_pipeline[] = ['$group' => $grouping];
+        $this->_pipeline[] = new Group($this, $grouping);
 
         return $this;
     }
@@ -78,12 +86,12 @@ class AggregationBuilder
     /**
      * Add a $sort stage
      *
-     * @param array<string, int> $sort The sort specification
+     * @param array<string, int|string> $sort The sort specification
      * @return $this
      */
     public function sort(array $sort)
     {
-        $this->_pipeline[] = ['$sort' => $sort];
+        $this->_pipeline[] = new Sort($this, $sort);
 
         return $this;
     }
@@ -96,7 +104,7 @@ class AggregationBuilder
      */
     public function project(array $fields)
     {
-        $this->_pipeline[] = ['$project' => $fields];
+        $this->_pipeline[] = new Project($this, $fields);
 
         return $this;
     }
@@ -137,8 +145,7 @@ class AggregationBuilder
      */
     public function unwind(string $path, array $options = [])
     {
-        $unwind = ['path' => $path] + $options;
-        $this->_pipeline[] = ['$unwind' => $unwind];
+        $this->_pipeline[] = new Unwind($this, $path, $options);
 
         return $this;
     }
@@ -257,7 +264,7 @@ class AggregationBuilder
      * Add a $bucket stage
      *
      * @param array<string, mixed>|string $groupBy    The expression to group by
-     * @param array<int|float>            $boundaries The boundaries array
+     * @param array<int|float> $boundaries The boundaries array
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Bucket
      */
     public function bucket(array|string $groupBy, array $boundaries): Bucket
@@ -272,7 +279,7 @@ class AggregationBuilder
      * Add a $bucketAuto stage
      *
      * @param array<string, mixed>|string $groupBy The expression to group by
-     * @param int                          $buckets The number of buckets
+     * @param int $buckets The number of buckets
      * @return \Crustum\Mongo\Database\Aggregation\Stage\BucketAuto
      */
     public function bucketAuto(array|string $groupBy, int $buckets): BucketAuto
@@ -299,11 +306,11 @@ class AggregationBuilder
     /**
      * Add a $graphLookup stage
      *
-     * @param string                        $from             The collection to search
-     * @param array<string, mixed>|string   $startWith        The expression to start the search
-     * @param string                        $connectFromField The field to connect from
-     * @param string                        $connectToField   The field to connect to
-     * @param string                        $as               The alias for the results
+     * @param string $from The collection to search
+     * @param array<string, mixed>|string $startWith The expression to start the search
+     * @param string $connectFromField The field to connect from
+     * @param string $connectToField The field to connect to
+     * @param string $as The alias for the results
      * @return \Crustum\Mongo\Database\Aggregation\Stage\GraphLookup
      */
     public function graphLookup(
@@ -392,8 +399,8 @@ class AggregationBuilder
     /**
      * Add a $densify stage
      *
-     * @param string                      $field The field to densify
-     * @param array<string, mixed>|null   $range The range specification (optional)
+     * @param string $field The field to densify
+     * @param array<string, mixed>|null $range The range specification (optional)
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Densify
      */
     public function densify(string $field, ?array $range = null): Densify
@@ -445,6 +452,22 @@ class AggregationBuilder
     }
 
     /**
+     * Add a $vectorSearch stage
+     *
+     * @param object|array<float> $queryVector The query vector
+     * @param string $path The field path to search over
+     * @param int|null $numCandidates The number of candidates to consider
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\VectorSearch
+     */
+    public function vectorSearch(array|object $queryVector, string $path, ?int $numCandidates = null): VectorSearch
+    {
+        $stage = new VectorSearch($this, $queryVector, $path, $numCandidates);
+        $this->_pipeline[] = $stage;
+
+        return $stage;
+    }
+
+    /**
      * Add a $collStats stage
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\CollStats
@@ -473,8 +496,8 @@ class AggregationBuilder
     /**
      * Add a $geoNear stage
      *
-     * @param array<float>|array<string, array<float>> $near          The point to search near
-     * @param string                                    $distanceField The distance field name
+     * @param array<float>|array<string, array<float>> $near The point to search near
+     * @param string $distanceField The distance field name
      * @return \Crustum\Mongo\Database\Aggregation\Stage\GeoNear
      */
     public function geoNear(array $near, string $distanceField): GeoNear
@@ -502,8 +525,8 @@ class AggregationBuilder
     /**
      * Add custom stage
      *
-     * @param string               $operator The stage operator (e.g., '$limit', '$skip')
-     * @param array<string, mixed>|string|int $stage    The stage specification or value
+     * @param string $operator The stage operator (e.g., '$limit', '$skip')
+     * @param array<string, mixed>|string|int $stage The stage specification or value
      * @return $this
      */
     public function addStage(string $operator, array|int|string $stage)
@@ -530,5 +553,34 @@ class AggregationBuilder
         }
 
         return $result;
+    }
+
+    /**
+     * Returns an aggregation functions (expressions) builder.
+     *
+     * Mirrors `Cake\Database\Query::func()` for building operator expressions
+     * that feed projections/group accumulators.
+     *
+     * @return \Crustum\Mongo\Database\Expression\FunctionsBuilder
+     */
+    public function func(): FunctionsBuilder
+    {
+        return new FunctionsBuilder();
+    }
+
+    /**
+     * Returns a certain stage from the pipeline.
+     *
+     * @param int $index The zero-based stage index
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Stage|array<string, mixed> The stage
+     * @throws \OutOfRangeException When no stage exists at the given index
+     */
+    public function getStage(int $index): Stage|array
+    {
+        if (!isset($this->_pipeline[$index])) {
+            throw new OutOfRangeException(sprintf('Could not find stage with index %d.', $index));
+        }
+
+        return $this->_pipeline[$index];
     }
 }

@@ -10,9 +10,32 @@ use InvalidArgumentException;
  * Integer type converter
  *
  * Use to convert integer data between PHP and MongoDB
+ *
+ * Implements `Incrementable` and `Versionable` so integer fields can be
+ * diffed into `$inc` updates and bumped for optimistic locking.
  */
-class IntegerType extends BaseType
+class IntegerType extends BaseType implements Incrementable, Versionable
 {
+    /**
+     * @inheritDoc
+     */
+    public function diff(mixed $old, mixed $new): ?int
+    {
+        if ($old === null || $new === null) {
+            return null;
+        }
+
+        return (int)$new - (int)$old;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getNextVersion(mixed $current): int
+    {
+        return (int)$current + 1;
+    }
+
     /**
      * Checks if the value is not a numeric value
      *

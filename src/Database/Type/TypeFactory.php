@@ -36,6 +36,11 @@ class TypeFactory
         'hash' => HashType::class,
         'collection' => CollectionType::class,
         'raw' => RawType::class,
+        'key' => KeyType::class,
+        'keytype' => KeyType::class,
+        'vector_float32' => VectorFloat32Type::class,
+        'vector_int8' => VectorInt8Type::class,
+        'vector_packed_bit' => VectorPackedBitType::class,
     ];
 
     /**
