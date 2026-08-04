@@ -16,7 +16,7 @@ trait TypeMapTrait
     /**
      * Creates a new TypeMap if $typeMap is an array, otherwise exchanges it for the given one.
      *
-     * @param \Crustum\Mongo\Database\TypeMap|array $typeMap Creates a TypeMap if array, otherwise sets the given TypeMap
+     * @param \Crustum\Mongo\Database\TypeMap|array<int|string, string> $typeMap Creates a TypeMap if array, otherwise sets the given TypeMap
      * @return $this
      */
     public function setTypeMap(TypeMap|array $typeMap)
