@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Query;
 
 use Closure;
+use Cake\Database\ExpressionInterface;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\QueryBuilder as ExpressionBuilder;
+use InvalidArgumentException;
 
 /**
  * Query builder for MongoDB queries and aggregation pipelines.
@@ -20,7 +22,7 @@ class QueryCompiler
     /**
      * MongoDB filter conditions
      *
-     * @var array<int|string, mixed>
+     * @var array<string, mixed>
      */
     protected array $filter = [];
 
@@ -392,7 +394,7 @@ class QueryCompiler
     /**
      * Get the filter conditions
      *
-     * @return array<int|string, mixed>
+     * @return array<string, mixed>
      */
     public function getFilter(): array
     {
@@ -417,6 +419,46 @@ class QueryCompiler
     public function getLimit(): ?int
     {
         return $this->limit;
+    }
+
+    /**
+     * Get the current skip, if any.
+     *
+     * @return int|null
+     */
+    public function getSkip(): ?int
+    {
+        return $this->skip;
+    }
+
+    /**
+     * Get the current sort order.
+     *
+     * @return array<string, int>
+     */
+    public function getSort(): array
+    {
+        return $this->sort;
+    }
+
+    /**
+     * Get the aggregation pipeline stages.
+     *
+     * @return array<int, array<int|string, mixed>>
+     */
+    public function getPipeline(): array
+    {
+        return $this->pipeline;
+    }
+
+    /**
+     * Get the additional MongoDB options.
+     *
+     * @return array<string, mixed>
+     */
+    public function getOptions(): array
+    {
+        return $this->options;
     }
 
     /**

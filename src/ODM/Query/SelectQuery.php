@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Query;
 
 use Cake\Datasource\Exception\RecordNotFoundException;
+use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
 use Cake\Datasource\RepositoryInterface;
 use Closure;
@@ -14,6 +15,8 @@ use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use InvalidArgumentException;
+use Psr\SimpleCache\CacheInterface;
+use RuntimeException;
 use Traversable;
 
 /**
@@ -50,18 +53,25 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     protected array $formatters = [];
 
     /**
-     * Optional DTO class for a future projection mapper.
+     * Optional DTO class for result projection.
      *
      * @var class-string|null
      */
     protected ?string $dtoClass = null;
 
     /**
-     * Cache configuration for this query.
+     * Cache handler for this query, when caching is enabled.
      *
-     * @var mixed
+     * @var \Cake\Datasource\QueryCacher|null
      */
-    protected mixed $cacheKey = null;
+    protected ?QueryCacher $cacher = null;
+
+    /**
+     * Fields used to build a Mongo `$group` stage.
+     *
+     * @var array<string>
+     */
+    protected array $groupFields = [];
 
     /**
      * Constructor.
@@ -258,29 +268,51 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Configures a cache key for the query.
+     * Configures result caching for this query.
      *
-     * Cache storage is applied by the Collection/query integration layer.
+     * The key may be a string or a callable that receives this query and
+     * returns a string. Pass `false` to disable caching. Cached results are
+     * hydrated or projected before being stored, matching the ORM contract.
      *
-     * @param \Closure|string|false $key Cache key or disabled marker.
-     * @param mixed $config Cache configuration.
+     * @param \Closure|string|false $key Cache key or key generator.
+     * @param \Psr\SimpleCache\CacheInterface|string $config Cache config name or engine.
      * @return $this
      */
-    public function cache(Closure|string|false $key, mixed $config = 'default'): static
+    public function cache(Closure|string|false $key, CacheInterface|string $config = 'default'): static
     {
-        $this->cacheKey = $key === false ? null : [$key, $config];
+        $this->cacher = $key === false ? null : new QueryCacher($key, $config);
 
         return $this;
     }
 
     /**
-     * Creates a non-hydrating clone of this query.
+     * Returns the configured cache handler.
+     *
+     * @return \Cake\Datasource\QueryCacher|null
+     */
+    public function getCache(): ?QueryCacher
+    {
+        return $this->cacher;
+    }
+
+    /**
+     * Creates a non-hydrating query that preserves all clauses.
      *
      * @return \Crustum\Mongo\ODM\Query\UnhydratedSelectQuery
      */
     public function unhydrated(): UnhydratedSelectQuery
     {
-        return new UnhydratedSelectQuery($this->getConnection(), $this->getCollection(), $this->repository);
+        $builder = $this->getBuilder();
+        $query = new UnhydratedSelectQuery($this->getConnection(), $this->getCollection(), $this->repository);
+        $query->getBuilder()->where($builder->getFilter());
+        $query->getBuilder()->select($builder->getProjection());
+        $query->getBuilder()->orderBy($builder->getSort());
+        $query->getBuilder()->limit($builder->getLimit());
+        $query->getBuilder()->skip($builder->getSkip());
+        $query->getBuilder()->pipeline($builder->getPipeline());
+        $query->getBuilder()->options($builder->getOptions());
+
+        return $query;
     }
 
     /**
@@ -306,16 +338,33 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Records grouping fields for Mongo pipeline consumers.
+     * Groups results by one or more fields using a Mongo `$group` stage.
      *
-     * @param array<int|string, mixed>|string $fields Grouping fields.
+     * A single field becomes the `_id` string; multiple fields are combined
+     * into a compound `_id` document.
+     *
+     * @param array<string>|string $fields Grouping fields.
      * @return $this
      */
     public function groupBy(array|string $fields): static
     {
-        $this->options(['group' => $fields]);
+        $fields = array_values((array)$fields);
+        $this->groupFields = $fields;
+        $id = count($fields) === 1
+            ? '$' . $fields[0]
+            : array_combine($fields, array_map(static fn(string $field): string => '$' . $field, $fields));
 
-        return $this;
+        return $this->pipeline([['$group' => ['_id' => $id]]]);
+    }
+
+    /**
+     * Returns the grouping fields configured for this query.
+     *
+     * @return array<string>
+     */
+    public function getGroupBy(): array
+    {
+        return $this->groupFields;
     }
 
     /**
@@ -388,9 +437,12 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Projects results to a DTO class marker.
+     * Projects results into DTO instances.
      *
-     * @param string $dtoClass DTO class name.
+     * The DTO class must provide a static `createFromArray(array $data): object`
+     * factory. Hydration is skipped for the primary rows when a DTO is set.
+     *
+     * @param class-string $dtoClass DTO class name.
      * @return $this
      * @throws \InvalidArgumentException If the class does not exist.
      */
@@ -406,9 +458,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Executes and hydrates the database query.
+     * Executes and decorates the database query.
      *
-     * @return mixed A ResultSet for select results.
+     * Rows are hydrated into Documents (or projected into DTOs when configured),
+     * then passed through result formatters. Cached result sets are returned
+     * without hitting the database when a cache handler is configured.
+     *
+     * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
      */
     public function execute(): mixed
     {
@@ -416,11 +472,53 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
 
+        if ($this->cacher !== null) {
+            $cached = $this->cacher->fetch($this);
+            if ($cached !== null) {
+                return $cached instanceof ResultSet ? $cached : new ResultSet($cached);
+            }
+        }
+
         $rows = parent::execute();
-        $resultSet = new ResultSetFactory()->createResultSet($rows, [
-            'hydrate' => $this->hydrate,
-            'source' => $this->repository?->getRegistryAlias() ?? $this->getCollection(),
-        ]);
+        $rows = $rows instanceof Traversable ? $rows : (array)$rows;
+        $resultSet = $this->decorate($rows);
+
+        if ($this->cacher !== null) {
+            $this->cacher->store($this, $resultSet);
+        }
+
+        return $resultSet;
+    }
+
+    /**
+     * Hydrates, projects, and formats an executed row set.
+     *
+     * @param iterable<array-key, mixed> $rows Raw Mongo rows.
+     * @return \Crustum\Mongo\ODM\ResultSet<array-key, mixed>
+     */
+    protected function decorate(iterable $rows): ResultSet
+    {
+        if ($this->dtoClass !== null) {
+            $dtoClass = $this->dtoClass;
+            if (!method_exists($dtoClass, 'createFromArray')) {
+                throw new RuntimeException(sprintf(
+                    'DTO class `%s` must provide a static createFromArray() factory.',
+                    $dtoClass,
+                ));
+            }
+
+            $dtos = [];
+            foreach ($rows as $row) {
+                $dtos[] = $dtoClass::createFromArray((array)$row);
+            }
+            $resultSet = new ResultSet($dtos);
+        } else {
+            $resultSet = (new ResultSetFactory())->createResultSet($rows, [
+                'hydrate' => $this->hydrate,
+                'source' => $this->repository?->getRegistryAlias() ?? $this->getCollection(),
+            ]);
+        }
+
         foreach ($this->formatters as $formatter) {
             $formatted = $formatter($resultSet);
             $resultSet = $formatted instanceof ResultSet
