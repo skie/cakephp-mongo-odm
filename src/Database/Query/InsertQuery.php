@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use InvalidArgumentException;
+
 /**
  * Insert query for MongoDB insertOne/insertMany operations.
  *
@@ -20,6 +22,47 @@ class InsertQuery extends Query
     protected array $documents = [];
 
     /**
+     * The declared insert columns.
+     *
+     * @var list<string>
+     */
+    protected array $columns = [];
+
+    /**
+     * Records the columns to insert into.
+     *
+     * When set, later `values()` / `valuesMany()` documents are filtered to
+     * these columns only.
+     *
+     * @param array<string> $columns The columns to insert into.
+     * @return $this
+     * @throws \InvalidArgumentException When there are 0 columns.
+     */
+    public function insert(array $columns): static
+    {
+        if ($columns === []) {
+            throw new InvalidArgumentException('At least 1 column is required to perform an insert.');
+        }
+
+        $this->columns = array_values($columns);
+
+        return $this;
+    }
+
+    /**
+     * Sets the target collection to insert into.
+     *
+     * @param string $collection The collection name.
+     * @return $this
+     */
+    public function into(string $collection): static
+    {
+        $this->collection = $collection;
+
+        return $this;
+    }
+
+    /**
      * Sets the values for a single document to insert.
      *
      * @param array<string, mixed> $values The document.
@@ -28,6 +71,8 @@ class InsertQuery extends Query
      */
     public function values(array $values, bool $overwrite = false): static
     {
+        $values = $this->filterColumns($values);
+
         if ($overwrite) {
             $this->documents = [$values];
         } else {
@@ -45,7 +90,7 @@ class InsertQuery extends Query
      */
     public function valuesMany(array $values): static
     {
-        $this->documents = array_merge($this->documents, $values);
+        $this->documents = array_merge($this->documents, array_map($this->filterColumns(...), $values));
 
         return $this;
     }
@@ -58,6 +103,21 @@ class InsertQuery extends Query
     public function getValues(): array
     {
         return $this->documents;
+    }
+
+    /**
+     * Filters a document down to the declared insert columns.
+     *
+     * @param array<string, mixed> $values The document.
+     * @return array<string, mixed>
+     */
+    protected function filterColumns(array $values): array
+    {
+        if ($this->columns === []) {
+            return $values;
+        }
+
+        return array_intersect_key($values, array_fill_keys($this->columns, null));
     }
 
     /**

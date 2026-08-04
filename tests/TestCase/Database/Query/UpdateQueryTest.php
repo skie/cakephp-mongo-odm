@@ -519,6 +519,31 @@ class UpdateQueryTest extends TestCase
     }
 
     /**
+     * Test update() sets the target collection and returns $this.
+     *
+     * @return void
+     */
+    public function testUpdate(): void
+    {
+        $query = new UpdateQuery($this->connection);
+        $this->assertSame($query, $query->update('posts'));
+        $this->assertSame('posts', $query->getCollection());
+        $this->assertSame('posts', $query->compile()['collection']);
+    }
+
+    /**
+     * Test update() with no table leaves the collection unchanged.
+     *
+     * @return void
+     */
+    public function testUpdateNoTable(): void
+    {
+        $query = new UpdateQuery($this->connection, 'articles');
+        $this->assertSame($query, $query->update());
+        $this->assertSame('articles', $query->getCollection());
+    }
+
+    /**
      * Test from() sets the target collection.
      *
      * @return void

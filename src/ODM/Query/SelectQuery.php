@@ -9,7 +9,6 @@ use Cake\Datasource\QueryInterface;
 use Cake\Datasource\RepositoryInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
 use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
@@ -67,13 +66,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     protected ?QueryCacher $cacher = null;
 
     /**
-     * Fields used to build a Mongo `$group` stage.
-     *
-     * @var array<string>
-     */
-    protected array $groupFields = [];
-
-    /**
      * Constructor.
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection Database connection.
@@ -114,52 +106,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function isHydrationEnabled(): bool
     {
         return $this->hydrate;
-    }
-
-    /**
-     * Sets selected fields, accepting the complete datasource query scalar range.
-     *
-     * @param \Closure|array<string, mixed>|string|float|int $fields Fields to select.
-     * @param bool $overwrite Whether to replace existing fields.
-     * @return $this
-     */
-    public function select(Closure|array|string|float|int $fields, bool $overwrite = false): static
-    {
-        return parent::select(is_float($fields) || is_int($fields) ? (string)$fields : $fields, $overwrite);
-    }
-
-    /**
-     * Sets query conditions with datasource-compatible type arguments.
-     *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Conditions.
-     * @param array<string, string>|bool $types Types or database overwrite flag.
-     * @param bool $overwrite Whether to overwrite existing conditions.
-     * @return $this
-     */
-    public function where(
-        Closure|MongoExpressionInterface|array|string|null $conditions = null,
-        array|bool $types = [],
-        bool $overwrite = false,
-    ): static {
-        if (is_bool($types)) {
-            $overwrite = $types;
-        }
-
-        return parent::where($conditions, $overwrite);
-    }
-
-    /**
-     * Adds conditions with an AND conjunction.
-     *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string $conditions Conditions.
-     * @param array<string, string> $types Types to apply.
-     * @return $this
-     */
-    public function andWhere(
-        Closure|MongoExpressionInterface|array|string $conditions,
-        array $types = [],
-    ): static {
-        return parent::andWhere($conditions);
     }
 
     /**
@@ -338,36 +284,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Groups results by one or more fields using a Mongo `$group` stage.
-     *
-     * A single field becomes the `_id` string; multiple fields are combined
-     * into a compound `_id` document.
-     *
-     * @param array<string>|string $fields Grouping fields.
-     * @return $this
-     */
-    public function groupBy(array|string $fields): static
-    {
-        $fields = array_values((array)$fields);
-        $this->groupFields = $fields;
-        $id = count($fields) === 1
-            ? '$' . $fields[0]
-            : array_combine($fields, array_map(static fn(string $field): string => '$' . $field, $fields));
-
-        return $this->pipeline([['$group' => ['_id' => $id]]]);
-    }
-
-    /**
-     * Returns the grouping fields configured for this query.
-     *
-     * @return array<string>
-     */
-    public function getGroupBy(): array
-    {
-        return $this->groupFields;
-    }
-
-    /**
      * Adds containment configuration.
      *
      * @param array<int|string, mixed>|string $associations Associations to contain.
@@ -472,7 +388,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
 
-        if ($this->cacher !== null) {
+        if ($this->cacher instanceof QueryCacher) {
             $cached = $this->cacher->fetch($this);
             if ($cached !== null) {
                 return $cached instanceof ResultSet ? $cached : new ResultSet($cached);
@@ -481,9 +397,10 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
 
         $rows = parent::execute();
         $rows = $rows instanceof Traversable ? $rows : (array)$rows;
+
         $resultSet = $this->decorate($rows);
 
-        if ($this->cacher !== null) {
+        if ($this->cacher instanceof QueryCacher) {
             $this->cacher->store($this, $resultSet);
         }
 
@@ -511,6 +428,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             foreach ($rows as $row) {
                 $dtos[] = $dtoClass::createFromArray((array)$row);
             }
+
             $resultSet = new ResultSet($dtos);
         } else {
             $resultSet = (new ResultSetFactory())->createResultSet($rows, [

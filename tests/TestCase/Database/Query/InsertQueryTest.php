@@ -8,6 +8,7 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\InsertQuery;
+use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
 
 /**
@@ -230,6 +231,75 @@ class InsertQueryTest extends TestCase
     {
         $query = new InsertQuery($this->connection, 'articles');
         $this->assertSame('insert', $query->compile()['type']);
+    }
+
+    /**
+     * Test insert() records the column list and returns $this.
+     *
+     * @return void
+     */
+    public function testInsert(): void
+    {
+        $query = new InsertQuery($this->connection, 'articles');
+        $this->assertSame($query, $query->insert(['title', 'author_id']));
+    }
+
+    /**
+     * Test insert() with empty columns throws.
+     *
+     * @return void
+     */
+    public function testInsertEmptyColumnsThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('At least 1 column is required to perform an insert.');
+
+        $query = new InsertQuery($this->connection, 'articles');
+        $query->insert([]);
+    }
+
+    /**
+     * Test insert() restricts values() documents to the declared columns.
+     *
+     * @return void
+     */
+    public function testInsertFiltersValues(): void
+    {
+        $query = new InsertQuery($this->connection, 'articles');
+        $query->insert(['title'])->values(['title' => 'One', 'body' => 'Ignored']);
+
+        $this->assertEquals([['title' => 'One']], $query->getValues());
+    }
+
+    /**
+     * Test insert() restricts valuesMany() documents to the declared columns.
+     *
+     * @return void
+     */
+    public function testInsertFiltersValuesMany(): void
+    {
+        $query = new InsertQuery($this->connection, 'articles');
+        $query->insert(['title'])->valuesMany([
+            ['title' => 'One', 'body' => 'Ignored'],
+            ['title' => 'Two'],
+        ]);
+
+        $this->assertEquals([
+            ['title' => 'One'],
+            ['title' => 'Two'],
+        ], $query->getValues());
+    }
+
+    /**
+     * Test into() sets the target collection.
+     *
+     * @return void
+     */
+    public function testInto(): void
+    {
+        $query = new InsertQuery($this->connection);
+        $this->assertSame($query, $query->into('posts'));
+        $this->assertSame('posts', $query->compile()['collection']);
     }
 
     /**

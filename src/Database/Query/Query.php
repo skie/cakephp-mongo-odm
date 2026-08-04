@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Database\Query;
 
 use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\TypeMapTrait;
 use Stringable;
 
 /**
@@ -17,6 +19,8 @@ use Stringable;
  */
 abstract class Query implements Stringable
 {
+    use TypeMapTrait;
+
     public const string TYPE_SELECT = 'find';
 
     public const string TYPE_INSERT = 'insert';
@@ -54,7 +58,11 @@ abstract class Query implements Stringable
     {
         $this->connection = $connection;
         $this->collection = $collection;
-        $this->builder = new QueryCompiler();
+
+        $driver = $connection instanceof Connection && $connection->getDriver() instanceof MongoDriver
+            ? $connection->getDriver()
+            : null;
+        $this->builder = new QueryCompiler($driver);
     }
 
     /**

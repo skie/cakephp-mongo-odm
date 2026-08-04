@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use Cake\Database\ExpressionInterface;
 use Closure;
-use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use Crustum\Mongo\Database\Expression\QueryExpression;
 
 /**
  * Update query for MongoDB updateMany operations.
@@ -23,15 +24,43 @@ class UpdateQuery extends Query
     protected array $update = [];
 
     /**
-     * Sets the filter conditions.
+     * Sets the target collection to update.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
-     * @param bool $overwrite Whether to overwrite existing conditions.
+     * @param string|null $collection The collection name.
      * @return $this
      */
-    public function where(Closure|MongoExpressionInterface|array|string|null $conditions, bool $overwrite = false): static
+    public function update(?string $collection = null): static
     {
-        $this->builder->where($conditions, $overwrite);
+        if ($collection !== null) {
+            $this->collection = $collection;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets the filter conditions.
+     *
+     * A `Closure` receives `(QueryExpression $exp, UpdateQuery $query)` and must
+     * return the conditions to merge into the filter.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
+     * @param array<int|string, string>                                                    $types      Field => type map used to cast values.
+     * @param bool                                                                         $overwrite  Whether to overwrite existing conditions.
+     * @return $this
+     */
+    public function where(
+        ExpressionInterface|Closure|array|string|null $conditions = [],
+        array $types = [],
+        bool $overwrite = false,
+    ): static {
+        if ($conditions instanceof Closure) {
+            $exp = new QueryExpression();
+            $conditions = $conditions($exp, $this) ?? $exp;
+        }
+
+        $types += $this->getDefaultTypes();
+        $this->builder->where($conditions, $types, $overwrite);
 
         return $this;
     }

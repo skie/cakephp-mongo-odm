@@ -441,12 +441,14 @@ class SelectQueryTest extends TestCase
     /**
      * Test where() accepts a closure returning an expression.
      *
+     * The closure receives `(QueryExpression $exp, SelectQuery $query)`.
+     *
      * @return void
      */
     public function testSelectWhereClosureExpression(): void
     {
         $query = new SelectQuery($this->connection, 'articles');
-        $query->where(fn($builder) => $builder->comparison('author_id', 1, '$eq'));
+        $query->where(fn(QueryExpression $exp, SelectQuery $q): QueryExpression => $exp->eq('author_id', 1));
 
         $this->assertFilter(['author_id' => 1], $query->compile());
     }
@@ -601,7 +603,7 @@ class SelectQueryTest extends TestCase
     public function testWhereOverwrite(): void
     {
         $query = new SelectQuery($this->connection, 'articles');
-        $query->where(['a' => 1])->where(['b' => 2], true);
+        $query->where(['a' => 1])->where(['b' => 2], [], true);
 
         $this->assertFilter(['b' => 2], $query->compile());
     }
