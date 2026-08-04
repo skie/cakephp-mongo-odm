@@ -9,6 +9,8 @@ use Rector\DeadCode\Rector\For_\RemoveDeadIfForeachForRector;
 use Rector\DeadCode\Rector\For_\RemoveDeadLoopRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveDuplicatedReturnSelfDocblockRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveMixedDocblockOverruledByNativeTypeRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPrivateMethodParameterRector;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveReturnTagIncompatibleWithNativeTypeRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessParamTagRector;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUselessReturnTagRector;
@@ -47,6 +49,9 @@ return RectorConfig::configure()
         RemoveDuplicatedReturnSelfDocblockRector::class,
         RemoveMixedDocblockOverruledByNativeTypeRector::class,
         RemoveReturnTagIncompatibleWithNativeTypeRector::class,
+        // ODM method parameters are part of frozen Cake-style contracts and test doubles.
+        RemoveUnusedPrivateMethodParameterRector::class,
+        RemoveUnusedPublicMethodParameterRector::class,
         ReturnTypeFromStrictFluentReturnRector::class,
         ReturnNeverTypeRector::class,
         SafeDeclareStrictTypesRector::class,

@@ -38,8 +38,11 @@ final class Marshaller
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $options
+     * Hydrates one document from input data.
+     *
+     * @param array<string, mixed> $data Data to marshal.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return \Crustum\Mongo\ODM\Document
      */
     public function one(array $data, array $options = []): Document
     {
@@ -56,8 +59,10 @@ final class Marshaller
     }
 
     /**
-     * @param array<int, mixed> $data
-     * @param array<string, mixed> $options
+     * Hydrates multiple documents from input data.
+     *
+     * @param array<int, mixed> $data Documents to marshal.
+     * @param array<string, mixed> $options Marshalling options.
      * @return array<int, \Crustum\Mongo\ODM\Document>
      */
     public function many(array $data, array $options = []): array
@@ -73,8 +78,12 @@ final class Marshaller
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $options
+     * Merges input data into an existing document.
+     *
+     * @param \Crustum\Mongo\ODM\Document $entity Document to update.
+     * @param array<string, mixed> $data Data to marshal.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return \Crustum\Mongo\ODM\Document
      */
     public function merge(Document $entity, array $data, array $options = []): Document
     {
@@ -89,9 +98,14 @@ final class Marshaller
     }
 
     /**
-     * @param iterable<mixed> $entities
-     * @param array<int, mixed> $data
-     * @param array<string, mixed> $options
+     * Merges each input row into its matching document.
+     *
+     * Unmatched rows with identifiers are resolved through the collection;
+     * rows without identifiers are marshalled as new documents.
+     *
+     * @param iterable<mixed> $entities Existing documents.
+     * @param array<int, mixed> $data Data rows to merge.
+     * @param array<string, mixed> $options Marshalling options.
      * @return array<int, \Crustum\Mongo\ODM\Document>
      */
     public function mergeMany(iterable $entities, array $data, array $options = []): array
@@ -148,7 +162,13 @@ final class Marshaller
         return $result;
     }
 
-    /** @param array<string, mixed> $options */
+    /**
+     * Creates an empty document using the collection's configured entity class.
+     *
+     * @param array<string, mixed> $options Marshaller options.
+     * @return \Crustum\Mongo\ODM\Document
+     * @throws \InvalidArgumentException If the configured entity class is invalid.
+     */
     private function newDocument(array $options): Document
     {
         $class = $this->collectionCall('getEntityClass');
