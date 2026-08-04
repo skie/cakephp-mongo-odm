@@ -21,6 +21,7 @@ use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Merge;
 use Crustum\Mongo\Database\Aggregation\Stage\Out;
 use Crustum\Mongo\Database\Aggregation\Stage\Project;
+use Crustum\Mongo\Database\Aggregation\Stage\RawStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Redact;
 use Crustum\Mongo\Database\Aggregation\Stage\ReplaceRoot;
 use Crustum\Mongo\Database\Aggregation\Stage\ReplaceWith;
@@ -40,277 +41,225 @@ use Crustum\Mongo\Database\FunctionsBuilder;
 use OutOfRangeException;
 
 /**
- * Aggregation pipeline builder for MongoDB
+ * Aggregation pipeline builder for MongoDB.
  *
- * Provides fluent interface for building MongoDB aggregation pipelines
+ * A thin facade over {@see \Crustum\Mongo\Database\Aggregation\Pipeline}. Every
+ * stage method creates a stage and appends it to the pipeline, returning the
+ * stage it created so setters chain on the stage and so the builder never mixes
+ * `stage|$this` return types.
  */
 class AggregationBuilder
 {
     /**
-     * The aggregation pipeline stages
+     * The aggregation pipeline.
      *
-     * @var array<\Crustum\Mongo\Database\Aggregation\Stage\Stage|array<string, mixed>>
+     * @var \Crustum\Mongo\Database\Aggregation\Pipeline
      */
-    protected array $_pipeline = [];
+    private Pipeline $pipeline;
 
     /**
-     * Add a $match stage
-     *
-     * @param callable|array<string, mixed> $conditions The match conditions
-     * @return $this
+     * Constructor
      */
-    public function match(array|callable $conditions)
+    public function __construct()
     {
-        if (is_callable($conditions)) {
-            $conditions = $conditions($this);
-        }
-
-        $this->_pipeline[] = new MatchStage($this, $conditions);
-
-        return $this;
+        $this->pipeline = new Pipeline();
     }
 
     /**
-     * Add a $group stage
+     * Add a $match stage.
+     *
+     * @param array<string, mixed> $conditions The match conditions
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\MatchStage
+     */
+    public function match(array $conditions): MatchStage
+    {
+        return $this->pipeline->addStage(new MatchStage($this, $conditions));
+    }
+
+    /**
+     * Add a $group stage.
      *
      * @param array<string, mixed> $grouping The grouping specification
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Group
      */
-    public function group(array $grouping)
+    public function group(array $grouping): Group
     {
-        $this->_pipeline[] = new Group($this, $grouping);
-
-        return $this;
+        return $this->pipeline->addStage(new Group($this, $grouping));
     }
 
     /**
-     * Add a $sort stage
+     * Add a $sort stage.
      *
      * @param array<string, int|string> $sort The sort specification
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Sort
      */
-    public function sort(array $sort)
+    public function sort(array $sort): Sort
     {
-        $this->_pipeline[] = new Sort($this, $sort);
-
-        return $this;
+        return $this->pipeline->addStage(new Sort($this, $sort));
     }
 
     /**
-     * Add a $project stage
+     * Add a $project stage.
      *
      * @param array<string, mixed> $fields The projection specification
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Project
      */
-    public function project(array $fields)
+    public function project(array $fields): Project
     {
-        $this->_pipeline[] = new Project($this, $fields);
-
-        return $this;
+        return $this->pipeline->addStage(new Project($this, $fields));
     }
 
     /**
-     * Add a $lookup stage with fluent builder
+     * Add a $lookup stage with fluent builder.
      *
      * @param string $from The collection name to join with
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Lookup
      */
     public function lookup(string $from): Lookup
     {
-        $stage = new Lookup($this, $from);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Lookup($this, $from));
     }
 
     /**
-     * Add a $lookup stage with array (legacy support)
+     * Add a $unwind stage.
      *
-     * @param array<string, mixed> $lookup The lookup specification
-     * @return $this
-     */
-    public function lookupArray(array $lookup)
-    {
-        $this->_pipeline[] = ['$lookup' => $lookup];
-
-        return $this;
-    }
-
-    /**
-     * Add a $unwind stage
-     *
-     * @param string $path The field path to unwind
+     * @param string               $path    The field path to unwind
      * @param array<string, mixed> $options Additional options (preserveNullAndEmptyArrays, includeArrayIndex)
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Unwind
      */
-    public function unwind(string $path, array $options = [])
+    public function unwind(string $path, array $options = []): Unwind
     {
-        $this->_pipeline[] = new Unwind($this, $path, $options);
-
-        return $this;
+        return $this->pipeline->addStage(new Unwind($this, $path, $options));
     }
 
     /**
-     * Add a $addFields stage
+     * Add a $addFields stage.
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\AddFields
      */
     public function addFields(): AddFields
     {
-        $stage = new AddFields($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new AddFields($this));
     }
 
     /**
-     * Add a $set stage (alias for $addFields)
+     * Add a $set stage (alias for $addFields).
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Set
      */
     public function set(): Set
     {
-        $stage = new Set($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Set($this));
     }
 
     /**
-     * Add a $limit stage
+     * Add a $limit stage.
      *
      * @param int $limit The number of documents to limit
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Limit
      */
-    public function limit(int $limit)
+    public function limit(int $limit): Limit
     {
-        $stage = new Limit($this, $limit);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Limit($this, $limit));
     }
 
     /**
-     * Add a $skip stage
+     * Add a $skip stage.
      *
      * @param int $skip The number of documents to skip
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Skip
      */
-    public function skip(int $skip)
+    public function skip(int $skip): Skip
     {
-        $stage = new Skip($this, $skip);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Skip($this, $skip));
     }
 
     /**
-     * Add a $count stage
+     * Add a $count stage.
      *
      * @param string $field The output field name for the count
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Count
      */
-    public function count(string $field)
+    public function count(string $field): Count
     {
-        $stage = new Count($this, $field);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Count($this, $field));
     }
 
     /**
-     * Add a $replaceRoot stage
+     * Add a $replaceRoot stage.
      *
      * @param array<string, mixed>|string $replacement The replacement document or expression
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\ReplaceRoot
      */
-    public function replaceRoot(array|string $replacement)
+    public function replaceRoot(array|string $replacement): ReplaceRoot
     {
-        $stage = new ReplaceRoot($this, $replacement);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new ReplaceRoot($this, $replacement));
     }
 
     /**
-     * Add a $replaceWith stage (alias for $replaceRoot)
+     * Add a $replaceWith stage (alias for $replaceRoot).
      *
      * @param array<string, mixed>|string $replacement The replacement document or expression
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\ReplaceWith
      */
-    public function replaceWith(array|string $replacement)
+    public function replaceWith(array|string $replacement): ReplaceWith
     {
-        $stage = new ReplaceWith($this, $replacement);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new ReplaceWith($this, $replacement));
     }
 
     /**
-     * Add a $unset stage
+     * Add a $unset stage.
      *
      * @param array<string>|string $fields The field(s) to remove
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\UnsetStage
      */
-    public function unsetFields(array|string $fields)
+    public function unsetFields(array|string $fields): UnsetStage
     {
-        $stage = new UnsetStage($this, $fields);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new UnsetStage($this, $fields));
     }
 
     /**
-     * Add a $bucket stage
+     * Add a $bucket stage.
      *
      * @param array<string, mixed>|string $groupBy    The expression to group by
-     * @param array<int|float> $boundaries The boundaries array
+     * @param array<int|float>            $boundaries The boundaries array
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Bucket
      */
     public function bucket(array|string $groupBy, array $boundaries): Bucket
     {
-        $stage = new Bucket($this, $groupBy, $boundaries);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Bucket($this, $groupBy, $boundaries));
     }
 
     /**
-     * Add a $bucketAuto stage
+     * Add a $bucketAuto stage.
      *
      * @param array<string, mixed>|string $groupBy The expression to group by
-     * @param int $buckets The number of buckets
+     * @param int                         $buckets The number of buckets
      * @return \Crustum\Mongo\Database\Aggregation\Stage\BucketAuto
      */
     public function bucketAuto(array|string $groupBy, int $buckets): BucketAuto
     {
-        $stage = new BucketAuto($this, $groupBy, $buckets);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new BucketAuto($this, $groupBy, $buckets));
     }
 
     /**
-     * Add a $facet stage
+     * Add a $facet stage.
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Facet
      */
     public function facet(): Facet
     {
-        $stage = new Facet($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Facet($this));
     }
 
     /**
-     * Add a $graphLookup stage
+     * Add a $graphLookup stage.
      *
-     * @param string $from The collection to search
-     * @param array<string, mixed>|string $startWith The expression to start the search
-     * @param string $connectFromField The field to connect from
-     * @param string $connectToField The field to connect to
-     * @param string $as The alias for the results
+     * @param string                      $from             The collection to search
+     * @param array<string, mixed>|string $startWith        The expression to start the search
+     * @param string                      $connectFromField The field to connect from
+     * @param string                      $connectToField   The field to connect to
+     * @param string                      $as               The alias for the results
      * @return \Crustum\Mongo\Database\Aggregation\Stage\GraphLookup
      */
     public function graphLookup(
@@ -320,239 +269,185 @@ class AggregationBuilder
         string $connectToField,
         string $as,
     ): GraphLookup {
-        $stage = new GraphLookup($this, $from, $startWith, $connectFromField, $connectToField, $as);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(
+            new GraphLookup($this, $from, $startWith, $connectFromField, $connectToField, $as),
+        );
     }
 
     /**
-     * Add a $merge stage
+     * Add a $merge stage.
      *
      * @param array<string, mixed>|string $into The target collection or database
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Merge
      */
     public function merge(string|array $into): Merge
     {
-        $stage = new Merge($this, $into);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Merge($this, $into));
     }
 
     /**
-     * Add a $out stage
+     * Add a $out stage.
      *
      * @param string $collection The target collection name
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Out
      */
-    public function out(string $collection)
+    public function out(string $collection): Out
     {
-        $stage = new Out($this, $collection);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Out($this, $collection));
     }
 
     /**
-     * Add a $sample stage
+     * Add a $sample stage.
      *
      * @param int $size The sample size
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Sample
      */
-    public function sample(int $size)
+    public function sample(int $size): Sample
     {
-        $stage = new Sample($this, $size);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Sample($this, $size));
     }
 
     /**
-     * Add a $unionWith stage
+     * Add a $unionWith stage.
      *
      * @param string $coll The collection to union with
      * @return \Crustum\Mongo\Database\Aggregation\Stage\UnionWith
      */
     public function unionWith(string $coll): UnionWith
     {
-        $stage = new UnionWith($this, $coll);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new UnionWith($this, $coll));
     }
 
     /**
-     * Add a $redact stage
+     * Add a $redact stage.
      *
      * @param array<string, mixed>|string $expression The redact expression
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Redact
      */
-    public function redact(array|string $expression)
+    public function redact(array|string $expression): Redact
     {
-        $stage = new Redact($this, $expression);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new Redact($this, $expression));
     }
 
     /**
-     * Add a $densify stage
+     * Add a $densify stage.
      *
-     * @param string $field The field to densify
-     * @param array<string, mixed>|null $range The range specification (optional)
+     * @param string                     $field The field to densify
+     * @param array<string, mixed>|null  $range The range specification (optional)
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Densify
      */
     public function densify(string $field, ?array $range = null): Densify
     {
-        $stage = new Densify($this, $field, $range);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Densify($this, $field, $range));
     }
 
     /**
-     * Add a $fill stage
+     * Add a $fill stage.
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Fill
      */
     public function fill(): Fill
     {
-        $stage = new Fill($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Fill($this));
     }
 
     /**
-     * Add a $setWindowFields stage
+     * Add a $setWindowFields stage.
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\SetWindowFields
      */
     public function setWindowFields(): SetWindowFields
     {
-        $stage = new SetWindowFields($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new SetWindowFields($this));
     }
 
     /**
-     * Add a $search stage
+     * Add a $search stage.
      *
      * @param array<string, mixed> $search The search specification
      * @return \Crustum\Mongo\Database\Aggregation\Stage\Search
      */
     public function search(array $search): Search
     {
-        $stage = new Search($this, $search);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new Search($this, $search));
     }
 
     /**
-     * Add a $vectorSearch stage
+     * Add a $vectorSearch stage.
      *
-     * @param object|array<float> $queryVector The query vector
-     * @param string $path The field path to search over
-     * @param int|null $numCandidates The number of candidates to consider
+     * @param object|array<float> $queryVector   The query vector
+     * @param string              $path          The field path to search over
+     * @param int|null            $numCandidates The number of candidates to consider
      * @return \Crustum\Mongo\Database\Aggregation\Stage\VectorSearch
      */
     public function vectorSearch(array|object $queryVector, string $path, ?int $numCandidates = null): VectorSearch
     {
-        $stage = new VectorSearch($this, $queryVector, $path, $numCandidates);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new VectorSearch($this, $queryVector, $path, $numCandidates));
     }
 
     /**
-     * Add a $collStats stage
+     * Add a $collStats stage.
      *
      * @return \Crustum\Mongo\Database\Aggregation\Stage\CollStats
      */
     public function collStats(): CollStats
     {
-        $stage = new CollStats($this);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new CollStats($this));
     }
 
     /**
-     * Add a $indexStats stage
+     * Add a $indexStats stage.
      *
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\IndexStats
      */
-    public function indexStats()
+    public function indexStats(): IndexStats
     {
-        $stage = new IndexStats($this);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new IndexStats($this));
     }
 
     /**
-     * Add a $geoNear stage
+     * Add a $geoNear stage.
      *
-     * @param array<float>|array<string, array<float>> $near The point to search near
-     * @param string $distanceField The distance field name
+     * @param array<float>|array<string, array<float>> $near          The point to search near
+     * @param string                                   $distanceField The distance field name
      * @return \Crustum\Mongo\Database\Aggregation\Stage\GeoNear
      */
     public function geoNear(array $near, string $distanceField): GeoNear
     {
-        $stage = new GeoNear($this, $near, $distanceField);
-        $this->_pipeline[] = $stage;
-
-        return $stage;
+        return $this->pipeline->addStage(new GeoNear($this, $near, $distanceField));
     }
 
     /**
-     * Add a $sortByCount stage
+     * Add a $sortByCount stage.
      *
      * @param array<string, mixed>|string $expression The expression to group by
-     * @return $this
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\SortByCount
      */
-    public function sortByCount(array|string $expression)
+    public function sortByCount(array|string $expression): SortByCount
     {
-        $stage = new SortByCount($this, $expression);
-        $this->_pipeline[] = $stage;
-
-        return $this;
+        return $this->pipeline->addStage(new SortByCount($this, $expression));
     }
 
     /**
-     * Add custom stage
+     * Add custom stage.
      *
-     * @param string $operator The stage operator (e.g., '$limit', '$skip')
-     * @param array<string, mixed>|string|int $stage The stage specification or value
-     * @return $this
+     * @param string                        $operator The stage operator (e.g. '$limit', '$skip')
+     * @param array<string, mixed>|string|int $value   The stage specification or value
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\RawStage
      */
-    public function addStage(string $operator, array|int|string $stage)
+    public function addStage(string $operator, array|int|string $value): RawStage
     {
-        if (!is_array($stage)) {
-            $stage = [$operator === '$limit' ? 'limit' : 'value' => $stage];
-        }
-
-        $this->_pipeline[] = [$operator => $stage];
-
-        return $this;
+        return $this->pipeline->addStage(new RawStage($this, $operator, $value));
     }
 
     /**
-     * Get the pipeline with all stages compiled
+     * Get the pipeline with all stages compiled.
      *
-     * @return array<array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function getPipeline(): array
     {
-        $result = [];
-        foreach ($this->_pipeline as $stage) {
-            $result[] = $stage instanceof Stage ? $stage->getExpression() : $stage;
-        }
-
-        return $result;
+        return $this->pipeline->compile();
     }
 
     /**
@@ -572,15 +467,29 @@ class AggregationBuilder
      * Returns a certain stage from the pipeline.
      *
      * @param int $index The zero-based stage index
-     * @return \Crustum\Mongo\Database\Aggregation\Stage\Stage|array<string, mixed> The stage
+     * @return \Crustum\Mongo\Database\Aggregation\Stage\Stage The stage
      * @throws \OutOfRangeException When no stage exists at the given index
      */
-    public function getStage(int $index): Stage|array
+    public function getStage(int $index): Stage
     {
-        if (!isset($this->_pipeline[$index])) {
+        $stages = $this->pipeline->getStages();
+        if (!isset($stages[$index])) {
             throw new OutOfRangeException(sprintf('Could not find stage with index %d.', $index));
         }
 
-        return $this->_pipeline[$index];
+        return $stages[$index];
+    }
+
+    /**
+     * Returns the underlying pipeline instance.
+     *
+     * Internal accessor used by sub-pipeline stages to detect self-referencing
+     * pipelines. Not part of the public fluent surface.
+     *
+     * @return \Crustum\Mongo\Database\Aggregation\Pipeline
+     */
+    public function getPipelineInstance(): Pipeline
+    {
+        return $this->pipeline;
     }
 }

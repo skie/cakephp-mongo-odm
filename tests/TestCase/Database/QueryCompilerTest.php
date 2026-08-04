@@ -348,6 +348,75 @@ class QueryCompilerTest extends TestCase
     }
 
     /**
+     * Test that the $match prepend is skipped for $search heads.
+     *
+     * @return void
+     */
+    public function testMatchPrependSkippedForSearchHead(): void
+    {
+        $this->compiler
+            ->where(['status' => 'active'])
+            ->pipeline([['$search' => ['index' => 'default', 'text' => ['path' => 'title', 'query' => 'mongo']]]]);
+        $result = $this->compiler->compile();
+
+        $this->assertPipeline([
+            ['$search' => ['index' => 'default', 'text' => ['path' => 'title', 'query' => 'mongo']]],
+        ], $result);
+    }
+
+    /**
+     * Test that the $match prepend is skipped for $geoNear heads.
+     *
+     * @return void
+     */
+    public function testMatchPrependSkippedForGeoNearHead(): void
+    {
+        $this->compiler
+            ->where(['status' => 'active'])
+            ->pipeline([['$geoNear' => ['near' => [1.0, 2.0], 'distanceField' => 'd']]]);
+        $result = $this->compiler->compile();
+
+        $this->assertPipeline([
+            ['$geoNear' => ['near' => [1.0, 2.0], 'distanceField' => 'd']],
+        ], $result);
+    }
+
+    /**
+     * Test that the $match prepend is skipped for $indexStats heads.
+     *
+     * @return void
+     */
+    public function testMatchPrependSkippedForIndexStatsHead(): void
+    {
+        $this->compiler
+            ->where(['status' => 'active'])
+            ->pipeline([['$indexStats' => []]]);
+        $result = $this->compiler->compile();
+
+        $this->assertPipeline([
+            ['$indexStats' => []],
+        ], $result);
+    }
+
+    /**
+     * Test that the $match prepend is kept for ordinary heads.
+     *
+     * @return void
+     */
+    public function testMatchPrependKeptForOrdinaryHead(): void
+    {
+        $this->compiler
+            ->where(['status' => 'active'])
+            ->pipeline([['$group' => ['_id' => '$author_id']]]);
+        $result = $this->compiler->compile();
+
+        $this->assertPipeline([
+            ['$match' => ['status' => 'active']],
+            ['$group' => ['_id' => '$author_id']],
+        ], $result);
+    }
+
+    /**
      * Test the expression builder is exposed.
      *
      * @return void

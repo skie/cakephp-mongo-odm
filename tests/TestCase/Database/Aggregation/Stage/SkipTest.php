@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Skip;
 
 /**
  * Tests for Skip stage
@@ -56,6 +57,6 @@ class SkipTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->skip(20);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Skip::class, $result);
     }
 }

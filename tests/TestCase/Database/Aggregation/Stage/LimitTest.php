@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Limit;
 
 /**
  * Tests for Limit stage
@@ -54,6 +55,6 @@ class LimitTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->limit(10);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Limit::class, $result);
     }
 }

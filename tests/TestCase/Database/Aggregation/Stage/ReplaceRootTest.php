@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\ReplaceRoot;
 
 /**
  * Tests for ReplaceRoot stage
@@ -69,6 +70,6 @@ class ReplaceRootTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->replaceRoot('$user');
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(ReplaceRoot::class, $result);
     }
 }

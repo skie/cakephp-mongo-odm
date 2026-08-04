@@ -5,6 +5,10 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Pipeline;
+use Crustum\Mongo\Database\Aggregation\Stage\Limit;
+use Crustum\Mongo\Database\Aggregation\Stage\RawStage;
+use InvalidArgumentException;
 
 /**
  * Tests for Lookup stage
@@ -71,6 +75,61 @@ class LookupTest extends TestCase
         $expression = $stage->getExpression();
         $this->assertArrayHasKey('let', $expression['$lookup']);
         $this->assertArrayHasKey('pipeline', $expression['$lookup']);
+    }
+
+    /**
+     * Test lookup with a builder closure sub-pipeline.
+     *
+     * @return void
+     */
+    public function testLookupWithPipelineClosure(): void
+    {
+        $builder = new AggregationBuilder();
+        $stage = $builder->lookup('orders')
+            ->pipeline(fn(AggregationBuilder $sub): Limit => $sub->match(['status' => 'active'])->limit(10))
+            ->alias('active_orders');
+
+        $expression = $stage->getExpression();
+        $this->assertSame(
+            [
+                ['$match' => ['status' => 'active']],
+                ['$limit' => 10],
+            ],
+            $expression['$lookup']['pipeline'],
+        );
+    }
+
+    /**
+     * Test lookup with a Pipeline instance sub-pipeline.
+     *
+     * @return void
+     */
+    public function testLookupWithPipelineObject(): void
+    {
+        $builder = new AggregationBuilder();
+        $sub = new Pipeline();
+        $sub->addStage(new RawStage($builder, '$match', ['status' => 'active']));
+
+        $stage = $builder->lookup('orders')->pipeline($sub);
+
+        $this->assertSame(
+            [['$match' => ['status' => 'active']]],
+            $stage->getExpression()['$lookup']['pipeline'],
+        );
+    }
+
+    /**
+     * Test the pipeline cannot reference the top-level pipeline itself.
+     *
+     * @return void
+     */
+    public function testLookupPipelineSelfReferenceThrows(): void
+    {
+        $builder = new AggregationBuilder();
+        $stage = $builder->lookup('orders');
+
+        $this->expectException(InvalidArgumentException::class);
+        $stage->pipeline($builder->getPipelineInstance());
     }
 
     /**

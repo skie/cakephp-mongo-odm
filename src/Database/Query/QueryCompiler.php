@@ -525,7 +525,11 @@ class QueryCompiler
     {
         $pipeline = [];
 
-        if ($this->filter !== []) {
+        $headIsFixed = isset($this->pipeline[0]['$search'])
+            || isset($this->pipeline[0]['$geoNear'])
+            || isset($this->pipeline[0]['$indexStats']);
+
+        if ($this->filter !== [] && !$headIsFixed) {
             $pipeline[] = ['$match' => $this->filter];
         }
 

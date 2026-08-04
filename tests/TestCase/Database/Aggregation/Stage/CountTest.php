@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Count;
 
 /**
  * Tests for Count stage
@@ -53,6 +54,6 @@ class CountTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->count('total');
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Count::class, $result);
     }
 }

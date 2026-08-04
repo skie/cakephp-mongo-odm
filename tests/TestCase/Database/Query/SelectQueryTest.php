@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Query;
 
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Expression\QueryExpression;
@@ -1041,6 +1042,24 @@ class SelectQueryTest extends TestCase
     {
         $query = new SelectQuery($this->connection, 'articles');
         $this->assertSame($query, $query->pipeline([['$match' => ['a' => 1]]]));
+    }
+
+    /**
+     * Test pipeline() with a builder closure appends compiled stages.
+     *
+     * @return void
+     */
+    public function testPipelineClosureAppendsStages(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->pipeline(function (AggregationBuilder $builder): void {
+            $builder->match(['status' => 'active'])->unionWith('archives');
+        });
+
+        $this->assertPipeline([
+            ['$match' => ['status' => 'active']],
+            ['$unionWith' => ['coll' => 'archives']],
+        ], $query->compile());
     }
 
     /**

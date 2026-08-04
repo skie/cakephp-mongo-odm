@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Aggregation\Stage;
 
+use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Pipeline;
+use InvalidArgumentException;
 
 /**
  * $unionWith aggregation stage
@@ -22,9 +25,9 @@ class UnionWith extends Stage
     /**
      * The pipeline to apply
      *
-     * @var array<array<string, mixed>>|null
+     * @var \Crustum\Mongo\Database\Aggregation\Pipeline|null
      */
-    protected ?array $pipeline = null;
+    protected ?Pipeline $pipeline = null;
 
     /**
      * Constructor
@@ -41,12 +44,17 @@ class UnionWith extends Stage
     /**
      * Set the pipeline to apply
      *
-     * @param array<array<string, mixed>> $pipeline The pipeline stages
+     * @param \Crustum\Mongo\Database\Aggregation\Pipeline|\Closure|array<array<string, mixed>> $pipeline The pipeline stages
      * @return $this
+     * @throws \InvalidArgumentException When the pipeline references the top-level pipeline itself
      */
-    public function pipeline(array $pipeline)
+    public function pipeline(Pipeline|array|Closure $pipeline)
     {
-        $this->pipeline = $pipeline;
+        $this->pipeline = $this->buildSubPipeline($pipeline);
+
+        if ($this->pipeline === $this->getBuilder()->getPipelineInstance()) {
+            throw new InvalidArgumentException('Cannot reference the pipeline itself as a sub-pipeline.');
+        }
 
         return $this;
     }
@@ -60,8 +68,8 @@ class UnionWith extends Stage
     {
         $unionWith = ['coll' => $this->coll];
 
-        if ($this->pipeline !== null) {
-            $unionWith['pipeline'] = $this->pipeline;
+        if ($this->pipeline instanceof Pipeline) {
+            $unionWith['pipeline'] = $this->pipeline->compile();
         }
 
         return ['$unionWith' => $unionWith];

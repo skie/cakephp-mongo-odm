@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Aggregation\Stage;
 
+use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Pipeline;
+use InvalidArgumentException;
 
 /**
  * $lookup aggregation stage
@@ -50,9 +53,9 @@ class Lookup extends Stage
     /**
      * Pipeline to apply to the joined collection
      *
-     * @var array<array<string, mixed>>|null
+     * @var \Crustum\Mongo\Database\Aggregation\Pipeline|null
      */
-    protected ?array $pipeline = null;
+    protected ?Pipeline $pipeline = null;
 
     /**
      * Constructor
@@ -121,12 +124,17 @@ class Lookup extends Stage
     /**
      * Set the pipeline to apply to the joined collection
      *
-     * @param array<array<string, mixed>> $pipeline The pipeline stages
+     * @param \Crustum\Mongo\Database\Aggregation\Pipeline|\Closure|array<array<string, mixed>> $pipeline The pipeline stages
      * @return $this
+     * @throws \InvalidArgumentException When the pipeline references the top-level pipeline itself
      */
-    public function pipeline(array $pipeline)
+    public function pipeline(Pipeline|array|Closure $pipeline)
     {
-        $this->pipeline = $pipeline;
+        $this->pipeline = $this->buildSubPipeline($pipeline);
+
+        if ($this->pipeline === $this->getBuilder()->getPipelineInstance()) {
+            throw new InvalidArgumentException('Cannot reference the pipeline itself as a sub-pipeline.');
+        }
 
         return $this;
     }
@@ -156,8 +164,8 @@ class Lookup extends Stage
             $lookup['let'] = $this->let;
         }
 
-        if ($this->pipeline !== null) {
-            $lookup['pipeline'] = $this->pipeline;
+        if ($this->pipeline instanceof Pipeline) {
+            $lookup['pipeline'] = $this->pipeline->compile();
         }
 
         return ['$lookup' => $lookup];

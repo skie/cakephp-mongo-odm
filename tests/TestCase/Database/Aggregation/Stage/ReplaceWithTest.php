@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\ReplaceWith;
 
 /**
  * Tests for ReplaceWith stage
@@ -68,6 +69,6 @@ class ReplaceWithTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->replaceWith('$user');
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(ReplaceWith::class, $result);
     }
 }

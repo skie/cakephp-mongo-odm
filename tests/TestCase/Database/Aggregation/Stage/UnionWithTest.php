@@ -5,7 +5,9 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
 use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
+use InvalidArgumentException;
 
 /**
  * Test case for UnionWith aggregation stage
@@ -44,6 +46,34 @@ class UnionWithTest extends TestCase
         $unionExpr = $pipeline[0]['$unionWith'];
         $this->assertArrayHasKey('pipeline', $unionExpr);
         $this->assertCount(2, $unionExpr['pipeline']);
+    }
+
+    /**
+     * Test unionWith with a builder closure sub-pipeline.
+     */
+    public function testUnionWithWithPipelineClosure(): void
+    {
+        $builder = new AggregationBuilder();
+        $builder->unionWith('other_collection')
+            ->pipeline(fn(AggregationBuilder $sub): MatchStage => $sub->match(['status' => 'active']));
+
+        $pipeline = $builder->getPipeline();
+        $this->assertSame(
+            [['$match' => ['status' => 'active']]],
+            $pipeline[0]['$unionWith']['pipeline'],
+        );
+    }
+
+    /**
+     * Test the pipeline cannot reference the top-level pipeline itself.
+     */
+    public function testUnionWithPipelineSelfReferenceThrows(): void
+    {
+        $builder = new AggregationBuilder();
+        $stage = $builder->unionWith('other_collection');
+
+        $this->expectException(InvalidArgumentException::class);
+        $stage->pipeline($builder->getPipelineInstance());
     }
 
     /**

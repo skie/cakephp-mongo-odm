@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Query;
 use Cake\Database\ExpressionInterface;
 use Cake\Datasource\ResultSetInterface;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Expression\QueryExpression;
@@ -286,11 +287,20 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Adds aggregation pipeline stage(s).
      *
-     * @param array<int, array<string, mixed>> $stages Pipeline stages to add.
+     * A `Closure` receives an `AggregationBuilder` and builds stages in place;
+     * the compiled stages are appended on return.
+     *
+     * @param \Closure|array<int, array<string, mixed>> $stages Pipeline stages or a builder closure.
      * @return $this
      */
-    public function pipeline(array $stages): static
+    public function pipeline(array|Closure $stages): static
     {
+        if ($stages instanceof Closure) {
+            $builder = new AggregationBuilder();
+            $stages($builder);
+            $stages = $builder->getPipeline();
+        }
+
         $this->builder->pipeline($stages);
 
         return $this;

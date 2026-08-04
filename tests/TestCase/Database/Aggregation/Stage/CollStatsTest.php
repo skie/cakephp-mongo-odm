@@ -60,7 +60,7 @@ class CollStatsTest extends TestCase
     {
         $builder = new AggregationBuilder();
         $builder->collStats()
-            ->count(true);
+            ->showCount(true);
 
         $pipeline = $builder->getPipeline();
         $statsExpr = $pipeline[0]['$collStats'];
@@ -76,7 +76,7 @@ class CollStatsTest extends TestCase
         $stage = new CollStats($builder);
         $stage->latencyStats(true)
             ->storageStats(true)
-            ->count(true);
+            ->showCount(true);
 
         $expression = $stage->getExpression();
         $this->assertArrayHasKey('$collStats', $expression);

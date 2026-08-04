@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Facet;
+use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
 
 /**
  * Test case for Facet aggregation stage
@@ -19,7 +20,7 @@ class FacetTest extends TestCase
     {
         $builder = new AggregationBuilder();
         $facet = $builder->facet();
-        $facet->facet('categorizedByPrice', [
+        $facet->addFacet('categorizedByPrice', [
             ['$match' => ['price' => ['$exists' => true]]],
             ['$bucket' => [
                 'groupBy' => '$price',
@@ -43,13 +44,13 @@ class FacetTest extends TestCase
     {
         $builder = new AggregationBuilder();
         $facet = $builder->facet();
-        $facet->facet('price', [
+        $facet->addFacet('price', [
             ['$match' => ['price' => ['$exists' => true]]],
         ])
-        ->facet('category', [
+        ->addFacet('category', [
             ['$group' => ['_id' => '$category', 'count' => ['$sum' => 1]]],
         ])
-        ->facet('tags', [
+        ->addFacet('tags', [
             ['$unwind' => '$tags'],
             ['$group' => ['_id' => '$tags', 'count' => ['$sum' => 1]]],
         ]);
@@ -62,13 +63,26 @@ class FacetTest extends TestCase
     }
 
     /**
+     * Test facet stage with a builder closure sub-pipeline.
+     */
+    public function testFacetWithPipelineClosure(): void
+    {
+        $builder = new AggregationBuilder();
+        $facet = $builder->facet();
+        $facet->addFacet('active', fn(AggregationBuilder $sub): MatchStage => $sub->match(['status' => 'active']));
+
+        $facetExpr = $builder->getPipeline()[0]['$facet'];
+        $this->assertSame([['$match' => ['status' => 'active']]], $facetExpr['active']);
+    }
+
+    /**
      * Test facet stage directly
      */
     public function testFacetStageDirect(): void
     {
         $builder = new AggregationBuilder();
         $stage = new Facet($builder);
-        $stage->facet('test', [
+        $stage->addFacet('test', [
             ['$match' => ['status' => 'active']],
         ]);
 

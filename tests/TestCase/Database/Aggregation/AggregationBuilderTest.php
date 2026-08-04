@@ -6,8 +6,16 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\AddFields;
+use Crustum\Mongo\Database\Aggregation\Stage\Group;
 use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
+use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
+use Crustum\Mongo\Database\Aggregation\Stage\Project;
+use Crustum\Mongo\Database\Aggregation\Stage\RawStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Set;
+use Crustum\Mongo\Database\Aggregation\Stage\Sort;
+use Crustum\Mongo\Database\Aggregation\Stage\Stage;
+use Crustum\Mongo\Database\Aggregation\Stage\Unwind;
+use OutOfRangeException;
 
 /**
  * Tests for AggregationBuilder
@@ -24,7 +32,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->match(['status' => 'active']);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(MatchStage::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$match' => ['status' => 'active']]], $pipeline);
     }
@@ -39,7 +47,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->group(['_id' => '$category', 'total' => ['$sum' => '$amount']]);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Group::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$group' => ['_id' => '$category', 'total' => ['$sum' => '$amount']]]], $pipeline);
     }
@@ -54,7 +62,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->sort(['name' => 1, 'age' => -1]);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Sort::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$sort' => ['name' => 1, 'age' => -1]]], $pipeline);
     }
@@ -69,7 +77,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->project(['name' => 1, 'email' => 1]);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Project::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$project' => ['name' => 1, 'email' => 1]]], $pipeline);
     }
@@ -98,36 +106,6 @@ class AggregationBuilderTest extends TestCase
     }
 
     /**
-     * Test lookup stage with array (legacy)
-     *
-     * @return void
-     */
-    public function testLookupArray(): void
-    {
-        $builder = new AggregationBuilder();
-        $result = $builder->lookupArray(
-            [
-            'from' => 'orders',
-            'localField' => '_id',
-            'foreignField' => 'user_id',
-            'as' => 'user_orders',
-            ],
-        );
-
-        $this->assertSame($builder, $result);
-        $pipeline = $builder->getPipeline();
-        $this->assertEquals(
-            [['$lookup' => [
-            'from' => 'orders',
-            'localField' => '_id',
-            'foreignField' => 'user_id',
-            'as' => 'user_orders',
-            ]]],
-            $pipeline,
-        );
-    }
-
-    /**
      * Test lookup with pipeline
      *
      * @return void
@@ -150,7 +128,7 @@ class AggregationBuilderTest extends TestCase
     }
 
     /**
-     * Test unwind stage
+     * Test basic unwind stage
      *
      * @return void
      */
@@ -159,7 +137,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->unwind('$tags');
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(Unwind::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$unwind' => ['path' => '$tags']]], $pipeline);
     }
@@ -254,7 +232,7 @@ class AggregationBuilderTest extends TestCase
             ->sort(['_id' => 1])
             ->addStage('$limit', ['limit' => 10]);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(RawStage::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertCount(4, $pipeline);
     }
@@ -269,7 +247,7 @@ class AggregationBuilderTest extends TestCase
         $builder = new AggregationBuilder();
         $result = $builder->addStage('$limit', ['limit' => 10]);
 
-        $this->assertSame($builder, $result);
+        $this->assertInstanceOf(RawStage::class, $result);
         $pipeline = $builder->getPipeline();
         $this->assertEquals([['$limit' => ['limit' => 10]]], $pipeline);
     }
@@ -301,5 +279,84 @@ class AggregationBuilderTest extends TestCase
         $this->assertArrayHasKey('$addFields', $pipeline[3]);
         $this->assertArrayHasKey('$sort', $pipeline[4]);
         $this->assertArrayHasKey('$limit', $pipeline[5]);
+    }
+
+    /**
+     * Test every factory returns a Stage, never the builder.
+     *
+     * @return void
+     */
+    public function testEveryFactoryReturnsStage(): void
+    {
+        $builder = new AggregationBuilder();
+        $results = [
+            $builder->match(['status' => 'active']),
+            $builder->group(['_id' => '$category']),
+            $builder->sort(['_id' => 1]),
+            $builder->project(['name' => 1]),
+            $builder->lookup('orders'),
+            $builder->unwind('$tags'),
+            $builder->addFields(),
+            $builder->set(),
+            $builder->limit(10),
+            $builder->skip(10),
+            $builder->count('total'),
+            $builder->replaceRoot(['newRoot' => '$author']),
+            $builder->replaceWith(['newRoot' => '$author']),
+            $builder->unsetFields('legacy'),
+            $builder->bucket(['$year' => '$date'], [2010, 2020, 2030]),
+            $builder->bucketAuto('$price', 5),
+            $builder->facet(),
+            $builder->graphLookup('employees', '$reportsTo', 'name', 'reportsTo', 'reportingTree'),
+            $builder->merge('archive'),
+            $builder->out('archive'),
+            $builder->sample(3),
+            $builder->unionWith('archives'),
+            $builder->redact(['$cond' => []]),
+            $builder->densify('price', ['field' => 'price', 'range' => []]),
+            $builder->fill(),
+            $builder->setWindowFields(),
+            $builder->search(['index' => 'default']),
+            $builder->vectorSearch([1.0, 2.0], 'embedding'),
+            $builder->collStats(),
+            $builder->indexStats(),
+            $builder->geoNear([1.0, 2.0], 'distance'),
+            $builder->sortByCount('$category'),
+            $builder->addStage('$limit', 10),
+        ];
+
+        foreach ($results as $result) {
+            $this->assertInstanceOf(Stage::class, $result);
+        }
+    }
+
+    /**
+     * Test getStage returns the Stage at an index.
+     *
+     * @return void
+     */
+    public function testGetStage(): void
+    {
+        $builder = new AggregationBuilder();
+        $builder->match(['status' => 'active'])->group(['_id' => '$category']);
+
+        $this->assertInstanceOf(MatchStage::class, $builder->getStage(0));
+        $this->assertInstanceOf(Group::class, $builder->getStage(1));
+
+        $this->expectException(OutOfRangeException::class);
+        $builder->getStage(2);
+    }
+
+    /**
+     * Test addStage with a scalar value is normalized to the wire format.
+     *
+     * @return void
+     */
+    public function testAddStageScalar(): void
+    {
+        $builder = new AggregationBuilder();
+        $builder->addStage('$limit', 10);
+
+        $this->assertEquals([['$limit' => ['limit' => 10]]], $builder->getPipeline());
     }
 }

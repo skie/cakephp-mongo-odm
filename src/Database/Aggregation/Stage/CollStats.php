@@ -82,7 +82,7 @@ class CollStats extends Stage
      * @param bool $count Whether to include count
      * @return $this
      */
-    public function count(bool $count)
+    public function showCount(bool $count)
     {
         $this->count = $count;
 
