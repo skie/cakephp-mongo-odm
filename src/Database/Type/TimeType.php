@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 
@@ -66,7 +67,7 @@ class TimeType extends BaseType
             return $value;
         }
 
-        $date = \DateTimeImmutable::createFromFormat('!H:i:s', (string)$value);
+        $date = DateTimeImmutable::createFromFormat('!H:i:s', (string)$value);
         if ($date === false) {
             return null;
         }
@@ -94,7 +95,7 @@ class TimeType extends BaseType
         }
 
         if (is_string($value)) {
-            $date = \DateTimeImmutable::createFromFormat('!H:i:s', $value);
+            $date = DateTimeImmutable::createFromFormat('!H:i:s', $value);
             if ($date === false) {
                 return null;
             }
@@ -119,7 +120,7 @@ class TimeType extends BaseType
                 (int)$value['second'],
             );
 
-            $date = \DateTimeImmutable::createFromFormat('!H:i:s', $format);
+            $date = DateTimeImmutable::createFromFormat('!H:i:s', $format);
             if ($date === false) {
                 return null;
             }

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
+use JsonException;
 
 /**
  * JSON type converter
@@ -49,11 +50,11 @@ class JsonType extends BaseType
 
         try {
             return json_encode($value, JSON_THROW_ON_ERROR | $this->encodingOptions);
-        } catch (\JsonException $e) {
+        } catch (JsonException $jsonException) {
             throw new InvalidArgumentException(
                 sprintf('Cannot encode value of type `%s` as JSON', get_debug_type($value)),
                 0,
-                $e,
+                $jsonException,
             );
         }
     }

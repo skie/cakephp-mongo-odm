@@ -9,6 +9,7 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
 use ReflectionEnum;
 use ReflectionException;
+use ReflectionNamedType;
 use TypeError;
 use ValueError;
 
@@ -47,16 +48,16 @@ class EnumType extends BaseType
 
         try {
             $reflectionEnum = new ReflectionEnum($enumClassName);
-        } catch (ReflectionException $e) {
+        } catch (ReflectionException $reflectionException) {
             throw new InvalidArgumentException(
-                sprintf('Unable to use `%s` for type `%s`. %s', $enumClassName, $name, $e->getMessage()),
+                sprintf('Unable to use `%s` for type `%s`. %s', $enumClassName, $name, $reflectionException->getMessage()),
                 0,
-                $e,
+                $reflectionException,
             );
         }
 
         $namedType = $reflectionEnum->getBackingType();
-        if ($namedType === null) {
+        if (!$namedType instanceof ReflectionNamedType) {
             throw new InvalidArgumentException(
                 sprintf('Unable to use enum `%s` for type `%s`, must be a backed enum.', $enumClassName, $name),
             );
@@ -95,18 +96,16 @@ class EnumType extends BaseType
             return $this->enumClassName::from($value)->value;
         } catch (ValueError | TypeError $exception) {
             if ($exception instanceof TypeError) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        'Given value `%s` of type `%s` does not match associated `%s` backed enum in `%s`',
-                        print_r($value, true),
-                        get_debug_type($value),
-                        $this->backingType,
-                        $this->enumClassName,
-                    ),
-                );
+                throw new InvalidArgumentException(sprintf(
+                    'Given value `%s` of type `%s` does not match associated `%s` backed enum in `%s`',
+                    print_r($value, true),
+                    get_debug_type($value),
+                    $this->backingType,
+                    $this->enumClassName,
+                ), $exception->getCode(), $exception);
             }
 
-            throw new InvalidArgumentException(sprintf('`%s` is not a valid value for `%s`', $value, $this->enumClassName));
+            throw new InvalidArgumentException(sprintf('`%s` is not a valid value for `%s`', $value, $this->enumClassName), $exception->getCode(), $exception);
         }
     }
 

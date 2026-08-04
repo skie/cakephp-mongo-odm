@@ -9,23 +9,6 @@ use Crustum\Mongo\Database\Type\EnumType;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use InvalidArgumentException;
 
-enum Suit: string
-{
-    case Hearts = 'hearts';
-    case Spades = 'spades';
-}
-
-enum Priority: int
-{
-    case Low = 1;
-    case High = 2;
-}
-
-enum NonBacked
-{
-    case Red;
-}
-
 /**
  * Test case for EnumType
  */

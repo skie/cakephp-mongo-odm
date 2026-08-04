@@ -17,5 +17,5 @@ class BinaryByteArrayType extends BinaryType
      *
      * @var int
      */
-    protected int $subtype = Binary::TYPE_BYTE_ARRAY;
+    protected int $subtype = Binary::TYPE_OLD_BINARY;
 }
