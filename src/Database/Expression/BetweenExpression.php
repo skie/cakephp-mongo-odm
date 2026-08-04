@@ -7,11 +7,33 @@ use Closure;
 
 class BetweenExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected mixed $_from;
+    /**
+     * The lower bound
+     *
+     * @var mixed
+     */
+    protected mixed $from;
 
-    protected mixed $_to;
+    /**
+     * The upper bound
+     *
+     * @var mixed
+     */
+    protected mixed $to;
+
+    /**
+     * Whether the range is negated
+     *
+     * @var bool
+     */
+    protected bool $not;
 
     /**
      * Constructor
@@ -19,13 +41,14 @@ class BetweenExpression extends AbstractExpression
      * @param string $field Field name
      * @param mixed $from Lower bound
      * @param mixed $to Upper bound
+     * @param bool $not Whether to negate the range
      */
-    public function __construct(string $field, mixed $from, mixed $to)
+    public function __construct(string $field, mixed $from, mixed $to, bool $not = false)
     {
-        $this->_field = $field;
-        $this->_from = $from;
-        $this->_to = $to;
-        $this->_compile();
+        $this->field = $field;
+        $this->from = $from;
+        $this->to = $to;
+        $this->not = $not;
     }
 
     /**
@@ -34,11 +57,11 @@ class BetweenExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
-        foreach ([$this->_from, $this->_to] as $value) {
+        foreach ([$this->from, $this->to] as $value) {
             if ($value instanceof MongoExpressionInterface) {
                 $value->traverse($callback);
             }
@@ -50,32 +73,34 @@ class BetweenExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $from = $this->_from instanceof MongoExpressionInterface ?
-            $this->_from->getConditions() : $this->_from;
-        $to = $this->_to instanceof MongoExpressionInterface ?
-            $this->_to->getConditions() : $this->_to;
+        $from = $this->from instanceof MongoExpressionInterface ?
+            $this->from->getConditions() : $this->from;
+        $to = $this->to instanceof MongoExpressionInterface ?
+            $this->to->getConditions() : $this->to;
 
-        $this->_conditions = [
-            $this->_field => [
-                '$gte' => $from,
-                '$lte' => $to,
-            ],
+        $range = [
+            '$gte' => $from,
+            '$lte' => $to,
         ];
 
-        return $this->_conditions;
+        $this->conditions = [
+            $this->field => $this->not ? ['$not' => $range] : $range,
+        ];
+
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

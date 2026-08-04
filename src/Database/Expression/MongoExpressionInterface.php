@@ -13,7 +13,7 @@ interface MongoExpressionInterface extends ExpressionInterface
     /**
      * Returns the MongoDB query conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array;
 }

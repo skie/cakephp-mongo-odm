@@ -7,21 +7,39 @@ use Closure;
 
 class InExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected array $_values;
+    /**
+     * The values to compare against
+     *
+     * @var array<int, mixed>
+     */
+    protected array $values;
+
+    /**
+     * The Mongo operator (`$in` or `$nin`)
+     *
+     * @var string
+     */
+    protected string $operator;
 
     /**
      * Constructor
      *
      * @param string $field Field name
-     * @param array $values Array of values
+     * @param array<int, mixed> $values Array of values
+     * @param string $operator The Mongo operator (`$in` or `$nin`)
      */
-    public function __construct(string $field, array $values)
+    public function __construct(string $field, array $values, string $operator = '$in')
     {
-        $this->_field = $field;
-        $this->_values = $values;
-        $this->_compile();
+        $this->field = $field;
+        $this->values = $values;
+        $this->operator = $operator;
     }
 
     /**
@@ -30,11 +48,11 @@ class InExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
-        foreach ($this->_values as $value) {
+        foreach ($this->values as $value) {
             if ($value instanceof MongoExpressionInterface) {
                 $value->traverse($callback);
             }
@@ -46,37 +64,37 @@ class InExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
         $values = array_map(
-            function ($value) {
+            function (mixed $value): mixed {
                 if ($value instanceof MongoExpressionInterface) {
                     return $value->getConditions();
                 }
 
                 return $value;
             },
-            $this->_values,
+            $this->values,
         );
 
-        $this->_conditions = [
-            $this->_field => [
-                '$in' => $values,
+        $this->conditions = [
+            $this->field => [
+                $this->operator => $values,
             ],
         ];
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

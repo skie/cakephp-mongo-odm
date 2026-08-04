@@ -7,7 +7,12 @@ use Closure;
 
 class TypeExpression extends AbstractExpression
 {
-    public const BSON_TYPES = [
+    /**
+     * BSON type name to numeric type code mapping
+     *
+     * @var array<string, int>
+     */
+    public const array BSON_TYPES = [
         'double' => 1,
         'string' => 2,
         'object' => 3,
@@ -24,9 +29,19 @@ class TypeExpression extends AbstractExpression
         'decimal' => 19,
     ];
 
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected string|int $_type;
+    /**
+     * The BSON type name or code
+     *
+     * @var string|int
+     */
+    protected string|int $type;
 
     /**
      * Constructor
@@ -36,9 +51,8 @@ class TypeExpression extends AbstractExpression
      */
     public function __construct(string $field, string|int $type)
     {
-        $this->_field = $field;
-        $this->_type = $type;
-        $this->_compile();
+        $this->field = $field;
+        $this->type = $type;
     }
 
     /**
@@ -47,7 +61,7 @@ class TypeExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
@@ -57,28 +71,28 @@ class TypeExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $type = is_string($this->_type) ? self::BSON_TYPES[$this->_type] : $this->_type;
+        $type = is_string($this->type) ? self::BSON_TYPES[$this->type] : $this->type;
 
-        $this->_conditions = [
-            $this->_field => [
+        $this->conditions = [
+            $this->field => [
                 '$type' => $type,
             ],
         ];
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

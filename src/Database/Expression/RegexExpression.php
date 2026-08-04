@@ -7,11 +7,26 @@ use Closure;
 
 class RegexExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected string $_pattern;
+    /**
+     * The regex pattern
+     *
+     * @var string
+     */
+    protected string $pattern;
 
-    protected string $_options;
+    /**
+     * The regex options
+     *
+     * @var string
+     */
+    protected string $options;
 
     /**
      * Constructor
@@ -22,10 +37,9 @@ class RegexExpression extends AbstractExpression
      */
     public function __construct(string $field, string $pattern, string $options = '')
     {
-        $this->_field = $field;
-        $this->_pattern = $pattern;
-        $this->_options = $options;
-        $this->_compile();
+        $this->field = $field;
+        $this->pattern = $pattern;
+        $this->options = $options;
     }
 
     /**
@@ -34,7 +48,7 @@ class RegexExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
@@ -44,27 +58,27 @@ class RegexExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $this->_conditions = [
-            $this->_field => [
-                '$regex' => $this->_pattern,
-                '$options' => $this->_options,
+        $this->conditions = [
+            $this->field => [
+                '$regex' => $this->pattern,
+                '$options' => $this->options,
             ],
         ];
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

@@ -7,30 +7,48 @@ use Closure;
 
 class GeospatialExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected array $_geometry;
+    /**
+     * The geometry data
+     *
+     * @var array<string, mixed>
+     */
+    protected array $geometry;
 
-    protected string $_operator;
+    /**
+     * The geospatial operator
+     *
+     * @var string
+     */
+    protected string $operator;
 
-    protected array $_options;
+    /**
+     * Additional options
+     *
+     * @var array<string, mixed>
+     */
+    protected array $options;
 
     /**
      * Constructor
      *
      * @param string $field Field name
-     * @param array $geometry Geometry data
+     * @param array<string, mixed> $geometry Geometry data
      * @param string $operator Geospatial operator
-     * @param array $options Additional options
+     * @param array<string, mixed> $options Additional options
      */
     public function __construct(string $field, array $geometry, string $operator, array $options = [])
     {
-        $this->_field = $field;
-        $this->_geometry = $geometry;
-        $this->_operator = $operator;
-        $this->_options = $options;
-
-        $this->_compile();
+        $this->field = $field;
+        $this->geometry = $geometry;
+        $this->operator = $operator;
+        $this->options = $options;
     }
 
     /**
@@ -39,13 +57,9 @@ class GeospatialExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
-
-        if ($this->_geometry instanceof MongoExpressionInterface) {
-            $this->_geometry->traverse($callback);
-        }
 
         return $this;
     }
@@ -53,40 +67,40 @@ class GeospatialExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
         $query = [
-            $this->_field => [
-                $this->_operator => [
-                    '$geometry' => $this->_geometry,
+            $this->field => [
+                $this->operator => [
+                    '$geometry' => $this->geometry,
                 ],
             ],
         ];
 
-        if ($this->_operator === '$near') {
-            if (isset($this->_options['maxDistance'])) {
-                $query[$this->_field][$this->_operator]['$maxDistance'] = $this->_options['maxDistance'];
+        if ($this->operator === '$near') {
+            if (isset($this->options['maxDistance'])) {
+                $query[$this->field][$this->operator]['$maxDistance'] = $this->options['maxDistance'];
             }
 
-            if (isset($this->_options['minDistance'])) {
-                $query[$this->_field][$this->_operator]['$minDistance'] = $this->_options['minDistance'];
+            if (isset($this->options['minDistance'])) {
+                $query[$this->field][$this->operator]['$minDistance'] = $this->options['minDistance'];
             }
         }
 
-        $this->_conditions = $query;
+        $this->conditions = $query;
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_conditions;
+        return $this->conditions;
     }
 }

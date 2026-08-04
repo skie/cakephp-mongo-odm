@@ -7,11 +7,40 @@ use Closure;
 
 class ComparisonExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * Mapping of SQL-style operators to MongoDB operators
+     *
+     * @var array<string, string>
+     */
+    protected const array OPERATORS = [
+        '=' => '$eq',
+        '!=' => '$ne',
+        '>' => '$gt',
+        '>=' => '$gte',
+        '<' => '$lt',
+        '<=' => '$lte',
+    ];
 
-    protected mixed $_value;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected string $_operator;
+    /**
+     * The value to compare
+     *
+     * @var mixed
+     */
+    protected mixed $value;
+
+    /**
+     * The Mongo operator
+     *
+     * @var string
+     */
+    protected string $operator;
 
     /**
      * Constructor
@@ -22,32 +51,9 @@ class ComparisonExpression extends AbstractExpression
      */
     public function __construct(string $field, mixed $value, string $operator)
     {
-        $this->_field = $field;
-        $this->_value = $value;
-        $this->_operator = $operator;
-
-        $mongoOperators = [
-            '=' => '$eq',
-            '!=' => '$ne',
-            '>' => '$gt',
-            '>=' => '$gte',
-            '<' => '$lt',
-            '<=' => '$lte',
-        ];
-
-        $this->_operator = $mongoOperators[$operator] ?? $operator;
-
-        if ($this->_operator === '$eq') {
-            $this->_conditions = [
-                $field => $value,
-            ];
-
-            return;
-        }
-
-        $this->_conditions = [
-            $field => [$this->_operator => $value],
-        ];
+        $this->field = $field;
+        $this->value = $value;
+        $this->operator = self::OPERATORS[$operator] ?? $operator;
     }
 
     /**
@@ -56,12 +62,12 @@ class ComparisonExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
-        if ($this->_value instanceof MongoExpressionInterface) {
-            $this->_value->traverse($callback);
+        if ($this->value instanceof MongoExpressionInterface) {
+            $this->value->traverse($callback);
         }
 
         return $this;
@@ -70,31 +76,31 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $value = $this->_value;
+        $value = $this->value;
         if ($value instanceof MongoExpressionInterface) {
             $value = $value->getConditions();
         }
 
-        if ($this->_operator === '$eq') {
-            return [$this->_field => $value];
+        if ($this->operator === '$eq') {
+            return [$this->field => $value];
         }
 
         return [
-            $this->_field => [$this->_operator => $value],
+            $this->field => [$this->operator => $value],
         ];
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

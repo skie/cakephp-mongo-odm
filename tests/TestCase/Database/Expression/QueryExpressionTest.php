@@ -26,6 +26,7 @@ class QueryExpressionTest extends TestCase
     public function testDefaultConjunction(): void
     {
         $expression = new QueryExpression();
+        $this->assertSame('$and', $expression->getConjunction());
         $this->assertSame([], $expression->getConditions());
     }
 
@@ -120,6 +121,242 @@ class QueryExpressionTest extends TestCase
     }
 
     /**
+     * Test setConjunction / getConjunction accessors.
+     *
+     * @return void
+     */
+    public function testConjunctionAccessors(): void
+    {
+        $expression = new QueryExpression();
+        $this->assertSame('$and', $expression->getConjunction());
+
+        $expression->setConjunction('$or');
+        $this->assertSame('$or', $expression->getConjunction());
+        $this->assertSame($expression, $expression->setConjunction('$or'));
+    }
+
+    /**
+     * Test the eq()/notEq() helpers compile comparisons.
+     *
+     * @return void
+     */
+    public function testEqAndNotEq(): void
+    {
+        $expression = new QueryExpression();
+        $expression->eq('author_id', 1);
+        $this->assertEquals(['author_id' => 1], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->notEq('author_id', 1);
+        $this->assertEquals(['author_id' => ['$ne' => 1]], $expression->getConditions());
+    }
+
+    /**
+     * Test the comparison range helpers compile comparisons.
+     *
+     * @return void
+     */
+    public function testComparisonHelpers(): void
+    {
+        $expression = new QueryExpression();
+        $expression->gt('min_age', 18)->gte('from_age', 18)->lt('max_age', 65)->lte('to_age', 65);
+
+        $this->assertEquals([
+            'min_age' => ['$gt' => 18],
+            'from_age' => ['$gte' => 18],
+            'max_age' => ['$lt' => 65],
+            'to_age' => ['$lte' => 65],
+        ], $expression->getConditions());
+    }
+
+    /**
+     * Test the in()/notIn() helpers compile `$in` / `$nin`.
+     *
+     * @return void
+     */
+    public function testInAndNotIn(): void
+    {
+        $expression = new QueryExpression();
+        $expression->in('status', ['a', 'b']);
+        $this->assertEquals([
+            'status' => ['$in' => ['a', 'b']],
+        ], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->notIn('status', ['a', 'b']);
+        $this->assertEquals([
+            'status' => ['$nin' => ['a', 'b']],
+        ], $expression->getConditions());
+    }
+
+    /**
+     * Test the between()/notBetween() helpers compile ranges.
+     *
+     * @return void
+     */
+    public function testBetweenAndNotBetween(): void
+    {
+        $expression = new QueryExpression();
+        $expression->between('age', 18, 65);
+        $this->assertEquals([
+            'age' => ['$gte' => 18, '$lte' => 65],
+        ], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->notBetween('age', 18, 65);
+        $this->assertEquals([
+            'age' => ['$not' => ['$gte' => 18, '$lte' => 65]],
+        ], $expression->getConditions());
+    }
+
+    /**
+     * Test the like()/notLike() helpers compile regex conditions.
+     *
+     * @return void
+     */
+    public function testLikeAndNotLike(): void
+    {
+        $expression = new QueryExpression();
+        $expression->like('name', '^j');
+        $this->assertEquals([
+            'name' => ['$regex' => '^j', '$options' => ''],
+        ], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->notLike('name', '^j');
+        $this->assertEquals([
+            'name' => ['$not' => ['$regex' => '^j', '$options' => '']],
+        ], $expression->getConditions());
+    }
+
+    /**
+     * Test the isNull()/isNotNull() helpers compile null comparisons.
+     *
+     * @return void
+     */
+    public function testIsNullAndIsNotNull(): void
+    {
+        $expression = new QueryExpression();
+        $expression->isNull('deleted');
+        $this->assertEquals(['deleted' => null], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->isNotNull('deleted');
+        $this->assertEquals(['deleted' => ['$ne' => null]], $expression->getConditions());
+    }
+
+    /**
+     * Test the exists()/notExists() helpers compile `$exists`.
+     *
+     * @return void
+     */
+    public function testExistsAndNotExists(): void
+    {
+        $expression = new QueryExpression();
+        $expression->exists('deleted');
+        $this->assertEquals(['deleted' => ['$exists' => true]], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->notExists('deleted');
+        $this->assertEquals(['deleted' => ['$exists' => false]], $expression->getConditions());
+    }
+
+    /**
+     * Test the not() helper negates a condition group.
+     *
+     * @return void
+     */
+    public function testNot(): void
+    {
+        $expression = new QueryExpression();
+        $expression->not(['a' => 1]);
+        $this->assertEquals(['$nor' => [['a' => 1]]], $expression->getConditions());
+
+        $expression = new QueryExpression();
+        $expression->not(new ComparisonExpression('a', 1, '$eq'));
+        $this->assertEquals(['$nor' => [['a' => 1]]], $expression->getConditions());
+    }
+
+    /**
+     * Test the expression implements Countable.
+     *
+     * @return void
+     */
+    public function testCount(): void
+    {
+        $expression = new QueryExpression();
+        $this->assertSame(0, count($expression));
+
+        $expression->eq('author_id', 1)->gt('age', 18);
+        $this->assertSame(2, count($expression));
+    }
+
+    /**
+     * Test iterateParts replaces visited parts.
+     *
+     * @return void
+     */
+    public function testIterateParts(): void
+    {
+        $expression = new QueryExpression();
+        $expression->add(['author_id' => 1]);
+        $expression->add(['published' => true]);
+
+        $expression->iterateParts(function ($part, &$key) {
+            if ($part === ['author_id' => 1]) {
+                return ['author_id' => 2];
+            }
+
+            return $part;
+        });
+
+        $this->assertEquals([
+            'author_id' => 2,
+            'published' => true,
+        ], $expression->getConditions());
+    }
+
+    /**
+     * Test hasNestedExpression detects nested expression objects.
+     *
+     * @return void
+     */
+    public function testHasNestedExpression(): void
+    {
+        $expression = new QueryExpression();
+        $expression->add(['author_id' => 1]);
+        $this->assertFalse($expression->hasNestedExpression());
+
+        $expression->add(new ComparisonExpression('age', 18, '>'));
+        $this->assertTrue($expression->hasNestedExpression());
+    }
+
+    /**
+     * Test clone deep-clones nested expressions.
+     *
+     * @return void
+     */
+    public function testClone(): void
+    {
+        $nested = new QueryExpression();
+        $nested->add(['a' => 1]);
+
+        $expression = new QueryExpression();
+        $expression->add($nested);
+
+        $clone = clone $expression;
+        $clone->add(['b' => 2]);
+
+        $this->assertEquals([
+            'a' => 1,
+        ], $expression->getConditions());
+        $this->assertEquals([
+            'a' => 1,
+            'b' => 2,
+        ], $clone->getConditions());
+    }
+
+    /**
      * Test traverse visits the expression and its children.
      *
      * @return void
@@ -179,5 +416,19 @@ class QueryExpressionTest extends TestCase
 
         $this->assertInstanceOf(QueryExpression::class, $result);
         $this->assertEquals(['author_id' => 1], $result->getConditions());
+    }
+
+    /**
+     * Test the or() helper returns a new OR expression.
+     *
+     * @return void
+     */
+    public function testOrHelper(): void
+    {
+        $expression = new QueryExpression();
+        $result = $expression->or(['author_id' => 1]);
+
+        $this->assertInstanceOf(QueryExpression::class, $result);
+        $this->assertEquals(['$or' => [['author_id' => 1]]], $result->getConditions());
     }
 }

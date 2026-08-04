@@ -13,16 +13,16 @@ abstract class AbstractExpression extends Expression implements MongoExpressionI
     /**
      * The MongoDB query conditions
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
-    protected array $_conditions = [];
+    protected array $conditions = [];
 
     /**
      * @inheritDoc
      */
     public function sql(ValueBinder $binder): string
     {
-        return json_encode($this->getConditions());
+        return json_encode($this->getConditions()) ?: '{}';
     }
 
     /**
@@ -30,6 +30,6 @@ abstract class AbstractExpression extends Expression implements MongoExpressionI
      */
     public function getConditions(): array
     {
-        return $this->_conditions;
+        return $this->conditions;
     }
 }

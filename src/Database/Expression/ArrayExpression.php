@@ -5,33 +5,43 @@ namespace Crustum\Mongo\Database\Expression;
 
 class ArrayExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected string $_operator;
+    /**
+     * The Mongo array operator (`$all`, `$in`, …)
+     *
+     * @var string
+     */
+    protected string $operator;
 
     /**
      * Constructor
      *
      * @param string $field Field name
-     * @param array $conditions Conditions array
+     * @param array<int, mixed> $conditions Conditions array
      * @param string $operator Operator
      */
     public function __construct(string $field, array $conditions, string $operator)
     {
-        $this->_field = $field;
-        $this->_operator = $operator;
-        $this->_conditions = $conditions;
+        $this->field = $field;
+        $this->operator = $operator;
+        $this->conditions = $conditions;
     }
 
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
         $result = [];
-        foreach ($this->_conditions as $condition) {
+        foreach ($this->conditions as $condition) {
             if ($condition instanceof MongoExpressionInterface) {
                 $result[] = $condition->getConditions();
             } else {
@@ -40,17 +50,17 @@ class ArrayExpression extends AbstractExpression
         }
 
         return [
-            $this->_field => [$this->_operator => $result],
+            $this->field => [$this->operator => $result],
         ];
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

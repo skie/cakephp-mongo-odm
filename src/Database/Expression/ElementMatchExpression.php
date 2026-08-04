@@ -7,18 +7,23 @@ use Closure;
 
 class ElementMatchExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
     /**
      * Constructor
      *
      * @param string $field Field name
-     * @param array $conditions Conditions array
+     * @param array<string, mixed> $conditions Conditions array
      */
     public function __construct(string $field, array $conditions)
     {
-        $this->_field = $field;
-        $this->_conditions = $conditions;
+        $this->field = $field;
+        $this->conditions = $conditions;
     }
 
     /**
@@ -27,11 +32,11 @@ class ElementMatchExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
-        foreach ($this->_conditions as $condition) {
+        foreach ($this->conditions as $condition) {
             if ($condition instanceof MongoExpressionInterface) {
                 $condition->traverse($callback);
             } else {
@@ -45,12 +50,12 @@ class ElementMatchExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
         $result = [];
-        $conditions = $this->_conditions;
+        $conditions = $this->conditions;
 
         if (isset($conditions[0]) && is_array($conditions[0])) {
             $flattened = [];
@@ -72,7 +77,7 @@ class ElementMatchExpression extends AbstractExpression
         }
 
         return [
-            $this->_field => [
+            $this->field => [
                 '$elemMatch' => $result,
             ],
         ];
@@ -81,10 +86,10 @@ class ElementMatchExpression extends AbstractExpression
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

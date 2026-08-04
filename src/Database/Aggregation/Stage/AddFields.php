@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Aggregation\Stage;
 
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
-use Crustum\Mongo\Database\Aggregation\Expr;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 
 /**
  * $addFields aggregation stage
@@ -14,11 +14,11 @@ use Crustum\Mongo\Database\Aggregation\Expr;
 class AddFields extends Stage
 {
     /**
-     * Expression builder for field expressions
+     * The fields to add, keyed by field name
      *
-     * @var \Crustum\Mongo\Database\Aggregation\Expr
+     * @var array<string, mixed>
      */
-    protected Expr $expr;
+    protected array $fields = [];
 
     /**
      * Constructor
@@ -28,19 +28,19 @@ class AddFields extends Stage
     public function __construct(AggregationBuilder $builder)
     {
         parent::__construct($builder);
-        $this->expr = new Expr();
     }
 
     /**
      * Add a field with an expression
      *
      * @param string $fieldName  The field name to add
-     * @param mixed  $expression The expression value (can be array, string, number, etc.)
+     * @param mixed  $expression The expression value (can be a `FunctionExpression`,
+     *  array, string, number, etc.)
      * @return $this
      */
-    public function field(string $fieldName, mixed $expression)
+    public function field(string $fieldName, mixed $expression): static
     {
-        $this->expr->addField($fieldName, $expression);
+        $this->fields[$fieldName] = $expression;
 
         return $this;
     }
@@ -52,6 +52,25 @@ class AddFields extends Stage
      */
     public function getExpression(): array
     {
-        return ['$addFields' => $this->expr->getExpression()];
+        return ['$addFields' => $this->renderFields()];
+    }
+
+    /**
+     * Render the field expressions, resolving expression objects to arrays
+     *
+     * @return array<string, mixed>
+     */
+    protected function renderFields(): array
+    {
+        $result = [];
+        foreach ($this->fields as $fieldName => $expression) {
+            if ($expression instanceof MongoExpressionInterface) {
+                $result[$fieldName] = $expression->getConditions();
+            } else {
+                $result[$fieldName] = $expression;
+            }
+        }
+
+        return $result;
     }
 }

@@ -7,9 +7,19 @@ use Closure;
 
 class ExistsExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected bool $_exists;
+    /**
+     * Whether the field should exist
+     *
+     * @var bool
+     */
+    protected bool $exists;
 
     /**
      * Constructor
@@ -19,9 +29,8 @@ class ExistsExpression extends AbstractExpression
      */
     public function __construct(string $field, bool $exists = true)
     {
-        $this->_field = $field;
-        $this->_exists = $exists;
-        $this->_compile();
+        $this->field = $field;
+        $this->exists = $exists;
     }
 
     /**
@@ -30,7 +39,7 @@ class ExistsExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
@@ -40,26 +49,26 @@ class ExistsExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $this->_conditions = [
-            $this->_field => [
-                '$exists' => $this->_exists,
+        $this->conditions = [
+            $this->field => [
+                '$exists' => $this->exists,
             ],
         ];
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

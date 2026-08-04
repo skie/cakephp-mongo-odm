@@ -7,11 +7,26 @@ use Closure;
 
 class ModExpression extends AbstractExpression
 {
-    protected string $_field;
+    /**
+     * The field name
+     *
+     * @var string
+     */
+    protected string $field;
 
-    protected int $_divisor;
+    /**
+     * The divisor
+     *
+     * @var int
+     */
+    protected int $divisor;
 
-    protected int $_remainder;
+    /**
+     * The remainder
+     *
+     * @var int
+     */
+    protected int $remainder;
 
     /**
      * Constructor
@@ -22,10 +37,9 @@ class ModExpression extends AbstractExpression
      */
     public function __construct(string $field, int $divisor, int $remainder)
     {
-        $this->_field = $field;
-        $this->_divisor = $divisor;
-        $this->_remainder = $remainder;
-        $this->_compile();
+        $this->field = $field;
+        $this->divisor = $divisor;
+        $this->remainder = $remainder;
     }
 
     /**
@@ -34,7 +48,7 @@ class ModExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
@@ -44,26 +58,26 @@ class ModExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
-        $this->_conditions = [
-            $this->_field => [
-                '$mod' => [$this->_divisor, $this->_remainder],
+        $this->conditions = [
+            $this->field => [
+                '$mod' => [$this->divisor, $this->remainder],
             ],
         ];
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }

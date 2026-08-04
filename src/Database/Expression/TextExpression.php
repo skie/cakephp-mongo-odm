@@ -7,21 +7,30 @@ use Closure;
 
 class TextExpression extends AbstractExpression
 {
-    protected string $_search;
+    /**
+     * The search text
+     *
+     * @var string
+     */
+    protected string $search;
 
-    protected array $_options;
+    /**
+     * The text search options
+     *
+     * @var array<string, mixed>
+     */
+    protected array $options;
 
     /**
      * Constructor
      *
      * @param string $search Search text
-     * @param array $options Text search options
+     * @param array<string, mixed> $options Text search options
      */
     public function __construct(string $search, array $options = [])
     {
-        $this->_search = $search;
-        $this->_options = $options;
-        $this->_compile();
+        $this->search = $search;
+        $this->options = $options;
     }
 
     /**
@@ -30,7 +39,7 @@ class TextExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
-    public function traverse(Closure $callback)
+    public function traverse(Closure $callback): static
     {
         $callback($this);
 
@@ -40,34 +49,34 @@ class TextExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function _compile(): array
+    protected function compile(): array
     {
         $query = [
             '$text' => [
-                '$search' => $this->_search,
+                '$search' => $this->search,
             ],
         ];
 
         foreach (['language', 'caseSensitive', 'diacriticSensitive'] as $option) {
-            if (isset($this->_options[$option])) {
-                $query['$text']['$' . $option] = $this->_options[$option];
+            if (isset($this->options[$option])) {
+                $query['$text']['$' . $option] = $this->options[$option];
             }
         }
 
-        $this->_conditions = $query;
+        $this->conditions = $query;
 
-        return $this->_conditions;
+        return $this->conditions;
     }
 
     /**
      * Get the compiled conditions
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {
-        return $this->_compile();
+        return $this->compile();
     }
 }
