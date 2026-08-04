@@ -71,6 +71,7 @@ class CounterCacheBehavior extends Behavior
             if (!is_string($associationName)) {
                 continue;
             }
+
             if (!is_callable([$this->collection(), 'getAssociation'])) {
                 continue;
             }
@@ -79,9 +80,11 @@ class CounterCacheBehavior extends Behavior
             if (!is_object($association)) {
                 continue;
             }
+
             if (!is_callable([$association, 'getForeignKey'])) {
                 continue;
             }
+
             if (!is_callable([$association, 'getBindingKey'])) {
                 continue;
             }
@@ -100,6 +103,7 @@ class CounterCacheBehavior extends Behavior
             if (!is_object($target)) {
                 continue;
             }
+
             if ($conditions === []) {
                 continue;
             }

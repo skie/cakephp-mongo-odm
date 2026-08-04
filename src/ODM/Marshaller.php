@@ -135,6 +135,7 @@ final class Marshaller
             if ($id === null) {
                 continue;
             }
+
             if (!isset($indexed[$id])) {
                 continue;
             }

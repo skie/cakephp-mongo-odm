@@ -206,9 +206,11 @@ abstract class Behavior implements EventListenerInterface
             if (in_array($name, $baseMethods, true)) {
                 continue;
             }
+
             if (in_array($name, $events, true)) {
                 continue;
             }
+
             if (str_starts_with($name, 'find')) {
                 continue;
             }
