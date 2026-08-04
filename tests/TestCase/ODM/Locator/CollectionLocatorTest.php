@@ -21,7 +21,7 @@ class CollectionLocatorTest extends TestCase
     {
         parent::setUp();
 
-        (new MongoPlugin())->bootstrap($this->createMock(PluginApplicationInterface::class));
+        (new MongoPlugin())->bootstrap($this->createStub(PluginApplicationInterface::class));
     }
 
     public function testGetExistsAndClear(): void

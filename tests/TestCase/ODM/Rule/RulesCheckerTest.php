@@ -48,7 +48,7 @@ final class RulesCheckerTest extends TestCase
 
     public function testUniqueFailurePropagatesToEntity(): void
     {
-        $repository = $this->createMock(RepositoryInterface::class);
+        $repository = $this->createStub(RepositoryInterface::class);
         $repository->method('exists')->willReturn(true);
 
         $checker = new RulesChecker(['repository' => $repository]);
