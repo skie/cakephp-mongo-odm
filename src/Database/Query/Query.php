@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Query;
 
 use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\Database\Connection;
+use Stringable;
 
 /**
  * Base query class for MongoDB.
@@ -14,7 +15,7 @@ use Crustum\Mongo\Database\Connection;
  *
  * @see cake50/src/Database/Query/Query.php
  */
-abstract class Query
+abstract class Query implements Stringable
 {
     public const string TYPE_SELECT = 'find';
 
@@ -113,6 +114,14 @@ abstract class Query
     }
 
     /**
+     * Deep-clones the query so the clone owns an independent compiler.
+     */
+    public function __clone()
+    {
+        $this->builder = clone $this->builder;
+    }
+
+    /**
      * Compiles the query into its executable shape.
      *
      * @return array<string, mixed>
@@ -148,5 +157,25 @@ abstract class Query
         }
 
         return $this->connection->run($this);
+    }
+
+    /**
+     * Returns the compiled query for debugging.
+     *
+     * @return array{sql: string}
+     */
+    public function __debugInfo(): array
+    {
+        return ['sql' => $this->sql()];
+    }
+
+    /**
+     * Returns the string representation of this query.
+     *
+     * @return string
+     */
+    public function __toString(): string
+    {
+        return $this->sql();
     }
 }

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database;
 use Cake\Cache\Cache;
 use Cake\Core\Exception\CakeException;
 use Cake\Datasource\ConnectionInterface;
+use Closure;
 use Crustum\Mongo\Database\Driver\DriverInterface;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Query\Query;
@@ -15,7 +16,9 @@ use Crustum\Mongo\Datasource\SchemaCollectionInterface;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
+use MongoDB\Driver\Session;
 use Psr\SimpleCache\CacheInterface;
+use Throwable;
 
 /**
  * Mongo connection implementing `Cake\Datasource\ConnectionInterface`.
@@ -65,6 +68,41 @@ class Connection implements ConnectionInterface
      * @var \Crustum\Mongo\Datasource\SchemaCollectionInterface|null
      */
     protected ?SchemaCollectionInterface $schemaCollection = null;
+
+    /**
+     * The active transaction session.
+     *
+     * @var \MongoDB\Driver\Session|null
+     */
+    protected ?Session $session = null;
+
+    /**
+     * Whether a transaction has been started.
+     *
+     * @var bool
+     */
+    protected bool $transactionStarted = false;
+
+    /**
+     * Nested transaction depth (Mongo has no savepoints; nesting is emulated).
+     *
+     * @var int
+     */
+    protected int $transactionLevel = 0;
+
+    /**
+     * Callbacks to run after the outermost commit.
+     *
+     * @var list<\Closure>
+     */
+    protected array $afterCommitCallbacks = [];
+
+    /**
+     * Whether the server supports transactions (probed once).
+     *
+     * @var bool|null
+     */
+    protected ?bool $transactionsSupported = null;
 
     /**
      * Constructor.
@@ -231,15 +269,20 @@ class Connection implements ConnectionInterface
         $compiled = $query->compile();
         $collection = $this->getCollection((string)($compiled['collection'] ?? ''));
 
+        $options = $compiled['options'] ?? [];
+        if ($this->session instanceof Session) {
+            $options['session'] = $this->session;
+        }
+
         return match ((string)$compiled['type']) {
-            'find' => $collection->find($compiled['filter'] ?? [], $compiled['options'] ?? []),
-            'aggregate' => $collection->aggregate($compiled['pipeline'] ?? [], $compiled['options'] ?? []),
-            Query::TYPE_INSERT => $this->doInsert($collection, $compiled['documents'] ?? [], $compiled['options'] ?? []),
+            'find' => $collection->find($compiled['filter'] ?? [], $options),
+            'aggregate' => $collection->aggregate($compiled['pipeline'] ?? [], $options),
+            Query::TYPE_INSERT => $this->doInsert($collection, $compiled['documents'] ?? [], $options),
             Query::TYPE_UPDATE => $collection
-                ->updateMany($compiled['filter'] ?? [], $compiled['update'] ?? [], $compiled['options'] ?? [])
+                ->updateMany($compiled['filter'] ?? [], $compiled['update'] ?? [], $options)
                 ->getModifiedCount(),
             Query::TYPE_DELETE => $collection
-                ->deleteMany($compiled['filter'] ?? [], $compiled['options'] ?? [])
+                ->deleteMany($compiled['filter'] ?? [], $options)
                 ->getDeletedCount(),
             default => throw new CakeException(sprintf('Unsupported query type `%s`.', $compiled['type'])),
         };
@@ -264,5 +307,197 @@ class Connection implements ConnectionInterface
         $result = $collection->insertMany($documents, $options);
 
         return array_map(strval(...), $result->getInsertedIds());
+    }
+
+    /**
+     * Starts a new transaction.
+     *
+     * Nested `begin()` calls increment the transaction level; only the
+     * outermost level maps to a real Mongo session transaction.
+     *
+     * On servers without replica-set/mongos support (e.g. a standalone) the
+     * transaction is emulated: state is tracked so `commit()`/`rollback()` /
+     * `afterCommit()` keep their semantics, but writes are not atomic.
+     *
+     * @return void
+     */
+    public function begin(): void
+    {
+        if ($this->transactionStarted) {
+            $this->transactionLevel++;
+
+            return;
+        }
+
+        $this->transactionStarted = true;
+        $this->transactionLevel = 0;
+
+        if (!$this->supportsTransactions()) {
+            return;
+        }
+
+        $session = $this->getClient()->startSession();
+        $session->startTransaction();
+        $this->session = $session;
+    }
+
+    /**
+     * Commits the current transaction and runs registered after-commit callbacks.
+     *
+     * Nested commits decrement the level without committing.
+     *
+     * @return bool true on success, false otherwise.
+     */
+    public function commit(): bool
+    {
+        if (!$this->transactionStarted) {
+            return false;
+        }
+
+        if ($this->transactionLevel > 0) {
+            $this->transactionLevel--;
+
+            return true;
+        }
+
+        $session = $this->session;
+        $this->transactionStarted = false;
+        $this->session = null;
+
+        if ($session instanceof Session) {
+            $session->commitTransaction();
+        }
+
+        $callbacks = $this->afterCommitCallbacks;
+        $this->afterCommitCallbacks = [];
+        foreach ($callbacks as $callback) {
+            $callback();
+        }
+
+        return true;
+    }
+
+    /**
+     * Rolls back the current transaction and discards after-commit callbacks.
+     *
+     * @return bool true on success, false otherwise.
+     */
+    public function rollback(): bool
+    {
+        if (!$this->transactionStarted) {
+            return false;
+        }
+
+        if ($this->transactionLevel > 0) {
+            $this->transactionLevel--;
+
+            return true;
+        }
+
+        $session = $this->session;
+        $this->transactionStarted = false;
+        $this->session = null;
+
+        if ($session instanceof Session) {
+            $session->abortTransaction();
+        }
+
+        $this->afterCommitCallbacks = [];
+
+        return true;
+    }
+
+    /**
+     * Returns whether the server supports multi-document transactions.
+     *
+     * The result is probed once per connection instance and cached.
+     *
+     * @return bool
+     */
+    public function supportsTransactions(): bool
+    {
+        if ($this->transactionsSupported !== null) {
+            return $this->transactionsSupported;
+        }
+
+        try {
+            $database = $this->getDatabase();
+            $session = $this->getClient()->startSession();
+            $session->startTransaction();
+            $database->command(['ping' => 1], ['session' => $session]);
+            $session->abortTransaction();
+
+            return $this->transactionsSupported = true;
+        } catch (Throwable) {
+            return $this->transactionsSupported = false;
+        }
+    }
+
+    /**
+     * Registers a callback to run after the outermost transaction commits.
+     *
+     * When no transaction is active the callback runs immediately.
+     *
+     * @param \Closure $callback Callback to execute after commit.
+     * @return void
+     */
+    public function afterCommit(Closure $callback): void
+    {
+        if (!$this->transactionStarted) {
+            $callback();
+
+            return;
+        }
+
+        $this->afterCommitCallbacks[] = $callback;
+    }
+
+    /**
+     * Returns whether a transaction is currently active.
+     *
+     * @return bool
+     */
+    public function inTransaction(): bool
+    {
+        return $this->transactionStarted;
+    }
+
+    /**
+     * Executes a callable within a transaction.
+     *
+     * @param \Closure $callback Callable that will be executed in a transaction.
+     * @return mixed The return value of the callback.
+     * @throws \Throwable Rethrows the exception after rolling back.
+     */
+    public function transactional(Closure $callback): mixed
+    {
+        $this->begin();
+
+        try {
+            $result = $callback($this);
+            if ($result === false) {
+                $this->rollback();
+
+                return false;
+            }
+
+            $this->commit();
+
+            return $result;
+        } catch (Throwable $throwable) {
+            $this->rollback();
+
+            throw $throwable;
+        }
+    }
+
+    /**
+     * Returns the active transaction session, if any.
+     *
+     * @return \MongoDB\Driver\Session|null
+     */
+    public function getSession(): ?Session
+    {
+        return $this->session;
     }
 }

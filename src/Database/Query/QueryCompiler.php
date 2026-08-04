@@ -103,6 +103,10 @@ class QueryCompiler
         }
 
         if (is_string($conditions)) {
+            if ($conditions === '') {
+                return $this;
+            }
+
             $conditions = [$conditions];
         }
 
@@ -364,6 +368,15 @@ class QueryCompiler
             'pipeline' => $pipeline,
             'options' => $this->options,
         ];
+    }
+
+    /**
+     * Deep-clones the compiler so the clone owns an independent expression
+     * builder and condition arrays.
+     */
+    public function __clone()
+    {
+        $this->expressionBuilder = clone $this->expressionBuilder;
     }
 
     /**

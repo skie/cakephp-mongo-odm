@@ -171,6 +171,48 @@ class MongoDriverTest extends TestCase
     }
 
     /**
+     * Test isConnected reports the client state.
+     *
+     * @return void
+     */
+    public function testIsConnected(): void
+    {
+        $driver = new MongoDriver([
+            'host' => '127.0.0.1',
+            'port' => 27017,
+            'database' => 'test_mongo_db',
+        ]);
+
+        $this->assertFalse($driver->isConnected());
+
+        $driver->getClient();
+        $this->assertTrue($driver->isConnected());
+
+        $driver->disconnect();
+        $this->assertFalse($driver->isConnected());
+    }
+
+    /**
+     * Test the destructor disconnects the driver.
+     *
+     * @return void
+     */
+    public function testDestructor(): void
+    {
+        $driver = new MongoDriver([
+            'host' => '127.0.0.1',
+            'port' => 27017,
+            'database' => 'test_mongo_db',
+        ]);
+
+        $driver->getClient();
+        $this->assertTrue($driver->isConnected());
+
+        $driver->__destruct();
+        $this->assertFalse($driver->isConnected());
+    }
+
+    /**
      * Invokes the protected buildDsn() method.
      *
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver.

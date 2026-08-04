@@ -63,6 +63,7 @@ class MongoLoggerTest extends TestCase
         $this->assertArrayHasKey('query', $context);
         $this->assertInstanceOf(LoggedQuery::class, $context['query']);
         $this->assertSame(12.0, $context['query']->getContext()['took']);
+        $this->assertSame(5, $context['query']->getContext()['numRows']);
     }
 
     public function testLogRethrowsExceptionFromContext(): void
@@ -89,5 +90,105 @@ class MongoLoggerTest extends TestCase
         $result = $logger->setLogger($second);
         $this->assertSame($logger, $result);
         $this->assertSame($second, $logger->getLogger());
+    }
+
+    /**
+     * The LoggedQuery built for a timed command stringifies to the encoded JSON.
+     *
+     * @return void
+     */
+    public function testLoggedQueryStringConversion(): void
+    {
+        $inner = new MemoryLogger();
+        $logger = new MongoLogger($inner);
+
+        $logger->log('info', 'ignored', [
+            'command' => ['find' => 'articles', 'filter' => ['active' => true]],
+            'database' => 'test',
+            'collection' => 'articles',
+            'duration_ms' => 12,
+        ]);
+
+        $query = $inner->records[0][2]['query'];
+        $decoded = json_decode((string)$query, true);
+        $this->assertSame('find', $decoded['operation']);
+        $this->assertSame('test', $decoded['database']);
+    }
+
+    /**
+     * The LoggedQuery context carries query, numRows and took.
+     *
+     * @return void
+     */
+    public function testLoggedQueryContext(): void
+    {
+        $inner = new MemoryLogger();
+        $logger = new MongoLogger($inner);
+
+        $logger->log('info', 'ignored', [
+            'command' => ['insert' => 'articles'],
+            'database' => 'test',
+            'collection' => 'articles',
+            'duration_ms' => 3,
+            'numReturn' => 1,
+        ]);
+
+        $context = $inner->records[0][2]['query']->getContext();
+        $this->assertSame('insert', json_decode($context['query'], true)['operation']);
+        $this->assertSame(1, $context['numRows']);
+        $this->assertSame(3.0, $context['took']);
+    }
+
+    /**
+     * The LoggedQuery JSON-serializes without losing the encoded operation.
+     *
+     * @return void
+     */
+    public function testLoggedQueryJsonSerialize(): void
+    {
+        $inner = new MemoryLogger();
+        $logger = new MongoLogger($inner);
+
+        $logger->log('info', 'ignored', [
+            'command' => ['find' => 'articles'],
+            'database' => 'test',
+            'collection' => 'articles',
+            'duration_ms' => 12,
+            'numReturn' => 5,
+        ]);
+
+        $query = $inner->records[0][2]['query'];
+        $serialized = json_decode(json_encode($query), true);
+        $this->assertSame('find', json_decode($serialized['query'], true)['operation']);
+        $this->assertSame(5, $serialized['numRows']);
+        $this->assertSame(12, $serialized['took']);
+    }
+
+    /**
+     * A registered redactor scrubs the encoded query before exposure.
+     *
+     * @return void
+     */
+    public function testLoggedQueryRedactorApplied(): void
+    {
+        LoggedQuery::setRedactor(static fn(string $query, array $params): array => [str_replace('SECRET-KEY', '«REDACTED»', $query), $params]);
+
+        try {
+            $inner = new MemoryLogger();
+            $logger = new MongoLogger($inner);
+
+            $logger->log('info', 'ignored', [
+                'command' => ['find' => 'articles', 'filter' => ['token' => 'SECRET-KEY']],
+                'database' => 'test',
+                'collection' => 'articles',
+                'duration_ms' => 12,
+            ]);
+
+            $query = $inner->records[0][2]['query'];
+            $this->assertStringNotContainsString('SECRET-KEY', (string)$query);
+            $this->assertStringContainsString('«REDACTED»', (string)$query);
+        } finally {
+            LoggedQuery::setRedactor(null);
+        }
     }
 }

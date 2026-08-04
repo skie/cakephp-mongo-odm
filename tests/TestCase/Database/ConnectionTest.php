@@ -19,7 +19,9 @@ use Crustum\Mongo\Datasource\SchemaCollectionInterface;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
+use MongoDB\Driver\Session;
 use Psr\SimpleCache\CacheInterface;
+use RuntimeException;
 use Traversable;
 
 /**
@@ -242,5 +244,294 @@ class ConnectionTest extends TestCase
         ]);
 
         $this->assertInstanceOf(CacheInterface::class, $connection->getCacher());
+    }
+
+    // ------------------------------------------------------------------
+    // transactions
+    // ------------------------------------------------------------------
+
+    /**
+     * Skip when the server cannot run real multi-document transactions.
+     *
+     * @return void
+     */
+    protected function requireReplicaSet(): void
+    {
+        if (!$this->connection->supportsTransactions()) {
+            $this->markTestSkipped('Server does not support transactions (needs a replica set or mongos).');
+        }
+    }
+
+    /**
+     * Test begin/commit round-trips writes.
+     *
+     * @return void
+     */
+    public function testSimpleTransactions(): void
+    {
+        $this->requireReplicaSet();
+
+        $collection = $this->connection->getCollection('tx_test');
+        $collection->deleteMany([]);
+
+        $this->assertFalse($this->connection->inTransaction());
+        $this->connection->begin();
+        $this->assertTrue($this->connection->inTransaction());
+        $this->assertInstanceOf(Session::class, $this->connection->getSession());
+
+        $query = new InsertQuery($this->connection, 'tx_test');
+        $query->values(['title' => 'One']);
+
+        $this->connection->run($query);
+
+        $this->assertTrue($this->connection->commit());
+
+        $this->assertFalse($this->connection->inTransaction());
+        $this->assertNull($this->connection->getSession());
+        $this->assertSame(1, $collection->countDocuments());
+        $collection->deleteMany([]);
+    }
+
+    /**
+     * Test rollback discards writes.
+     *
+     * @return void
+     */
+    public function testRollback(): void
+    {
+        $this->requireReplicaSet();
+
+        $collection = $this->connection->getCollection('tx_test');
+        $collection->deleteMany([]);
+
+        $this->connection->begin();
+
+        $query = new InsertQuery($this->connection, 'tx_test');
+        $query->values(['title' => 'One']);
+
+        $this->connection->run($query);
+
+        $this->assertTrue($this->connection->rollback());
+
+        $this->assertFalse($this->connection->inTransaction());
+        $this->assertSame(0, $collection->countDocuments());
+        $collection->deleteMany([]);
+    }
+
+    /**
+     * Test commit without a transaction returns false.
+     *
+     * @return void
+     */
+    public function testCommitWithoutTransaction(): void
+    {
+        $this->assertFalse($this->connection->commit());
+        $this->assertFalse($this->connection->rollback());
+    }
+
+    /**
+     * Test nested begin/commit emulates savepoints.
+     *
+     * @return void
+     */
+    public function testNestedTransaction(): void
+    {
+        $this->connection->begin();
+        $this->connection->begin();
+        $this->assertTrue($this->connection->inTransaction());
+
+        $this->assertTrue($this->connection->commit());
+        $this->assertTrue($this->connection->inTransaction());
+
+        $this->assertTrue($this->connection->commit());
+        $this->assertFalse($this->connection->inTransaction());
+    }
+
+    /**
+     * Test transactional() commits on success.
+     *
+     * @return void
+     */
+    public function testTransactionalSuccess(): void
+    {
+        $this->requireReplicaSet();
+
+        $collection = $this->connection->getCollection('tx_test');
+        $collection->deleteMany([]);
+
+        $result = $this->connection->transactional(function (Connection $connection) {
+            $query = new InsertQuery($connection, 'tx_test');
+            $query->values(['title' => 'One']);
+
+            return $connection->run($query);
+        });
+
+        $this->assertIsArray($result);
+        $this->assertSame(1, $collection->countDocuments());
+        $collection->deleteMany([]);
+    }
+
+    /**
+     * Test transactional() returns false without committing on false result.
+     *
+     * @return void
+     */
+    public function testTransactionalFalseResult(): void
+    {
+        $collection = $this->connection->getCollection('tx_test');
+        $collection->deleteMany([]);
+
+        $result = $this->connection->transactional(fn(): false => false);
+
+        $this->assertFalse($result);
+        $this->assertSame(0, $collection->countDocuments());
+        $collection->deleteMany([]);
+    }
+
+    /**
+     * Test transactional() rolls back and rethrows on exception.
+     *
+     * @return void
+     */
+    public function testTransactionalWithException(): void
+    {
+        $this->requireReplicaSet();
+
+        $collection = $this->connection->getCollection('tx_test');
+        $collection->deleteMany([]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('boom');
+
+        try {
+            $this->connection->transactional(function (Connection $connection): void {
+                $query = new InsertQuery($connection, 'tx_test');
+                $query->values(['title' => 'One']);
+
+                $connection->run($query);
+
+                throw new RuntimeException('boom');
+            });
+        } finally {
+            $this->assertFalse($this->connection->inTransaction());
+            $this->assertSame(0, $collection->countDocuments());
+            $collection->deleteMany([]);
+        }
+    }
+
+    /**
+     * Test afterCommit() runs immediately outside a transaction.
+     *
+     * @return void
+     */
+    public function testAfterCommitExecutesImmediatelyOutsideTransaction(): void
+    {
+        $executed = [];
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'called';
+        });
+
+        $this->assertSame(['called'], $executed);
+    }
+
+    /**
+     * Test afterCommit() fires on outer commit.
+     *
+     * @return void
+     */
+    public function testAfterCommitFiresOnCommit(): void
+    {
+        $executed = [];
+        $this->connection->begin();
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'called';
+        });
+
+        $this->assertSame([], $executed);
+        $this->assertTrue($this->connection->commit());
+
+        $this->assertSame(['called'], $executed);
+    }
+
+    /**
+     * Test afterCommit() callbacks are discarded on rollback.
+     *
+     * @return void
+     */
+    public function testAfterCommitDiscardedOnRollback(): void
+    {
+        $executed = [];
+        $this->connection->begin();
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'called';
+        });
+
+        $this->assertTrue($this->connection->rollback());
+        $this->assertSame([], $executed);
+    }
+
+    /**
+     * Test afterCommit() callbacks fire in registration order.
+     *
+     * @return void
+     */
+    public function testAfterCommitCallbacksFireInRegistrationOrder(): void
+    {
+        $executed = [];
+        $this->connection->begin();
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'first';
+        });
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'second';
+        });
+
+        $this->connection->commit();
+
+        $this->assertSame(['first', 'second'], $executed);
+    }
+
+    /**
+     * Test afterCommit() callbacks fire once for nested transactions.
+     *
+     * @return void
+     */
+    public function testAfterCommitFiresOnceForNestedTransactions(): void
+    {
+        $executed = [];
+        $this->connection->begin();
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'called';
+        });
+
+        $this->connection->begin();
+        $this->connection->commit();
+        $this->assertSame([], $executed);
+
+        $this->connection->commit();
+        $this->assertSame(['called'], $executed);
+    }
+
+    /**
+     * Test a callback that throws stops the remaining callbacks.
+     *
+     * @return void
+     */
+    public function testAfterCommitCallbackExceptionStopsExecution(): void
+    {
+        $executed = [];
+        $this->connection->begin();
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'first';
+        });
+        $this->connection->afterCommit(function (): void {
+            throw new RuntimeException('boom');
+        });
+        $this->connection->afterCommit(function () use (&$executed): void {
+            $executed[] = 'third';
+        });
+
+        $this->expectException(RuntimeException::class);
+        $this->connection->commit();
     }
 }

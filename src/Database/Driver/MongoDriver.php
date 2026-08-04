@@ -141,6 +141,24 @@ class MongoDriver implements DriverInterface
     }
 
     /**
+     * Returns whether a client has been connected.
+     *
+     * @return bool
+     */
+    public function isConnected(): bool
+    {
+        return $this->client instanceof Client;
+    }
+
+    /**
+     * Disconnects the driver on shutdown.
+     */
+    public function __destruct()
+    {
+        $this->disconnect();
+    }
+
+    /**
      * Builds the MongoDB connection string from config.
      *
      * @return string
