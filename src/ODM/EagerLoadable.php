@@ -31,9 +31,9 @@ final class EagerLoadable
     /**
      * Association instance used to load this node.
      *
-     * @var object|null
+     * @var \Crustum\Mongo\ODM\Association|null
      */
-    private ?object $instance;
+    private ?Association $instance;
 
     /**
      * Association loading options.
@@ -81,7 +81,7 @@ final class EagerLoadable
      * Constructor.
      *
      * @param string $name The association name.
-     * @param object|null $instance The association instance.
+     * @param \Crustum\Mongo\ODM\Association|null $instance The association instance.
      * @param array<string, mixed> $config Association loading options.
      * @param string $aliasPath The dotted association path.
      * @param string|null $propertyPath The dotted entity property path.
@@ -91,7 +91,7 @@ final class EagerLoadable
      */
     public function __construct(
         string $name,
-        ?object $instance = null,
+        ?Association $instance = null,
         array $config = [],
         string $aliasPath = '',
         ?string $propertyPath = null,
@@ -122,9 +122,9 @@ final class EagerLoadable
     /**
      * Returns the association instance.
      *
-     * @return object|null
+     * @return \Crustum\Mongo\ODM\Association|null
      */
-    public function instance(): ?object
+    public function instance(): ?Association
     {
         return $this->instance;
     }

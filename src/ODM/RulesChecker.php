@@ -107,7 +107,9 @@ final class RulesChecker extends BaseRulesChecker
     }
 
     /**
-     * @param array<string, mixed>|string|null $message
+     * Normalizes rule message and options.
+     *
+     * @param array<string, mixed>|string|null $message The error message or rule options.
      * @return array{0: string, 1: array<string, mixed>}
      */
     private function ruleOptions(array|string|null $message, string $default): array

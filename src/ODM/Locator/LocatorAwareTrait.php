@@ -30,6 +30,8 @@ trait LocatorAwareTrait
     protected ?CollectionLocator $collectionLocator = null;
 
     /**
+     * Sets the collection locator.
+     *
      * @param \Crustum\Mongo\ODM\Locator\CollectionLocator $collectionLocator Locator to use for fetching collections.
      * @return $this
      */
@@ -41,6 +43,10 @@ trait LocatorAwareTrait
     }
 
     /**
+     * Gets the collection locator.
+     *
+     * Falls back to the factory-registered locator for the `Collection` type.
+     *
      * @return \Crustum\Mongo\ODM\Locator\CollectionLocator The configured or factory-registered locator.
      * @throws \UnexpectedValueException If the factory contains another locator type.
      */
@@ -61,6 +67,8 @@ trait LocatorAwareTrait
     }
 
     /**
+     * Fetches a collection instance by alias.
+     *
      * @param string|null $alias Collection alias, or the configured default.
      * @param array<string, mixed> $options Collection construction options.
      * @return \Cake\Datasource\RepositoryInterface

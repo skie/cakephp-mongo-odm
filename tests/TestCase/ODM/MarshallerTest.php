@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
+use Cake\Validation\Validator;
+use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Association\HasMany;
+use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Marshaller;
 
@@ -52,18 +56,15 @@ final class MarshallerTest extends TestCase
     public function testValidationErrorsAreStoredAndInvalidFieldIsNotPatched(): void
     {
         $collection = new MarshallerCollection();
-        $collection->validator = new class {
-            /** @return array<string, array<int, string>> */
-            public function validate(array $data, bool $isNew, array $context = []): array
-            {
-                return ['name' => ['required']];
-            }
-        };
+        $validator = new Validator();
+        $validator->add('name', 'required', ['rule' => static fn(): bool => false]);
+        $collection->validator = $validator;
+
         $entity = (new Marshaller($collection))->one(
             ['name' => 'not accepted', 'other' => 'kept'],
         );
 
-        $this->assertSame(['required'], $entity->getErrors()['name']);
+        $this->assertArrayHasKey('name', $entity->getErrors());
         $this->assertFalse($entity->has('name'));
         $this->assertSame('kept', $entity->get('other'));
     }
@@ -94,24 +95,7 @@ final class MarshallerTest extends TestCase
     public function testEmbeddedAssociationIsMarshaledAndIdListsAreAccepted(): void
     {
         $collection = new MarshallerCollection();
-        $collection->association = new class {
-            public string $associationType = 'oneToOne';
-
-            public function getAlias(): string
-            {
-                return 'Profile';
-            }
-
-            public function getTarget(): MarshallerCollection
-            {
-                return new MarshallerCollection();
-            }
-
-            public function type(): string
-            {
-                return $this->associationType;
-            }
-        };
+        $collection->association = $this->association(HasOne::class, 'Profile');
         $marshaller = new Marshaller($collection);
         $entity = $marshaller->one([
             'profile' => ['name' => 'embedded'],
@@ -120,10 +104,25 @@ final class MarshallerTest extends TestCase
         $this->assertInstanceOf(Document::class, $entity->get('profile'));
         $this->assertSame('embedded', $entity->get('profile')->get('name'));
 
-        $collection->association->associationType = 'oneToMany';
+        $collection->association = $this->association(HasMany::class, 'Profiles');
         $entity = $marshaller->one([
             'profiles' => ['_ids' => ['one', 'two']],
         ], ['validate' => false, 'associated' => ['profiles']]);
         $this->assertSame(['one', 'two'], $entity->get('profiles'));
+    }
+
+    /**
+     * Builds a real association bound to a stub collection.
+     *
+     * @param class-string<\Crustum\Mongo\ODM\Association> $class Association class.
+     * @param string $alias Association alias.
+     * @return \Crustum\Mongo\ODM\Association
+     */
+    private function association(string $class, string $alias): Association
+    {
+        $association = new $class($alias);
+        $association->setTarget(new MarshallerCollection());
+
+        return $association;
     }
 }

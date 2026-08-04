@@ -3,49 +3,37 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
-use Crustum\Mongo\ODM\Document;
-use Crustum\Mongo\ODM\Marshaller;
+use Cake\Event\Event;
+use Cake\Event\EventInterface;
+use Cake\Validation\Validator;
+use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Collection;
 
-final class MarshallerCollection
+final class MarshallerCollection extends Collection
 {
     /**
      * @var array<int, string>
      */
     public array $events = [];
 
-    public object $validator;
+    public ?Validator $validator = null;
 
-    public object $association;
+    public ?Association $association = null;
 
-    public function marshaller(): Marshaller
+    public function getValidator(string $name = 'default'): ?Validator
     {
-        return new Marshaller($this);
+        return $this->validator ?? null;
     }
 
-    public function getEntityClass(): string
+    public function getAssociation(string $name): ?Association
     {
-        return Document::class;
+        return $this->association;
     }
 
-    public function getValidator(string $name): object
-    {
-        return $this->validator ?? new class {
-            /** @return array<string, mixed> */
-            public function validate(array $data, bool $isNew, array $context = []): array
-            {
-                return [];
-            }
-        };
-    }
-
-    public function getAssociation(string $name): ?object
-    {
-        return $this->association ?? null;
-    }
-
-    /** @param array<string, mixed> $payload */
-    public function dispatchEvent(string $name, array $payload): void
+    public function dispatchEvent(string $name, array $data = []): EventInterface
     {
         $this->events[] = $name;
+
+        return new Event($name, $this, $data);
     }
 }

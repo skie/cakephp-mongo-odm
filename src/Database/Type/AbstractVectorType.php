@@ -129,6 +129,8 @@ abstract class AbstractVectorType extends BaseType
     abstract protected function toPacked(array $vector): PackedArray|Binary;
 
     /**
+     * Converts a PHP vector to its packed BSON representation.
+     *
      * @return array<int, float|int>|null The normalized vector
      */
     public function toPHP(mixed $value, MongoDriver $driver): ?array

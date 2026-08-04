@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
-use Cake\Datasource\RepositoryInterface;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\DeleteQuery as DatabaseDeleteQuery;
+use Crustum\Mongo\ODM\Collection;
 
 /**
  * ODM delete query bound to a repository.
@@ -21,15 +21,15 @@ class DeleteQuery extends DatabaseDeleteQuery
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection Connection.
      * @param string $collection Collection name.
-     * @param \Cake\Datasource\RepositoryInterface|null $repository Repository.
+     * @param \Crustum\Mongo\ODM\Collection|null $repository Repository.
      */
     public function __construct(
         ?Connection $connection = null,
         string $collection = '',
-        ?RepositoryInterface $repository = null,
+        ?Collection $repository = null,
     ) {
         parent::__construct($connection, $collection);
-        if ($repository instanceof RepositoryInterface) {
+        if ($repository instanceof Collection) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }

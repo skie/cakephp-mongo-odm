@@ -7,6 +7,7 @@ use ArrayObject;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Crustum\Mongo\ODM\Behavior;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use DateTimeImmutable;
 use DateTimeZone;
 use MongoDB\BSON\UTCDateTime;
@@ -29,18 +30,18 @@ class SoftDeleteBehavior extends Behavior
      * Adds the soft-delete condition to primary queries.
      *
      * @param \Cake\Event\EventInterface<object> $event The dispatched event.
-     * @param object $query The query being built.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query being built.
      * @param \ArrayObject<string, mixed> $options Query options.
      * @param bool $primary Whether this is the primary query.
      * @return void
      */
-    public function beforeFind(EventInterface $event, object $query, ArrayObject $options, bool $primary = true): void
+    public function beforeFind(EventInterface $event, SelectQuery $query, ArrayObject $options, bool $primary = true): void
     {
-        if (($options[$this->getConfig('withDeletedOption')] ?? false) === true || !is_callable([$query, 'where'])) {
+        if (($options[$this->getConfig('withDeletedOption')] ?? false) === true) {
             return;
         }
 
-        call_user_func([$query, 'where'], [$this->getConfig('field') . ' IS' => null]);
+        $query->where([$this->getConfig('field') . ' IS' => null]);
     }
 
     /**
@@ -53,13 +54,16 @@ class SoftDeleteBehavior extends Behavior
      */
     public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
     {
-        if (($options['forceDelete'] ?? false) === true || !is_callable([$this->collection(), 'updateAll'])) {
+        if (($options['forceDelete'] ?? false) === true) {
             return;
         }
 
         $field = (string)$this->getConfig('field');
         $conditions = ['_id' => $entity->get('_id')];
-        call_user_func([$this->collection(), 'updateAll'], [$field => new UTCDateTime(new DateTimeImmutable('now', new DateTimeZone('UTC')))], $conditions);
+        $this->collection()->updateAll(
+            [$field => new UTCDateTime(new DateTimeImmutable('now', new DateTimeZone('UTC')))],
+            $conditions,
+        );
         $event->stopPropagation();
         $event->setResult(true);
     }

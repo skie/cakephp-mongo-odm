@@ -39,9 +39,12 @@ abstract class Behavior implements EventListenerInterface
     protected array $defaultConfig = [];
 
     /**
-     * @param array<string, mixed> $config
+     * Constructor.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $collection The collection the behavior is attached to.
+     * @param array<string, mixed> $config Behavior configuration.
      */
-    public function __construct(protected object $collection, array $config = [])
+    public function __construct(protected Collection $collection, array $config = [])
     {
         $this->_config = array_replace($this->defaultConfig, $config);
         $this->_configInitialized = true;
@@ -59,9 +62,11 @@ abstract class Behavior implements EventListenerInterface
     }
 
     /**
-     * @return object
+     * Gets the collection this behavior is attached to.
+     *
+     * @return \Crustum\Mongo\ODM\Collection
      */
-    public function collection(): object
+    public function collection(): Collection
     {
         return $this->collection;
     }
@@ -223,7 +228,12 @@ abstract class Behavior implements EventListenerInterface
         return $finders;
     }
 
-    /** @param mixed $entity */
+    /**
+     * Whether the given value is a new entity.
+     *
+     * @param mixed $entity The value to check.
+     * @return bool
+     */
     protected function isNewEntity(mixed $entity): bool
     {
         return $entity instanceof EntityInterface && $entity->isNew();

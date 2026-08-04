@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
+use Cake\Validation\Validator;
+use Crustum\Mongo\Database\Type\TypeFactory;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -23,16 +25,16 @@ final class Marshaller
     /**
      * Collection associated with this marshaller.
      *
-     * @var object
+     * @var \Crustum\Mongo\ODM\Collection
      */
-    private object $collection;
+    private Collection $collection;
 
     /**
      * Constructor.
      *
-     * @param object $collection C1 collection contract implementation.
+     * @param \Crustum\Mongo\ODM\Collection $collection The collection.
      */
-    public function __construct(object $collection)
+    public function __construct(Collection $collection)
     {
         $this->collection = $collection;
     }
@@ -53,7 +55,7 @@ final class Marshaller
         $properties = $this->marshalProperties($data, $options, $errors, $entity);
         $this->patch($entity, $properties, $options);
         $entity->setErrors($errors);
-        $this->dispatch('Model.afterMarshal', $data, $options, $entity);
+        $this->dispatchAfterMarshal($entity, $data, $options);
 
         return $entity;
     }
@@ -92,7 +94,7 @@ final class Marshaller
         $properties = $this->marshalProperties($data, $options, $errors, $entity);
         $this->patch($entity, $properties, $options);
         $entity->setErrors($errors);
-        $this->dispatch('Model.afterMarshal', $data, $options, $entity);
+        $this->dispatchAfterMarshal($entity, $data, $options);
 
         return $entity;
     }
@@ -145,12 +147,8 @@ final class Marshaller
         }
 
         foreach (array_keys($indexed) as $id) {
-            if (!is_callable([$this->collection, 'get'])) {
-                break;
-            }
-
             try {
-                $entity = $this->collectionCall('get', $id);
+                $entity = $this->collection->get($id);
             } catch (Throwable) {
                 continue;
             }
@@ -179,22 +177,18 @@ final class Marshaller
      */
     private function newDocument(array $options): Document
     {
-        $class = $this->collectionCall('getEntityClass');
+        $class = $this->collection->getEntityClass();
         $entity = new $class();
-        if (!$entity instanceof Document) {
-            throw new InvalidArgumentException('Collection entity class must extend Document.');
-        }
-
-        if (method_exists($this->collection, 'getRegistryAlias')) {
-            $entity->setSource($this->collection->getRegistryAlias());
-        }
+        $entity->setSource($this->collection->getRegistryAlias());
 
         return $entity;
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $options
+     * Prepares data and options and dispatches the before-marshal event.
+     *
+     * @param array<string, mixed> $data The input data.
+     * @param array<string, mixed> $options The marshalling options.
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
     private function prepare(array $data, array $options): array
@@ -208,8 +202,12 @@ final class Marshaller
     }
 
     /**
-     * @param array<string, mixed> $data
-     * @param array<string, mixed> $options
+     * Validates the input data and returns validation errors.
+     *
+     * @param array<string, mixed> $data The input data.
+     * @param array<string, mixed> $options The marshalling options.
+     * @param bool $isNew Whether the document is new.
+     * @param \Crustum\Mongo\ODM\Document $entity The document being marshalled.
      * @return array<string, mixed>
      */
     private function validate(array $data, array $options, bool $isNew, Document $entity): array
@@ -220,12 +218,12 @@ final class Marshaller
         }
 
         if ($validator === true) {
-            $validator = $this->collectionCall('getValidator', 'default');
+            $validator = $this->collection->getValidator('default');
         } elseif (is_string($validator)) {
-            $validator = $this->collectionCall('getValidator', $validator);
+            $validator = $this->collection->getValidator($validator);
         }
 
-        if (!is_object($validator) || !method_exists($validator, 'validate')) {
+        if (!$validator instanceof Validator) {
             throw new RuntimeException('validate must be a boolean, a string or a validator object.');
         }
 
@@ -233,13 +231,89 @@ final class Marshaller
     }
 
     /**
+     * Builds a map of request field => marshalling callback.
+     *
+     * Schema fields are mapped to their type `marshal()` callbacks; associations
+     * listed in `associated` are mapped (by both alias and property name) to a
+     * callback that marshals or merges the value through the target marshaller.
+     *
      * @param array<string, mixed> $data
      * @param array<string, mixed> $options
-     * @param array<string, mixed> $errors
+     * @return array<string, callable>
+     */
+    private function buildPropertyMap(array $data, array $options): array
+    {
+        $map = [];
+
+        $types = $this->collection->getSchema()?->typeMap() ?? [];
+
+        foreach (array_keys($data) as $prop) {
+            $prop = (string)$prop;
+            if (isset($types[$prop])) {
+                $type = $types[$prop];
+                $map[$prop] = static fn(mixed $value): mixed => TypeFactory::build($type)->marshal($value);
+            }
+        }
+
+        $associated = (array)($options['associated'] ?? []);
+        foreach ($associated as $key => $nested) {
+            if (is_int($key) && is_scalar($nested)) {
+                $key = $nested;
+                $nested = [];
+            }
+
+            $alias = (string)$key;
+            if (str_starts_with($alias, '_')) {
+                continue;
+            }
+
+            $association = $this->resolveAssociation($alias);
+            if ($association === null) {
+                throw new InvalidArgumentException(sprintf(
+                    'Cannot marshal data for `%s` association. It is not associated.',
+                    $alias,
+                ));
+            }
+
+            $nestedOptions = is_array($nested) ? $nested : [];
+            $property = $association->getProperty();
+
+            if (($options['isMerge'] ?? false)) {
+                $map[$alias] = $map[$property] = function (
+                    mixed $value,
+                    Document $entity,
+                ) use (
+                    $association,
+                    $nestedOptions,
+                ): mixed {
+                    return $this->mergeAssociation($entity, $association, $value, $nestedOptions + ['associated' => []]);
+                };
+
+                continue;
+            }
+
+            $map[$alias] = $map[$property] = fn(mixed $value): mixed => $this->marshalAssociation(
+                $association,
+                $value,
+                $nestedOptions + ['associated' => []],
+            );
+        }
+
+        return $map;
+    }
+
+    /**
+     * Marshals the input data into patchable properties.
+     *
+     * @param array<string, mixed> $data The input data.
+     * @param array<string, mixed> $options The marshalling options.
+     * @param array<string, mixed> $errors Validation errors.
+     * @param \Crustum\Mongo\ODM\Document $entity The document being marshalled.
      * @return array<string, mixed>
      */
     private function marshalProperties(array $data, array $options, array $errors, Document $entity): array
     {
+        $map = $this->buildPropertyMap($data, $options);
         $properties = [];
         foreach ($data as $field => $value) {
             if (isset($errors[$field]) && $errors[$field] !== []) {
@@ -250,10 +324,10 @@ final class Marshaller
                 $field = '_id';
             }
 
-            $association = $this->association((string)$field, $options);
-            $properties[$field] = $association === null
+            $callback = $map[$field] ?? null;
+            $properties[$field] = $callback === null
                 ? $value
-                : $this->marshalAssociation($association, $value, $options, $entity);
+                : $callback($value, $entity);
         }
 
         $fields = $options['fieldList'] ?? $options['fields'] ?? null;
@@ -268,8 +342,10 @@ final class Marshaller
     }
 
     /**
-     * @param array<string, mixed> $properties
-     * @param array<string, mixed> $options
+     * Filters properties against the configured patchable fields.
+     *
+     * @param array<string, mixed> $properties The marshalled properties.
+     * @param array<string, mixed> $options The marshalling options.
      * @return array<string, mixed>
      */
     private function filterPatchable(array $properties, array $options): array
@@ -288,91 +364,152 @@ final class Marshaller
         );
     }
 
-    /** @param array<string, mixed> $options */
-    private function association(string $field, array $options): ?object
+    /**
+     * Resolves an association by alias from the collection.
+     *
+     * @param string $name The association alias.
+     * @return \Crustum\Mongo\ODM\Association|null The association or null when not registered.
+     */
+    private function resolveAssociation(string $name): ?Association
     {
-        $included = $options['associated'] ?? [];
-        $name = array_key_exists($field, (array)$included) ? $field : null;
-        if ($name === null && in_array($field, (array)$included, true)) {
-            $name = $field;
-        }
-
-        if ($name === null) {
-            return null;
-        }
-
-        if (method_exists($this->collection, 'getAssociation')) {
-            $association = $this->collectionCall('getAssociation', $name);
-
-            return is_object($association) ? $association : null;
-        }
-
-        return null;
+        return $this->collection->getAssociation($name);
     }
 
-    /** @param array<string, mixed> $options */
-    private function marshalAssociation(object $association, mixed $value, array $options, Document $entity): mixed
+    /**
+     * Marshals an association value through the target marshaller.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The association.
+     * @param mixed $value The incoming value.
+     * @param array<string, mixed> $options Marshaller options.
+     * @return mixed
+     */
+    private function marshalAssociation(Association $association, mixed $value, array $options): mixed
     {
         if (!is_array($value)) {
             return $value;
         }
 
-        $alias = $this->associationCall($association, 'getAlias');
+        $type = $association->type();
+        $many = $type === 'oneToMany' || $type === 'manyToMany';
+        if ($many) {
+            $hasIds = array_key_exists('_ids', $value) && is_array($value['_ids']);
+            $onlyIds = !empty($options['onlyIds']);
+
+            if ($hasIds) {
+                return $this->loadAssociatedByIds($association, $value['_ids']);
+            }
+
+            if ($onlyIds) {
+                return [];
+            }
+        }
+
+        $alias = $association->getAlias();
         $nested = is_array($options['associated'][$alias] ?? null)
             ? $options['associated'][$alias]
             : [];
-        $target = method_exists($association, 'getTarget')
-            ? $this->associationCall($association, 'getTarget')
-            : null;
-        $type = $this->associationCall($association, 'type');
-        if (array_key_exists('_ids', $value) && is_array($value['_ids'])) {
-            return $value['_ids'];
+        $target = $association->getTarget();
+        $marshaller = $target->marshaller();
+
+        if ($many) {
+            return $marshaller->many($value, $nested);
         }
 
-        if (is_object($target) && is_callable([$target, 'marshaller'])) {
-            $marshaller = call_user_func([$target, 'marshaller']);
-            $many = array_is_list($value) || $type === 'oneToMany';
-            if (is_object($marshaller) && is_callable([$marshaller, $many ? 'many' : 'one'])) {
-                return call_user_func([$marshaller, $many ? 'many' : 'one'], $value, $nested);
-            }
-        }
-
-        $class = method_exists($association, 'getEntityClass')
-            ? $this->associationCall($association, 'getEntityClass')
-            : null;
-        if (is_string($class) && class_exists($class)) {
-            if (array_is_list($value)) {
-                return array_map(static function (array $item) use ($class): Document {
-                    $document = new $class($item);
-                    if (!$document instanceof Document) {
-                        throw new InvalidArgumentException('Association entity class must extend Document.');
-                    }
-
-                    return $document;
-                }, $value);
-            }
-
-            $document = new $class($value);
-            if (!$document instanceof Document) {
-                throw new InvalidArgumentException('Association entity class must extend Document.');
-            }
-
-            return $document;
-        }
-
-        return $value;
+        return $marshaller->one($value, $nested);
     }
 
     /**
-     * @param array<string, mixed> $properties
-     * @param array<string, mixed> $options
+     * Merges associated input into an existing document's association property.
+     *
+     * Existing associated documents are merged by `_id`; missing ones are
+     * marshalled as new documents.
+     *
+     * @param \Crustum\Mongo\ODM\Document $entity The source document.
+     * @param \Crustum\Mongo\ODM\Association $association The association.
+     * @param mixed $value The incoming value.
+     * @param array<string, mixed> $options Marshaller options.
+     * @return mixed
+     */
+    private function mergeAssociation(Document $entity, Association $association, mixed $value, array $options): mixed
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        $type = $association->type();
+        $property = $association->getProperty();
+        $existing = $entity->get($property);
+        $many = $type === 'oneToMany' || $type === 'manyToMany';
+        $target = $association->getTarget();
+        $marshaller = $target->marshaller();
+
+        if ($many) {
+            return $marshaller->mergeMany(is_array($existing) ? $existing : [], $value, $options);
+        }
+
+        if ($existing instanceof Document) {
+            return $marshaller->merge($existing, $value, $options);
+        }
+
+        return $marshaller->one($value, $options);
+    }
+
+    /**
+     * Loads associated documents for the given referenced identifiers.
+     *
+     * When the target cannot resolve the identifiers, the raw ids are kept.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The association.
+     * @param array<int, mixed> $ids Referenced identifiers.
+     * @return array<int, mixed>
+     */
+    private function loadAssociatedByIds(Association $association, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        try {
+            $query = $association->getTarget()->find();
+
+            return array_values($query->where(['_id IN' => $ids])->all()->toArray());
+        } catch (Throwable) {
+            return $ids;
+        }
+    }
+
+    /**
+     * Dispatches the `Model.afterMarshal` event.
+     *
+     * @param \Crustum\Mongo\ODM\Document $entity The marshalled document.
+     * @param array<string, mixed> $data The input data.
+     * @param array<string, mixed> $options Marshaller options.
+     * @return void
+     */
+    private function dispatchAfterMarshal(Document $entity, array $data, array $options = []): void
+    {
+        $this->dispatch('Model.afterMarshal', $data, $options, $entity);
+    }
+
+    /**
+     * Patches the marshalled properties onto the document.
+     *
+     * @param \Crustum\Mongo\ODM\Document $entity The document to patch.
+     * @param array<string, mixed> $properties The properties to assign.
+     * @param array<string, mixed> $options The marshalling options.
+     * @return void
      */
     private function patch(Document $entity, array $properties, array $options): void
     {
         $entity->patch($properties, ['guard' => true, 'asOriginal' => !($options['isMerge'] ?? false)]);
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Extracts the identifier from a data row.
+     *
+     * @param array<string, mixed> $data The data row.
+     * @return string|null
+     */
     private function idFrom(array $data): ?string
     {
         $id = $data['_id'] ?? $data['id'] ?? null;
@@ -381,43 +518,21 @@ final class Marshaller
     }
 
     /**
-     * Dispatch a model event when the collection provides the C1 dispatcher.
+     * Dispatches a model event through the collection.
+     *
+     * @param string $event The event name.
+     * @param mixed $data The event data.
+     * @param mixed $options The marshalling options.
+     * @param \Crustum\Mongo\ODM\Document|null $entity The marshalled document.
+     * @return void
      */
     private function dispatch(string $event, mixed $data, mixed $options, ?Document $entity = null): void
     {
-        if (!method_exists($this->collection, 'dispatchEvent')) {
-            return;
-        }
-
         $payload = ['data' => $data, 'options' => $options];
         if ($entity instanceof Document) {
             $payload['entity'] = $entity;
         }
 
-        call_user_func([$this->collection, 'dispatchEvent'], $event, $payload);
-    }
-
-    /**
-     * Invoke a C1 collection method without importing the phase-2 collection.
-     */
-    private function collectionCall(string $method, mixed ...$arguments): mixed
-    {
-        if (!is_callable([$this->collection, $method])) {
-            throw new RuntimeException(sprintf('Collection does not implement `%s()`.', $method));
-        }
-
-        return call_user_func([$this->collection, $method], ...$arguments);
-    }
-
-    /**
-     * Invoke a C5 association method without importing the phase-1 association.
-     */
-    private function associationCall(object $association, string $method): mixed
-    {
-        if (!is_callable([$association, $method])) {
-            throw new RuntimeException(sprintf('Association does not implement `%s()`.', $method));
-        }
-
-        return call_user_func([$association, $method]);
+        $this->collection->dispatchEvent($event, $payload);
     }
 }

@@ -3,10 +3,14 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
+use Closure;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
+use InvalidArgumentException;
 
 /**
  * Represents a one-to-one relationship from the source document.
@@ -21,7 +25,11 @@ class HasOne extends Association
      */
     protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
 
-    /** @return string */
+    /**
+     * Gets the relationship type.
+     *
+     * @return string
+     */
     public function type(): string
     {
         return self::ONE_TO_ONE;
@@ -37,13 +45,64 @@ class HasOne extends Association
         return self::STRATEGY_SELECT;
     }
 
-    /** @return array<string>|string|null */
+    /**
+     * The source document owns the foreign key.
+     *
+     * @return bool
+     */
+    public function isOwningSide(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Saves the associated target document and back-fills the foreign key.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param array<string, mixed> $options Save options.
+     * @return \Cake\Datasource\EntityInterface|false
+     */
+    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    {
+        $targetEntity = $entity->get($this->getProperty());
+        if ($targetEntity === null) {
+            return $entity;
+        }
+
+        if (!$targetEntity instanceof EntityInterface) {
+            throw new InvalidArgumentException(sprintf(
+                'Could not save %s, it cannot be traversed.',
+                $this->getProperty(),
+            ));
+        }
+
+        $saved = $this->getTarget()->save($targetEntity, $options);
+        if (!$saved instanceof EntityInterface) {
+            return false;
+        }
+
+        $foreignKey = (array)$this->getForeignKey();
+        $reference = $saved->extract((array)$this->getBindingKey());
+        $entity->set(array_combine($foreignKey, $reference));
+
+        return $entity;
+    }
+
+    /**
+     * Gets the target foreign key.
+     *
+     * @return array<string>|string|null
+     */
     public function getForeignKey(): string|array|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getSource()));
     }
 
-    /** @return string */
+    /**
+     * Gets the target property name.
+     *
+     * @return string
+     */
     public function getProperty(): string
     {
         return $this->propertyName ??= Inflector::underscore(Inflector::singularize($this->name));
@@ -53,9 +112,9 @@ class HasOne extends Association
      * Builds the has-one eager-loader callable.
      *
      * @param array<string, mixed> $options Loader options.
-     * @return callable
+     * @return \Closure
      */
-    public function eagerLoad(array $options): callable
+    public function eagerLoader(array $options): Closure
     {
         $loaderOptions = [
             'finder' => fn(): QueryInterface => $this->getTarget()->find(),

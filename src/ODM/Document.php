@@ -31,8 +31,10 @@ final class Document implements EntityInterface, ArrayAccess
     }
 
     /**
-     * @param \MongoDB\Model\BSONDocument|array<string, mixed> $data
-     * @param array{markClean?: bool, markNew?: bool|null, source?: string|null, guard?: bool, useSetters?: bool} $options
+     * Constructor.
+     *
+     * @param \MongoDB\Model\BSONDocument|array<string, mixed> $data The initial document data.
+     * @param array{markClean?: bool, markNew?: bool|null, source?: string|null, guard?: bool, useSetters?: bool} $options Entity construction options.
      */
     public function __construct(array|BSONDocument $data = [], array $options = [])
     {

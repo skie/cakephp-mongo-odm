@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
-use Crustum\Mongo\ODM\Association\Association;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
@@ -17,7 +17,7 @@ class AssociationTest extends TestCase
     {
         $association = new EmbedOne('Profile', ['entityClass' => Document::class]);
         $entity = new Document(['profile' => ['name' => 'Ada']]);
-        $result = ($association->eagerLoad([]))([$entity]);
+        $result = ($association->eagerLoader([]))([$entity]);
 
         $this->assertSame('Ada', $result[0]->get('profile')->get('name'));
         $this->assertSame(Association::STRATEGY_EMBED, $association->getStrategy());
@@ -27,7 +27,7 @@ class AssociationTest extends TestCase
     {
         $association = new EmbedMany('Addresses', ['entityClass' => Document::class]);
         $entity = new Document(['addresses' => [['city' => 'Paris'], ['city' => 'Tokyo']]]);
-        $result = ($association->eagerLoad([]))([$entity]);
+        $result = ($association->eagerLoader([]))([$entity]);
 
         $this->assertCount(2, $result[0]->get('addresses'));
         $this->assertSame('Tokyo', $result[0]->get('addresses')[1]->get('city'));

@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
-use Cake\Datasource\RepositoryInterface;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\ODM\Collection;
 
 /**
  * Creates ODM queries bound to a repository.
@@ -16,10 +16,10 @@ final class QueryFactory
     /**
      * Creates a hydrated select query.
      *
-     * @param \Cake\Datasource\RepositoryInterface $repository Repository.
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
      * @return \Crustum\Mongo\ODM\Query\SelectQuery
      */
-    public function select(RepositoryInterface $repository): SelectQuery
+    public function select(Collection $repository): SelectQuery
     {
         return new SelectQuery($this->connection($repository), $repository->getAlias(), $repository);
     }
@@ -27,36 +27,56 @@ final class QueryFactory
     /**
      * Creates an unhydrated select query.
      *
-     * @param \Cake\Datasource\RepositoryInterface $repository Repository.
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
      * @return \Crustum\Mongo\ODM\Query\UnhydratedSelectQuery
      */
-    public function unhydratedSelect(RepositoryInterface $repository): UnhydratedSelectQuery
+    public function unhydratedSelect(Collection $repository): UnhydratedSelectQuery
     {
         return new UnhydratedSelectQuery($this->connection($repository), $repository->getAlias(), $repository);
     }
 
-    /** @param \Cake\Datasource\RepositoryInterface $repository @return \Crustum\Mongo\ODM\Query\InsertQuery */
-    public function insert(RepositoryInterface $repository): InsertQuery
+    /**
+     * Creates an insert query.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
+     * @return \Crustum\Mongo\ODM\Query\InsertQuery
+     */
+    public function insert(Collection $repository): InsertQuery
     {
         return new InsertQuery($this->connection($repository), $repository->getAlias(), $repository);
     }
 
-    /** @param \Cake\Datasource\RepositoryInterface $repository @return \Crustum\Mongo\ODM\Query\UpdateQuery */
-    public function update(RepositoryInterface $repository): UpdateQuery
+    /**
+     * Creates an update query.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
+     * @return \Crustum\Mongo\ODM\Query\UpdateQuery
+     */
+    public function update(Collection $repository): UpdateQuery
     {
         return new UpdateQuery($this->connection($repository), $repository->getAlias(), $repository);
     }
 
-    /** @param \Cake\Datasource\RepositoryInterface $repository @return \Crustum\Mongo\ODM\Query\DeleteQuery */
-    public function delete(RepositoryInterface $repository): DeleteQuery
+    /**
+     * Creates a delete query.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
+     * @return \Crustum\Mongo\ODM\Query\DeleteQuery
+     */
+    public function delete(Collection $repository): DeleteQuery
     {
         return new DeleteQuery($this->connection($repository), $repository->getAlias(), $repository);
     }
 
-    /** @return \Crustum\Mongo\Database\Connection|null */
-    private function connection(RepositoryInterface $repository): ?Connection
+    /**
+     * Resolves the connection from a repository.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository.
+     * @return \Crustum\Mongo\Database\Connection|null
+     */
+    private function connection(Collection $repository): ?Connection
     {
-        $connection = method_exists($repository, 'getConnection') ? $repository->getConnection() : null;
+        $connection = $repository->getConnection();
 
         return $connection instanceof Connection ? $connection : null;
     }

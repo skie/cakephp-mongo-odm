@@ -8,6 +8,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Closure;
 use Crustum\Mongo\ODM\Behavior;
+use Crustum\Mongo\ODM\Collection;
 
 /**
  * Updates configured parent counters after saves and deletes.
@@ -67,30 +68,19 @@ class CounterCacheBehavior extends Behavior
      */
     private function process(EventInterface $event, EntityInterface $entity): void
     {
+        $collection = $this->collection();
         foreach ($this->getConfig() as $associationName => $settings) {
             if (!is_string($associationName)) {
                 continue;
             }
 
-            if (!is_callable([$this->collection(), 'getAssociation'])) {
+            $association = $collection->getAssociation($associationName);
+            if ($association === null) {
                 continue;
             }
 
-            $association = call_user_func([$this->collection(), 'getAssociation'], $associationName);
-            if (!is_object($association)) {
-                continue;
-            }
-
-            if (!is_callable([$association, 'getForeignKey'])) {
-                continue;
-            }
-
-            if (!is_callable([$association, 'getBindingKey'])) {
-                continue;
-            }
-
-            $foreignKeys = (array)call_user_func([$association, 'getForeignKey']);
-            $bindingKeys = (array)call_user_func([$association, 'getBindingKey']);
+            $foreignKeys = (array)$association->getForeignKey();
+            $bindingKeys = (array)$association->getBindingKey();
             $conditions = [];
             foreach ($foreignKeys as $key) {
                 $value = $entity->get((string)$key);
@@ -99,11 +89,7 @@ class CounterCacheBehavior extends Behavior
                 }
             }
 
-            $target = is_callable([$association, 'getTarget']) ? call_user_func([$association, 'getTarget']) : null;
-            if (!is_object($target)) {
-                continue;
-            }
-
+            $target = $association->getTarget();
             if ($conditions === []) {
                 continue;
             }
@@ -116,11 +102,9 @@ class CounterCacheBehavior extends Behavior
                 }
 
                 $count = $config instanceof Closure
-                    ? $config($event, $entity, $this->collection())
+                    ? $config($event, $entity, $collection)
                     : $this->count($target, $config, $conditions);
-                if ($count !== false && is_callable([$target, 'updateAll'])) {
-                    call_user_func([$target, 'updateAll'], [(string)$field => $count], $updateConditions);
-                }
+                $target->updateAll([(string)$field => $count], $updateConditions);
             }
         }
     }
@@ -128,28 +112,16 @@ class CounterCacheBehavior extends Behavior
     /**
      * Counts matching target documents.
      *
-     * @param object $target The target collection.
+     * @param \Crustum\Mongo\ODM\Collection $target The target collection.
      * @param mixed $config Counter configuration.
      * @param array<string, mixed> $conditions Base conditions.
-     * @return int|false
+     * @return int
      */
-    private function count(object $target, mixed $config, array $conditions): int|false
+    private function count(Collection $target, mixed $config, array $conditions): int
     {
-        if (!is_callable([$target, 'find'])) {
-            return false;
-        }
-
         $finder = (string)($config['finder'] ?? 'all');
         $conditions = array_merge($conditions, is_array($config['conditions'] ?? null) ? $config['conditions'] : []);
-        $query = call_user_func([$target, 'find'], $finder);
-        if (!is_object($query) || !is_callable([$query, 'where']) || !is_callable([$query, 'count'])) {
-            return false;
-        }
 
-        $filtered = call_user_func([$query, 'where'], $conditions);
-
-        return is_object($filtered) && is_callable([$filtered, 'count'])
-            ? (int)call_user_func([$filtered, 'count'])
-            : false;
+        return (int)$target->find($finder)->where($conditions)->count();
     }
 }

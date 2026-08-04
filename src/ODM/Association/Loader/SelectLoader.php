@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Association\Loader;
 
 use Cake\Datasource\EntityInterface;
+use Closure;
 
 /**
  * Loads referenced documents with one batched query.
@@ -33,9 +34,9 @@ class SelectLoader implements LoaderInterface
      * Builds a callable that injects fetched rows into source entities.
      *
      * @param array<string, mixed> $options Runtime loader options.
-     * @return callable
+     * @return \Closure
      */
-    public function buildEagerLoader(array $options): callable
+    public function buildEagerLoader(array $options): Closure
     {
         $options += $this->options;
 

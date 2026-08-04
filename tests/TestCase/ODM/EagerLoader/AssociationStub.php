@@ -3,28 +3,44 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\EagerLoader;
 
-final class AssociationStub
+use BadMethodCallException;
+use Closure;
+use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Collection;
+
+final class AssociationStub extends Association
 {
-    /** @param array<int, array<string, mixed>> $pipeline */
+    private string $strategyName;
+
+    /**
+     * @param array<int, array<string, mixed>> $pipeline
+     */
     public function __construct(
-        private RepositoryStub $target,
-        private string $type = 'reference',
+        Collection $target,
+        string $strategy = 'select',
         private array $pipeline = [],
     ) {
-    }
-
-    public function getTarget(): RepositoryStub
-    {
-        return $this->target;
+        parent::__construct($strategy);
+        $this->setTarget($target);
+        $this->strategyName = $strategy;
     }
 
     public function type(): string
     {
-        return $this->type;
+        return 'reference';
     }
 
-    /** @param array<string, mixed> $options @return array<int, array<string, mixed>> */
-    public function buildPipeline(array $options): array
+    public function getStrategy(): string
+    {
+        return $this->strategyName;
+    }
+
+    public function eagerLoader(array $options): Closure
+    {
+        throw new BadMethodCallException('Not used in eager loader tests.');
+    }
+
+    public function buildPipeline(array $options = []): array
     {
         return $this->pipeline;
     }

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Closure;
+
 /**
  * Embeds one document in the source document.
  *
@@ -10,7 +12,11 @@ namespace Crustum\Mongo\ODM\Association;
  */
 class EmbedOne extends Embedded
 {
-    /** @return string */
+    /**
+     * Gets the relationship type.
+     *
+     * @return string
+     */
     public function type(): string
     {
         return self::ONE_TO_ONE;
@@ -20,9 +26,9 @@ class EmbedOne extends Embedded
      * Hydrates the embedded property for each source document.
      *
      * @param array<string, mixed> $options Hydration options.
-     * @return callable
+     * @return \Closure
      */
-    public function eagerLoad(array $options): callable
+    public function eagerLoader(array $options): Closure
     {
         return function (iterable $entities) use ($options): iterable {
             $property = $this->getProperty();

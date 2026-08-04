@@ -41,11 +41,11 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
     /**
      * Constructor.
      *
-     * @param object|null $collection The collection using this registry.
+     * @param \Crustum\Mongo\ODM\Collection|null $collection The collection using this registry.
      */
-    public function __construct(protected ?object $collection = null)
+    public function __construct(protected ?Collection $collection = null)
     {
-        if ($collection !== null && is_callable([$collection, 'getEventManager'])) {
+        if ($collection !== null) {
             $this->setEventManager($collection->getEventManager());
         }
     }
@@ -53,15 +53,13 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
     /**
      * Attaches a collection to this registry.
      *
-     * @param object $collection The collection to attach.
+     * @param \Crustum\Mongo\ODM\Collection $collection The collection to attach.
      * @return void
      */
-    public function setCollection(object $collection): void
+    public function setCollection(Collection $collection): void
     {
         $this->collection = $collection;
-        if (is_callable([$collection, 'getEventManager'])) {
-            $this->setEventManager($collection->getEventManager());
-        }
+        $this->setEventManager($collection->getEventManager());
     }
 
     /**
@@ -155,6 +153,9 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
     {
         $behavior = $this->get($name);
         parent::unload($name);
+
+        $this->getEventManager()->off($behavior);
+
         foreach ($behavior->implementedFinders() as $finder) {
             unset($this->finderMap[strtolower((string)$finder)]);
         }
@@ -214,7 +215,12 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         throw new BadMethodCallException(sprintf('Finder `%s` is not implemented by an attached behavior.', $method));
     }
 
-    /** @param string $alias */
+    /**
+     * Registers a behavior's finders and methods in the registry maps.
+     *
+     * @param string $alias The behavior alias.
+     * @return void
+     */
     private function registerMethods(Behavior $behavior, string $alias): void
     {
         foreach ($behavior->implementedFinders() as $finder => $method) {

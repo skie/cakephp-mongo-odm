@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Closure;
 use Crustum\Mongo\ODM\Document;
 use MongoDB\Model\BSONDocument;
 
@@ -54,7 +55,11 @@ class DBRef extends Embedded
         return $this->collection;
     }
 
-    /** @return string */
+    /**
+     * Gets the relationship type.
+     *
+     * @return string
+     */
     public function type(): string
     {
         return self::ONE_TO_ONE;
@@ -64,9 +69,9 @@ class DBRef extends Embedded
      * Builds the DBRef hydration loader.
      *
      * @param array<string, mixed> $options Hydration options.
-     * @return callable
+     * @return \Closure
      */
-    public function eagerLoad(array $options): callable
+    public function eagerLoader(array $options): Closure
     {
         return $this->hydrateLoader($options);
     }
@@ -110,7 +115,7 @@ class DBRef extends Embedded
      * Builds the callable that resolves DBRef values.
      *
      * @param array<string, mixed> $options Hydration options.
-     * @return callable
+     * @return \Closure
      */
     private function hydrateLoader(array $options): callable
     {

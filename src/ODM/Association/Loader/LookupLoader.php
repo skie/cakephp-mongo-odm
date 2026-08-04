@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association\Loader;
 
+use Closure;
+
 /**
  * Applies an association's aggregation lookup pipeline.
  *
@@ -31,9 +33,9 @@ class LookupLoader implements LoaderInterface
      * Builds a callable that applies lookup stages to a query.
      *
      * @param array<string, mixed> $options Runtime loader options.
-     * @return callable
+     * @return \Closure
      */
-    public function buildEagerLoader(array $options): callable
+    public function buildEagerLoader(array $options): Closure
     {
         return function (iterable $entities) use ($options): iterable {
             $query = $options['query'] ?? null;

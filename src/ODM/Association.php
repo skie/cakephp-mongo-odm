@@ -1,14 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\ODM\Association;
+namespace Crustum\Mongo\ODM;
 
 use Cake\Core\ConventionsTrait;
 use Cake\Datasource\EntityInterface;
-use Cake\Datasource\RepositoryInterface;
+use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
+use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
-use Crustum\Mongo\ODM\Document;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use function Cake\Core\pluginSplit;
 
@@ -21,7 +22,7 @@ use function Cake\Core\pluginSplit;
  * aggregation pipeline.
  *
  * @see cake60/src/ORM/Association.php
- * @see src/ODM/Association/Association.php
+ * @see src/ODM/Association.php
  */
 abstract class Association
 {
@@ -121,16 +122,16 @@ abstract class Association
     /**
      * Source collection.
      *
-     * @var \Cake\Datasource\RepositoryInterface|null
+     * @var \Crustum\Mongo\ODM\Collection|null
      */
-    protected ?RepositoryInterface $source = null;
+    protected ?Collection $source = null;
 
     /**
      * Target collection.
      *
-     * @var \Cake\Datasource\RepositoryInterface|null
+     * @var \Crustum\Mongo\ODM\Collection|null
      */
-    protected ?RepositoryInterface $target = null;
+    protected ?Collection $target = null;
 
     /**
      * Entity class used for hydrated associated documents.
@@ -154,6 +155,20 @@ abstract class Association
     protected string $onDelete = 'nullify';
 
     /**
+     * Whether cascade callbacks fire for dependent operations.
+     *
+     * @var bool
+     */
+    protected bool $cascadeCallbacks = false;
+
+    /**
+     * Finder used when loading the target.
+     *
+     * @var array<string, mixed>|string
+     */
+    protected array|string $finder = 'all';
+
+    /**
      * Constructor.
      *
      * @param string $alias Association alias.
@@ -169,6 +184,8 @@ abstract class Association
         $this->conditions = $options['conditions'] ?? [];
         $this->dependent = (bool)($options['dependent'] ?? false);
         $this->onDelete = (string)($options['onDelete'] ?? ($this->dependent ? 'cascade' : 'nullify'));
+        $this->cascadeCallbacks = (bool)($options['cascadeCallbacks'] ?? false);
+        $this->finder = $options['finder'] ?? 'all';
         if (isset($options['strategy'])) {
             $this->setStrategy((string)$options['strategy']);
         }
@@ -306,10 +323,10 @@ abstract class Association
     /**
      * Gets the source collection.
      *
-     * @return \Cake\Datasource\RepositoryInterface
+     * @return \Crustum\Mongo\ODM\Collection
      * @throws \InvalidArgumentException If the source is not configured.
      */
-    public function getSource(): RepositoryInterface
+    public function getSource(): Collection
     {
         return $this->source ?? throw new InvalidArgumentException('Association source is not set.');
     }
@@ -317,10 +334,10 @@ abstract class Association
     /**
      * Sets the source collection.
      *
-     * @param \Cake\Datasource\RepositoryInterface $source Source collection.
+     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
      * @return $this
      */
-    public function setSource(RepositoryInterface $source): static
+    public function setSource(Collection $source): static
     {
         $this->source = $source;
 
@@ -330,10 +347,10 @@ abstract class Association
     /**
      * Gets the target collection.
      *
-     * @return \Cake\Datasource\RepositoryInterface
+     * @return \Crustum\Mongo\ODM\Collection
      * @throws \InvalidArgumentException If the target is not configured.
      */
-    public function getTarget(): RepositoryInterface
+    public function getTarget(): Collection
     {
         return $this->target ?? throw new InvalidArgumentException('Association target is not set.');
     }
@@ -341,10 +358,10 @@ abstract class Association
     /**
      * Sets the target collection.
      *
-     * @param \Cake\Datasource\RepositoryInterface $target Target collection.
+     * @param \Crustum\Mongo\ODM\Collection $target Target collection.
      * @return $this
      */
-    public function setTarget(RepositoryInterface $target): static
+    public function setTarget(Collection $target): static
     {
         $this->target = $target;
 
@@ -509,6 +526,43 @@ abstract class Association
     }
 
     /**
+     * Saves the associated documents for this association.
+     *
+     * Default behavior is a no-op; associations that persist target documents
+     * (BelongsTo, HasOne, HasMany) override this.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param array<string, mixed> $options Save options.
+     * @return \Cake\Datasource\EntityInterface|false
+     */
+    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    {
+        return $entity;
+    }
+
+    /**
+     * Whether this side of the association owns the link.
+     *
+     * The owning side holds the foreign key and drives link maintenance.
+     *
+     * @return bool
+     */
+    public function isOwningSide(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Whether the association can be loaded through an in-pipeline join.
+     *
+     * @return bool
+     */
+    public function canBeJoined(): bool
+    {
+        return false;
+    }
+
+    /**
      * Creates an aggregation builder for this association.
      *
      * @return \Crustum\Mongo\Database\Aggregation\AggregationBuilder
@@ -519,12 +573,211 @@ abstract class Association
     }
 
     /**
-     * Gets a repository alias without coupling the association to Collection.
+     * Gets the target collection class name.
      *
-     * @param \Cake\Datasource\RepositoryInterface $repository Repository instance.
      * @return string
      */
-    protected function repositoryAlias(RepositoryInterface $repository): string
+    public function getClassName(): string
+    {
+        return $this->className;
+    }
+
+    /**
+     * Sets the target collection class name.
+     *
+     * @param string $className The class name.
+     * @return $this
+     */
+    public function setClassName(string $className): static
+    {
+        $this->className = $className;
+
+        return $this;
+    }
+
+    /**
+     * Gets whether cascade callbacks are fired for dependent operations.
+     *
+     * @return bool
+     */
+    public function getCascadeCallbacks(): bool
+    {
+        return $this->cascadeCallbacks;
+    }
+
+    /**
+     * Sets whether cascade callbacks are fired for dependent operations.
+     *
+     * @param bool $cascadeCallbacks Whether to fire callbacks.
+     * @return $this
+     */
+    public function setCascadeCallbacks(bool $cascadeCallbacks): static
+    {
+        $this->cascadeCallbacks = $cascadeCallbacks;
+
+        return $this;
+    }
+
+    /**
+     * Gets the finder used when loading the target.
+     *
+     * @return array<string, mixed>|string
+     */
+    public function getFinder(): array|string
+    {
+        return $this->finder;
+    }
+
+    /**
+     * Sets the finder used when loading the target.
+     *
+     * @param array<string, mixed>|string $finder The finder name or `[name, options]`.
+     * @return $this
+     */
+    public function setFinder(array|string $finder): static
+    {
+        $this->finder = $finder;
+
+        return $this;
+    }
+
+    /**
+     * Splits a finder specification into a finder name and options.
+     *
+     * Accepts `'name'`, `'name:key=value'`, or `['name', [...]]`.
+     *
+     * @param array<int|string, mixed>|string $finderData The finder specification.
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    protected function extractFinder(array|string $finderData): array
+    {
+        if (is_array($finderData)) {
+            $type = (string)array_shift($finderData);
+            $options = is_array($finderData[0] ?? null) ? $finderData[0] : [];
+
+            return [$type, $options];
+        }
+
+        if (!str_contains($finderData, ':')) {
+            return [$finderData, []];
+        }
+
+        [$type, $params] = explode(':', $finderData, 2);
+        $options = [];
+        foreach (array_filter(explode(';', $params)) as $param) {
+            $keyValue = explode('=', $param, 2);
+            $options[$keyValue[0]] = $keyValue[1] ?? true;
+        }
+
+        return [$type, $options];
+    }
+
+    /**
+     * Whether eager loading requires the owning collection's binding keys.
+     *
+     * @param array<string, mixed> $options Options containing the strategy.
+     * @return bool
+     */
+    public function requiresKeys(array $options = []): bool
+    {
+        $strategy = $options['strategy'] ?? $this->getStrategy();
+
+        return $strategy === self::STRATEGY_SELECT;
+    }
+
+    /**
+     * Sets the default association property value on a result row.
+     *
+     * @param array<string, mixed> $row The result row.
+     * @param bool $joined Whether the row came from a join.
+     * @return array<string, mixed>
+     */
+    public function defaultRowValue(array $row, bool $joined): array
+    {
+        $row[$this->getProperty()] = $this->defaultValue();
+
+        return $row;
+    }
+
+    /**
+     * Gets the default association property value when no rows are loaded.
+     *
+     * @return mixed
+     */
+    protected function defaultValue(): mixed
+    {
+        return null;
+    }
+
+    /**
+     * Proxies a find to the target collection with the association conditions.
+     *
+     * @param array<string, mixed>|string|null $type The finder name.
+     * @param mixed ...$args Finder arguments.
+     * @return \Cake\Datasource\QueryInterface
+     */
+    public function find(array|string|null $type = null, mixed ...$args): QueryInterface
+    {
+        $type = $type ?: $this->getFinder();
+        [$type, $opts] = $this->extractFinder($type);
+        $args += $opts;
+
+        return $this->getTarget()
+            ->find($type, ...$args)
+            ->where($this->getConditions());
+    }
+
+    /**
+     * Proxies an existence check to the target collection.
+     *
+     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @return bool
+     */
+    public function exists(array|Closure|string|null $conditions): bool
+    {
+        return $this->getTarget()->exists($conditions);
+    }
+
+    /**
+     * Proxies an update to the target collection.
+     *
+     * @param \Closure|array<string, mixed>|string $fields Update specification.
+     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @return int
+     */
+    public function updateAll(array|Closure|string $fields, array|Closure|string|null $conditions): int
+    {
+        return $this->getTarget()->updateAll($fields, $conditions);
+    }
+
+    /**
+     * Proxies a delete to the target collection.
+     *
+     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @return int
+     */
+    public function deleteAll(array|Closure|string|null $conditions): int
+    {
+        return $this->getTarget()->deleteAll($conditions);
+    }
+
+    /**
+     * Triggers `Model.beforeFind` on the target collection for a query.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query being prepared.
+     * @return void
+     */
+    protected function dispatchBeforeFind(SelectQuery $query): void
+    {
+    }
+
+    /**
+     * Gets a repository alias.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository Repository instance.
+     * @return string
+     */
+    protected function repositoryAlias(Collection $repository): string
     {
         return $repository->getAlias();
     }
@@ -540,9 +793,9 @@ abstract class Association
      * Builds the result eager-loader callable.
      *
      * @param array<string, mixed> $options Loader options.
-     * @return callable
+     * @return \Closure
      */
-    abstract public function eagerLoad(array $options): callable;
+    abstract public function eagerLoader(array $options): Closure;
 
     /**
      * Builds MongoDB aggregation stages for this association.

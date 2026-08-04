@@ -8,6 +8,8 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMapTrait;
+use Crustum\Mongo\ODM\Collection;
+use InvalidArgumentException;
 
 /**
  * Provides repository binding and schema type defaults for ODM queries.
@@ -21,9 +23,9 @@ trait CommonQueryTrait
     /**
      * Repository used by this query.
      *
-     * @var \Cake\Datasource\RepositoryInterface|null
+     * @var \Crustum\Mongo\ODM\Collection|null
      */
-    protected ?RepositoryInterface $repository = null;
+    protected ?Collection $repository = null;
 
     /**
      * Binds a repository to this query.
@@ -33,13 +35,15 @@ trait CommonQueryTrait
      */
     public function setRepository(RepositoryInterface $repository): static
     {
+        if (!$repository instanceof Collection) {
+            throw new InvalidArgumentException('ODM queries require a Collection repository.');
+        }
+
         $this->repository = $repository;
         $this->from($repository->getAlias());
-        if (method_exists($repository, 'getConnection')) {
-            $connection = $repository->getConnection();
-            if ($connection !== null) {
-                $this->setConnection($connection);
-            }
+        $connection = $repository->getConnection();
+        if ($connection !== null) {
+            $this->setConnection($connection);
         }
 
         return $this;
@@ -48,9 +52,9 @@ trait CommonQueryTrait
     /**
      * Returns the repository bound to this query.
      *
-     * @return \Cake\Datasource\RepositoryInterface|null
+     * @return \Crustum\Mongo\ODM\Collection|null
      */
-    public function getRepository(): ?RepositoryInterface
+    public function getRepository(): ?Collection
     {
         return $this->repository;
     }
@@ -62,12 +66,12 @@ trait CommonQueryTrait
      */
     public function addDefaultTypes(): static
     {
-        if ($this->repository === null || !method_exists($this->repository, 'getSchema')) {
+        if ($this->repository === null) {
             return $this;
         }
 
         $schema = $this->repository->getSchema();
-        if (!is_object($schema) || !method_exists($schema, 'typeMap')) {
+        if ($schema === null) {
             return $this;
         }
 
@@ -97,11 +101,9 @@ trait CommonQueryTrait
             return $this;
         }
 
-        if (is_callable([$this->repository, 'callFinder'])) {
-            $result = $this->repository->callFinder($type, $this, ...$args);
-            if ($result instanceof static) {
-                return $result;
-            }
+        $result = $this->repository->callFinder($type, $this, ...$args);
+        if ($result instanceof static) {
+            return $result;
         }
 
         return $this;

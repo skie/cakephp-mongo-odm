@@ -89,8 +89,13 @@ final class EagerLoader
         return $this->containments;
     }
 
-    /** @return array<string, \Crustum\Mongo\ODM\EagerLoadable> */
-    public function normalized(object $repository): array
+    /**
+     * Gets the normalized containment tree for a repository.
+     *
+     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
+     * @return array<string, \Crustum\Mongo\ODM\EagerLoadable>
+     */
+    public function normalized(Collection $repository): array
     {
         if ($this->normalized !== null) {
             return $this->normalized;
@@ -109,10 +114,10 @@ final class EagerLoader
      * Attaches in-pipeline strategies and records external strategies.
      *
      * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
-     * @param object $repository The source collection.
+     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
      * @return void
      */
-    public function attachAssociations(SelectQuery $query, object $repository): void
+    public function attachAssociations(SelectQuery $query, Collection $repository): void
     {
         $this->external = [];
         foreach ($this->normalized($repository) as $loadable) {
@@ -131,12 +136,56 @@ final class EagerLoader
     }
 
     /**
+     * Loads external (referenced) association results and merges them into the
+     * result documents.
+     *
+     * Each external association runs one batched query through its loader and
+     * injects the fetched rows into the matching source documents under the
+     * association property. Embedded and lookup associations are handled
+     * during pipeline construction and produce no external load.
+     *
+     * @param \Crustum\Mongo\Database\Query\SelectQuery $query   The executed source query.
+     * @param iterable<array-key, mixed>                $results The hydrated result documents.
+     * @return iterable<array-key, mixed>
+     */
+    public function loadExternal(SelectQuery $query, iterable $results): iterable
+    {
+        if (!$results) {
+            return $results;
+        }
+
+        $external = $this->getExternalAssociations();
+        if ($external === []) {
+            return $results;
+        }
+
+        if (!is_array($results)) {
+            $results = iterator_to_array($results);
+        }
+
+        foreach ($external as $loadable) {
+            $instance = $loadable->instance();
+            if ($instance === null) {
+                continue;
+            }
+
+            $callback = $instance->eagerLoader($loadable->getConfig() + [
+                'query' => $query,
+                'contain' => $loadable->associations(),
+            ]);
+            $results = $callback($results);
+        }
+
+        return $results;
+    }
+
+    /**
      * Gets a flattened association map for result nesting.
      *
-     * @param object $repository The source collection.
+     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
      * @return array<int, array<string, mixed>>
      */
-    public function associationsMap(object $repository): array
+    public function associationsMap(Collection $repository): array
     {
         $map = [];
         $this->map($this->normalized($repository), $map);
@@ -157,8 +206,25 @@ final class EagerLoader
     }
 
     /**
-     * @param array<int|string, mixed> $contain
-     * @param array<int|string, mixed> $original
+     * Resets derived caches when the loader is cloned.
+     *
+     * The containment configuration is immutable config and is safe to copy by
+     * value; the normalized tree and external list are re-derived lazily so a
+     * cloned query never shares mutable normalization state.
+     *
+     * @return void
+     */
+    public function __clone()
+    {
+        $this->normalized = null;
+        $this->external = [];
+    }
+
+    /**
+     * Merges containment configuration into the existing tree.
+     *
+     * @param array<int|string, mixed> $contain The new containments.
+     * @param array<int|string, mixed> $original The existing containments.
      * @return array<int|string, mixed>
      */
     private function reformat(array $contain, array $original): array
@@ -191,8 +257,10 @@ final class EagerLoader
     }
 
     /**
-     * @param array<int|string, mixed> $options
-     * @param array<int|string, mixed> $existing
+     * Normalizes a containment options array against the accepted options.
+     *
+     * @param array<int|string, mixed> $options The options to normalize.
+     * @param array<int|string, mixed> $existing The existing normalized options.
      * @return array<string, mixed>
      */
     private function reformatOptions(array $options, array $existing): array
@@ -217,11 +285,24 @@ final class EagerLoader
         return $result;
     }
 
-    /** @param array<string, mixed> $options */
-    private function normalize(object $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
+    /**
+     * Normalizes one containment node and its nested associations.
+     *
+     * @param array<string, mixed> $options The containment options.
+     * @param \Crustum\Mongo\ODM\Collection $repository The parent repository.
+     * @param string $alias The association alias.
+     * @param string $aliasPath The dotted alias path.
+     * @param string $propertyPath The dotted property path.
+     * @return \Crustum\Mongo\ODM\EagerLoadable
+     */
+    private function normalize(Collection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
     {
-        $association = $this->association($repository, $alias);
-        $target = $this->target($association);
+        $association = $repository->getAssociation($alias);
+        if ($association === null) {
+            throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
+        }
+
+        $target = $association->getTarget();
         $config = array_intersect_key($options, $this->containOptions);
         $config += ['strategy' => $this->defaultStrategy($association)];
         $config = $this->applyQueryBuilder($config, $target);
@@ -240,66 +321,34 @@ final class EagerLoader
         return $loadable;
     }
 
-    /** Resolve an association from the C1 repository surface. */
-    private function association(object $repository, string $alias): object
-    {
-        $association = null;
-        if (method_exists($repository, 'getAssociation')) {
-            $association = $repository->getAssociation($alias);
-        } elseif (method_exists($repository, 'associations')) {
-            $associations = $repository->associations();
-            if (is_object($associations) && method_exists($associations, 'get')) {
-                $association = $associations->get($alias);
-            }
-        }
-
-        if (!is_object($association)) {
-            throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
-        }
-
-        return $association;
-    }
-
-    /** Resolve the target repository from the C5 association surface. */
-    private function target(object $association): object
-    {
-        $target = method_exists($association, 'getTarget') ? $association->getTarget() : null;
-        if (!is_object($target)) {
-            throw new InvalidArgumentException('Association target is not configured.');
-        }
-
-        return $target;
-    }
-
     /**
      * Gets the default strategy for an association.
      *
-     * @param object $association The association.
+     * @param \Crustum\Mongo\ODM\Association $association The association.
      * @return string
      */
-    private function defaultStrategy(object $association): string
+    private function defaultStrategy(Association $association): string
     {
-        if (method_exists($association, 'getStrategy')) {
-            return $association->getStrategy() === 'embed' ? 'embed' : 'select';
-        }
-
-        return method_exists($association, 'type') && $association->type() === 'embed' ? 'embed' : 'select';
+        return $association->getStrategy() === 'embed' ? 'embed' : 'select';
     }
 
     /**
-     * @param array<string, mixed> $config
+     * Applies a containment query builder to the association config.
+     *
+     * @param array<string, mixed> $config The association config.
+     * @param \Crustum\Mongo\ODM\Collection $target The target collection.
      * @return array<string, mixed>
      */
-    private function applyQueryBuilder(array $config, object $target): array
+    private function applyQueryBuilder(array $config, Collection $target): array
     {
-        if (!isset($config['queryBuilder']) || !is_callable($config['queryBuilder']) || !method_exists($target, 'query')) {
+        if (!isset($config['queryBuilder']) || !is_callable($config['queryBuilder'])) {
             return $config;
         }
 
         $query = $target->query();
         ($config['queryBuilder'])($query);
         unset($config['queryBuilder']);
-        if (is_object($query) && method_exists($query, 'compile')) {
+        if ($query instanceof SelectQuery) {
             $compiled = $query->compile();
             $config['conditions'] ??= $compiled['filter'] ?? [];
             $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
@@ -309,7 +358,13 @@ final class EagerLoader
         return $config;
     }
 
-    /** Dispatch one normalized node and all of its descendants. */
+    /**
+     * Dispatches one normalized node and all of its descendants.
+     *
+     * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The node to dispatch.
+     * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
+     * @return void
+     */
     private function dispatch(EagerLoadable $loadable, SelectQuery $query): void
     {
         $association = $loadable->instance();
@@ -320,7 +375,7 @@ final class EagerLoader
         $strategy = $loadable->getConfig()['strategy'];
         if ($strategy === 'select' || $strategy === 'reference') {
             $this->external[] = $loadable;
-        } elseif (method_exists($association, 'buildPipeline')) {
+        } else {
             $stages = $association->buildPipeline($loadable->getConfig());
             if ($stages !== []) {
                 $query->pipeline($stages);
@@ -333,8 +388,11 @@ final class EagerLoader
     }
 
     /**
-     * @param array<string, \Crustum\Mongo\ODM\EagerLoadable> $loadables
-     * @param array<int, array<string, mixed>> $map
+     * Flattens the normalized tree into an association map.
+     *
+     * @param array<string, \Crustum\Mongo\ODM\EagerLoadable> $loadables The nodes to flatten.
+     * @param array<int, array<string, mixed>> $map The output map, filled by reference.
+     * @return void
      */
     private function map(array $loadables, array &$map): void
     {

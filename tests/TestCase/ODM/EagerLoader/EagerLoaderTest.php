@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\EagerLoader;
 
-use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\ODM\EagerLoader;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 
 final class EagerLoaderTest extends TestCase

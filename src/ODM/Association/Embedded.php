@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Document;
 use InvalidArgumentException;
 use MongoDB\Model\BSONArray;

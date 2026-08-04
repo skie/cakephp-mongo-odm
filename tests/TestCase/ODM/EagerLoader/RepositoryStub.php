@@ -3,21 +3,27 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\EagerLoader;
 
-use Crustum\Mongo\Database\Query\SelectQuery;
+use Cake\Datasource\QueryInterface;
+use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 
-final class RepositoryStub
+final class RepositoryStub extends Collection
 {
-    /** @param array<string, AssociationStub> $associations */
-    public function __construct(private array $associations = [])
+    /**
+     * @param array<string, \Crustum\Mongo\ODM\Association> $stubs
+     */
+    public function __construct(private array $stubs = [])
     {
+        parent::__construct(['alias' => 'related']);
     }
 
-    public function getAssociation(string $name): ?AssociationStub
+    public function getAssociation(string $name): ?Association
     {
-        return $this->associations[$name] ?? null;
+        return $this->stubs[$name] ?? null;
     }
 
-    public function query(): SelectQuery
+    public function query(): QueryInterface
     {
         return new SelectQuery(null, 'related');
     }

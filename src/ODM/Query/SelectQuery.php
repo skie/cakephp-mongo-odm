@@ -6,16 +6,16 @@ namespace Crustum\Mongo\ODM\Query;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
-use Cake\Datasource\RepositoryInterface;
+use Cake\ORM\DtoMapper;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
+use Crustum\Mongo\ODM\Collection;
 use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
-use RuntimeException;
 use Traversable;
 
 /**
@@ -70,16 +70,16 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection Database connection.
      * @param string $collection Collection name.
-     * @param \Cake\Datasource\RepositoryInterface|null $repository Repository to bind.
+     * @param \Crustum\Mongo\ODM\Collection|null $repository Repository to bind.
      */
     public function __construct(
         ?Connection $connection = null,
         string $collection = '',
-        ?RepositoryInterface $repository = null,
+        ?Collection $repository = null,
     ) {
         parent::__construct($connection, $collection);
         $this->eagerLoader = new EagerLoader();
-        if ($repository instanceof RepositoryInterface) {
+        if ($repository instanceof Collection) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }
@@ -264,6 +264,18 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Clones the eager loader so cloned queries never share mutable
+     * containment normalization state.
+     *
+     * @return void
+     */
+    public function __clone()
+    {
+        parent::__clone();
+        $this->eagerLoader = clone $this->eagerLoader;
+    }
+
+    /**
      * Orders results ascending by a field.
      *
      * @param string $field Field name.
@@ -386,7 +398,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
-        if ($this->repository instanceof RepositoryInterface) {
+        if ($this->repository !== null) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
 
@@ -418,17 +430,10 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     protected function decorate(iterable $rows): ResultSet
     {
         if ($this->dtoClass !== null) {
-            $dtoClass = $this->dtoClass;
-            if (!method_exists($dtoClass, 'createFromArray')) {
-                throw new RuntimeException(sprintf(
-                    'DTO class `%s` must provide a static createFromArray() factory.',
-                    $dtoClass,
-                ));
-            }
-
+            $mapper = new DtoMapper();
             $dtos = [];
             foreach ($rows as $row) {
-                $dtos[] = $dtoClass::createFromArray((array)$row);
+                $dtos[] = $mapper->map((array)$row, $this->dtoClass);
             }
 
             $resultSet = new ResultSet($dtos);
@@ -437,6 +442,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
                 'hydrate' => $this->hydrate,
                 'source' => $this->repository?->getRegistryAlias() ?? $this->getCollection(),
             ]);
+
+            if ($this->hydrate) {
+                $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
+                if (!$loaded instanceof ResultSet) {
+                    $resultSet = new ResultSet($loaded);
+                }
+            }
         }
 
         foreach ($this->formatters as $formatter) {
