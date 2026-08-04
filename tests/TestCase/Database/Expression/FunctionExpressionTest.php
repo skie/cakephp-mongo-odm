@@ -42,7 +42,7 @@ class FunctionExpressionTest extends TestCase
     public function testEmptyArgumentsRenderEmptyDocument(): void
     {
         $expression = new FunctionExpression('$rand');
-        $this->assertSame(['$rand' => (object)[]], $expression->getConditions());
+        $this->assertEquals(['$rand' => (object)[]], $expression->getConditions());
     }
 
     /**
@@ -85,7 +85,7 @@ class FunctionExpressionTest extends TestCase
         $expression = new FunctionExpression('$sum');
         $expression->setName('$avg')->add('$price');
         $this->assertSame('$avg', $expression->getName());
-        $this->assertCount(1, $expression);
+        $this->assertSame(1, $expression->count());
         $this->assertSame(['$avg' => '$price'], $expression->getConditions());
     }
 

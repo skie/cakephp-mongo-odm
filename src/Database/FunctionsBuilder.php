@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Database\Expression;
+namespace Crustum\Mongo\Database;
+
+use Crustum\Mongo\Database\Expression\FunctionExpression;
 
 /**
  * MongoDB aggregation "functions" builder.

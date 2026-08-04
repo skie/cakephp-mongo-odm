@@ -37,7 +37,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
      * Constructor
      *
      * @param string $name The operator name (e.g. `$sum` or `sum`)
-     * @param list<mixed> $params The operator arguments
+     * @param array<string|int, mixed> $params The operator arguments
      */
     public function __construct(string $name, array $params = [])
     {
@@ -140,7 +140,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
             return $this->normalizeParam($params[0]);
         }
 
-        return array_map(fn(mixed $param): mixed => $this->normalizeParam($param), $params);
+        return array_map($this->normalizeParam(...), $params);
     }
 
     /**
@@ -156,7 +156,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
         }
 
         if (is_array($param)) {
-            return array_map(fn(mixed $value): mixed => $this->normalizeParam($value), $param);
+            return array_map($this->normalizeParam(...), $param);
         }
 
         return $param;

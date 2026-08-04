@@ -36,7 +36,7 @@ use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
 use Crustum\Mongo\Database\Aggregation\Stage\UnsetStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Unwind;
 use Crustum\Mongo\Database\Aggregation\Stage\VectorSearch;
-use Crustum\Mongo\Database\Expression\FunctionsBuilder;
+use Crustum\Mongo\Database\FunctionsBuilder;
 use OutOfRangeException;
 
 /**
@@ -561,7 +561,7 @@ class AggregationBuilder
      * Mirrors `Cake\Database\Query::func()` for building operator expressions
      * that feed projections/group accumulators.
      *
-     * @return \Crustum\Mongo\Database\Expression\FunctionsBuilder
+     * @return \Crustum\Mongo\Database\FunctionsBuilder
      */
     public function func(): FunctionsBuilder
     {
