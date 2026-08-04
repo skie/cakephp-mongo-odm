@@ -116,6 +116,7 @@ final class Marshaller
             if (!is_array($record)) {
                 continue;
             }
+
             $id = $this->idFrom($record);
             if ($id === null) {
                 $new[] = $record;
@@ -129,10 +130,15 @@ final class Marshaller
             if (!$entity instanceof Document) {
                 continue;
             }
+
             $id = $entity->getId();
-            if ($id === null || !isset($indexed[$id])) {
+            if ($id === null) {
                 continue;
             }
+            if (!isset($indexed[$id])) {
+                continue;
+            }
+
             $result[] = $this->merge($entity, $indexed[$id], $options);
             unset($indexed[$id]);
         }
@@ -147,6 +153,7 @@ final class Marshaller
             } catch (Throwable) {
                 continue;
             }
+
             if (!$entity instanceof Document) {
                 continue;
             }
@@ -176,6 +183,7 @@ final class Marshaller
         if (!$entity instanceof Document) {
             throw new InvalidArgumentException('Collection entity class must extend Document.');
         }
+
         if (method_exists($this->collection, 'getRegistryAlias')) {
             $entity->setSource($this->collection->getRegistryAlias());
         }
@@ -209,11 +217,13 @@ final class Marshaller
         if ($validator === false) {
             return [];
         }
+
         if ($validator === true) {
             $validator = $this->collectionCall('getValidator', 'default');
         } elseif (is_string($validator)) {
             $validator = $this->collectionCall('getValidator', $validator);
         }
+
         if (!is_object($validator) || !method_exists($validator, 'validate')) {
             throw new RuntimeException('validate must be a boolean, a string or a validator object.');
         }
@@ -234,9 +244,11 @@ final class Marshaller
             if (isset($errors[$field]) && $errors[$field] !== []) {
                 continue;
             }
+
             if ($field === 'id' && !array_key_exists('_id', $data)) {
                 $field = '_id';
             }
+
             $association = $this->association((string)$field, $options);
             $properties[$field] = $association === null
                 ? $value
@@ -264,6 +276,7 @@ final class Marshaller
         if (!isset($options['patchableFields'])) {
             return $properties;
         }
+
         $patchable = (array)$options['patchableFields'];
         $default = (bool)($patchable['*'] ?? true);
 
@@ -282,9 +295,11 @@ final class Marshaller
         if ($name === null && in_array($field, (array)$included, true)) {
             $name = $field;
         }
+
         if ($name === null) {
             return null;
         }
+
         if (method_exists($this->collection, 'getAssociation')) {
             $association = $this->collectionCall('getAssociation', $name);
 
@@ -300,6 +315,7 @@ final class Marshaller
         if (!is_array($value)) {
             return $value;
         }
+
         $alias = $this->associationCall($association, 'getAlias');
         $nested = is_array($options['associated'][$alias] ?? null)
             ? $options['associated'][$alias]
@@ -311,6 +327,7 @@ final class Marshaller
         if (array_key_exists('_ids', $value) && is_array($value['_ids'])) {
             return $value['_ids'];
         }
+
         if (is_object($target) && is_callable([$target, 'marshaller'])) {
             $marshaller = call_user_func([$target, 'marshaller']);
             $many = array_is_list($value) || $type === 'oneToMany';
@@ -318,6 +335,7 @@ final class Marshaller
                 return call_user_func([$marshaller, $many ? 'many' : 'one'], $value, $nested);
             }
         }
+
         $class = method_exists($association, 'getEntityClass')
             ? $this->associationCall($association, 'getEntityClass')
             : null;
@@ -332,6 +350,7 @@ final class Marshaller
                     return $document;
                 }, $value);
             }
+
             $document = new $class($value);
             if (!$document instanceof Document) {
                 throw new InvalidArgumentException('Association entity class must extend Document.');
@@ -368,10 +387,12 @@ final class Marshaller
         if (!method_exists($this->collection, 'dispatchEvent')) {
             return;
         }
+
         $payload = ['data' => $data, 'options' => $options];
-        if ($entity !== null) {
+        if ($entity instanceof Document) {
             $payload['entity'] = $entity;
         }
+
         call_user_func([$this->collection, 'dispatchEvent'], $event, $payload);
     }
 

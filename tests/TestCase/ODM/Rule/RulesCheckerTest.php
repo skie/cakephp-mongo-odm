@@ -20,6 +20,7 @@ final class RulesCheckerTest extends TestCase
 
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['tenant_id', 'slug']), 'unique');
+
         $entity = new Document(['tenant_id' => 't1', 'slug' => 'same']);
 
         self::assertTrue($checker->checkCreate($entity));
@@ -38,6 +39,7 @@ final class RulesCheckerTest extends TestCase
 
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['email']), 'unique');
+
         $entity = new Document(['_id' => $entityId, 'email' => 'user@example.com']);
         $entity->setNew(false);
 
@@ -51,6 +53,7 @@ final class RulesCheckerTest extends TestCase
 
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['email'], 'Email is already used'), 'unique');
+
         $entity = new Document(['email' => 'user@example.com']);
 
         self::assertFalse($checker->checkCreate($entity));

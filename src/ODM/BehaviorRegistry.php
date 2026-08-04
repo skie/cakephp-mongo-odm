@@ -75,6 +75,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if (class_exists($class)) {
             return is_a($class, Behavior::class, true) ? $class : null;
         }
+
         $candidate = __NAMESPACE__ . '\\Behavior\\' . $class . 'Behavior';
 
         return class_exists($candidate) && is_a($candidate, Behavior::class, true) ? $candidate : null;
@@ -108,14 +109,18 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
             if ($this->collection === null) {
                 throw new LogicException('A collection is required before loading a behavior.');
             }
+
             $instance = new $class($this->collection, $config);
         }
+
         if (!$instance instanceof Behavior) {
             throw new InvalidArgumentException('Behavior classes must extend the ODM Behavior base class.');
         }
+
         if ($config['enabled'] ?? true) {
             $this->getEventManager()->on($instance);
         }
+
         $this->registerMethods($instance, $alias);
 
         return $instance;
@@ -133,6 +138,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if (!$object instanceof Behavior) {
             throw new InvalidArgumentException('Behavior instances must extend the ODM Behavior base class.');
         }
+
         parent::set($name, $object);
         $this->registerMethods($object, $name);
 
@@ -152,6 +158,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         foreach ($behavior->implementedFinders() as $finder) {
             unset($this->finderMap[strtolower((string)$finder)]);
         }
+
         foreach ($this->methodMap as $method => $binding) {
             if ($binding[0] === $name) {
                 unset($this->methodMap[$method]);
@@ -175,6 +182,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if ($binding !== null && $this->has($binding[0])) {
             return $this->get($binding[0])->{$binding[1]}(...$args);
         }
+
         throw new BadMethodCallException(sprintf('Cannot call `%s`, it does not belong to an attached behavior.', $method));
     }
 
@@ -202,6 +210,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if ($binding !== null && $this->has($binding[0])) {
             return $this->get($binding[0])->getFinder($binding[1]);
         }
+
         throw new BadMethodCallException(sprintf('Finder `%s` is not implemented by an attached behavior.', $method));
     }
 
@@ -213,8 +222,10 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
             if (isset($this->finderMap[$key]) && $this->has($this->finderMap[$key][0])) {
                 throw new LogicException(sprintf('Duplicate finder `%s`.', $finder));
             }
+
             $this->finderMap[$key] = [$alias, $method];
         }
+
         foreach ($behavior->implementedMethods() as $method => $methodName) {
             $this->methodMap[strtolower((string)$method)] = [$alias, (string)$methodName];
         }

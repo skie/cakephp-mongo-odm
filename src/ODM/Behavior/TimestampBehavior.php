@@ -81,10 +81,12 @@ class TimestampBehavior extends Behavior
         if (!is_array($fields)) {
             return;
         }
+
         foreach ($fields as $field => $when) {
             if (!in_array($when, ['always', 'new', 'existing'], true)) {
                 throw new UnexpectedValueException(sprintf('Invalid timestamp condition `%s`.', (string)$when));
             }
+
             if ($when === 'always' || ($when === 'new' && $entity->isNew()) || ($when === 'existing' && !$entity->isNew())) {
                 $this->updateField($entity, (string)$field);
             }
@@ -100,12 +102,13 @@ class TimestampBehavior extends Behavior
      */
     public function timestamp(?DateTimeInterface $timestamp = null, bool $refresh = false): UTCDateTime
     {
-        if ($timestamp !== null) {
+        if ($timestamp instanceof DateTimeInterface) {
             $this->setConfig('refreshTimestamp', false);
 
             return $this->timestampValue = new UTCDateTime($timestamp);
         }
-        if ($this->timestampValue === null || $refresh) {
+
+        if (!$this->timestampValue instanceof UTCDateTime || $refresh) {
             $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
             $this->timestampValue = new UTCDateTime($now);
         }
@@ -127,6 +130,7 @@ class TimestampBehavior extends Behavior
         if (!is_array($fields)) {
             return false;
         }
+
         $updated = false;
         foreach ($fields as $field => $when) {
             if (in_array($when, ['always', 'existing'], true)) {
@@ -152,6 +156,7 @@ class TimestampBehavior extends Behavior
         if ($entity->isDirty($field)) {
             return;
         }
+
         $entity->set($field, $this->timestamp(null, $refresh && (bool)$this->getConfig('refreshTimestamp')));
     }
 }

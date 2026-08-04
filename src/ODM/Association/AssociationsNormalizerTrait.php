@@ -27,17 +27,15 @@ trait AssociationsNormalizerTrait
                 $key = (string)$value;
                 $value = [];
             }
-            $parts = explode('.', (string)$key);
+
+            $parts = explode('.', $key);
             $pointer = &$result;
             foreach ($parts as $part) {
                 $pointer[$part] ??= [];
                 $pointer = &$pointer[$part];
             }
-            if (is_array($value)) {
-                $pointer = array_replace_recursive($pointer, $value);
-            } else {
-                $pointer = $value;
-            }
+
+            $pointer = is_array($value) ? array_replace_recursive($pointer, $value) : $value;
         }
 
         return $result;

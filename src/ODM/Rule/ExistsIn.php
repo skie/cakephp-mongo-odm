@@ -62,6 +62,7 @@ class ExistsIn
         if (!$entity->extract($this->fields, true)) {
             return true;
         }
+
         $hasNull = array_any($this->fields, static fn(string $field): bool => $entity->get($field) === null);
         if ($this->options['allowNullableNulls'] && $hasNull) {
             return true;
@@ -71,6 +72,7 @@ class ExistsIn
         if (is_string($repository)) {
             $repository = $options['repository'] ?? null;
         }
+
         if (!$repository instanceof RepositoryInterface) {
             throw new InvalidArgumentException('The `repository` option must resolve to a repository instance.');
         }

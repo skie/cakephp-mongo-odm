@@ -68,6 +68,7 @@ final class EagerLoader
             if (!is_string($associations)) {
                 throw new InvalidArgumentException('queryBuilder requires a string association.');
             }
+
             $associations = [$associations => ['queryBuilder' => $queryBuilder]];
         }
 
@@ -168,18 +169,21 @@ final class EagerLoader
                 $key = (string)$value;
                 $value = [];
             }
-            $path = explode('.', (string)$key);
+
+            $path = explode('.', $key);
             $leaf = array_pop($path);
             $pointer =& $result;
             foreach ($path as $part) {
                 $pointer[$part] ??= [];
                 $pointer =& $pointer[$part];
             }
+
             if (is_callable($value)) {
                 $value = ['queryBuilder' => $value];
             } elseif (!is_array($value)) {
                 $value = [];
             }
+
             $pointer[$leaf] = $this->reformatOptions($value, $pointer[$leaf] ?? []);
         }
 
@@ -197,6 +201,7 @@ final class EagerLoader
         foreach ($existing as $key => $value) {
             $result[(string)$key] = $value;
         }
+
         foreach ($options as $key => $value) {
             if (is_int($key)) {
                 $result[(string)$value] = [];
@@ -247,6 +252,7 @@ final class EagerLoader
                 $association = $associations->get($alias);
             }
         }
+
         if (!is_object($association)) {
             throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
         }
@@ -289,6 +295,7 @@ final class EagerLoader
         if (!isset($config['queryBuilder']) || !is_callable($config['queryBuilder']) || !method_exists($target, 'query')) {
             return $config;
         }
+
         $query = $target->query();
         ($config['queryBuilder'])($query);
         unset($config['queryBuilder']);
@@ -309,6 +316,7 @@ final class EagerLoader
         if ($association === null) {
             return;
         }
+
         $strategy = $loadable->getConfig()['strategy'];
         if ($strategy === 'select' || $strategy === 'reference') {
             $this->external[] = $loadable;
@@ -318,6 +326,7 @@ final class EagerLoader
                 $query->pipeline($stages);
             }
         }
+
         foreach ($loadable->associations() as $nested) {
             $this->dispatch($nested, $query);
         }

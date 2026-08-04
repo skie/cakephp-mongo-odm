@@ -31,6 +31,7 @@ final class EagerLoaderTest extends TestCase
         $repository = new RepositoryStub(['Embed' => $embed, 'Lookup' => $lookup, 'Reference' => $reference]);
         $loader = new EagerLoader();
         $loader->contain(['Embed', 'Lookup' => ['strategy' => 'lookup'], 'Reference']);
+
         $query = new SelectQuery(null, 'users');
 
         $loader->attachAssociations($query, $repository);

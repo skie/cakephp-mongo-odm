@@ -83,6 +83,7 @@ class DBRef extends Embedded
         if ($data instanceof BSONDocument) {
             $data = $data->getArrayCopy();
         }
+
         if (isset($data['$ref'], $data['$id']) && isset($options['connection'])) {
             $raw = $options['connection']->getCollection((string)$data['$ref'])->findOne(['_id' => $data['$id']]);
             $data = $raw === null ? [] : (array)$raw;
@@ -120,6 +121,7 @@ class DBRef extends Embedded
                 if ($value instanceof BSONDocument) {
                     $value = $value->getArrayCopy();
                 }
+
                 $entity->set($property, is_array($value) ? $this->hydrate($value, $options) : $value);
                 $entity->setDirty($property, false);
             }

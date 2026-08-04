@@ -44,6 +44,7 @@ class SelectLoader implements LoaderInterface
             if (!is_object($query) || !is_callable([$query, 'where']) || !is_callable([$query, 'all'])) {
                 return $entities;
             }
+
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
             $keys = [];
@@ -54,9 +55,11 @@ class SelectLoader implements LoaderInterface
                     $keys[(string)$key] = $key;
                 }
             }
+
             if ($keys === []) {
                 return $entities;
             }
+
             $targetKey = (string)($many ? ($options['foreignKey'] ?? '_id') : ($options['bindingKey'] ?? '_id'));
             $conditions = is_array($options['conditions'] ?? null) ? $options['conditions'] : [];
             $conditions[$targetKey . ' IN'] = array_values($keys);
@@ -67,12 +70,14 @@ class SelectLoader implements LoaderInterface
                 if ($value === null) {
                     continue;
                 }
+
                 if ($many) {
                     $map[(string)$value][] = $row;
                 } else {
                     $map[(string)$value] = $row;
                 }
             }
+
             $property = (string)$options['nestKey'];
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';

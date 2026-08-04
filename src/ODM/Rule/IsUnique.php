@@ -57,6 +57,7 @@ final class IsUnique
         if (!$entity->extract($this->fields, true)) {
             return true;
         }
+
         if ($this->options['allowMultipleNulls'] && array_any($values, static fn(mixed $value): bool => $value === null)) {
             return true;
         }

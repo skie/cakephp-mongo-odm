@@ -102,7 +102,7 @@ final class RulesChecker extends BaseRulesChecker
         return $this->_addError(
             new ValidCount($field),
             '_validCount',
-            compact('count', 'operator', 'message') + ['errorField' => $field],
+            ['count' => $count, 'operator' => $operator, 'message' => $message] + ['errorField' => $field],
         );
     }
 

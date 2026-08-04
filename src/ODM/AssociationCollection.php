@@ -45,6 +45,7 @@ class AssociationCollection implements Countable, IteratorAggregate
         if (isset($this->items[$alias])) {
             throw new CakeException(sprintf('Association alias `%s` is already set.', $alias));
         }
+
         $this->items[$alias] = $association;
 
         return $association;
@@ -64,6 +65,7 @@ class AssociationCollection implements Countable, IteratorAggregate
         if (!class_exists($className) || !is_subclass_of($className, Association::class)) {
             throw new InvalidArgumentException(sprintf('`%s` must extend `%s`.', $className, Association::class));
         }
+
         $association = new $className($associated, $options);
 
         return $this->add($association->getName(), $association);
@@ -161,7 +163,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      */
     public function getByType(array|string $class): array
     {
-        $classes = array_map('strtolower', (array)$class);
+        $classes = array_map(strtolower(...), (array)$class);
 
         return array_values(array_filter($this->items, function (Association $association) use ($classes): bool {
             [, $name] = namespaceSplit($association::class);

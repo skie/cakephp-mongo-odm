@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -19,14 +20,17 @@ class BelongsToMany extends Association
      * @var array<string>
      */
     protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
+
     /**
      * Join collection alias.
      */
     protected ?string $through = null;
+
     /**
      * Foreign key from the join collection to the source.
      */
     protected ?string $joinForeignKey = null;
+
     /**
      * Foreign key from the join collection to the target.
      */
@@ -142,7 +146,7 @@ class BelongsToMany extends Association
     public function eagerLoad(array $options): callable
     {
         $loaderOptions = [
-            'finder' => fn() => $this->getTarget()->find(),
+            'finder' => fn(): QueryInterface => $this->getTarget()->find(),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),
@@ -168,6 +172,7 @@ class BelongsToMany extends Association
         if ($this->through === null || $this->joinForeignKey === null || $this->targetForeignKey === null) {
             return [];
         }
+
         $builder = $this->buildAggregation();
         $join = '_join_' . $this->getProperty();
         $builder

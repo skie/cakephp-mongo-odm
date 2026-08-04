@@ -68,13 +68,24 @@ class CounterCacheBehavior extends Behavior
     private function process(EventInterface $event, EntityInterface $entity): void
     {
         foreach ($this->getConfig() as $associationName => $settings) {
-            if (!is_string($associationName) || !is_callable([$this->collection(), 'getAssociation'])) {
+            if (!is_string($associationName)) {
                 continue;
             }
+            if (!is_callable([$this->collection(), 'getAssociation'])) {
+                continue;
+            }
+
             $association = call_user_func([$this->collection(), 'getAssociation'], $associationName);
-            if (!is_object($association) || !is_callable([$association, 'getForeignKey']) || !is_callable([$association, 'getBindingKey'])) {
+            if (!is_object($association)) {
                 continue;
             }
+            if (!is_callable([$association, 'getForeignKey'])) {
+                continue;
+            }
+            if (!is_callable([$association, 'getBindingKey'])) {
+                continue;
+            }
+
             $foreignKeys = (array)call_user_func([$association, 'getForeignKey']);
             $bindingKeys = (array)call_user_func([$association, 'getBindingKey']);
             $conditions = [];
@@ -84,16 +95,22 @@ class CounterCacheBehavior extends Behavior
                     $conditions[(string)$key] = $value;
                 }
             }
+
             $target = is_callable([$association, 'getTarget']) ? call_user_func([$association, 'getTarget']) : null;
-            if (!is_object($target) || $conditions === []) {
+            if (!is_object($target)) {
                 continue;
             }
-            $updateConditions = array_combine(array_map('strval', $bindingKeys), array_values($conditions));
+            if ($conditions === []) {
+                continue;
+            }
+
+            $updateConditions = array_combine(array_map(strval(...), $bindingKeys), array_values($conditions));
             foreach ($settings as $field => $config) {
                 if (is_int($field)) {
                     $field = (string)$config;
                     $config = [];
                 }
+
                 $count = $config instanceof Closure
                     ? $config($event, $entity, $this->collection())
                     : $this->count($target, $config, $conditions);
@@ -117,6 +134,7 @@ class CounterCacheBehavior extends Behavior
         if (!is_callable([$target, 'find'])) {
             return false;
         }
+
         $finder = (string)($config['finder'] ?? 'all');
         $conditions = array_merge($conditions, is_array($config['conditions'] ?? null) ? $config['conditions'] : []);
         $query = call_user_func([$target, 'find'], $finder);

@@ -31,26 +31,32 @@ abstract class Association
      * Association type for many-to-one relationships.
      */
     public const string MANY_TO_ONE = 'manyToOne';
+
     /**
      * Association type for one-to-many relationships.
      */
     public const string ONE_TO_MANY = 'oneToMany';
+
     /**
      * Association type for one-to-one relationships.
      */
     public const string ONE_TO_ONE = 'oneToOne';
+
     /**
      * Association type for many-to-many relationships.
      */
     public const string MANY_TO_MANY = 'manyToMany';
+
     /**
      * Strategy that loads referenced documents with a separate query.
      */
     public const string STRATEGY_SELECT = 'select';
+
     /**
      * Strategy that loads referenced documents with an aggregation lookup.
      */
     public const string STRATEGY_LOOKUP = 'lookup';
+
     /**
      * Strategy that hydrates documents from the root document.
      */
@@ -62,72 +68,84 @@ abstract class Association
      * @var string
      */
     protected string $name;
+
     /**
      * Target collection class name or alias.
      *
      * @var string
      */
     protected string $className;
+
     /**
      * Entity property populated by the association.
      *
      * @var string|null
      */
     protected ?string $propertyName = null;
+
     /**
      * Foreign key fields on the target collection.
      *
      * @var array<string>|string|null
      */
     protected string|array|null $foreignKey = null;
+
     /**
      * Binding key fields on the source collection.
      *
      * @var array<string>|string
      */
     protected string|array $bindingKey = '_id';
+
     /**
      * Conditions always applied while loading the target.
      *
      * @var array<string, mixed>
      */
     protected array $conditions = [];
+
     /**
      * Configured association loading strategy.
      *
      * @var string|null
      */
     protected ?string $strategy = null;
+
     /**
      * Strategies supported by this association.
      *
      * @var array<string>
      */
     protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP, self::STRATEGY_EMBED];
+
     /**
      * Source collection.
      *
      * @var \Cake\Datasource\RepositoryInterface|null
      */
     protected ?RepositoryInterface $source = null;
+
     /**
      * Target collection.
      *
      * @var \Cake\Datasource\RepositoryInterface|null
      */
     protected ?RepositoryInterface $target = null;
+
     /**
      * Entity class used for hydrated associated documents.
      *
      * @var string|null
      */
     protected ?string $entityClass = null;
+
     /**
      * Whether target documents depend on the source document.
      *
      * @var bool
      */
     protected bool $dependent = false;
+
     /**
      * Delete action used for dependent documents.
      *
@@ -154,17 +172,21 @@ abstract class Association
         if (isset($options['strategy'])) {
             $this->setStrategy((string)$options['strategy']);
         }
+
         if (isset($options['source'])) {
             $this->setSource($options['source']);
         }
+
         if (isset($options['target'])) {
             $this->setTarget($options['target']);
         }
+
         if (isset($options['entityClass'])) {
             $class = (string)$options['entityClass'];
             if (!is_a($class, Document::class, true)) {
                 throw new InvalidArgumentException('The entity class must extend Document.');
             }
+
             $this->entityClass = $class;
         }
     }
@@ -424,13 +446,15 @@ abstract class Association
         if (!$this->dependent && $this->onDelete !== 'nullify') {
             return true;
         }
+
         $keys = array_combine(
             (array)$this->getForeignKey(),
             $entity->extract((array)$this->getBindingKey()),
-        ) ?: [];
+        );
         if ($keys === [] || in_array(null, $keys, true)) {
             return true;
         }
+
         if ($this->onDelete === 'cascade' || $this->dependent) {
             $this->getTarget()->deleteAll($keys);
 
@@ -468,6 +492,7 @@ abstract class Association
                 implode(', ', $this->validStrategies),
             ));
         }
+
         $this->strategy = $strategy;
 
         return $this;

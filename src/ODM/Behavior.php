@@ -94,6 +94,7 @@ abstract class Behavior implements EventListenerInterface
             if (!method_exists($this, $method)) {
                 continue;
             }
+
             $priority = $this->getConfig('priority');
             $events[$event] = $priority === null
                 ? $method
@@ -165,6 +166,7 @@ abstract class Behavior implements EventListenerInterface
         if (!is_array($finders)) {
             return;
         }
+
         foreach ($finders as $method) {
             if (!is_string($method) || !is_callable([$this, $method])) {
                 throw new CakeException(sprintf('The finder method `%s` is not callable on `%s`.', (string)$method, static::class));
@@ -188,6 +190,7 @@ abstract class Behavior implements EventListenerInterface
         foreach ($this->implementedEvents() as $binding) {
             $events[] = is_array($binding) ? $binding['callable'] : $binding;
         }
+
         $baseMethods = get_class_methods(self::class);
         $finders = [];
         foreach ((new ReflectionClass($class))->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
@@ -200,9 +203,16 @@ abstract class Behavior implements EventListenerInterface
         $methods = [];
         foreach ((new ReflectionClass($class))->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             $name = $method->getName();
-            if (in_array($name, $baseMethods, true) || in_array($name, $events, true) || str_starts_with($name, 'find')) {
+            if (in_array($name, $baseMethods, true)) {
                 continue;
             }
+            if (in_array($name, $events, true)) {
+                continue;
+            }
+            if (str_starts_with($name, 'find')) {
+                continue;
+            }
+
             $methods[$name] = $name;
         }
 

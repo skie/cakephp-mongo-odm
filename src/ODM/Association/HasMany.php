@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -57,7 +58,7 @@ class HasMany extends Association
     public function eagerLoad(array $options): callable
     {
         $loaderOptions = [
-            'finder' => fn() => $this->getTarget()->find(),
+            'finder' => fn(): QueryInterface => $this->getTarget()->find(),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),

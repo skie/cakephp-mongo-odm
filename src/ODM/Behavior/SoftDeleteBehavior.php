@@ -39,7 +39,8 @@ class SoftDeleteBehavior extends Behavior
         if (($options[$this->getConfig('withDeletedOption')] ?? false) === true || !is_callable([$query, 'where'])) {
             return;
         }
-        call_user_func([$query, 'where'], [(string)$this->getConfig('field') . ' IS' => null]);
+
+        call_user_func([$query, 'where'], [$this->getConfig('field') . ' IS' => null]);
     }
 
     /**
@@ -55,6 +56,7 @@ class SoftDeleteBehavior extends Behavior
         if (($options['forceDelete'] ?? false) === true || !is_callable([$this->collection(), 'updateAll'])) {
             return;
         }
+
         $field = (string)$this->getConfig('field');
         $conditions = ['_id' => $entity->get('_id')];
         call_user_func([$this->collection(), 'updateAll'], [$field => new UTCDateTime(new DateTimeImmutable('now', new DateTimeZone('UTC')))], $conditions);
