@@ -8,8 +8,10 @@ use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
 use Cake\Core\ContainerInterface;
 use Cake\Core\PluginApplicationInterface;
+use Cake\Datasource\FactoryLocator;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\RouteBuilder;
+use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\PluginManifest\Manifest\ManifestInterface;
 use Crustum\PluginManifest\Manifest\ManifestTrait;
 use Override;
@@ -30,6 +32,10 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
     public function bootstrap(PluginApplicationInterface $app): void
     {
         parent::bootstrap($app);
+
+        $collectionLocator = new CollectionLocator();
+        FactoryLocator::add('Collection', $collectionLocator);
+        FactoryLocator::add('Mongo', $collectionLocator);
 
         if (!Configure::check('Mongo')) {
             if (file_exists(CONFIG . 'mongo.php')) {
