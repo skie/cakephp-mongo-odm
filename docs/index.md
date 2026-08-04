@@ -2,6 +2,8 @@
 
 - [Introduction](#introduction)
 - [Installation](#installation)
+- [Writing Queries](Queries.md)
+- [Building the ODM Layer on the Database Layer](Database-for-ODM.md)
 
 <a name="introduction"></a>
 ## Introduction
