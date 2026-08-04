@@ -29,7 +29,7 @@ class DeleteQuery extends DatabaseDeleteQuery
         ?RepositoryInterface $repository = null,
     ) {
         parent::__construct($connection, $collection);
-        if ($repository !== null) {
+        if ($repository instanceof RepositoryInterface) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }

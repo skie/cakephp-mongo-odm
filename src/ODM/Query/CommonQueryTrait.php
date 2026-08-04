@@ -75,6 +75,7 @@ trait CommonQueryTrait
             $types[$alias . '.' . $field] = $type;
             $types[$alias . '__' . $field] = $type;
         }
+
         $this->getTypeMap()->addDefaults($types);
 
         return $this;
@@ -92,6 +93,7 @@ trait CommonQueryTrait
         if ($type === 'all' || $this->repository === null) {
             return $this;
         }
+
         if (is_callable([$this->repository, 'callFinder'])) {
             $result = $this->repository->callFinder($type, $this, ...$args);
             if ($result instanceof static) {

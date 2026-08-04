@@ -29,7 +29,7 @@ class UpdateQuery extends DatabaseUpdateQuery
         ?RepositoryInterface $repository = null,
     ) {
         parent::__construct($connection, $collection);
-        if ($repository !== null) {
+        if ($repository instanceof RepositoryInterface) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }

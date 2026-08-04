@@ -77,7 +77,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     ) {
         parent::__construct($connection, $collection);
         $this->eagerLoader = new EagerLoader();
-        if ($repository !== null) {
+        if ($repository instanceof RepositoryInterface) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }
@@ -280,9 +280,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function unhydrated(): UnhydratedSelectQuery
     {
-        $query = new UnhydratedSelectQuery($this->getConnection(), $this->getCollection(), $this->repository);
-
-        return $query;
+        return new UnhydratedSelectQuery($this->getConnection(), $this->getCollection(), $this->repository);
     }
 
     /**
@@ -332,6 +330,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         if ($overwrite) {
             $this->eagerLoader->clearContain();
         }
+
         $this->eagerLoader->contain($associations);
 
         return $this;
@@ -350,6 +349,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         if ($builder !== null) {
             $options['queryBuilder'] = $builder;
         }
+
         $this->eagerLoader->contain([$association => $options]);
 
         return $this;
@@ -399,6 +399,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         if (!class_exists($dtoClass)) {
             throw new InvalidArgumentException(sprintf('DTO class `%s` does not exist.', $dtoClass));
         }
+
         $this->dtoClass = $dtoClass;
 
         return $this;
@@ -411,9 +412,10 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
-        if ($this->repository !== null) {
+        if ($this->repository instanceof RepositoryInterface) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
+
         $rows = parent::execute();
         $resultSet = new ResultSetFactory()->createResultSet($rows, [
             'hydrate' => $this->hydrate,
