@@ -34,7 +34,7 @@ class Out extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $out stage expression
+     * @return array<string, mixed> The $out stage expression
      */
     public function getExpression(): array
     {

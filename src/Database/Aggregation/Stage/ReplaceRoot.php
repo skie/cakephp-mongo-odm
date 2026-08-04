@@ -34,7 +34,7 @@ class ReplaceRoot extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $replaceRoot stage expression
+     * @return array<string, mixed> The $replaceRoot stage expression
      */
     public function getExpression(): array
     {

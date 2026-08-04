@@ -1,5 +1,4 @@
 includes:
-    - phpstan-baseline.neon
     - vendor/cakedc/cakephp-phpstan/extension.neon
 
 parameters:
@@ -19,6 +18,11 @@ parameters:
             # Public library trait: unused within src/ by design (consumers mix it in).
             identifier: trait.unused
             path: src/TestSuite/MongoTestTrait.php
+            reportUnmatched: false
+        -
+            # Public library trait: unused within src/ by design (consumers mix it in).
+            identifier: trait.unused
+            path: src/Database/TypeMapTrait.php
             reportUnmatched: false
 
 services:

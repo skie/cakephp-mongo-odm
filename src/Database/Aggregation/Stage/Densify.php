@@ -78,7 +78,7 @@ class Densify extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $densify stage expression
+     * @return array<string, mixed> The $densify stage expression
      */
     public function getExpression(): array
     {

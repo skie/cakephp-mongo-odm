@@ -15,14 +15,14 @@ class Merge extends Stage
     /**
      * The target collection
      *
-     * @var string
+     * @var array<string, mixed>|string
      */
-    protected string $into;
+    protected string|array $into;
 
     /**
      * The merge strategy
      *
-     * @var array|string|null
+     * @var array<int, string>|string|null
      */
     protected string|array|null $on = null;
 
@@ -114,7 +114,7 @@ class Merge extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $merge stage expression
+     * @return array<string, mixed> The $merge stage expression
      */
     public function getExpression(): array
     {

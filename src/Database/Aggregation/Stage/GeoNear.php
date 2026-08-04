@@ -203,7 +203,7 @@ class GeoNear extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $geoNear stage expression
+     * @return array<string, mixed> The $geoNear stage expression
      */
     public function getExpression(): array
     {

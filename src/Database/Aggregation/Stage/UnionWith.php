@@ -54,7 +54,7 @@ class UnionWith extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $unionWith stage expression
+     * @return array<string, mixed> The $unionWith stage expression
      */
     public function getExpression(): array
     {

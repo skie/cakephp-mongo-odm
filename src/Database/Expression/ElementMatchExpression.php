@@ -57,10 +57,10 @@ class ElementMatchExpression extends AbstractExpression
         $result = [];
         $conditions = $this->conditions;
 
-        if (isset($conditions[0]) && is_array($conditions[0])) {
+        if (is_array(reset($conditions))) {
             $flattened = [];
             foreach ($conditions as $condition) {
-                foreach ($condition as $field => $value) {
+                foreach ((array)$condition as $field => $value) {
                     $flattened[$field] = $value;
                 }
             }

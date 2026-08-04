@@ -27,7 +27,7 @@ class QueryExpression extends AbstractExpression implements Countable
     /**
      * Constructor
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array $conditions Initial conditions
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Initial conditions
      * @param string $conjunction Conjunction operator ('$and' or '$or')
      */
     public function __construct(array|MongoExpressionInterface $conditions = [], string $conjunction = '$and')
@@ -68,7 +68,7 @@ class QueryExpression extends AbstractExpression implements Countable
     /**
      * Add conditions to the expression
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array $conditions Conditions to add
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to add
      * @return $this
      */
     public function add(array|MongoExpressionInterface $conditions): static
@@ -81,7 +81,9 @@ class QueryExpression extends AbstractExpression implements Countable
 
         if (array_is_list($conditions)) {
             foreach ($conditions as $condition) {
-                $this->add($condition);
+                if ($condition instanceof MongoExpressionInterface || is_array($condition)) {
+                    $this->add($condition);
+                }
             }
 
             return $this;
@@ -291,7 +293,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$and"
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array $conditions Conditions to be joined with AND
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with AND
      * @return static
      */
     public function and(array|MongoExpressionInterface $conditions): static
@@ -303,7 +305,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$or"
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array $conditions Conditions to be joined with OR
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with OR
      * @return static
      */
     public function or(array|MongoExpressionInterface $conditions): static

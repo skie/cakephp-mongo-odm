@@ -136,7 +136,7 @@ class GraphLookup extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $graphLookup stage expression
+     * @return array<string, mixed> The $graphLookup stage expression
      */
     public function getExpression(): array
     {

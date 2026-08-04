@@ -20,21 +20,21 @@ class QueryCompiler
     /**
      * MongoDB filter conditions
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
     protected array $filter = [];
 
     /**
      * Field projection (which fields to return)
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected array $projection = [];
 
     /**
      * Sort order
      *
-     * @var array
+     * @var array<string, int>
      */
     protected array $sort = [];
 
@@ -55,14 +55,14 @@ class QueryCompiler
     /**
      * Aggregation pipeline stages
      *
-     * @var array
+     * @var array<int, array<int|string, mixed>>
      */
     protected array $pipeline = [];
 
     /**
      * Additional MongoDB options
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected array $options = [];
 
@@ -84,7 +84,7 @@ class QueryCompiler
     /**
      * Add filter conditions to the query.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string|null $conditions The conditions to add
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions to add
      * @param bool                                                              $overwrite  Whether to overwrite existing conditions
      * @return $this
      */
@@ -121,7 +121,7 @@ class QueryCompiler
     /**
      * Add additional conditions using $and operator.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string $conditions The conditions to add
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string $conditions The conditions to add
      * @return $this
      */
     public function andWhere(Closure|MongoExpressionInterface|array|string $conditions)
@@ -155,7 +155,7 @@ class QueryCompiler
      * A `Closure` receives the compiler instance and must return the fields
      * (array or string) to project.
      *
-     * @param \Closure|array|string $fields    Fields to include/exclude
+     * @param \Closure|array<string, mixed>|string $fields    Fields to include/exclude
      * @param bool                  $overwrite Whether to overwrite existing projection
      * @return $this
      */
@@ -189,7 +189,7 @@ class QueryCompiler
      * A `Closure` receives the compiler instance and must return the sort fields
      * (array or string) to order by.
      *
-     * @param \Closure|array|string $fields    Fields to sort by
+     * @param \Closure|array<string, mixed>|string $fields    Fields to sort by
      * @param bool                  $overwrite Whether to overwrite existing sort
      * @return $this
      */
@@ -251,12 +251,12 @@ class QueryCompiler
     /**
      * Add aggregation pipeline stage(s).
      *
-     * @param array $stages Pipeline stages to add
+     * @param array<int, array<int|string, mixed>> $stages Pipeline stages to add
      * @return $this
      */
     public function pipeline(array $stages)
     {
-        if (isset($stages[0]) && is_array($stages[0])) {
+        if (isset($stages[0])) {
             $this->pipeline = array_merge($this->pipeline, $stages);
         } else {
             $this->pipeline[] = $stages;
@@ -268,7 +268,7 @@ class QueryCompiler
     /**
      * Set MongoDB options.
      *
-     * @param array $options Options to set
+     * @param array<string, mixed> $options Options to set
      * @return $this
      */
     public function options(array $options)
@@ -285,7 +285,7 @@ class QueryCompiler
      * - 'type' => 'find' with 'filter' and 'options'
      * - 'type' => 'aggregate' with 'pipeline' and 'options'
      *
-     * @return array Compiled query
+     * @return array<string, mixed> Compiled query
      */
     public function compile(): array
     {
@@ -299,7 +299,7 @@ class QueryCompiler
     /**
      * Compile as find() query.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     protected function compileFind(): array
     {
@@ -337,7 +337,7 @@ class QueryCompiler
     /**
      * Compile as aggregate() query.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     protected function compileAggregate(): array
     {
@@ -392,7 +392,7 @@ class QueryCompiler
     /**
      * Get the filter conditions
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     public function getFilter(): array
     {
@@ -402,7 +402,7 @@ class QueryCompiler
     /**
      * Get the projection fields
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getProjection(): array
     {

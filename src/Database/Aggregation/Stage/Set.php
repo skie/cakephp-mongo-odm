@@ -48,7 +48,7 @@ class Set extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $set stage expression
+     * @return array<string, mixed> The $set stage expression
      */
     public function getExpression(): array
     {

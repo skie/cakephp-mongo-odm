@@ -34,7 +34,7 @@ class ReplaceWith extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $replaceWith stage expression
+     * @return array<string, mixed> The $replaceWith stage expression
      */
     public function getExpression(): array
     {

@@ -97,7 +97,7 @@ class GeospatialExpression extends AbstractExpression
     /**
      * Get the compiled conditions
      *
-     * @return array<int|string, mixed>
+     * @return array<string, mixed>
      */
     public function getConditions(): array
     {

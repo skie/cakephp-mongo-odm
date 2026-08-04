@@ -61,10 +61,6 @@ class SelectQueryTest extends TestCase
         $this->assertInstanceOf(Traversable::class, $query->getIterator());
     }
 
-    // ------------------------------------------------------------------
-    // select() projection
-    // ------------------------------------------------------------------
-
     /**
      * Test select() with a list of fields.
      *
@@ -157,10 +153,6 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $this->assertSame($query, $query->select(['title']));
     }
-
-    // ------------------------------------------------------------------
-    // where() conditions
-    // ------------------------------------------------------------------
 
     /**
      * Test a simple equality condition.
@@ -614,10 +606,6 @@ class SelectQueryTest extends TestCase
         $this->assertFilter(['b' => 2], $query->compile());
     }
 
-    // ------------------------------------------------------------------
-    // andWhere()
-    // ------------------------------------------------------------------
-
     /**
      * Test andWhere() wraps existing and new conditions in `$and`.
      *
@@ -677,10 +665,6 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $this->assertSame($query, $query->andWhere(['a' => 1]));
     }
-
-    // ------------------------------------------------------------------
-    // orderBy()
-    // ------------------------------------------------------------------
 
     /**
      * Test orderBy() with a direction string.
@@ -796,10 +780,6 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $this->assertSame($query, $query->orderBy(['a' => 1]));
     }
-
-    // ------------------------------------------------------------------
-    // limit() / skip() / page()
-    // ------------------------------------------------------------------
 
     /**
      * Test limit() sets the limit option.
@@ -932,10 +912,6 @@ class SelectQueryTest extends TestCase
         $this->assertSame($query, $query->page(1, 10));
     }
 
-    // ------------------------------------------------------------------
-    // options()
-    // ------------------------------------------------------------------
-
     /**
      * Test options() sets additional options.
      *
@@ -972,10 +948,6 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $this->assertSame($query, $query->options(['hint' => ['_id' => 1]]));
     }
-
-    // ------------------------------------------------------------------
-    // pipeline() / aggregation
-    // ------------------------------------------------------------------
 
     /**
      * Test pipeline() compiles as an aggregate.
@@ -1069,10 +1041,6 @@ class SelectQueryTest extends TestCase
         $this->assertSame($query, $query->pipeline([['$match' => ['a' => 1]]]));
     }
 
-    // ------------------------------------------------------------------
-    // compile() / sql()
-    // ------------------------------------------------------------------
-
     /**
      * Test compile() includes the collection.
      *
@@ -1109,10 +1077,6 @@ class SelectQueryTest extends TestCase
         $this->assertIsString($sql);
         $this->assertJson($sql);
     }
-
-    // ------------------------------------------------------------------
-    // result retrieval
-    // ------------------------------------------------------------------
 
     /**
      * Test all() returns matching documents.
@@ -1280,10 +1244,6 @@ class SelectQueryTest extends TestCase
         $this->assertCount(2, iterator_to_array($query, false));
         $collection->deleteMany([]);
     }
-
-    // ------------------------------------------------------------------
-    // fluent chaining
-    // ------------------------------------------------------------------
 
     /**
      * Test all fluent methods chain.

@@ -34,7 +34,7 @@ class Redact extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $redact stage expression
+     * @return array<string, mixed> The $redact stage expression
      */
     public function getExpression(): array
     {

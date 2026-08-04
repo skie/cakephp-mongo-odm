@@ -34,7 +34,7 @@ class Count extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $count stage expression
+     * @return array<string, mixed> The $count stage expression
      */
     public function getExpression(): array
     {

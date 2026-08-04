@@ -23,15 +23,15 @@ class QueryBuilder
     /**
      * The current conditions being built.
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
     protected array $_conditions = [];
 
     /**
      * Add conditions to the query
      *
-     * @param \Crustum\Mongo\Database\Expression\Expression|array|string $conditions The conditions to add
-     * @param array                                                $values     Array of values to be bound to placeholders
+     * @param \Crustum\Mongo\Database\Expression\Expression|array<string, mixed>|string $conditions The conditions to add
+     * @param array<string, mixed>                                                     $values     Array of values to be bound to placeholders
      * @return $this
      */
     public function where(array|string|Expression $conditions, array $values = [])
@@ -63,7 +63,7 @@ class QueryBuilder
     /**
      * Returns a new QueryExpression object.
      *
-     * @param array  $conditions  Conditions to add to the expression
+     * @param array<string, mixed> $conditions  Conditions to add to the expression
      * @param string $conjunction The conjunction to use (AND/OR)
      * @return \Crustum\Mongo\Database\Expression\QueryExpression
      */
@@ -92,7 +92,7 @@ class QueryBuilder
      * Creates an IN expression.
      *
      * @param string $field  The field name
-     * @param array  $values The values to compare against
+     * @param array<int, mixed> $values The values to compare against
      * @return \Crustum\Mongo\Database\Expression\InExpression
      */
     public function in(string $field, array $values): InExpression
@@ -142,8 +142,8 @@ class QueryBuilder
      * Creates an elemMatch expression
      *
      * @param string                                             $field      Field name
-     * @param \Crustum\Mongo\Database\Expression\QueryExpression|array $conditions Conditions
-     * @return \Crustum\Mongo\Database\Expression\ArrayExpression
+     * @param \Crustum\Mongo\Database\Expression\QueryExpression|array<string, mixed> $conditions Conditions
+     * @return \Crustum\Mongo\Database\Expression\ElementMatchExpression
      */
     public function elemMatch(string $field, array|QueryExpression $conditions): ElementMatchExpression
     {
@@ -158,7 +158,7 @@ class QueryBuilder
      * Creates an all expression
      *
      * @param string $field  Field name
-     * @param array  $values Values that must all match
+     * @param array<string, mixed> $values Values that must all match
      * @return \Crustum\Mongo\Database\Expression\ArrayExpression
      */
     public function all(string $field, array $values): ArrayExpression
@@ -172,7 +172,7 @@ class QueryBuilder
      * @param string $field     Field name
      * @param float  $longitude Longitude
      * @param float  $latitude  Latitude
-     * @param array  $options   Additional options (maxDistance, minDistance)
+     * @param array<string, mixed> $options   Additional options (maxDistance, minDistance)
      * @return \Crustum\Mongo\Database\Expression\GeospatialExpression
      */
     public function near(
@@ -193,7 +193,7 @@ class QueryBuilder
      * Creates a geoWithin expression
      *
      * @param string $field   Field name
-     * @param array  $polygon Array of [longitude, latitude] points
+     * @param array<int, mixed> $polygon Array of [longitude, latitude] points
      * @return \Crustum\Mongo\Database\Expression\GeospatialExpression
      */
     public function geoWithin(string $field, array $polygon): GeospatialExpression
@@ -209,7 +209,7 @@ class QueryBuilder
     /**
      * Returns an AND query combining multiple conditions
      *
-     * @param \Crustum\Mongo\Database\Expression\Expression|array ...$expressions The expressions to combine
+     * @param \Crustum\Mongo\Database\Expression\Expression|array<int, mixed> ...$expressions The expressions to combine
      * @return \Crustum\Mongo\Database\Expression\QueryExpression
      */
     public function and(array|Expression ...$expressions): QueryExpression
@@ -220,7 +220,7 @@ class QueryBuilder
     /**
      * Returns an OR query combining multiple conditions
      *
-     * @param \Crustum\Mongo\Database\Expression\Expression|array ...$expressions The expressions to combine
+     * @param \Crustum\Mongo\Database\Expression\Expression|array<int, mixed> ...$expressions The expressions to combine
      * @return \Crustum\Mongo\Database\Expression\QueryExpression
      */
     public function or(array|Expression ...$expressions): QueryExpression
@@ -291,7 +291,7 @@ class QueryBuilder
     /**
      * Creates a NOT expression
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array $expression The expression to negate
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<string, mixed> $expression The expression to negate
      * @return \Crustum\Mongo\Database\Expression\MongoExpressionInterface
      */
     public function not(array|MongoExpressionInterface $expression): MongoExpressionInterface
@@ -315,8 +315,8 @@ class QueryBuilder
     /**
      * Parse array conditions into MongoDB query expressions
      *
-     * @param array $conditions The conditions to parse
-     * @return \Crustum\Mongo\Database\Expression\Expression|array
+     * @param array<int|string, mixed> $conditions The conditions to parse
+     * @return array<int|string, mixed>
      */
     public function parse(array $conditions): array
     {
@@ -325,7 +325,7 @@ class QueryBuilder
             if (is_string($key) && in_array(strtoupper($key), ['AND', 'OR', 'NOT'], true)) {
                 $operator = '$' . strtolower($key);
                 if ($operator === '$not') {
-                    $result['$nor'] = [$this->parse($value)];
+                    $result['$nor'] = [is_array($value) ? $this->parse($value) : $value];
                 } else {
                     $parsed = [];
                     foreach ((array)$value as $k => $v) {
@@ -394,19 +394,17 @@ class QueryBuilder
                 continue;
             }
 
-            if (is_string($key)) {
-                $field = $key;
-                if (str_contains($key, ' ')) {
-                    $field = explode(' ', $key)[0];
-                }
+            $field = $key;
+            if (str_contains($key, ' ')) {
+                $field = explode(' ', $key)[0];
+            }
 
-                $parsedCondition = $this->parseCondition($key, $value);
-                if (isset($result[$field]) && is_array($result[$field]) && is_array($parsedCondition)) {
-                    $operator = key($parsedCondition);
-                    $result[$field] = isset($result[$field][$operator]) ? $parsedCondition : array_merge($result[$field], $parsedCondition);
-                } else {
-                    $result[$field] = $parsedCondition;
-                }
+            $parsedCondition = $this->parseCondition($key, $value);
+            if (isset($result[$field]) && is_array($result[$field]) && is_array($parsedCondition)) {
+                $operator = key($parsedCondition);
+                $result[$field] = isset($result[$field][$operator]) ? $parsedCondition : array_merge($result[$field], $parsedCondition);
+            } else {
+                $result[$field] = $parsedCondition;
             }
         }
 
@@ -492,7 +490,7 @@ class QueryBuilder
     /**
      * Converts the expression tree into a plain array
      *
-     * @return array The conditions as a plain array
+     * @return array<string, mixed> The conditions as a plain array
      */
     public function getConditions(): array
     {
@@ -503,7 +501,7 @@ class QueryBuilder
      * Recursively traverses the expression tree and converts to arrays
      *
      * @param mixed $conditions The conditions to traverse
-     * @return array The converted conditions
+     * @return array<string, mixed> The converted conditions
      */
     private function traverse(mixed $conditions): array
     {
@@ -533,7 +531,7 @@ class QueryBuilder
      * Creates a limit expression
      *
      * @param int $value The limit value
-     * @return array The limit expression
+     * @return array<string, int> The limit expression
      */
     public function limit(int $value): array
     {

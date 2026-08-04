@@ -54,7 +54,7 @@ class Search extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $search stage expression
+     * @return array<string, mixed> The $search stage expression
      */
     public function getExpression(): array
     {

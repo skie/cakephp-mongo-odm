@@ -42,7 +42,7 @@ abstract class Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The stage expression as an array
+     * @return array<string, mixed> The stage expression as an array
      */
     abstract public function getExpression(): array;
 }

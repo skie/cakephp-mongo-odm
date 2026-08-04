@@ -83,7 +83,7 @@ class BucketAuto extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $bucketAuto stage expression
+     * @return array<string, mixed> The $bucketAuto stage expression
      */
     public function getExpression(): array
     {

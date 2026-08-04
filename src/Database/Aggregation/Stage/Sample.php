@@ -34,7 +34,7 @@ class Sample extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $sample stage expression
+     * @return array<string, mixed> The $sample stage expression
      */
     public function getExpression(): array
     {

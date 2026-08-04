@@ -25,7 +25,7 @@ class IndexStats extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $indexStats stage expression
+     * @return array<string, mixed> The $indexStats stage expression
      */
     public function getExpression(): array
     {

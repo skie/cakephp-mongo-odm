@@ -34,7 +34,7 @@ class Limit extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $limit stage expression
+     * @return array<string, mixed> The $limit stage expression
      */
     public function getExpression(): array
     {

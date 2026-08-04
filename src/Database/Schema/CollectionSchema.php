@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Schema;
 
-use ArrayAccess;
 use Cake\Datasource\SchemaInterface;
 use Exception;
 use MongoDB\Collection;
@@ -22,14 +21,14 @@ class CollectionSchema implements SchemaInterface
     /**
      * The raw validation schema from MongoDB
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected array $validationRules;
 
     /**
      * Collection indexes
      *
-     * @var array
+     * @var array<string, array<string, mixed>>
      */
     protected array $indexes = [];
 
@@ -43,7 +42,7 @@ class CollectionSchema implements SchemaInterface
     /**
      * Programmatically defined fields
      *
-     * @var array<string, array>
+     * @var array<string, array<string, mixed>>
      */
     protected array $fields = [];
 
@@ -103,17 +102,8 @@ class CollectionSchema implements SchemaInterface
             }
 
             if ($collectionInfo !== null) {
-                if (method_exists($collectionInfo, 'toArray')) {
-                    $infoArray = $collectionInfo->toArray();
-                    $this->validationRules = $infoArray['options']['validator'] ?? [];
-                } elseif (method_exists($collectionInfo, 'getOptions')) {
-                    $options = $collectionInfo->getOptions();
-                    $this->validationRules = $options['validator'] ?? [];
-                } elseif ($collectionInfo instanceof ArrayAccess || is_array($collectionInfo)) {
-                    $this->validationRules = $collectionInfo['options']['validator'] ?? [];
-                } else {
-                    $this->validationRules = [];
-                }
+                $options = $collectionInfo->getOptions();
+                $this->validationRules = $options['validator'] ?? [];
             } else {
                 $this->validationRules = [];
             }
@@ -164,7 +154,7 @@ class CollectionSchema implements SchemaInterface
      * Get field information including validation rules and indexes
      *
      * @param string $name The field name
-     * @return array|null Field information or null
+     * @return array<string, mixed>|null Field information or null
      */
     public function field(string $name): ?array
     {
@@ -214,7 +204,7 @@ class CollectionSchema implements SchemaInterface
     /**
      * Get all defined fields from validation schema and programmatic fields
      *
-     * @return array
+     * @return array<int, string>
      */
     public function fields(): array
     {
@@ -230,13 +220,13 @@ class CollectionSchema implements SchemaInterface
             $fields = array_merge($fields, array_keys($index['key']));
         }
 
-        return array_unique($fields);
+        return array_values(array_map(strval(...), array_unique($fields)));
     }
 
     /**
      * Get all indexes
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function indexes(): array
     {
@@ -246,7 +236,7 @@ class CollectionSchema implements SchemaInterface
     /**
      * Get validation rules
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function validationRules(): array
     {

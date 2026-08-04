@@ -23,7 +23,7 @@ class ArrayExpression extends AbstractExpression
      * Constructor
      *
      * @param string $field Field name
-     * @param array<int, mixed> $conditions Conditions array
+     * @param array<string, mixed> $conditions Conditions array
      * @param string $operator Operator
      */
     public function __construct(string $field, array $conditions, string $operator)

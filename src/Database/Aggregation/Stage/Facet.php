@@ -46,7 +46,7 @@ class Facet extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $facet stage expression
+     * @return array<string, mixed> The $facet stage expression
      */
     public function getExpression(): array
     {

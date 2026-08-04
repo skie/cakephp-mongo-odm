@@ -34,7 +34,7 @@ class UnsetStage extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $unset stage expression
+     * @return array<string, mixed> The $unset stage expression
      */
     public function getExpression(): array
     {

@@ -49,7 +49,7 @@ class CachedSchemaCollection implements SchemaCollectionInterface
     /**
      * Returns list of collections in the database
      *
-     * @return array List of collection names
+     * @return array<int, string> List of collection names
      */
     public function listTables(): array
     {
@@ -98,15 +98,16 @@ class CachedSchemaCollection implements SchemaCollectionInterface
 
         if (!$options['forceRefresh']) {
             $cached = $this->cacher->get($cacheKey);
-            if ($cached !== null) {
+            if ($cached instanceof CollectionSchema) {
                 return $cached;
             }
         }
 
-        $CollectionSchema = $this->collection->describe($name);
-        $this->cacher->set($cacheKey, $CollectionSchema);
+        $schema = $this->collection->describe($name);
+        assert($schema instanceof CollectionSchema);
+        $this->cacher->set($cacheKey, $schema);
 
-        return $CollectionSchema;
+        return $schema;
     }
 
     /**

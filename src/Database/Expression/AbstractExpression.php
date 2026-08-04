@@ -13,7 +13,7 @@ abstract class AbstractExpression extends Expression implements MongoExpressionI
     /**
      * The MongoDB query conditions
      *
-     * @var array<int|string, mixed>
+     * @var array<string, mixed>
      */
     protected array $conditions = [];
 

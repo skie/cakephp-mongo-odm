@@ -17,7 +17,7 @@ class ArrayType extends BaseType
      *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return array|null
+     * @return array<mixed>|null
      */
     public function toDatabase(mixed $value, MongoDriver $driver): ?array
     {
@@ -37,7 +37,7 @@ class ArrayType extends BaseType
      *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return array|null
+     * @return array<mixed>|null
      */
     public function toPHP(mixed $value, MongoDriver $driver): ?array
     {
@@ -56,7 +56,7 @@ class ArrayType extends BaseType
      * Marshals request data into PHP arrays
      *
      * @param mixed $value The value to convert
-     * @return array|null Converted value
+     * @return array<mixed>|null Converted value
      */
     public function marshal(mixed $value): ?array
     {

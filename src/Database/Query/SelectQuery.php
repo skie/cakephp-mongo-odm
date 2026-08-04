@@ -13,12 +13,18 @@ use Traversable;
 /**
  * Select query for MongoDB find() and aggregation pipeline operations.
  *
+ * @implements \IteratorAggregate<int, array<string, mixed>>
+ *
  * @see cake50/src/Database/Query/SelectQuery.php
  */
 class SelectQuery extends Query implements IteratorAggregate
 {
     /**
-     * @inheritDoc
+     * Sets the filter conditions.
+     *
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
+     * @param bool $overwrite Whether to overwrite existing conditions.
+     * @return $this
      */
     public function where(Closure|MongoExpressionInterface|array|string|null $conditions, bool $overwrite = false): static
     {
@@ -30,7 +36,7 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Adds conditions with an `$and` operator.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string $conditions The conditions to add.
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string $conditions The conditions to add.
      * @return $this
      */
     public function andWhere(Closure|MongoExpressionInterface|array|string $conditions): static
@@ -45,7 +51,7 @@ class SelectQuery extends Query implements IteratorAggregate
      *
      * A `Closure` receives the query and must return the fields to project.
      *
-     * @param \Closure|array|string $fields Fields to include/exclude.
+     * @param \Closure|array<string, mixed>|string $fields Fields to include/exclude.
      * @param bool $overwrite Whether to overwrite the existing projection.
      * @return $this
      */
@@ -65,7 +71,7 @@ class SelectQuery extends Query implements IteratorAggregate
      *
      * A `Closure` receives the query and must return the fields to sort by.
      *
-     * @param \Closure|array|string $fields Fields to sort by.
+     * @param \Closure|array<string, mixed>|string $fields Fields to sort by.
      * @param bool $overwrite Whether to overwrite the existing sort.
      * @return $this
      */
@@ -140,7 +146,7 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Adds aggregation pipeline stage(s).
      *
-     * @param array $stages Pipeline stages to add.
+     * @param array<int, array<string, mixed>> $stages Pipeline stages to add.
      * @return $this
      */
     public function pipeline(array $stages): static
@@ -153,7 +159,7 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Sets additional MongoDB options.
      *
-     * @param array $options Options to set.
+     * @param array<string, mixed> $options Options to set.
      * @return $this
      */
     public function options(array $options): static

@@ -25,7 +25,7 @@ class DeleteQuery extends Query
     /**
      * Sets the filter conditions.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array|string|null $conditions The conditions.
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
      * @param bool $overwrite Whether to overwrite existing conditions.
      * @return $this
      */

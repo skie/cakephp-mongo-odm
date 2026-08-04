@@ -105,7 +105,7 @@ class CollStats extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $collStats stage expression
+     * @return array<string, mixed> The $collStats stage expression
      */
     public function getExpression(): array
     {

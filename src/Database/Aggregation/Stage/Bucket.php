@@ -83,7 +83,7 @@ class Bucket extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $bucket stage expression
+     * @return array<string, mixed> The $bucket stage expression
      */
     public function getExpression(): array
     {

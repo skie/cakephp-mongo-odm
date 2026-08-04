@@ -34,7 +34,7 @@ class SortByCount extends Stage
     /**
      * Get the MongoDB aggregation stage expression
      *
-     * @return array The $sortByCount stage expression
+     * @return array<string, mixed> The $sortByCount stage expression
      */
     public function getExpression(): array
     {
