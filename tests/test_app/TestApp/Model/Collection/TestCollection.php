@@ -9,7 +9,9 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 class TestCollection extends BaseCollection
 {
     public mixed $first;
+
     public array $variadic;
+
     public array $variadicOptions;
 
     public function initialize(array $config): void

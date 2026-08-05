@@ -123,6 +123,6 @@ class CounterCacheBehavior extends Behavior
         $finder = (string)($config['finder'] ?? 'all');
         $conditions = array_merge($conditions, is_array($config['conditions'] ?? null) ? $config['conditions'] : []);
 
-        return (int)$target->find($finder)->where($conditions)->count();
+        return $target->find($finder)->where($conditions)->count();
     }
 }

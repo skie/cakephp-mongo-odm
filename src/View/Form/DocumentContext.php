@@ -87,7 +87,7 @@ class DocumentContext implements ContextInterface
         $collection = $this->context['collection'];
         $entity = $this->context['entity'];
         if (empty($collection)) {
-            if (is_array($entity) || $entity instanceof Traversable) {
+            if (is_iterable($entity)) {
                 $entity = (new Collection($entity))->first();
             }
 
@@ -111,7 +111,7 @@ class DocumentContext implements ContextInterface
             throw new RuntimeException('Unable to find collection class for current document.');
         }
 
-        $this->isCollection = is_array($entity) || $entity instanceof Traversable;
+        $this->isCollection = is_iterable($entity);
         $this->rootName = $collection->getAlias();
         $this->context['collection'] = $collection;
     }
@@ -140,7 +140,7 @@ class DocumentContext implements ContextInterface
     public function isCreate(): bool
     {
         $entity = $this->context['entity'];
-        if (is_array($entity) || $entity instanceof Traversable) {
+        if (is_iterable($entity)) {
             $entity = (new Collection($entity))->first();
         }
 
@@ -179,6 +179,7 @@ class DocumentContext implements ContextInterface
             if ($val !== null) {
                 return $val;
             }
+
             if ($options['schemaDefault'] && $entity->isNew()) {
                 return $this->schemaDefault($parts);
             }
@@ -186,8 +187,8 @@ class DocumentContext implements ContextInterface
             return $options['default'];
         }
 
-        if (is_array($entity) || $entity instanceof Traversable) {
-            $part = (string)array_pop($parts);
+        if (is_iterable($entity)) {
+            $part = array_pop($parts);
             foreach ($entity as $key => $value) {
                 if ((string)$key === $part) {
                     return $value;
@@ -217,6 +218,7 @@ class DocumentContext implements ContextInterface
         if ($schema === null) {
             return null;
         }
+
         $defaults = $schema->defaultValues();
 
         return $defaults[$field] ?? null;
@@ -257,8 +259,7 @@ class DocumentContext implements ContextInterface
             }
 
             $isTraversable = (
-                is_array($next) ||
-                $next instanceof Traversable ||
+                is_iterable($next) ||
                 $next instanceof Document
             );
 
@@ -320,13 +321,15 @@ class DocumentContext implements ContextInterface
         }
 
         $validator = $this->getValidator();
-        $field = (string)array_pop($parts);
+        $field = array_pop($parts);
         if (!$validator->hasField($field)) {
             return null;
         }
+
         if (is_callable($validator->field($field)->isEmptyAllowed())) {
             return null;
         }
+
         if ($this->type($field) !== 'boolean') {
             return !$validator->isEmptyAllowed($field, $isNew);
         }
@@ -342,7 +345,7 @@ class DocumentContext implements ContextInterface
         $parts = explode('.', $field);
 
         $validator = $this->getValidator();
-        $fieldName = (string)array_pop($parts);
+        $fieldName = array_pop($parts);
         if (!$validator->hasField($fieldName)) {
             return null;
         }
@@ -362,7 +365,7 @@ class DocumentContext implements ContextInterface
     {
         $parts = explode('.', $field);
         $validator = $this->getValidator();
-        $fieldName = (string)array_pop($parts);
+        $fieldName = array_pop($parts);
 
         if ($validator->hasField($fieldName)) {
             foreach ($validator->field($fieldName)->rules() as $rule) {
@@ -402,9 +405,10 @@ class DocumentContext implements ContextInterface
         if ($schema === null) {
             return null;
         }
+
         $parts = explode('.', $field);
 
-        return $schema->baseColumnType((string)array_pop($parts));
+        return $schema->baseColumnType(array_pop($parts));
     }
 
     /**
@@ -419,8 +423,9 @@ class DocumentContext implements ContextInterface
         if ($schema === null) {
             return [];
         }
+
         $parts = explode('.', $field);
-        $column = $schema->getColumn((string)array_pop($parts));
+        $column = $schema->getColumn(array_pop($parts));
         if ($column === null) {
             return [];
         }
@@ -466,7 +471,7 @@ class DocumentContext implements ContextInterface
             $entityErrors = $this->context['entity']->getErrors();
         }
 
-        $tailField = (string)array_pop($parts);
+        $tailField = array_pop($parts);
         if ($entity instanceof Document) {
             $errors = $entity->getError($tailField);
         }

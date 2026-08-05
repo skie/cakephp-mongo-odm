@@ -43,7 +43,7 @@ trait RulesAwareTrait
         $options = is_array($options) ? new ArrayObject($options) : ($options ?: new ArrayObject());
         $hasEvents = ($this instanceof EventDispatcherInterface);
         if ($hasEvents) {
-            $event = $this->dispatchEvent('Collection.beforeRules', compact('entity', 'options', 'operation'));
+            $event = $this->dispatchEvent('Collection.beforeRules', ['entity' => $entity, 'options' => $options, 'operation' => $operation]);
             if ($event->isStopped()) {
                 return (bool)$event->getResult();
             }
@@ -52,7 +52,7 @@ trait RulesAwareTrait
         $result = $rules->check($entity, $operation, $options->getArrayCopy());
 
         if ($hasEvents) {
-            $event = $this->dispatchEvent('Collection.afterRules', compact('entity', 'options', 'result', 'operation'));
+            $event = $this->dispatchEvent('Collection.afterRules', ['entity' => $entity, 'options' => $options, 'result' => $result, 'operation' => $operation]);
             if ($event->isStopped()) {
                 return (bool)$event->getResult();
             }
@@ -72,6 +72,7 @@ trait RulesAwareTrait
         if ($this->rulesChecker !== null) {
             return $this->rulesChecker;
         }
+
         /** @var class-string<\Cake\Datasource\RulesChecker> $class */
         $class = defined('static::RULES_CLASS') ? static::RULES_CLASS : RulesChecker::class;
         $this->rulesChecker = $this->buildRules(new $class(['repository' => $this]));

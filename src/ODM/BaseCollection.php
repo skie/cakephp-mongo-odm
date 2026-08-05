@@ -418,6 +418,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if (!is_array($primaryKey)) {
             $primaryKey = [$primaryKey];
         }
+
         if (count($key) !== count($primaryKey)) {
             $primaryKey = $primaryKey ?: [null];
             $primaryKey = array_map(static fn(mixed $value): string => var_export($value, true), $primaryKey);
@@ -428,6 +429,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 implode(', ', $primaryKey),
             ));
         }
+
         $conditions = array_combine($key, $primaryKey);
 
         if (is_array($finder)) {
@@ -439,14 +441,15 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         $query = $this->find($type, ...$args)->where($conditions);
 
-        if ($cache) {
-            if (!$cacheKey) {
+        if ($cache !== null) {
+            if ($cacheKey === null) {
                 $cacheKey = sprintf(
                     'get-%s-%s',
                     $this->getCollection(),
                     json_encode($primaryKey, JSON_THROW_ON_ERROR),
                 );
             }
+
             $query->cache($cacheKey, $cache);
         }
 
@@ -481,6 +484,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($fields instanceof Closure) {
             $fields = $fields();
         }
+
         $query->set(is_array($fields) ? $fields : [$fields]);
         if ($conditions !== null) {
             $query->where($conditions);
@@ -558,11 +562,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if ($this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
                 $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
             }
+
             if ($options['atomic'] || $options['_primary']) {
                 if ($options['_cleanOnSuccess']) {
                     $entity->clean();
                     $entity->setNew(false);
                 }
+
                 $entity->setSource($this->getRegistryAlias());
             }
         }
@@ -626,9 +632,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function newEmptyEntity(): EntityInterface
     {
         $class = $this->getDocumentClass();
-        $entity = new $class([], ['source' => $this->getRegistryAlias()]);
 
-        return $entity;
+        return new $class([], ['source' => $this->getRegistryAlias()]);
     }
 
     /**
@@ -672,6 +677,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if (!$entity instanceof Document) {
             throw new InvalidArgumentException('patchEntity() requires a Document.');
         }
+
         $options['associated'] ??= $this->associations->keys();
 
         return $this->marshaller()->merge($entity, $data, $options);
@@ -1140,12 +1146,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $valueField ??= $this->getDisplayField();
 
         $options = $this->setFieldMatchers(
-            compact('keyField', 'valueField', 'groupField', 'valueSeparator'),
+            ['keyField' => $keyField, 'valueField' => $valueField, 'groupField' => $groupField, 'valueSeparator' => $valueSeparator],
             ['keyField', 'valueField', 'groupField'],
         );
 
         return $query->formatResults(
-            fn(CollectionInterface $results) => $results->combine(
+            fn(CollectionInterface $results): CollectionInterface => $results->combine(
                 $options['keyField'],
                 $options['valueField'],
                 $options['groupField'],
@@ -1170,10 +1176,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     ): SelectQuery {
         $keyField ??= $this->getPrimaryKey();
 
-        $options = $this->setFieldMatchers(compact('keyField', 'parentField'), ['keyField', 'parentField']);
+        $options = $this->setFieldMatchers(['keyField' => $keyField, 'parentField' => $parentField], ['keyField', 'parentField']);
 
         return $query->formatResults(
-            fn(CollectionInterface $results) => $results->nest(
+            fn(CollectionInterface $results): CollectionInterface => $results->nest(
                 $options['keyField'],
                 $options['parentField'],
                 $nestingKey,
@@ -1243,7 +1249,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     {
         $connection = $this->getConnection();
 
-        return !($connection instanceof Connection && $connection->inTransaction()) && ($atomic || $primary);
+        return (!$connection instanceof Connection || !$connection->inTransaction()) && ($atomic || $primary);
     }
 
     /**
@@ -1262,6 +1268,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             foreach ($entity->extract($primaryKey) as $key => $value) {
                 $conditions[$key] = $value;
             }
+
             $entity->setNew(!$this->exists($conditions));
         }
 
@@ -1276,6 +1283,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if ($result === null) {
                 return false;
             }
+
             if (!$result instanceof EntityInterface) {
                 return false;
             }
@@ -1348,6 +1356,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if (in_array($field, $primaryKey, true)) {
                 continue;
             }
+
             if ($entity->has($field)) {
                 $set[$field] = $entity->get($field);
             } else {
@@ -1359,6 +1368,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($set !== []) {
             $query->set($set);
         }
+
         if ($unset !== []) {
             $query->unset($unset);
         }
@@ -1429,6 +1439,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if (!$entity->isDirty($association->getProperty())) {
                 continue;
             }
+
             if (!$this->isAssociated($associated, $association)) {
                 continue;
             }
@@ -1452,12 +1463,17 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     {
         $associated = $this->normalizeAssociated((array)$options['associated']);
         foreach ($this->associations as $association) {
-            if ($association instanceof BelongsTo || $association instanceof Embedded) {
+            if ($association instanceof BelongsTo) {
                 continue;
             }
+            if ($association instanceof Embedded) {
+                continue;
+            }
+
             if (!$entity->isDirty($association->getProperty())) {
                 continue;
             }
+
             if (!$this->isAssociated($associated, $association)) {
                 continue;
             }
@@ -1486,11 +1502,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         $result = [];
         foreach ($associated as $key => $value) {
-            if (is_int($key)) {
-                $result[] = (string)$value;
-            } else {
-                $result[] = (string)$key;
-            }
+            $result[] = is_int($key) ? (string)$value : $key;
         }
 
         return $result;
@@ -1522,6 +1534,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if (!$association->getDependent()) {
                 continue;
             }
+
             if (!$association->cascadeDelete($entity, $options)) {
                 return false;
             }
@@ -1555,7 +1568,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         $schema = $this->getSchema();
-        if ($schema !== null) {
+        if ($schema instanceof SchemaInterface) {
             foreach (['title', 'name', 'label'] as $field) {
                 if ($schema->hasColumn($field)) {
                     return $this->displayField = $field;

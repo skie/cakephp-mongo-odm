@@ -19,7 +19,6 @@ use Crustum\Mongo\View\Form\DocumentContext;
 use Crustum\PluginManifest\Manifest\ManifestInterface;
 use Crustum\PluginManifest\Manifest\ManifestTrait;
 use Override;
-use Traversable;
 
 /**
  * Plugin for Crustum/Mongo
@@ -55,7 +54,7 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
             $view = $event->getSubject();
             $view->Form->addContextProvider('mongo', function ($request, array $data) {
                 $first = null;
-                if (is_array($data['entity'] ?? null) || ($data['entity'] ?? null) instanceof Traversable) {
+                if (is_iterable($data['entity'] ?? null)) {
                     $first = (new Collection($data['entity']))->first();
                 }
 
