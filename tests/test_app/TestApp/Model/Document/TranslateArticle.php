@@ -7,4 +7,5 @@ use Crustum\Mongo\ODM\Document;
 
 class TranslateArticle extends Document
 {
+    protected bool $requireFieldPresence = true;
 }

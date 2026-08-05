@@ -7,4 +7,8 @@ use Crustum\Mongo\ODM\Document;
 
 class ProtectedEntity extends Document
 {
+    protected array $_accessible = [
+        'id' => true,
+        'title' => false,
+    ];
 }

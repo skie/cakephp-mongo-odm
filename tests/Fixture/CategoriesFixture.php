@@ -1,0 +1,42 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\Fixture;
+
+use Crustum\Mongo\TestSuite\TestFixture;
+
+/**
+ * Port of `Cake\Test\Fixture\CategoriesFixture` for the ODM test harness.
+ */
+class CategoriesFixture extends TestFixture
+{
+    /**
+     * The connection name.
+     *
+     * @var string
+     */
+    public string $connection = 'test_mongo';
+
+    /**
+     * The collection name.
+     *
+     * @var string
+     */
+    public string $table = 'categories';
+
+    /**
+     * Documents to insert.
+     *
+     * @var list<array<string, mixed>>
+     */
+    public array $records = [
+        ['_id' => '000000000000000000000001', 'parent_id' => 0, 'name' => 'Category 1', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000002', 'parent_id' => 1, 'name' => 'Category 1.1', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000003', 'parent_id' => 1, 'name' => 'Category 1.2', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000004', 'parent_id' => 0, 'name' => 'Category 2', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000005', 'parent_id' => 0, 'name' => 'Category 3', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000006', 'parent_id' => 5, 'name' => 'Category 3.1', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000007', 'parent_id' => 2, 'name' => 'Category 1.1.1', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+        ['_id' => '000000000000000000000008', 'parent_id' => 2, 'name' => 'Category 1.1.2', 'created' => '2007-03-18 15:30:23', 'updated' => '2007-03-18 15:32:31'],
+    ];
+}

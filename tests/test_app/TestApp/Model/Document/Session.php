@@ -7,4 +7,8 @@ use Crustum\Mongo\ODM\Document;
 
 class Session extends Document
 {
+    protected array $_accessible = [
+        'id' => false,
+        '*' => true,
+    ];
 }

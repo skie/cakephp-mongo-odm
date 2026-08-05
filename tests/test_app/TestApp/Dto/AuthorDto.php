@@ -3,15 +3,18 @@ declare(strict_types=1);
 
 namespace TestApp\Dto;
 
-final class AuthorDto
+/**
+ * Simple readonly DTO for Author.
+ */
+readonly class AuthorDto
 {
+    /**
+     * @param int $id
+     * @param string $name
+     */
     public function __construct(
-        public readonly string $name,
+        public int $id,
+        public string $name,
     ) {
-    }
-
-    public static function createFromArray(array $data): self
-    {
-        return new self((string)($data['name'] ?? ''));
     }
 }

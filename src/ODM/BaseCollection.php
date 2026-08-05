@@ -24,6 +24,7 @@ use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
 use Closure;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Exception\MissingDocumentException;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -774,6 +775,26 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function setSchemaFromDocument(string $documentClass): static
     {
         return $this->setSchema(DocumentSchemaReader::read($documentClass, $this->getCollection()));
+    }
+
+    /**
+     * Build this collection's schema from a plain field definition array.
+     *
+     * Each key is a field name and each value is a `CollectionSchema::addField()`
+     * attribute array (or a type string). Sugar for the ported cake60 tables
+     * that called `Table::setSchema([...])` with SQL-style column definitions.
+     *
+     * @param array<string, array<string, mixed>|string> $fields Field definitions.
+     * @return $this
+     */
+    public function setSchemaFromArray(array $fields): static
+    {
+        $schema = new CollectionSchema($this->getCollection());
+        foreach ($fields as $name => $attrs) {
+            $schema->addField($name, $attrs);
+        }
+
+        return $this->setSchema($schema);
     }
 
     /**

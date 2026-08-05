@@ -11,4 +11,9 @@ class CustomI18nCollection extends BaseCollection
     {
         $this->setCollection('custom_i18n_collection');
     }
+
+    public static function defaultConnectionName(): string
+    {
+        return 'custom_i18n_datasource';
+    }
 }

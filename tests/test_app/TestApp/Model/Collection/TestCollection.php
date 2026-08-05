@@ -16,6 +16,7 @@ class TestCollection extends BaseCollection
 
     public function initialize(array $config): void
     {
+        $this->setSchemaFromArray(['id' => ['type' => 'integer']]);
     }
 
     public function findPublishedWithArgOnly(SelectQuery $query, string $what = 'worked', mixed $other = null): SelectQuery

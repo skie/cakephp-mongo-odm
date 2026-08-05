@@ -85,7 +85,7 @@ Configure::write('App', [
     'wwwRoot' => WWW_ROOT,
     'fullBaseUrl' => 'http://localhost',
     'paths' => [
-        'plugins' => [ROOT . DS],
+        'plugins' => [ROOT . DS, TESTS . 'test_app' . DS . 'Plugin' . DS],
         'templates' => [APP . 'templates' . DS],
         'locales' => [RESOURCES . 'locales' . DS],
     ],

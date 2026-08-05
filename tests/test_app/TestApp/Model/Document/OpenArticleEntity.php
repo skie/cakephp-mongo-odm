@@ -7,4 +7,7 @@ use Crustum\Mongo\ODM\Document;
 
 class OpenArticleEntity extends Document
 {
+    protected array $_accessible = [
+        '*' => true,
+    ];
 }

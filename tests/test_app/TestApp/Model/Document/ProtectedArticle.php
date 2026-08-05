@@ -7,4 +7,8 @@ use Crustum\Mongo\ODM\Document;
 
 class ProtectedArticle extends Document
 {
+    protected array $_accessible = [
+        'title' => true,
+        'body' => true,
+    ];
 }

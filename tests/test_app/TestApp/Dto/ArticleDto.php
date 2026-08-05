@@ -3,21 +3,27 @@ declare(strict_types=1);
 
 namespace TestApp\Dto;
 
-final class ArticleDto
-{
-    public function __construct(
-        public readonly string $title,
-        public readonly string $body,
-        public readonly string $author_name,
-    ) {
-    }
+use Cake\ORM\Attribute\CollectionOf;
 
-    public static function createFromArray(array $data): self
-    {
-        return new self(
-            (string)($data['title'] ?? ''),
-            (string)($data['body'] ?? ''),
-            (string)($data['author_name'] ?? ''),
-        );
+/**
+ * Simple readonly DTO for Article.
+ */
+readonly class ArticleDto
+{
+    /**
+     * @param int $id
+     * @param string $title
+     * @param string|null $body
+     * @param \TestApp\Dto\AuthorDto|null $author
+     * @param array<\TestApp\Dto\CommentDto> $comments
+     */
+    public function __construct(
+        public int $id,
+        public string $title,
+        public ?string $body = null,
+        public ?AuthorDto $author = null,
+        #[CollectionOf(CommentDto::class)]
+        public array $comments = [],
+    ) {
     }
 }

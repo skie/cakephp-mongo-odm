@@ -324,6 +324,34 @@ class CollectionSchema implements SchemaInterface
     }
 
     /**
+     * Resolves a `bsonType` value that may be a single type string or a list.
+     *
+     * MongoDB validators allow an array of types such as `['string', 'null']`.
+     * The first entry that normalizes to a canonical plugin type wins; `null`
+     * entries are ignored so a nullable field keeps its concrete type.
+     *
+     * @param mixed $bsonType The validator `bsonType` value.
+     * @return string|null Canonical plugin type name, or null when unsupported.
+     */
+    protected function resolveBsonType(mixed $bsonType): ?string
+    {
+        $types = is_array($bsonType) ? $bsonType : [$bsonType];
+
+        foreach ($types as $type) {
+            if (!is_string($type) || $type === 'null') {
+                continue;
+            }
+
+            $normalized = $this->normalizeBsonType($type);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get all defined fields from validation schema and programmatic fields
      *
      * @return array<int, string>
@@ -512,7 +540,7 @@ class CollectionSchema implements SchemaInterface
                 continue;
             }
 
-            $type = $this->normalizeBsonType((string)$property['bsonType']);
+            $type = $this->resolveBsonType($property['bsonType']);
             if ($type !== null) {
                 $this->typeMap[$name] = $type;
             }

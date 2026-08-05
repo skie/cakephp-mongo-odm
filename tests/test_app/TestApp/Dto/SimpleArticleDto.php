@@ -3,15 +3,20 @@ declare(strict_types=1);
 
 namespace TestApp\Dto;
 
-final class SimpleArticleDto
+/**
+ * Simple readonly DTO without nested types.
+ */
+readonly class SimpleArticleDto
 {
+    /**
+     * @param int $id
+     * @param string $title
+     * @param string|null $body
+     */
     public function __construct(
-        public readonly string $title,
+        public int $id,
+        public string $title,
+        public ?string $body = null,
     ) {
-    }
-
-    public static function createFromArray(array $data): self
-    {
-        return new self((string)($data['title'] ?? ''));
     }
 }

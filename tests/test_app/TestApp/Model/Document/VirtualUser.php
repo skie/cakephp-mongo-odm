@@ -11,6 +11,6 @@ class VirtualUser extends Document
 
     protected function _getBonus(): string
     {
-        return 'value';
+        return 'bonus';
     }
 }

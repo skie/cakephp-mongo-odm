@@ -5,6 +5,7 @@ namespace TestApp\Model\Enum;
 
 enum Gender: string
 {
-    case Male = 'm';
-    case Female = 'f';
+    case NoSelection = '';
+    case Male = 'Male';
+    case Female = 'Female';
 }

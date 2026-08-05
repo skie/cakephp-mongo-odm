@@ -1,0 +1,37 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\Fixture;
+
+use Crustum\Mongo\TestSuite\TestFixture;
+
+/**
+ * Port of `Cake\Test\Fixture\CounterCacheUserCategoryPostsFixture` for the ODM test harness.
+ */
+class CounterCacheUserCategoryPostsFixture extends TestFixture
+{
+    /**
+     * The connection name.
+     *
+     * @var string
+     */
+    public string $connection = 'test_mongo';
+
+    /**
+     * The collection name.
+     *
+     * @var string
+     */
+    public string $table = 'counter_cache_user_category_posts';
+
+    /**
+     * Documents to insert.
+     *
+     * @var list<array<string, mixed>>
+     */
+    public array $records = [
+        ['_id' => '000000000000000000000001', 'category_id' => 1, 'user_id' => 1, 'post_count' => 1],
+        ['_id' => '000000000000000000000002', 'category_id' => 2, 'user_id' => 1, 'post_count' => 1],
+        ['_id' => '000000000000000000000003', 'category_id' => 2, 'user_id' => 2, 'post_count' => 1],
+    ];
+}

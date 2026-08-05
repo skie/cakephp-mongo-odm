@@ -7,4 +7,7 @@ use Crustum\Mongo\ODM\Document;
 
 class OpenTag extends Document
 {
+    protected array $_accessible = [
+        'tag' => true,
+    ];
 }
