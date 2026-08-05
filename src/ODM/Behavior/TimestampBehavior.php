@@ -26,7 +26,7 @@ class TimestampBehavior extends Behavior
      * @var array<string, mixed>
      */
     protected array $defaultConfig = [
-        'events' => ['Model.beforeSave' => ['created' => 'new', 'modified' => 'always']],
+        'events' => ['Collection.beforeSave' => ['created' => 'new', 'modified' => 'always']],
         'refreshTimestamp' => true,
     ];
 
@@ -123,7 +123,7 @@ class TimestampBehavior extends Behavior
      * @param string $eventName The configured event name.
      * @return bool Whether a field was updated.
      */
-    public function touch(EntityInterface $entity, string $eventName = 'Model.beforeSave'): bool
+    public function touch(EntityInterface $entity, string $eventName = 'Collection.beforeSave'): bool
     {
         $events = $this->getConfig('events');
         $fields = is_array($events) ? ($events[$eventName] ?? []) : [];

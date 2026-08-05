@@ -3,12 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Behavior;
 
-use Cake\Event\EventManager;
+use Crustum\Mongo\ODM\Collection;
 
-final class RegistryCollection
+final class RegistryCollection extends Collection
 {
-    public function getEventManager(): EventManager
-    {
-        return new EventManager();
-    }
 }

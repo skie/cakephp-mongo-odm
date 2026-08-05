@@ -22,9 +22,4 @@ final class RepositoryStub extends Collection
     {
         return $this->stubs[$name] ?? null;
     }
-
-    public function query(): QueryInterface
-    {
-        return new SelectQuery(null, 'related');
-    }
 }

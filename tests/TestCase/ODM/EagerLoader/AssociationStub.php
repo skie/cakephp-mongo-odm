@@ -20,7 +20,7 @@ final class AssociationStub extends Association
         string $strategy = 'select',
         private array $pipeline = [],
     ) {
-        parent::__construct($strategy);
+        parent::__construct('Related', $target, ['strategy' => $strategy]);
         $this->setTarget($target);
         $this->strategyName = $strategy;
     }

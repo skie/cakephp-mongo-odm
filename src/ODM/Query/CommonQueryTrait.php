@@ -42,7 +42,7 @@ trait CommonQueryTrait
         $this->repository = $repository;
         $this->from($repository->getAlias());
         $connection = $repository->getConnection();
-        if ($connection !== null) {
+        if ($connection instanceof Connection) {
             $this->setConnection($connection);
         }
 
@@ -97,7 +97,7 @@ trait CommonQueryTrait
      */
     public function find(string $type = 'all', mixed ...$args): static
     {
-        if ($type === 'all' || $this->repository === null) {
+        if ($type === 'all' || $this->repository === null || !$this instanceof SelectQuery) {
             return $this;
         }
 

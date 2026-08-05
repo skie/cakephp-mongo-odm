@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\AssociationCollection;
+use Crustum\Mongo\ODM\Collection;
 use PHPUnit\Framework\TestCase;
 
 class AssociationCollectionTest extends TestCase
@@ -12,7 +13,7 @@ class AssociationCollectionTest extends TestCase
     public function testCollectionIndexesByAliasAndProperty(): void
     {
         $collection = new AssociationCollection();
-        $association = new EmbedOne('Profile');
+        $association = new EmbedOne('Profile', new Collection());
         $collection->add('Profile', $association);
 
         $this->assertTrue($collection->has('Profile'));

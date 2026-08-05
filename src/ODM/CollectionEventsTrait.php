@@ -21,7 +21,7 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 trait CollectionEventsTrait
 {
     /**
-     * The Model.beforeMarshal event is fired before request data is converted into entities.
+     * The Collection.beforeMarshal event is fired before request data is converted into entities.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
@@ -33,7 +33,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterMarshal event is fired after request data is converted into entities.
+     * The Collection.afterMarshal event is fired after request data is converted into entities.
      * Event handlers will get the converted entities, original request data and the options provided
      * to the patchEntity() or newEntity() call.
      *
@@ -52,7 +52,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.buildValidator event is fired when $name validator is created.
+     * The Collection.buildValidator event is fired when $name validator is created.
      * Behaviors, can use this hook to add in validation methods.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
@@ -65,7 +65,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.beforeFind event is fired before each find operation.
+     * The Collection.beforeFind event is fired before each find operation.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query Query.
@@ -78,7 +78,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.beforeSave event is fired before each entity is saved.
+     * The Collection.beforeSave event is fired before each entity is saved.
      * Stopping this event will abort the save operation.
      * When the event is stopped the result of the event will be returned.
      *
@@ -92,7 +92,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterSave event is fired after an entity is saved.
+     * The Collection.afterSave event is fired after an entity is saved.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Saved entity.
@@ -104,7 +104,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterSaveCommit event is fired after the transaction in which the save operation is wrapped has been
+     * The Collection.afterSaveCommit event is fired after the transaction in which the save operation is wrapped has been
      * committed. It's also triggered for non atomic saves where database operations are implicitly committed. The event
      * is triggered only for the primary table on which save() is directly called. The event is not triggered if a
      * transaction is started before calling save.
@@ -119,7 +119,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.beforeDelete event is fired before an entity is deleted.
+     * The Collection.beforeDelete event is fired before an entity is deleted.
      * By stopping this event you will abort the delete operation.
      * When the event is stopped the result of the event will be returned.
      *
@@ -133,7 +133,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterDelete event is fired after an entity has been deleted.
+     * The Collection.afterDelete event is fired after an entity has been deleted.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Deleted entity.
@@ -145,7 +145,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterDeleteCommit event is fired after the transaction in which the delete operation is wrapped has
+     * The Collection.afterDeleteCommit event is fired after the transaction in which the delete operation is wrapped has
      * been committed. It's also triggered for non atomic deletes where database operations are implicitly committed.
      * The event is triggered only for the primary table on which delete() is directly called. The event is not
      * triggered if a transaction is started before calling delete.
@@ -160,7 +160,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.beforeRules event is fired before an entity has had rules applied.
+     * The Collection.beforeRules event is fired before an entity has had rules applied.
      * By stopping this event, you can halt the rules checking and set the result of applying rules.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
@@ -178,7 +178,7 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Model.afterRules event is fired after an entity has rules applied.
+     * The Collection.afterRules event is fired after an entity has rules applied.
      * By stopping this event, you can return the final value of the rules checking operation.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.

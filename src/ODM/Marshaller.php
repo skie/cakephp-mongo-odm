@@ -177,7 +177,7 @@ final class Marshaller
      */
     private function newDocument(array $options): Document
     {
-        $class = $this->collection->getEntityClass();
+        $class = $this->collection->getDocumentClass();
         $entity = new $class();
         $entity->setSource($this->collection->getRegistryAlias());
 
@@ -196,7 +196,7 @@ final class Marshaller
         $options += ['validate' => true, 'associated' => []];
         $dataObject = new ArrayObject($data);
         $optionsObject = new ArrayObject($options);
-        $this->dispatch('Model.beforeMarshal', $dataObject, $optionsObject);
+        $this->dispatch('Collection.beforeMarshal', $dataObject, $optionsObject);
 
         return [(array)$dataObject, (array)$optionsObject];
     }
@@ -268,7 +268,7 @@ final class Marshaller
             }
 
             $association = $this->resolveAssociation($alias);
-            if ($association === null) {
+            if (!$association instanceof Association) {
                 throw new InvalidArgumentException(sprintf(
                     'Cannot marshal data for `%s` association. It is not associated.',
                     $alias,
@@ -279,15 +279,7 @@ final class Marshaller
             $property = $association->getProperty();
 
             if (($options['isMerge'] ?? false)) {
-                $map[$alias] = $map[$property] = function (
-                    mixed $value,
-                    Document $entity,
-                ) use (
-                    $association,
-                    $nestedOptions,
-                ): mixed {
-                    return $this->mergeAssociation($entity, $association, $value, $nestedOptions + ['associated' => []]);
-                };
+                $map[$alias] = $map[$property] = (fn(mixed $value, Document $entity): mixed => $this->mergeAssociation($entity, $association, $value, $nestedOptions + ['associated' => []]));
 
                 continue;
             }
@@ -479,7 +471,7 @@ final class Marshaller
     }
 
     /**
-     * Dispatches the `Model.afterMarshal` event.
+     * Dispatches the `Collection.afterMarshal` event.
      *
      * @param \Crustum\Mongo\ODM\Document $entity The marshalled document.
      * @param array<string, mixed> $data The input data.
@@ -488,7 +480,7 @@ final class Marshaller
      */
     private function dispatchAfterMarshal(Document $entity, array $data, array $options = []): void
     {
-        $this->dispatch('Model.afterMarshal', $data, $options, $entity);
+        $this->dispatch('Collection.afterMarshal', $data, $options, $entity);
     }
 
     /**

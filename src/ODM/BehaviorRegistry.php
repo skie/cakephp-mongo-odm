@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use BadMethodCallException;
+use Cake\Core\App;
 use Cake\Core\ObjectRegistry;
 use Cake\Event\EventDispatcherInterface;
 use Cake\Event\EventDispatcherTrait;
 use Closure;
+use Crustum\Mongo\Exception\MissingBehaviorException;
 use InvalidArgumentException;
 use LogicException;
 
@@ -45,7 +47,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
      */
     public function __construct(protected ?Collection $collection = null)
     {
-        if ($collection !== null) {
+        if ($collection instanceof Collection) {
             $this->setEventManager($collection->getEventManager());
         }
     }
@@ -74,6 +76,12 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
             return is_a($class, Behavior::class, true) ? $class : null;
         }
 
+        $candidate = App::className($class, 'Model/Behavior', 'Behavior')
+            ?: App::className($class, 'ODM/Behavior', 'Behavior');
+        if ($candidate !== null && is_a($candidate, Behavior::class, true)) {
+            return $candidate;
+        }
+
         $candidate = __NAMESPACE__ . '\\Behavior\\' . $class . 'Behavior';
 
         return class_exists($candidate) && is_a($candidate, Behavior::class, true) ? $candidate : null;
@@ -88,7 +96,10 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
      */
     protected function _throwMissingClassError(string $class, ?string $plugin): never
     {
-        throw new BadMethodCallException(sprintf('Behavior `%s` was not found.', $class));
+        throw new MissingBehaviorException([
+            'class' => $class . 'Behavior',
+            'plugin' => $plugin,
+        ]);
     }
 
     /**
@@ -104,7 +115,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if (is_object($class)) {
             $instance = $class;
         } else {
-            if ($this->collection === null) {
+            if (!$this->collection instanceof Collection) {
                 throw new LogicException('A collection is required before loading a behavior.');
             }
 

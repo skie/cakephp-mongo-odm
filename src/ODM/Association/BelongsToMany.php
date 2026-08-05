@@ -10,6 +10,7 @@ use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
+use Crustum\Mongo\ODM\Collection;
 use RuntimeException;
 
 /**
@@ -48,11 +49,12 @@ class BelongsToMany extends Association
      * Constructor.
      *
      * @param string $alias Association alias.
+     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
      * @param array<string, mixed> $options Association configuration.
      */
-    public function __construct(string $alias, array $options = [])
+    public function __construct(string $alias, Collection $source, array $options = [])
     {
-        parent::__construct($alias, $options);
+        parent::__construct($alias, $source, $options);
         $this->through = $options['through'] ?? null;
         $this->joinForeignKey = $options['joinForeignKey'] ?? null;
         $this->targetForeignKey = $options['targetForeignKey'] ?? null;

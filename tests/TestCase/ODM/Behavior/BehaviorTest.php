@@ -17,7 +17,7 @@ final class BehaviorTest extends TestCase
         $behavior = new TimestampBehavior(new BehaviorCollection());
         $document = new Document([], ['markNew' => true]);
 
-        $behavior->handleEvent(new Event('Model.beforeSave'), $document, new ArrayObject());
+        $behavior->handleEvent(new Event('Collection.beforeSave'), $document, new ArrayObject());
 
         $this->assertInstanceOf(UTCDateTime::class, $document->get('created'));
         $this->assertInstanceOf(UTCDateTime::class, $document->get('modified'));
@@ -30,7 +30,7 @@ final class BehaviorTest extends TestCase
         $existing = new UTCDateTime(1577836800000);
         $document = new Document(['modified' => $existing], ['markNew' => true]);
 
-        $behavior->handleEvent(new Event('Model.beforeSave'), $document, new ArrayObject());
+        $behavior->handleEvent(new Event('Collection.beforeSave'), $document, new ArrayObject());
 
         $this->assertSame($existing, $document->get('modified'));
     }

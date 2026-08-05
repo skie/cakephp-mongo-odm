@@ -20,9 +20,9 @@ final class MarshallerCollection extends Collection
 
     public ?Association $association = null;
 
-    public function getValidator(string $name = 'default'): ?Validator
+    public function getValidator(?string $name = null): Validator
     {
-        return $this->validator ?? null;
+        return $this->validator ?? new Validator();
     }
 
     public function getAssociation(string $name): ?Association
@@ -30,10 +30,10 @@ final class MarshallerCollection extends Collection
         return $this->association;
     }
 
-    public function dispatchEvent(string $name, array $data = []): EventInterface
+    public function dispatchEvent(string $name, array $data = [], ?object $subject = null): EventInterface
     {
         $this->events[] = $name;
 
-        return new Event($name, $this, $data);
+        return new Event($name, $subject ?? $this, $data);
     }
 }

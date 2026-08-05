@@ -276,11 +276,7 @@ class HasMany extends Association
         $property = $this->getProperty();
 
         $currentEntities = (array)$sourceEntity->get($property);
-        if ($currentEntities === []) {
-            $currentEntities = $targetEntities;
-        } else {
-            $currentEntities = array_merge($currentEntities, $targetEntities);
-        }
+        $currentEntities = $currentEntities === [] ? $targetEntities : array_merge($currentEntities, $targetEntities);
 
         $sourceEntity->set($property, $currentEntities);
         $saved = $this->saveAssociated($sourceEntity, $options);

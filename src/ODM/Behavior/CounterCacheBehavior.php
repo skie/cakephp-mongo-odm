@@ -7,6 +7,7 @@ use ArrayObject;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Closure;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Behavior;
 use Crustum\Mongo\ODM\Collection;
 
@@ -75,7 +76,7 @@ class CounterCacheBehavior extends Behavior
             }
 
             $association = $collection->getAssociation($associationName);
-            if ($association === null) {
+            if (!$association instanceof Association) {
                 continue;
             }
 

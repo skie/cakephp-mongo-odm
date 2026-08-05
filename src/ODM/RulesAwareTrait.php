@@ -1,0 +1,93 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\ODM;
+
+use ArrayObject;
+use Cake\Datasource\EntityInterface;
+use Cake\Datasource\RulesChecker;
+use Cake\Event\EventDispatcherInterface;
+
+/**
+ * Provides rules checking for ODM collections.
+ *
+ * Migrated from Cake core `Cake\Datasource\RulesAwareTrait`; the model events
+ * use the `Collection.*` prefix instead of `Model.*`.
+ *
+ * @see cake60/src/Datasource/RulesAwareTrait.php
+ */
+trait RulesAwareTrait
+{
+    /**
+     * The domain rules to be applied to documents saved by this collection.
+     *
+     * @var \Cake\Datasource\RulesChecker|null
+     */
+    protected ?RulesChecker $rulesChecker = null;
+
+    /**
+     * Returns whether the passed document complies with all the rules stored in
+     * the rules checker.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to check for validity.
+     * @param string $operation The operation being run. Either 'create', 'update' or 'delete'.
+     * @param \ArrayObject<string, mixed>|array<string, mixed>|null $options The options to be passed to the rules.
+     * @return bool
+     */
+    public function checkRules(
+        EntityInterface $entity,
+        string $operation = RulesChecker::CREATE,
+        ArrayObject|array|null $options = null,
+    ): bool {
+        $rules = $this->rulesChecker();
+        $options = is_array($options) ? new ArrayObject($options) : ($options ?: new ArrayObject());
+        $hasEvents = ($this instanceof EventDispatcherInterface);
+        if ($hasEvents) {
+            $event = $this->dispatchEvent('Collection.beforeRules', compact('entity', 'options', 'operation'));
+            if ($event->isStopped()) {
+                return (bool)$event->getResult();
+            }
+        }
+
+        $result = $rules->check($entity, $operation, $options->getArrayCopy());
+
+        if ($hasEvents) {
+            $event = $this->dispatchEvent('Collection.afterRules', compact('entity', 'options', 'result', 'operation'));
+            if ($event->isStopped()) {
+                return (bool)$event->getResult();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns the RulesChecker for this instance.
+     *
+     * @see \Cake\Datasource\RulesChecker
+     * @return \Cake\Datasource\RulesChecker
+     */
+    public function rulesChecker(): RulesChecker
+    {
+        if ($this->rulesChecker !== null) {
+            return $this->rulesChecker;
+        }
+        /** @var class-string<\Cake\Datasource\RulesChecker> $class */
+        $class = defined('static::RULES_CLASS') ? static::RULES_CLASS : RulesChecker::class;
+        $this->rulesChecker = $this->buildRules(new $class(['repository' => $this]));
+        $this->dispatchEvent('Collection.buildRules', ['rules' => $this->rulesChecker]);
+
+        return $this->rulesChecker;
+    }
+
+    /**
+     * Returns a RulesChecker object after modifying the one that was supplied.
+     *
+     * @param \Cake\Datasource\RulesChecker $rules The rules object to be modified.
+     * @return \Cake\Datasource\RulesChecker
+     */
+    public function buildRules(RulesChecker $rules): RulesChecker
+    {
+        return $rules;
+    }
+}

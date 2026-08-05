@@ -23,7 +23,7 @@ use MongoDB\Model\BSONDocument;
  * @see cake60/src/Datasource/EntityTrait.php
  * @implements \ArrayAccess<string, mixed>
  */
-final class Document implements EntityInterface, ArrayAccess
+class Document implements EntityInterface, ArrayAccess
 {
     use EntityTrait {
         __get as protected entityGet;

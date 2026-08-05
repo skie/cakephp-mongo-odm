@@ -211,8 +211,6 @@ final class EagerLoader
      * The containment configuration is immutable config and is safe to copy by
      * value; the normalized tree and external list are re-derived lazily so a
      * cloned query never shares mutable normalization state.
-     *
-     * @return void
      */
     public function __clone()
     {
@@ -298,7 +296,7 @@ final class EagerLoader
     private function normalize(Collection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
     {
         $association = $repository->getAssociation($alias);
-        if ($association === null) {
+        if (!$association instanceof Association) {
             throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
         }
 
@@ -348,12 +346,10 @@ final class EagerLoader
         $query = $target->query();
         ($config['queryBuilder'])($query);
         unset($config['queryBuilder']);
-        if ($query instanceof SelectQuery) {
-            $compiled = $query->compile();
-            $config['conditions'] ??= $compiled['filter'] ?? [];
-            $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
-            $config['sort'] ??= $compiled['options']['sort'] ?? [];
-        }
+        $compiled = $query->compile();
+        $config['conditions'] ??= $compiled['filter'] ?? [];
+        $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
+        $config['sort'] ??= $compiled['options']['sort'] ?? [];
 
         return $config;
     }
@@ -368,7 +364,7 @@ final class EagerLoader
     private function dispatch(EagerLoadable $loadable, SelectQuery $query): void
     {
         $association = $loadable->instance();
-        if ($association === null) {
+        if (!$association instanceof Association) {
             return;
         }
 

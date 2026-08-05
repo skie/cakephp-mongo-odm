@@ -81,19 +81,19 @@ abstract class Behavior implements EventListenerInterface
         $events = [];
         foreach (
             [
-            'Model.beforeMarshal' => 'beforeMarshal',
-            'Model.afterMarshal' => 'afterMarshal',
-            'Model.beforeFind' => 'beforeFind',
-            'Model.beforeSave' => 'beforeSave',
-            'Model.afterSave' => 'afterSave',
-            'Model.afterSaveCommit' => 'afterSaveCommit',
-            'Model.beforeDelete' => 'beforeDelete',
-            'Model.afterDelete' => 'afterDelete',
-            'Model.afterDeleteCommit' => 'afterDeleteCommit',
-            'Model.buildValidator' => 'buildValidator',
-            'Model.buildRules' => 'buildRules',
-            'Model.beforeRules' => 'beforeRules',
-            'Model.afterRules' => 'afterRules',
+            'Collection.beforeMarshal' => 'beforeMarshal',
+            'Collection.afterMarshal' => 'afterMarshal',
+            'Collection.beforeFind' => 'beforeFind',
+            'Collection.beforeSave' => 'beforeSave',
+            'Collection.afterSave' => 'afterSave',
+            'Collection.afterSaveCommit' => 'afterSaveCommit',
+            'Collection.beforeDelete' => 'beforeDelete',
+            'Collection.afterDelete' => 'afterDelete',
+            'Collection.afterDeleteCommit' => 'afterDeleteCommit',
+            'Collection.buildValidator' => 'buildValidator',
+            'Collection.buildRules' => 'buildRules',
+            'Collection.beforeRules' => 'beforeRules',
+            'Collection.afterRules' => 'afterRules',
             ] as $event => $method
         ) {
             if (!method_exists($this, $method)) {

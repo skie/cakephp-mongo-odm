@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Association;
 
 use Closure;
+use Crustum\Mongo\ODM\Collection;
 use Crustum\Mongo\ODM\Document;
 use MongoDB\Model\BSONDocument;
 
@@ -24,11 +25,12 @@ class DBRef extends Embedded
      * Constructor.
      *
      * @param string $alias Association alias.
+     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
      * @param array<string, mixed> $options Association configuration.
      */
-    public function __construct(string $alias, array $options = [])
+    public function __construct(string $alias, Collection $source, array $options = [])
     {
-        parent::__construct($alias, $options);
+        parent::__construct($alias, $source, $options);
         $this->collection = (string)($options['collection'] ?? $alias);
     }
 

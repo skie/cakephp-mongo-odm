@@ -7,6 +7,7 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
+use Crustum\Mongo\ODM\Collection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
@@ -15,7 +16,7 @@ class AssociationTest extends TestCase
 {
     public function testEmbeddedOneHydratesWithoutAQuery(): void
     {
-        $association = new EmbedOne('Profile', ['entityClass' => Document::class]);
+        $association = new EmbedOne('Profile', new Collection(), ['documentClass' => Document::class]);
         $entity = new Document(['profile' => ['name' => 'Ada']]);
         $result = ($association->eagerLoader([]))([$entity]);
 
@@ -25,7 +26,7 @@ class AssociationTest extends TestCase
 
     public function testEmbeddedManyHydratesListAndKeepsEmptyValue(): void
     {
-        $association = new EmbedMany('Addresses', ['entityClass' => Document::class]);
+        $association = new EmbedMany('Addresses', new Collection(), ['documentClass' => Document::class]);
         $entity = new Document(['addresses' => [['city' => 'Paris'], ['city' => 'Tokyo']]]);
         $result = ($association->eagerLoader([]))([$entity]);
 
@@ -35,7 +36,7 @@ class AssociationTest extends TestCase
 
     public function testReferenceStrategiesAreValidated(): void
     {
-        $association = new HasMany('Orders');
+        $association = new HasMany('Orders', new Collection());
 
         $this->assertSame(Association::STRATEGY_SELECT, $association->getStrategy());
         $association->setStrategy(Association::STRATEGY_LOOKUP);

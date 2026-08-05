@@ -134,11 +134,11 @@ abstract class Association
     protected ?Collection $target = null;
 
     /**
-     * Entity class used for hydrated associated documents.
+     * Document class used for hydrated associated documents.
      *
      * @var string|null
      */
-    protected ?string $entityClass = null;
+    protected ?string $documentClass = null;
 
     /**
      * Whether target documents depend on the source document.
@@ -172,9 +172,10 @@ abstract class Association
      * Constructor.
      *
      * @param string $alias Association alias.
+     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
      * @param array<string, mixed> $options Association configuration.
      */
-    public function __construct(string $alias, array $options = [])
+    public function __construct(string $alias, Collection $source, array $options = [])
     {
         [, $this->name] = pluginSplit($alias);
         $this->className = $options['className'] ?? $this->name;
@@ -190,21 +191,19 @@ abstract class Association
             $this->setStrategy((string)$options['strategy']);
         }
 
-        if (isset($options['source'])) {
-            $this->setSource($options['source']);
-        }
+        $this->setSource($source);
 
         if (isset($options['target'])) {
             $this->setTarget($options['target']);
         }
 
-        if (isset($options['entityClass'])) {
-            $class = (string)$options['entityClass'];
+        if (isset($options['documentClass'])) {
+            $class = (string)$options['documentClass'];
             if (!is_a($class, Document::class, true)) {
                 throw new InvalidArgumentException('The entity class must extend Document.');
             }
 
-            $this->entityClass = $class;
+            $this->documentClass = $class;
         }
     }
 
@@ -369,13 +368,13 @@ abstract class Association
     }
 
     /**
-     * Gets the associated entity class.
+     * Gets the associated document class.
      *
      * @return string
      */
-    public function getEntityClass(): string
+    public function getDocumentClass(): string
     {
-        return $this->entityClass ??= Document::class;
+        return $this->documentClass ??= Document::class;
     }
 
     /**
@@ -393,14 +392,14 @@ abstract class Association
     }
 
     /**
-     * Sets the associated entity class.
+     * Sets the associated document class.
      *
-     * @param class-string<\Crustum\Mongo\ODM\Document> $class Entity class.
+     * @param class-string<\Crustum\Mongo\ODM\Document> $class Document class.
      * @return $this
      */
-    public function setEntityClass(string $class): static
+    public function setDocumentClass(string $class): static
     {
-        $this->entityClass = $class;
+        $this->documentClass = $class;
 
         return $this;
     }
@@ -762,7 +761,7 @@ abstract class Association
     }
 
     /**
-     * Triggers `Model.beforeFind` on the target collection for a query.
+     * Triggers `Collection.beforeFind` on the target collection for a query.
      *
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query being prepared.
      * @return void

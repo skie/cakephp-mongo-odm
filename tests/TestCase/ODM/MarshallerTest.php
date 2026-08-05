@@ -58,6 +58,7 @@ final class MarshallerTest extends TestCase
         $collection = new MarshallerCollection();
         $validator = new Validator();
         $validator->add('name', 'required', ['rule' => static fn(): bool => false]);
+
         $collection->validator = $validator;
 
         $entity = (new Marshaller($collection))->one(
@@ -86,9 +87,11 @@ final class MarshallerTest extends TestCase
     public function testBeforeAndAfterMarshalEventsAreDispatched(): void
     {
         $collection = new MarshallerCollection();
+        $collection->events = [];
+
         $entity = (new Marshaller($collection))->one(['name' => 'one'], ['validate' => false]);
 
-        $this->assertSame(['Model.beforeMarshal', 'Model.afterMarshal'], $collection->events);
+        $this->assertSame(['Collection.beforeMarshal', 'Collection.afterMarshal'], $collection->events);
         $this->assertInstanceOf(Document::class, $entity);
     }
 
@@ -96,6 +99,7 @@ final class MarshallerTest extends TestCase
     {
         $collection = new MarshallerCollection();
         $collection->association = $this->association(HasOne::class, 'Profile');
+
         $marshaller = new Marshaller($collection);
         $entity = $marshaller->one([
             'profile' => ['name' => 'embedded'],
@@ -120,7 +124,7 @@ final class MarshallerTest extends TestCase
      */
     private function association(string $class, string $alias): Association
     {
-        $association = new $class($alias);
+        $association = new $class($alias, new MarshallerCollection());
         $association->setTarget(new MarshallerCollection());
 
         return $association;

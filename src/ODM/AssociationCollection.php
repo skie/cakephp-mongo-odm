@@ -32,9 +32,10 @@ class AssociationCollection implements Countable, IteratorAggregate
     /**
      * Adds an association to the registry.
      *
+     * @template T of \Crustum\Mongo\ODM\Association
      * @param string $alias Association alias.
-     * @param \Crustum\Mongo\ODM\Association $association Association instance.
-     * @return \Crustum\Mongo\ODM\Association
+     * @param T $association Association instance.
+     * @return T
      * @throws \Cake\Core\Exception\CakeException If the alias is already registered.
      */
     public function add(string $alias, Association $association): Association
@@ -52,19 +53,21 @@ class AssociationCollection implements Countable, IteratorAggregate
     /**
      * Creates and registers an association.
      *
-     * @param string $className Association class.
+     * @template T of \Crustum\Mongo\ODM\Association
+     * @param class-string<T> $className Association class.
      * @param string $associated Target alias.
+     * @param \Crustum\Mongo\ODM\Collection $sourceCollection Source collection.
      * @param array<string, mixed> $options Association options.
-     * @return \Crustum\Mongo\ODM\Association
+     * @return T
      * @throws \InvalidArgumentException If the class is not an association.
      */
-    public function load(string $className, string $associated, array $options = []): Association
+    public function load(string $className, string $associated, Collection $sourceCollection, array $options = []): Association
     {
         if (!class_exists($className) || !is_subclass_of($className, Association::class)) {
             throw new InvalidArgumentException(sprintf('`%s` must extend `%s`.', $className, Association::class));
         }
 
-        $association = new $className($associated, $options);
+        $association = new $className($associated, $sourceCollection, $options);
 
         return $this->add($association->getName(), $association);
     }

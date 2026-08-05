@@ -266,8 +266,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Clones the eager loader so cloned queries never share mutable
      * containment normalization state.
-     *
-     * @return void
      */
     public function __clone()
     {
@@ -398,7 +396,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
-        if ($this->repository !== null) {
+        if ($this->repository instanceof Collection) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
 

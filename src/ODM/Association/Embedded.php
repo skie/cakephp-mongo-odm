@@ -76,7 +76,7 @@ abstract class Embedded extends Association
      */
     protected function document(array $data, array $options): Document
     {
-        $class = $this->getEntityClass();
+        $class = $this->getDocumentClass();
         $document = new $class($data, $options + ['markClean' => true, 'markNew' => false]);
         if (!$document instanceof Document) {
             throw new InvalidArgumentException('Embedded entity class must extend Document.');
