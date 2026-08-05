@@ -18,6 +18,7 @@ class CollectionLocatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        static::setAppNamespace();
 
         (new MongoPlugin())->bootstrap($this->createStub(PluginApplicationInterface::class));
     }

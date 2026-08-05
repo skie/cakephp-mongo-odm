@@ -21,11 +21,13 @@
         "mongodb/mongodb": "1.20"
     },
     "require-dev": {
+        "boundwize/structarmed": "^0.14",
         "cakedc/cakephp-phpstan": "^4.3",
-        "crustum/essentia": "^1.0",
-        "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5",
         "cakephp/cakephp-codesniffer": "^5.0",
+        "crustum/essentia": "^1.0",
+        "mockery/mockery": "^1.6.12",
         "phpstan/phpstan": "^2.2.2,<2.2.6",
+        "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5",
         "rector/rector": "^2.5"
     },
     "autoload": {
@@ -66,7 +68,8 @@
         "rector-check": "vendor/bin/rector process --dry-run",
         "rector-fix": "vendor/bin/rector process",
         "stan": "phpstan analyse src/",
-        "stan-baseline": "phpstan analyse --generate-baseline"
+        "stan-baseline": "phpstan analyse --generate-baseline",
+        "structarmed": "vendor/bin/structarmed analyze src"
     },
     "extra": {
         "installer-name": "Mongo"

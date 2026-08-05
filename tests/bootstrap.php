@@ -75,7 +75,7 @@ ensureDirectoryExists(LOGS);
 
 Configure::write('debug', true);
 Configure::write('App', [
-    'namespace' => 'TestApp',
+    'namespace' => 'App',
     'encoding' => 'UTF-8',
     'defaultLocale' => 'en_US',
     'defaultTimezone' => 'UTC',
@@ -141,6 +141,12 @@ Plugin::getCollection()->add(new MongoPlugin([
     'bootstrap' => true,
     'routes' => true,
 ]));
+
+use Cake\Datasource\FactoryLocator;
+use Crustum\Mongo\ODM\Locator\CollectionLocator;
+
+FactoryLocator::add('Collection', new CollectionLocator());
+FactoryLocator::add('Mongo', new CollectionLocator());
 
 $schemaLoader = new SchemaLoader();
 $schemaLoader->loadInternalFile(TESTS . 'schema.php');

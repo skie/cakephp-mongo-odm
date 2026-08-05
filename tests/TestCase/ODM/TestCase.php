@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
+use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\Fixture\FixtureStrategyInterface;
 use Cake\TestSuite\Fixture\TruncateStrategy;
 use Cake\TestSuite\TestCase as BaseTestCase;
+use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\TestSuite\MongoTestTrait;
 
 /**
@@ -19,6 +21,7 @@ use Crustum\Mongo\TestSuite\MongoTestTrait;
 abstract class TestCase extends BaseTestCase
 {
     use MongoTestTrait;
+    use LocatorAwareTrait;
 
     /**
      * Returns the fixture strategy used by the ODM test harness.
@@ -44,5 +47,20 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        ConnectionManager::alias('test_mongo', 'default');
+    }
+
+    /**
+     * Clears the collection locator so collections and associations built in
+     * one test never leak into the next, matching `TableLocator::clear()` in
+     * Cake's `TestCase::tearDown()`.
+     *
+     * @return void
+     */
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        $this->getCollectionLocator()->clear();
+        $this->collectionLocator = null;
     }
 }
