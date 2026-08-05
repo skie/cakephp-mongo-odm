@@ -11,13 +11,13 @@ use Cake\I18n\DateTime;
 readonly class ArticleWithDatesDto
 {
     /**
-     * @param int $id
+     * @param string $id
      * @param string $title
      * @param \Cake\I18n\DateTime|null $created
      * @param \Cake\I18n\DateTime|null $modified
      */
     public function __construct(
-        public int $id,
+        public string $id,
         public string $title,
         public ?DateTime $created = null,
         public ?DateTime $modified = null,

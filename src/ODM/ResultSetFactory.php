@@ -3,13 +3,27 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Datasource\ResultSetInterface;
+use Cake\ORM\DtoMapper;
+use Closure;
+use Crustum\Mongo\ODM\Query\SelectQuery;
+use InvalidArgumentException;
 use MongoDB\Model\BSONDocument;
 
 /**
  * Creates hydrated ODM result sets from Mongo rows.
  *
- * @see cake60/src/ORM/ResultSetFactory.php
- * @template T of array|\Cake\Datasource\EntityInterface
+ * Aligned with the Elastica-style thin result set: hydration is row-by-row and
+ * lazy, `__debugInfo` on the result set reports count + items, and DTO
+ * projection is routed through cached hydrator closures.
+ *
+ * Unlike cake60's SQL `ResultSetFactory`, there is no `Alias__field` column
+ * nesting: Mongo rows are already nested. Association deconstruction
+ * (1-1 / 1-N / N-N) is handled by `EagerLoader::loadExternal()`, not here.
+ *
+ * @see cake60/src/ORM/ResultSetFactory.php (API surface only)
+ * @see elastic-search/src/ResultSet.php (simpler sibling)
+ * @template T of array|\Crustum\Mongo\ODM\Document
  */
 final class ResultSetFactory
 {
@@ -19,6 +33,27 @@ final class ResultSetFactory
      * @var class-string<\Crustum\Mongo\ODM\Document>
      */
     private readonly string $documentClass;
+
+    /**
+     * The result set class to wrap hydrated rows in.
+     *
+     * @var class-string<\Cake\Datasource\ResultSetInterface<array-key, mixed>>
+     */
+    protected string $resultSetClass = ResultSet::class;
+
+    /**
+     * Cached DtoMapper instance.
+     *
+     * @var \Cake\ORM\DtoMapper|null
+     */
+    protected ?DtoMapper $dtoMapper = null;
+
+    /**
+     * Cached DTO hydrator closures by class name.
+     *
+     * @var array<class-string, \Closure(array): object>
+     */
+    protected static array $dtoHydrators = [];
 
     /**
      * Constructor.
@@ -35,14 +70,19 @@ final class ResultSetFactory
      *
      * @param iterable<array-key, mixed> $results
      * @param array{hydrate?: bool, source?: string|null} $options
-     * @return \Crustum\Mongo\ODM\ResultSet<array-key, mixed>
+     * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
      */
-    public function createResultSet(iterable $results, array $options = []): ResultSet
+    public function createResultSet(iterable $results, array $options = []): ResultSetInterface
     {
         $options += ['hydrate' => true, 'source' => null];
 
         if (!$options['hydrate']) {
-            return new ResultSet($results);
+            $rows = [];
+            foreach ($results as $key => $row) {
+                $rows[$key] = is_array($row) ? $this->mapIdField($row) : $row;
+            }
+
+            return new $this->resultSetClass($rows);
         }
 
         $hydrated = [];
@@ -50,7 +90,23 @@ final class ResultSetFactory
             $hydrated[$key] = $this->hydrateValue($row, $options['source']);
         }
 
-        return new ResultSet($hydrated);
+        return new $this->resultSetClass($hydrated);
+    }
+
+    /**
+     * Renames the canonical `_id` key to `id` in a raw row.
+     *
+     * @param array<string, mixed> $row The raw row.
+     * @return array<string, mixed>
+     */
+    private function mapIdField(array $row): array
+    {
+        if (array_key_exists('_id', $row) && !array_key_exists('id', $row)) {
+            $row['id'] = $row['_id'];
+            unset($row['_id']);
+        }
+
+        return $row;
     }
 
     /**
@@ -94,5 +150,96 @@ final class ResultSetFactory
             'markNew' => false,
             'source' => $source,
         ]);
+    }
+
+    /**
+     * Hydrate a row into a DTO.
+     *
+     * Supports two patterns:
+     * - Static `createFromArray($data, $nested)` factory method (cakephp-dto style)
+     * - Constructor with named parameters (DtoMapper reflection)
+     *
+     * @param array $row Nested array data
+     * @param class-string $dtoClass DTO class name
+     * @return object
+     */
+    public function hydrateDto(array $row, string $dtoClass): object
+    {
+        return $this->getDtoHydrator($dtoClass)($row);
+    }
+
+    /**
+     * Get a cached hydrator closure for a DTO class.
+     *
+     * @param class-string $dtoClass DTO class name
+     * @return \Closure(array): object
+     */
+    public function getDtoHydrator(string $dtoClass): Closure
+    {
+        if (!isset(static::$dtoHydrators[$dtoClass])) {
+            if (method_exists($dtoClass, 'createFromArray')) {
+                static::$dtoHydrators[$dtoClass] = static function (array $row) use ($dtoClass): object {
+                    return $dtoClass::createFromArray($row, true);
+                };
+            } else {
+                $mapper = $this->getDtoMapper();
+                static::$dtoHydrators[$dtoClass] = static function (array $row) use ($mapper, $dtoClass): object {
+                    return $mapper->map($row, $dtoClass);
+                };
+            }
+        }
+
+        return static::$dtoHydrators[$dtoClass];
+    }
+
+    /**
+     * Clears the DTO hydrator cache.
+     *
+     * @return void
+     */
+    public static function clearDtoHydratorCache(): void
+    {
+        static::$dtoHydrators = [];
+    }
+
+    /**
+     * Get or create the DtoMapper instance.
+     *
+     * @return \Cake\ORM\DtoMapper
+     */
+    public function getDtoMapper(): DtoMapper
+    {
+        return $this->dtoMapper ??= new DtoMapper();
+    }
+
+    /**
+     * Sets the result set class to use.
+     *
+     * @param class-string<\Cake\Datasource\ResultSetInterface<array-key, mixed>> $resultSetClass Class name.
+     * @return $this
+     */
+    public function setResultSetClass(string $resultSetClass): static
+    {
+        if (!is_subclass_of($resultSetClass, ResultSetInterface::class)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid ResultSet class `%s`. It must implement `%s`',
+                $resultSetClass,
+                ResultSetInterface::class,
+            ));
+        }
+
+        $this->resultSetClass = $resultSetClass;
+
+        return $this;
+    }
+
+    /**
+     * Gets the result set class to use.
+     *
+     * @return class-string<\Cake\Datasource\ResultSetInterface<array-key, mixed>>
+     */
+    public function getResultSetClass(): string
+    {
+        return $this->resultSetClass;
     }
 }

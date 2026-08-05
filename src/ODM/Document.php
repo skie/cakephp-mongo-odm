@@ -153,11 +153,22 @@ class Document implements EntityInterface, ArrayAccess
     /**
      * Converts the entity into a BSON-friendly array representation.
      *
+     * The canonical `_id` field is exposed as `id` so results match the cake
+     * `Entity` contract (`toArray()`, JSON, groupBy, DTO mapping all see `id`).
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
-        return $this->exportValue($this->entityToArray());
+        $data = $this->exportValue($this->entityToArray());
+
+        if (array_key_exists('_id', $data)) {
+            $id = $data['_id'];
+            $data['id'] = $id instanceof ObjectId ? (string)$id : $id;
+            unset($data['_id']);
+        }
+
+        return $data;
     }
 
     /**

@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
+use Cake\Database\ExpressionInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
-use Cake\ORM\DtoMapper;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
@@ -57,6 +57,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      * @var class-string|null
      */
     protected ?string $dtoClass = null;
+
+    /**
+     * Result set factory used to decorate executed rows.
+     *
+     * @var \Crustum\Mongo\ODM\ResultSetFactory|null
+     */
+    protected ?ResultSetFactory $resultSetFactory = null;
 
     /**
      * Cache handler for this query, when caching is enabled.
@@ -175,6 +182,50 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Adds filter conditions, mapping the cake `id` field to the canonical
+     * Mongo `_id` so `where(['id' => X])` hits the primary key.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @param bool $overwrite Whether to overwrite existing conditions.
+     * @return $this
+     */
+    public function where(
+        ExpressionInterface|Closure|array|string|null $conditions = [],
+        array $types = [],
+        bool $overwrite = false,
+    ): static {
+        if (is_array($conditions)) {
+            $conditions = $this->normalizeIdConditions($conditions);
+        }
+
+        return parent::where($conditions, $types, $overwrite);
+    }
+
+    /**
+     * Recursively maps bare `id` condition keys to the canonical `_id`.
+     *
+     * @param array<int|string, mixed> $conditions The conditions.
+     * @return array<int|string, mixed>
+     */
+    protected function normalizeIdConditions(array $conditions): array
+    {
+        foreach ($conditions as $key => $value) {
+            if (is_string($key) && ($key === 'id' || preg_match('/^.+\.id$/', $key))) {
+                $conditions['_id'] = $value;
+                unset($conditions[$key]);
+                continue;
+            }
+
+            if (is_array($value)) {
+                $conditions[$key] = $this->normalizeIdConditions($value);
+            }
+        }
+
+        return $conditions;
+    }
+
+    /**
      * Returns the applied query options.
      *
      * @return array<string, mixed>
@@ -209,6 +260,89 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Returns the first result from the executed query, or `null`.
+     *
+     * @return mixed The first row (Document, DTO, or array) or null.
+     */
+    public function first(): mixed
+    {
+        return $this->all()->first();
+    }
+
+    /**
+     * Returns the number of matching documents.
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return 0;
+        }
+
+        return $connection->getCollection($this->getCollection())->countDocuments($this->getBuilder()->getFilter());
+    }
+
+    /**
+     * Appends fields to the projection without overwriting the existing list.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int ...$fields Fields to add.
+     * @return $this
+     */
+    public function selectAlso(ExpressionInterface|Closure|array|string|float|int ...$fields): static
+    {
+        foreach ($fields as $field) {
+            $this->select($field);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Selects all fields for the given collection except the excluded ones.
+     *
+     * When the collection exposes a schema the excluded fields are removed from
+     * the field list; otherwise an exclusion projection is built instead.
+     *
+     * @param string $collection The collection name.
+     * @param array<string> $excludedFields The un-aliased field names not to select.
+     * @param bool $overwrite Whether to overwrite the existing projection.
+     * @return $this
+     */
+    public function selectAllExcept(string $collection, array $excludedFields, bool $overwrite = false): static
+    {
+        $fields = $this->collectionFields($collection);
+        if ($fields === []) {
+            return $this->select(array_fill_keys($excludedFields, 0), $overwrite);
+        }
+
+        return $this->select(array_values(array_diff($fields, $excludedFields)), $overwrite);
+    }
+
+    /**
+     * Returns the schema columns for a collection, when available.
+     *
+     * @param string $collection The collection name.
+     * @return list<string>
+     */
+    protected function collectionFields(string $collection): array
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return [];
+        }
+
+        try {
+            $schema = $connection->getSchemaCollection()->describe($collection);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_values($schema->columns());
     }
 
     /**
@@ -394,6 +528,36 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Returns the configured DTO projection class.
+     *
+     * @return class-string|null
+     */
+    public function getDtoClass(): ?string
+    {
+        return $this->dtoClass;
+    }
+
+    /**
+     * Whether DTO projection is enabled for this query.
+     *
+     * @return bool
+     */
+    public function isDtoProjectionEnabled(): bool
+    {
+        return $this->dtoClass !== null;
+    }
+
+    /**
+     * Gets the result set factory used to decorate executed rows.
+     *
+     * @return \Crustum\Mongo\ODM\ResultSetFactory
+     */
+    public function resultSetFactory(): ResultSetFactory
+    {
+        return $this->resultSetFactory ??= new ResultSetFactory();
+    }
+
+    /**
      * Executes and decorates the database query.
      *
      * Rows are hydrated into Documents (or projected into DTOs when configured),
@@ -435,33 +599,27 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     protected function decorate(iterable $rows): ResultSet
     {
-        if ($this->dtoClass !== null) {
-            $mapper = new DtoMapper();
-            $dtos = [];
-            foreach ($rows as $row) {
-                $dtos[] = $mapper->map((array)$row, $this->dtoClass);
-            }
+        $resultSet = new ResultSet($rows, $this);
 
-            $resultSet = new ResultSet($dtos);
-        } else {
-            $resultSet = (new ResultSetFactory())->createResultSet($rows, [
-                'hydrate' => $this->hydrate,
-                'source' => $this->repository?->getRegistryAlias() ?? $this->getCollection(),
-            ]);
-
-            if ($this->hydrate) {
-                $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
-                if (!$loaded instanceof ResultSet) {
-                    $resultSet = new ResultSet($loaded);
-                }
+        if ($this->hydrate && $this->dtoClass === null) {
+            $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
+            if (!$loaded instanceof ResultSet) {
+                $resultSet = new ResultSet($loaded, $this);
             }
         }
 
         foreach ($this->formatters as $formatter) {
-            $formatted = $formatter($resultSet);
+            $formatted = $formatter($resultSet, $this);
             $resultSet = $formatted instanceof ResultSet
                 ? $formatted
-                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted);
+                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, $this);
+        }
+
+        // DTO projection runs AFTER all other formatters so behaviors see arrays/documents
+        if ($this->dtoClass !== null) {
+            $hydrator = $this->resultSetFactory()->getDtoHydrator($this->dtoClass);
+            $mapped = $resultSet->map(fn(mixed $row): object => $hydrator((array)$row));
+            $resultSet = $mapped instanceof ResultSet ? $mapped : new ResultSet($mapped, $this);
         }
 
         return $resultSet;

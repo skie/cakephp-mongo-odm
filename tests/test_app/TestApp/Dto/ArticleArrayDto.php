@@ -9,7 +9,7 @@ namespace TestApp\Dto;
 readonly class ArticleArrayDto
 {
     public function __construct(
-        public int $id,
+        public string $id,
         public string $title,
         public ?string $body = null,
         public ?AuthorArrayDto $author = null,

@@ -15,7 +15,6 @@ use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMap;
 use InvalidArgumentException;
 use IteratorAggregate;
-use Throwable;
 use Traversable;
 
 /**
@@ -320,42 +319,6 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
-     * Appends fields to the projection without overwriting the existing list.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int ...$fields Fields to add.
-     * @return $this
-     */
-    public function selectAlso(ExpressionInterface|Closure|array|string|float|int ...$fields): static
-    {
-        foreach ($fields as $field) {
-            $this->select($field);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Selects all fields for the given collection except the excluded ones.
-     *
-     * When the collection exposes a schema the excluded fields are removed from
-     * the field list; otherwise an exclusion projection is built instead.
-     *
-     * @param string $collection The collection name.
-     * @param array<string> $excludedFields The un-aliased field names not to select.
-     * @param bool $overwrite Whether to overwrite the existing projection.
-     * @return $this
-     */
-    public function selectAllExcept(string $collection, array $excludedFields, bool $overwrite = false): static
-    {
-        $fields = $this->collectionFields($collection);
-        if ($fields === []) {
-            return $this->select(array_fill_keys($excludedFields, 0), $overwrite);
-        }
-
-        return $this->select(array_values(array_diff($fields, $excludedFields)), $overwrite);
-    }
-
-    /**
      * Enables result casting.
      *
      * @return $this
@@ -463,33 +426,6 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
-     * Returns the first document or `null`.
-     *
-     * @return array<string, mixed>|null
-     */
-    public function first(): ?array
-    {
-        $documents = $this->all()->first();
-
-        return is_array($documents) ? $documents : null;
-    }
-
-    /**
-     * Returns the number of matching documents.
-     *
-     * @return int
-     */
-    public function count(): int
-    {
-        $connection = $this->getConnection();
-        if (!$connection instanceof Connection) {
-            return 0;
-        }
-
-        return $connection->getCollection($this->collection)->countDocuments($this->builder->getFilter());
-    }
-
-    /**
      * Returns the distinct values for a field.
      *
      * @param string $field The field name.
@@ -589,26 +525,5 @@ class SelectQuery extends Query implements IteratorAggregate
         }
 
         return $row;
-    }
-
-    /**
-     * Returns the schema columns for a collection, when available.
-     *
-     * @param string $collection The collection name.
-     * @return list<string>
-     */
-    protected function collectionFields(string $collection): array
-    {
-        if (!$this->connection instanceof Connection) {
-            return [];
-        }
-
-        try {
-            $schema = $this->connection->getSchemaCollection()->describe($collection);
-        } catch (Throwable) {
-            return [];
-        }
-
-        return array_values($schema->columns());
     }
 }

@@ -46,17 +46,20 @@ class ObjectIdType extends BaseType
     /**
      * Convert ObjectId values to PHP strings
      *
+     * Non-ObjectId values pass through unchanged so integer foreign keys keep
+     * their type.
+     *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return string|null
+     * @return string|mixed|null
      */
-    public function toPHP(mixed $value, MongoDriver $driver): ?string
+    public function toPHP(mixed $value, MongoDriver $driver): mixed
     {
-        if ($value === null) {
-            return null;
+        if ($value instanceof ObjectId) {
+            return (string)$value;
         }
 
-        return (string)$value;
+        return $value;
     }
 
     /**

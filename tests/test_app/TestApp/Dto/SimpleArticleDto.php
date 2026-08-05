@@ -9,12 +9,12 @@ namespace TestApp\Dto;
 readonly class SimpleArticleDto
 {
     /**
-     * @param int $id
+     * @param string $id
      * @param string $title
      * @param string|null $body
      */
     public function __construct(
-        public int $id,
+        public string $id,
         public string $title,
         public ?string $body = null,
     ) {

@@ -400,32 +400,6 @@ class SelectQueryParityTest extends TestCase
     }
 
     /**
-     * Test selectAlso() appends fields to the projection.
-     *
-     * @return void
-     */
-    public function testSelectAlso(): void
-    {
-        $query = new SelectQuery($this->connection, 'articles');
-        $query->select(['title'])->selectAlso('body', ['author_id']);
-
-        $this->assertOptions(['projection' => ['title' => 1, 'body' => 1, 'author_id' => 1]], $query->compile());
-    }
-
-    /**
-     * Test selectAllExcept() with an unknown collection builds an exclusion projection.
-     *
-     * @return void
-     */
-    public function testSelectAllExceptFallback(): void
-    {
-        $query = new SelectQuery($this->connection, 'select_all_except_test');
-        $query->selectAllExcept('select_all_except_test', ['body', 'excerpt']);
-
-        $this->assertOptions(['projection' => ['body' => 0, 'excerpt' => 0]], $query->compile());
-    }
-
-    /**
      * Test results-casting toggles.
      *
      * @return void
