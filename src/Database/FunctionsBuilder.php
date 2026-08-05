@@ -221,7 +221,7 @@ class FunctionsBuilder
      */
     public function rowNumber(): FunctionExpression
     {
-        return new FunctionExpression('$rowNumber');
+        return new FunctionExpression('$documentNumber');
     }
 
     /**

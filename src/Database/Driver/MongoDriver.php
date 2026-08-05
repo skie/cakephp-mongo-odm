@@ -111,7 +111,30 @@ class MongoDriver implements DriverInterface
             DriverFeature::ChangeStreams => true,
             DriverFeature::SearchIndex,
             DriverFeature::VectorSearch => false,
+            DriverFeature::Window => $this->supportsWindowFunctions(),
         };
+    }
+
+    /**
+     * Returns whether the connected server supports window functions.
+     *
+     * `$setWindowFields` requires MongoDB 5.0+; older servers reject the
+     * stage at execution time, so capability must be probed up front.
+     *
+     * @return bool
+     */
+    protected function supportsWindowFunctions(): bool
+    {
+        try {
+            $server = $this->getManager()->selectServer();
+            $buildInfo = $server->executeCommand('admin', new \MongoDB\Driver\Command(['buildInfo' => 1]))->toArray()[0] ?? null;
+            $version = $buildInfo->version ?? '';
+            $parts = explode('.', $version);
+
+            return isset($parts[0]) && (int)$parts[0] >= 5;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

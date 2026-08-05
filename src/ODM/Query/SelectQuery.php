@@ -68,15 +68,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\Database\Connection|null $connection Database connection.
-     * @param string $collection BaseCollection name.
      * @param \Crustum\Mongo\ODM\BaseCollection|null $repository Repository to bind.
      */
     public function __construct(
-        ?Connection $connection = null,
-        string $collection = '',
         ?BaseCollection $repository = null,
     ) {
+        $connection = $repository?->getConnection();
+        $collection = $repository?->getCollection() ?? '';
         parent::__construct($connection, $collection);
         $this->eagerLoader = new EagerLoader();
         if ($repository instanceof BaseCollection) {
@@ -195,7 +193,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function firstOrFail(): mixed
     {
-        $result = $this->first();
+        $result = $this->all()->first();
         if ($result === null) {
             throw new RecordNotFoundException('No result was found.');
         }
@@ -249,7 +247,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function unhydrated(): UnhydratedSelectQuery
     {
         $builder = $this->getBuilder();
-        $query = new UnhydratedSelectQuery($this->getConnection(), $this->getCollection(), $this->repository);
+        $query = new UnhydratedSelectQuery($this->repository);
         $query->getBuilder()->where($builder->getFilter());
         $query->getBuilder()->select($builder->getProjection());
         $query->getBuilder()->orderBy($builder->getSort());

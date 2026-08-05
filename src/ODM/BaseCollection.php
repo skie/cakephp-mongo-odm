@@ -9,6 +9,7 @@ use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
 use Cake\Datasource\EntityInterface;
+use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\RulesChecker;
@@ -277,6 +278,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($this->collection === null) {
             $collection = namespaceSplit(static::class);
             $collection = substr(end($collection), 0, -10) ?: $this->alias;
+            if (!$collection || $collection === 'Base') {
+                $collection = $this->alias;
+            }
             if (!$collection) {
                 throw new CakeException(
                     'You must specify either the `alias` or the `collection` option for the constructor.',
@@ -702,12 +706,36 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Get the default connection name.
+     *
+     * This method is used to get the fallback connection name if an
+     * instance is created through the CollectionLocator without a connection.
+     *
+     * @return string
+     * @see \Crustum\Mongo\ODM\Locator\CollectionLocator::get()
+     */
+    public static function defaultConnectionName(): string
+    {
+        return 'default';
+    }
+
+    /**
      * Gets the connection used by this collection.
+     *
+     * Resolves the configured default connection lazily when no connection
+     * was injected, matching `Cake\ORM\Table::getConnection()`.
      *
      * @return \Crustum\Mongo\Database\Connection|null
      */
     public function getConnection(): ?Connection
     {
+        if (!$this->connection) {
+            $connection = ConnectionManager::get(static::defaultConnectionName());
+            if ($connection instanceof Connection) {
+                $this->connection = $connection;
+            }
+        }
+
         return $this->connection;
     }
 

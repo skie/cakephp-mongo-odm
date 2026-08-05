@@ -17,4 +17,5 @@ enum DriverFeature: string
     case SearchIndex = 'searchIndex';
     case ChangeStreams = 'changeStreams';
     case VectorSearch = 'vectorSearch';
+    case Window = 'window';
 }

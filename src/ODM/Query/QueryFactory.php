@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
-use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\BaseCollection;
 
 /**
@@ -21,7 +20,7 @@ final class QueryFactory
      */
     public function select(BaseCollection $repository): SelectQuery
     {
-        return new SelectQuery($this->connection($repository), $repository->getAlias(), $repository);
+        return new SelectQuery($repository);
     }
 
     /**
@@ -32,7 +31,7 @@ final class QueryFactory
      */
     public function unhydratedSelect(BaseCollection $repository): UnhydratedSelectQuery
     {
-        return new UnhydratedSelectQuery($this->connection($repository), $repository->getAlias(), $repository);
+        return new UnhydratedSelectQuery($repository);
     }
 
     /**
@@ -43,7 +42,7 @@ final class QueryFactory
      */
     public function insert(BaseCollection $repository): InsertQuery
     {
-        return new InsertQuery($this->connection($repository), $repository->getAlias(), $repository);
+        return new InsertQuery($repository->getConnection(), $repository->getCollection(), $repository);
     }
 
     /**
@@ -54,7 +53,7 @@ final class QueryFactory
      */
     public function update(BaseCollection $repository): UpdateQuery
     {
-        return new UpdateQuery($this->connection($repository), $repository->getAlias(), $repository);
+        return new UpdateQuery($repository->getConnection(), $repository->getCollection(), $repository);
     }
 
     /**
@@ -65,19 +64,6 @@ final class QueryFactory
      */
     public function delete(BaseCollection $repository): DeleteQuery
     {
-        return new DeleteQuery($this->connection($repository), $repository->getAlias(), $repository);
-    }
-
-    /**
-     * Resolves the connection from a repository.
-     *
-     * @param \Crustum\Mongo\ODM\BaseCollection $repository Repository.
-     * @return \Crustum\Mongo\Database\Connection|null
-     */
-    private function connection(BaseCollection $repository): ?Connection
-    {
-        $connection = $repository->getConnection();
-
-        return $connection instanceof Connection ? $connection : null;
+        return new DeleteQuery($repository->getConnection(), $repository->getCollection(), $repository);
     }
 }

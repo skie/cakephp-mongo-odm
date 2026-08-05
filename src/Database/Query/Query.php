@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Query;
 use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\FunctionsBuilder;
 use Crustum\Mongo\Database\TypeMapTrait;
 use Stringable;
 
@@ -40,6 +41,13 @@ abstract class Query implements Stringable
      * @var \Crustum\Mongo\Database\Query\QueryCompiler
      */
     protected QueryCompiler $builder;
+
+    /**
+     * The functions builder for this query.
+     *
+     * @var \Crustum\Mongo\Database\FunctionsBuilder|null
+     */
+    protected ?FunctionsBuilder $functionsBuilder = null;
 
     /**
      * The target collection name.
@@ -119,6 +127,16 @@ abstract class Query implements Stringable
     public function getBuilder(): QueryCompiler
     {
         return $this->builder;
+    }
+
+    /**
+     * Returns a functions builder for this query.
+     *
+     * @return \Crustum\Mongo\Database\FunctionsBuilder
+     */
+    public function func(): FunctionsBuilder
+    {
+        return $this->functionsBuilder ??= new FunctionsBuilder();
     }
 
     /**

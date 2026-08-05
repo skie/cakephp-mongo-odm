@@ -40,7 +40,7 @@ trait CommonQueryTrait
         }
 
         $this->repository = $repository;
-        $this->from($repository->getAlias());
+        $this->from($repository->getCollection());
         $connection = $repository->getConnection();
         if ($connection instanceof Connection) {
             $this->setConnection($connection);
