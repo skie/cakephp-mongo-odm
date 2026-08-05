@@ -130,7 +130,10 @@ class SchemaManagerTest extends TestCase
     }
 
     /**
-     * Test dropCollection returns false for a missing collection.
+     * Test dropCollection for a missing collection.
+     *
+     * MongoDB 6+ reports `ok: 1` even when the collection does not exist,
+     * so dropCollection returns true (it is idempotent).
      *
      * @return void
      */
@@ -139,7 +142,7 @@ class SchemaManagerTest extends TestCase
         $name = 'sm_missing_' . uniqid();
         $this->connection->getDatabase()->dropCollection($name);
 
-        $this->assertFalse($this->manager->dropCollection($name));
+        $this->assertTrue($this->manager->dropCollection($name));
     }
 
     /**

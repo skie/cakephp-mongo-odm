@@ -54,19 +54,26 @@ class Document implements EntityInterface, ArrayAccess
             $this->setSource($options['source']);
         }
 
+        if ($options['markNew'] !== null) {
+            $this->setNew($options['markNew']);
+        }
+
         if ($data !== []) {
+            $this->setOriginalField(array_keys($data));
+
             $this->patch($data, [
+                'asOriginal' => true,
                 'guard' => $options['guard'],
                 'setter' => $options['useSetters'],
             ]);
+
+            if ($options['markNew'] === null && array_key_exists('_id', $data)) {
+                $this->setNew(false);
+            }
         }
 
         if ($options['markClean']) {
             $this->clean();
-        }
-
-        if ($options['markNew'] !== null) {
-            $this->setNew($options['markNew']);
         }
     }
 
@@ -110,18 +117,23 @@ class Document implements EntityInterface, ArrayAccess
     public function setId(ObjectId|string|null $id): static
     {
         $this->set('_id', is_string($id) ? new ObjectId($id) : $id);
+        $this->setNew(false);
 
         return $this;
     }
 
     /**
-     * Returns whether this document has no MongoDB identifier.
+     * Returns whether this document is considered new.
+     *
+     * Follows the cake5 `EntityTrait` contract: the `_new` flag is the source
+     * of truth, so `markNew` / `setNew()` control it. A document constructed
+     * with a present `_id` is automatically marked not-new (see constructor).
      *
      * @return bool
      */
     public function isNew(): bool
     {
-        return $this->get('_id') === null;
+        return $this->_new;
     }
 
     /**

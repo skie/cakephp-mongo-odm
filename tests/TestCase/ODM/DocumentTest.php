@@ -3,13 +3,25 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
+use Cake\Datasource\Exception\MissingPropertyException;
 use Crustum\Mongo\ODM\Document;
+use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use Exception;
+use InvalidArgumentException;
+use Mockery;
 use MongoDB\BSON\Decimal128;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Model\BSONDocument;
+use stdClass;
+use TestApp\Model\Document\Extending;
+use TestApp\Model\Document\NonExtending;
+use TestApp\Model\Document\VirtualUser;
 
-final class DocumentTest extends TestCase
+/**
+ * Document test case.
+ */
+class DocumentTest extends TestCase
 {
     public function testIdAndNewState(): void
     {
@@ -54,5 +66,1808 @@ final class DocumentTest extends TestCase
         $this->assertTrue($document->isDirty('display'));
         $this->assertSame(['name'], $document->getOriginalFields());
         $this->assertSame(['display' => 'ONE'], $document->toArray());
+    }
+
+    /**
+     * Tests setting a single property in an entity without custom setters
+     */
+    public function testSetOneParamNoSetters(): void
+    {
+        $this->markTestSkipped('ODM missing plain `id` field semantics: `id` maps to `_id` in the ODM — see F13');
+
+        $entity = new Document();
+
+        $this->assertNull($entity->getOriginal('foo'));
+        $entity->set('foo', 'bar', ['asOriginal' => true]);
+        $this->assertSame('bar', $entity->foo);
+        $this->assertSame('bar', $entity->getOriginal('foo'));
+
+        $entity->set('foo', 'baz');
+        $this->assertSame('baz', $entity->foo);
+        $this->assertSame('bar', $entity->getOriginal('foo'));
+
+        $entity->set('id', 1, ['asOriginal' => true]);
+        $this->assertSame(1, $entity->id);
+        $this->assertSame(1, $entity->getOriginal('id'));
+        $this->assertSame('bar', $entity->getOriginal('foo'));
+    }
+
+    /**
+     * Tests setting multiple properties without custom setters
+     */
+    public function testPatchPropertiesNoSetters(): void
+    {
+        $this->markTestSkipped('ODM missing plain `id` field semantics: `id` maps to `_id` in the ODM — see F13');
+
+        $entity = new Document();
+        $entity->setAccess('*', true);
+
+        $entity->patch(['foo' => 'bar', 'id' => 1], ['asOriginal' => true]);
+        $this->assertSame('bar', $entity->foo);
+        $this->assertSame(1, $entity->id);
+
+        $entity->patch(['foo' => 'baz', 'id' => 2, 'thing' => 3]);
+        $this->assertSame('baz', $entity->foo);
+        $this->assertSame(2, $entity->id);
+        $this->assertSame(3, $entity->thing);
+        $this->assertSame('bar', $entity->getOriginal('foo'));
+        $this->assertSame(1, $entity->getOriginal('id'));
+
+        $entity->patch(['foo', 'bar']);
+        $this->assertSame('foo', $entity->get('0'));
+        $this->assertSame('bar', $entity->get('1'));
+
+        $entity->patch(['sample']);
+        $this->assertSame('sample', $entity->get('0'));
+    }
+
+    public function testEntitySetException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot set an empty field');
+
+        $entity = new Document();
+        $entity->set('', 'value');
+    }
+
+    /**
+     * Test that getOriginal() retains falsey values.
+     */
+    public function testGetOriginal(): void
+    {
+        $entity = new Document(
+            ['false' => false, 'null' => null, 'zero' => 0, 'empty' => ''],
+            ['markNew' => true],
+        );
+        $this->assertNull($entity->getOriginal('null'));
+        $this->assertFalse($entity->getOriginal('false'));
+        $this->assertSame(0, $entity->getOriginal('zero'));
+        $this->assertSame('', $entity->getOriginal('empty'));
+
+        $entity->patch(['false' => 'y', 'null' => 'y', 'zero' => 'y', 'empty' => '']);
+        $this->assertNull($entity->getOriginal('null'));
+        $this->assertFalse($entity->getOriginal('false'));
+        $this->assertSame(0, $entity->getOriginal('zero'));
+        $this->assertSame('', $entity->getOriginal('empty'));
+    }
+
+    /**
+     * Test that getOriginal throws an exception for fields without original value
+     * when called with second parameter "false"
+     */
+    public function testGetOriginalFallback(): void
+    {
+        $entity = new Document(
+            ['foo' => 'foo', 'bar' => 'bar'],
+            ['markNew' => true],
+        );
+        $this->assertNull($entity->getOriginal('baz', true));
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot retrieve original value for field `baz`');
+        $entity->getOriginal('baz', false);
+    }
+
+    /**
+     * Test extractOriginal()
+     */
+    public function testExtractOriginal(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ], ['markNew' => true]);
+        $entity->set('body', 'updated body');
+        $result = $entity->extractOriginal(['id', 'title', 'body', 'null', 'undefined']);
+        $expected = [
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ];
+        $this->assertEquals($expected, $result);
+
+        $result = $entity->extractOriginalChanged(['id', 'title', 'body', 'null', 'undefined']);
+        $expected = [
+            'body' => 'no',
+        ];
+        $this->assertEquals($expected, $result);
+
+        $entity->set('null', 'not null');
+        $result = $entity->extractOriginalChanged(['id', 'title', 'body', 'null', 'undefined']);
+        $expected = [
+            'null' => null,
+            'body' => 'no',
+        ];
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Test that all original values are returned properly
+     */
+    public function testExtractOriginalValues(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ], ['markNew' => true]);
+        $entity->set('body', 'updated body');
+        $result = $entity->getOriginalValues();
+        $expected = [
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ];
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Tests setting a single property using a setter function
+     */
+    public function testSetOneParamWithSetter(): void
+    {
+        $entity = new class extends Document {
+            protected function _setName(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->name);
+    }
+
+    /**
+     * Tests setting multiple properties using a setter function
+     */
+    public function testMultipleWithSetter(): void
+    {
+        $entity = new class extends Document {
+            protected function _setName(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+
+            protected function _setStuff(?array $stuff): array
+            {
+                return ['c', 'd'];
+            }
+        };
+        $entity->setAccess('*', true);
+        $entity->patch(['name' => 'Jones', 'stuff' => ['a', 'b']]);
+        $this->assertSame('Dr. Jones', $entity->name);
+        $this->assertEquals(['c', 'd'], $entity->stuff);
+    }
+
+    /**
+     * Tests that it is possible to bypass the setters
+     */
+    public function testBypassSetters(): void
+    {
+        $entity = new class extends Document {
+            protected function _setName(?string $name): string
+            {
+                throw new Exception('_setName should not have been called');
+            }
+
+            protected function _setStuff(?array $stuff): array
+            {
+                throw new Exception('_setStuff should not have been called');
+            }
+        };
+        $entity->setAccess('*', true);
+
+        $entity->set('name', 'Jones', ['setter' => false]);
+        $this->assertSame('Jones', $entity->name);
+
+        $entity->set('stuff', 'Thing', ['setter' => false]);
+        $this->assertSame('Thing', $entity->stuff);
+
+        $entity->patch(['name' => 'foo', 'stuff' => 'bar'], ['setter' => false]);
+        $this->assertSame('bar', $entity->stuff);
+    }
+
+    /**
+     * Tests that the constructor will set initial properties
+     */
+    public function testConstructor(): void
+    {
+        $entity = Mockery::mock(Document::class)->makePartial();
+
+        $entity
+            ->shouldReceive('patch')
+            ->with(['a' => 'b', 'c' => 'd'], ['setter' => true, 'guard' => false, 'asOriginal' => true])
+            ->once();
+
+        $entity->shouldReceive('patch')
+            ->with(['foo' => 'bar'], ['setter' => false, 'guard' => false, 'asOriginal' => true])
+            ->once();
+
+        $entity->__construct(['a' => 'b', 'c' => 'd']);
+        $entity->__construct(['foo' => 'bar'], ['useSetters' => false]);
+    }
+
+    /**
+     * Tests that the constructor will set initial properties and pass the guard
+     * option along
+     */
+    public function testConstructorWithGuard(): void
+    {
+        $entity = Mockery::mock(Document::class)->makePartial();
+
+        $entity
+            ->shouldReceive('patch')
+            ->with(['foo' => 'bar'], ['setter' => true, 'guard' => true, 'asOriginal' => true])
+            ->once();
+
+        $entity->__construct(['foo' => 'bar'], ['guard' => true]);
+    }
+
+    /**
+     * Tests getting properties with no custom getters
+     */
+    public function testGetNoGetters(): void
+    {
+        $entity = new Document(['id' => 1, 'foo' => 'bar']);
+        $this->assertSame(1, $entity->get('id'));
+        $this->assertSame('bar', $entity->get('foo'));
+    }
+
+    public function testRequirePresenceException(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Property `not_present` does not exist for the entity `Crustum\Mongo\ODM\Document`');
+
+        $entity = new Document();
+        $entity->requireFieldPresence();
+        $entity->{'not_present'};
+    }
+
+    public function testGetOrFailException(): void
+    {
+        $this->expectException(MissingPropertyException::class);
+        $this->expectExceptionMessage('Property `not_present` does not exist for the entity `Crustum\Mongo\ODM\Document`');
+
+        $entity = new Document();
+        $entity->getRequiredOrFail('not_present');
+    }
+
+    /**
+     * Test to ensure that requireFieldPresence does not affect get
+     */
+    public function testGetNoException(): void
+    {
+        $entity = new Document();
+        $entity->requireFieldPresence();
+        $this->assertNull($entity->get('not_present'));
+    }
+
+    public function testRequirePresenceNoException(): void
+    {
+        $entity = new Document(['is_present' => null]);
+        $entity->requireFieldPresence();
+        $this->assertNull($entity->get('is_present'));
+
+        $entity = new VirtualUser();
+        $entity->requireFieldPresence();
+        $this->assertSame('bonus', $entity->get('bonus'));
+    }
+
+    /**
+     * Tests get with custom getter
+     */
+    public function testGetCustomGetters(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->get('name'));
+        $this->assertSame('Dr. Jones', $entity->get('name'));
+    }
+
+    /**
+     * Tests get with custom getter
+     */
+    public function testGetCustomGettersAfterSet(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->get('name'));
+        $this->assertSame('Dr. Jones', $entity->get('name'));
+
+        $entity->set('name', 'Mark');
+        $this->assertSame('Dr. Mark', $entity->get('name'));
+        $this->assertSame('Dr. Mark', $entity->get('name'));
+    }
+
+    /**
+     * Tests that the get cache is cleared by unset.
+     */
+    public function testGetCacheClearedByUnset(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->get('name'));
+
+        $entity->unset('name');
+        $this->assertSame('Dr. ', $entity->get('name'));
+    }
+
+    /**
+     * Test getting camelcased virtual fields.
+     */
+    public function testGetCamelCasedProperties(): void
+    {
+        $entity = new class extends Document {
+            protected function _getListIdName(): string
+            {
+                return 'A name';
+            }
+        };
+        $entity->setVirtual(['ListIdName']);
+        $this->assertSame('A name', $entity->list_id_name, 'underscored virtual field should be accessible');
+        $this->assertSame('A name', $entity->listIdName, 'Camelbacked virtual field should be accessible');
+    }
+
+    /**
+     * Test magic property setting with no custom setter
+     */
+    public function testMagicSet(): void
+    {
+        $entity = new Document();
+        $entity->name = 'Jones';
+        $this->assertSame('Jones', $entity->name);
+        $entity->name = 'George';
+        $this->assertSame('George', $entity->name);
+    }
+
+    /**
+     * Tests magic set with custom setter function
+     */
+    public function testMagicSetWithSetter(): void
+    {
+        $entity = new class extends Document {
+            protected function _setName(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->name = 'Jones';
+        $this->assertSame('Dr. Jones', $entity->name);
+    }
+
+    /**
+     * Tests magic set with custom setter function using a Title cased property
+     */
+    public function testMagicSetWithSetterTitleCase(): void
+    {
+        $entity = new class extends Document {
+            protected function _setName(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->Name = 'Jones';
+        $this->assertSame('Dr. Jones', $entity->Name);
+    }
+
+    /**
+     * Tests the magic getter with a custom getter function
+     */
+    public function testMagicGetWithGetter(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->name);
+    }
+
+    /**
+     * Tests magic get with custom getter function using a Title cased property
+     */
+    public function testMagicGetWithGetterTitleCase(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+        };
+        $entity->set('Name', 'Jones');
+        $this->assertSame('Dr. Jones', $entity->Name);
+    }
+
+    /**
+     * Test indirectly modifying internal properties
+     */
+    public function testIndirectModification(): void
+    {
+        $entity = new Document();
+        $entity->things = ['a', 'b'];
+        $entity->things[] = 'c';
+        $this->assertEquals(['a', 'b', 'c'], $entity->things);
+    }
+
+    /**
+     * Tests has() method
+     */
+    public function testHas(): void
+    {
+        $entity = new Document(['id' => 1]);
+        $entity->name = 'Juan';
+        $entity->foo = null;
+        $this->assertTrue($entity->has('id'));
+        $this->assertTrue($entity->has('name'));
+        $this->assertTrue($entity->has('foo'));
+        $this->assertFalse($entity->has('last_name'));
+
+        $this->assertTrue($entity->has(['id']));
+        $this->assertTrue($entity->has(['id', 'name']));
+        $this->assertTrue($entity->has(['id', 'foo']));
+        $this->assertFalse($entity->has(['id', 'nope']));
+
+        $entity = new class extends Document {
+            protected function _getThings(): never
+            {
+                throw new Exception('_getThings() should not have been called');
+            }
+        };
+        $this->assertTrue($entity->has('things'));
+    }
+
+    /**
+     * Tests unset one property at a time
+     */
+    public function testUnset(): void
+    {
+        $entity = new Document(['id' => 1, 'name' => 'bar']);
+        $entity->unset('id');
+        $this->assertFalse($entity->has('id'));
+        $this->assertTrue($entity->has('name'));
+        $entity->unset('name');
+        $this->assertFalse($entity->has('id'));
+    }
+
+    /**
+     * Unsetting a property should not mark it as dirty.
+     */
+    public function testUnsetMakesClean(): void
+    {
+        $entity = new Document(['id' => 1, 'name' => 'bar']);
+        $this->assertTrue($entity->isDirty('name'));
+        $entity->unset('name');
+        $this->assertFalse($entity->isDirty('name'), 'Removed properties are not dirty.');
+    }
+
+    /**
+     * Tests unset with multiple properties
+     */
+    public function testUnsetMultiple(): void
+    {
+        $entity = new Document(['id' => 1, 'name' => 'bar', 'thing' => 2]);
+        $entity->unset(['id', 'thing']);
+        $this->assertFalse($entity->has('id'));
+        $this->assertTrue($entity->has('name'));
+        $this->assertFalse($entity->has('thing'));
+    }
+
+    /**
+     * Tests the magic __isset() method
+     */
+    public function testMagicIsset(): void
+    {
+        $entity = new Document(['id' => 1, 'name' => 'Juan', 'foo' => null]);
+        $this->assertTrue(isset($entity->id));
+        $this->assertTrue(isset($entity->name));
+        $this->assertFalse(isset($entity->foo));
+        $this->assertFalse(isset($entity->thing));
+    }
+
+    /**
+     * Tests the magic __unset() method
+     */
+    public function testMagicUnset(): void
+    {
+        $entity = new Document(['foo' => 'bar']);
+
+        unset($entity->foo);
+
+        $this->assertFalse($entity->has('foo'));
+    }
+
+    /**
+     * Tests isset with array access
+     */
+    public function testIssetArrayAccess(): void
+    {
+        $entity = new Document(['id' => 1, 'name' => 'Juan', 'foo' => null]);
+        $this->assertArrayHasKey('id', $entity);
+        $this->assertArrayHasKey('name', $entity);
+        $this->assertArrayNotHasKey('foo', $entity);
+        $this->assertArrayNotHasKey('thing', $entity);
+    }
+
+    /**
+     * Tests get property with array access
+     */
+    public function testGetArrayAccess(): void
+    {
+        $entity = Mockery::spy(Document::class)->makePartial();
+
+        $entity['foo'];
+        $entity['bar'];
+
+        $entity->shouldHaveReceived('get')
+            ->with('foo')
+            ->once();
+
+        $entity->shouldHaveReceived('get')
+            ->with('bar')
+            ->once();
+    }
+
+    /**
+     * Tests set with array access
+     */
+    public function testSetArrayAccess(): void
+    {
+        $entity = Mockery::spy(Document::class)->makePartial();
+        $entity->setAccess('*', true);
+
+        $entity['foo'] = 1;
+        $entity['bar'] = 2;
+
+        $entity->shouldHaveReceived('set')
+            ->with('foo', 1)
+            ->once();
+
+        $entity->shouldHaveReceived('set')
+            ->with('bar', 2)
+            ->once();
+    }
+
+    /**
+     * Tests unset with array access
+     */
+    public function testUnsetArrayAccess(): void
+    {
+        $entity = new Document(['foo' => 'bar']);
+
+        unset($entity['foo']);
+
+        $this->assertFalse($entity->has('foo'));
+    }
+
+    /**
+     * Tests that the method cache will only report the methods for the called class,
+     * this is, calling methods defined in another entity will not cause a fatal error
+     * when trying to call directly an inexistent method in another class
+     */
+    public function testMethodCache(): void
+    {
+        $entity = new class extends Document {
+            protected function _setFoo(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+
+            protected function _getBar(string $bar): string
+            {
+                return 'Dir. ' . $bar;
+            }
+        };
+        $entity2 = new class extends Document {
+            protected function _setBar(?string $name): string
+            {
+                return 'DrDr. ' . $name;
+            }
+        };
+
+        $entity = $entity->set('foo', 'Someone');
+        $this->assertEquals('Dr. Someone', $entity->get('foo'));
+        $entity2 = $entity2->set('bar', 'Someone');
+        $this->assertEquals('DrDr. Someone', $entity2->get('bar'));
+    }
+
+    /**
+     * Tests that long properties in the entity are inflected correctly
+     */
+    public function testSetGetLongPropertyNames(): void
+    {
+        $entity = new class extends Document {
+            protected function _setVeryLongProperty(?string $name): string
+            {
+                return 'Dr. ' . $name;
+            }
+
+            protected function _getVeryLongProperty(?string $veryLongProperty): string
+            {
+                return 'Dir. ' . $veryLongProperty;
+            }
+        };
+        $this->assertEquals('Dir. ', $entity->get('very_long_property'));
+        $entity->set('very_long_property', 'Someone');
+        $this->assertEquals('Dir. Dr. Someone', $entity->get('very_long_property'));
+    }
+
+    /**
+     * Tests serializing an entity as JSON
+     */
+    public function testJsonSerialize(): void
+    {
+        $data = ['name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
+        $entity = new Document($data);
+        $this->assertEquals(json_encode($data), json_encode($entity));
+    }
+
+    /**
+     * Tests serializing an entity as PHP
+     */
+    public function testPhpSerialize(): void
+    {
+        $data = ['name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
+        $entity = new Document($data);
+        $copy = unserialize(serialize($entity));
+        $this->assertInstanceOf(Document::class, $copy);
+        $this->assertEquals($data, $copy->toArray());
+    }
+
+    /**
+     * Tests that jsonSerialize is called recursively for contained entities
+     */
+    public function testJsonSerializeRecursive(): void
+    {
+        $phone = new Document(['something' => true]);
+        $data = ['name' => 'James', 'age' => 20, 'phone' => $phone];
+        $entity = new Document($data);
+        $expected = ['name' => 'James', 'age' => 20, 'phone' => ['something' => true]];
+        $this->assertEquals(json_encode($expected), json_encode($entity));
+    }
+
+    /**
+     * Tests the extract method
+     */
+    public function testExtract(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ]);
+        $expected = ['author_id' => 3, 'title' => 'Foo',];
+        $this->assertEquals($expected, $entity->extract(['author_id', 'title']));
+
+        $expected = ['id' => 1];
+        $this->assertEquals($expected, $entity->extract(['id']));
+
+        $expected = [];
+        $this->assertEquals($expected, $entity->extract([]));
+
+        $expected = ['id' => 1, 'craziness' => null];
+        $this->assertEquals($expected, $entity->extract(['id', 'craziness']));
+    }
+
+    /**
+     * Tests isDirty() method on a newly created object
+     */
+    public function testIsDirty(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ]);
+        $this->assertTrue($entity->isDirty('id'));
+        $this->assertTrue($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty('author_id'));
+
+        $this->assertTrue($entity->isDirty());
+
+        $entity->setDirty('id', false);
+        $this->assertFalse($entity->isDirty('id'));
+        $this->assertTrue($entity->isDirty('title'));
+
+        $entity->setDirty('title', false);
+        $this->assertFalse($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty(), 'should be dirty, one field left');
+
+        $entity->setDirty('author_id', false);
+        $this->assertFalse($entity->isDirty(), 'all fields are clean.');
+    }
+
+    /**
+     * Test setDirty().
+     */
+    public function testSetDirty(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ], ['markClean' => true]);
+
+        $this->assertFalse($entity->isDirty());
+        $this->assertSame($entity, $entity->setDirty('title'));
+        $this->assertSame($entity, $entity->setDirty('id', false));
+
+        $entity->setErrors(['title' => ['badness']]);
+        $entity->setDirty('title', true);
+        $this->assertEmpty($entity->getErrors(), 'Making a field dirty clears errors.');
+    }
+
+    /**
+     * Tests dirty() when altering properties values and adding new ones
+     */
+    public function testDirtyChangingProperties(): void
+    {
+        $entity = new Document([
+            'title' => 'Foo',
+        ]);
+
+        $entity->setDirty('title', false);
+        $this->assertFalse($entity->isDirty('title'));
+
+        $entity->set('title', 'Foo');
+        // Not dirty as the value set is the same as the existing value
+        $this->assertFalse($entity->isDirty('title'));
+
+        $entity->set('title', 'Bar');
+        $this->assertTrue($entity->isDirty('title'));
+
+        $entity->set('something', 'else');
+        $this->assertTrue($entity->isDirty('something'));
+    }
+
+    /**
+     * Tests that setting an object value when existing field is scalar
+     * correctly marks field as dirty without raising PHP notices.
+     *
+     * This tests the fix for a bug where isModified() compared an object
+     * to a scalar using loose equality, causing PHP 8+ to raise notices
+     * like "Object of class X could not be converted to float".
+     */
+    public function testDirtyObjectReplacingScalar(): void
+    {
+        $entity = new Document([
+            'amount' => 10.50,
+        ], ['markClean' => true]);
+
+        $this->assertFalse($entity->isDirty('amount'));
+
+        // Create an object that represents the same value but as object type.
+        // In real usage this would be something like BigDecimal.
+        $objectValue = new class (10.50) {
+            public function __construct(private float $value)
+            {
+            }
+
+            public function getValue(): float
+            {
+                return $this->value;
+            }
+        };
+
+        // Setting object value when existing is scalar should:
+        // 1. Not raise a PHP notice (object-to-scalar comparison)
+        // 2. Mark the field as dirty (types differ)
+        $entity->set('amount', $objectValue);
+
+        // Field should be dirty because we're changing from scalar to object
+        $this->assertTrue($entity->isDirty('amount'));
+    }
+
+    /**
+     * Tests that setting an equivalent object when existing field is also an object
+     * correctly detects no change (field remains clean).
+     */
+    public function testDirtyObjectReplacingEquivalentObject(): void
+    {
+        $objectValue = new stdClass();
+        $objectValue->value = 10.50;
+
+        $entity = new Document([
+            'amount' => $objectValue,
+        ], ['markClean' => true]);
+
+        $this->assertFalse($entity->isDirty('amount'));
+
+        // Create an equivalent object (same properties, same values)
+        $equivalentObject = new stdClass();
+        $equivalentObject->value = 10.50;
+
+        // Setting equivalent object should NOT mark field dirty
+        $entity->set('amount', $equivalentObject);
+        $this->assertFalse($entity->isDirty('amount'));
+
+        // Setting different object SHOULD mark field dirty
+        $differentObject = new stdClass();
+        $differentObject->value = 20.00;
+        $entity->set('amount', $differentObject);
+        $this->assertTrue($entity->isDirty('amount'));
+    }
+
+    /**
+     * Tests extract only dirty properties
+     */
+    public function testExtractDirty(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ]);
+        $entity->setDirty('id', false);
+        $entity->setDirty('title', false);
+        $expected = ['author_id' => 3];
+        $result = $entity->extract(['id', 'title', 'author_id'], true);
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Tests the getDirty method
+     */
+    public function testGetDirty(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ]);
+
+        $expected = [
+            'id',
+            'title',
+            'author_id',
+        ];
+        $this->assertSame($expected, $entity->getDirty());
+    }
+
+    /**
+     * Tests the clean method
+     */
+    public function testClean(): void
+    {
+        $entity = new Document([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ]);
+        $this->assertTrue($entity->isDirty('id'));
+        $this->assertTrue($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty('author_id'));
+
+        $entity->clean();
+        $this->assertFalse($entity->isDirty('id'));
+        $this->assertFalse($entity->isDirty('title'));
+        $this->assertFalse($entity->isDirty('author_id'));
+    }
+
+    /**
+     * Tests the isNew method
+     */
+    public function testIsNew(): void
+    {
+        $data = [
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3,
+        ];
+        $entity = new Document($data);
+        $this->assertTrue($entity->isNew());
+
+        $entity->setNew(true);
+        $this->assertTrue($entity->isNew());
+
+        $entity->setNew(false);
+        $this->assertFalse($entity->isNew());
+    }
+
+    /**
+     * Tests the constructor when passing the markClean option
+     */
+    public function testConstructorWithClean(): void
+    {
+        $entity = new Document(['a' => 'b', 'c' => 'd']);
+        $this->assertTrue($entity->isDirty('a'));
+        $this->assertTrue($entity->isDirty('c'));
+
+        $entity = new Document(['a' => 'b', 'c' => 'd'], ['markClean' => true]);
+        $this->assertFalse($entity->isDirty('a'));
+        $this->assertFalse($entity->isDirty('c'));
+    }
+
+    /**
+     * Tests the constructor when passing the markClean option
+     */
+    public function testConstructorWithMarkNew(): void
+    {
+        $entity = new Document(['a' => 'b', 'c' => 'd']);
+        $this->assertTrue($entity->isNew());
+
+        $entity = new Document(['a' => 'b', 'c' => 'd'], ['markNew' => false]);
+        $this->assertFalse($entity->isNew());
+
+        $entity = new Document(['a' => 'b', 'c' => 'd'], ['markNew' => true]);
+        $this->assertTrue($entity->isNew());
+    }
+
+    /**
+     * Test toArray method.
+     */
+    public function testToArray(): void
+    {
+        $data = ['name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
+        $entity = new Document($data);
+
+        $this->assertEquals($data, $entity->toArray());
+    }
+
+    /**
+     * Test toArray recursive.
+     */
+    public function testToArrayRecursive(): void
+    {
+        $data = ['id' => 1, 'name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
+        $user = new Extending($data);
+        $comments = [
+            new NonExtending(['user_id' => 1, 'body' => 'Comment 1']),
+            new NonExtending(['user_id' => 1, 'body' => 'Comment 2']),
+        ];
+        $user->comments = $comments;
+        $user->profile = new Document(['email' => 'mark@example.com']);
+
+        $expected = [
+            'id' => 1,
+            'name' => 'James',
+            'age' => 20,
+            'phones' => ['123', '457'],
+            'profile' => ['email' => 'mark@example.com'],
+            'comments' => [
+                ['user_id' => 1, 'body' => 'Comment 1'],
+                ['user_id' => 1, 'body' => 'Comment 2'],
+            ],
+        ];
+        $this->assertEquals($expected, $user->toArray());
+    }
+
+    /**
+     * Tests that an entity with entities and other misc types can be properly toArray'd
+     */
+    public function testToArrayMixed(): void
+    {
+        $test = new Document([
+            'id' => 1,
+            'foo' => [
+                new Document(['hi' => 'test']),
+                'notentity' => 1,
+            ],
+        ]);
+        $expected = [
+            'id' => 1,
+            'foo' => [
+                ['hi' => 'test'],
+                'notentity' => 1,
+            ],
+        ];
+        $this->assertEquals($expected, $test->toArray());
+    }
+
+    /**
+     * Test that get accessors are called when converting to arrays.
+     */
+    public function testToArrayWithAccessor(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(?string $name): string
+            {
+                return 'Jose';
+            }
+        };
+        $entity->setAccess('*', true);
+        $entity->patch(['name' => 'Mark', 'email' => 'mark@example.com']);
+        $expected = ['name' => 'Jose', 'email' => 'mark@example.com'];
+        $this->assertEquals($expected, $entity->toArray());
+    }
+
+    /**
+     * Test that toArray respects hidden properties.
+     */
+    public function testToArrayHiddenProperties(): void
+    {
+        $data = ['secret' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Document($data);
+        $entity->setHidden(['secret']);
+        $this->assertEquals(['name' => 'mark', 'id' => 1], $entity->toArray());
+    }
+
+    /**
+     * Tests setting hidden properties.
+     */
+    public function testSetHidden(): void
+    {
+        $data = ['secret' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Document($data);
+        $entity->setHidden(['secret']);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret'], $result);
+
+        $entity->setHidden(['name']);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['name'], $result);
+    }
+
+    /**
+     * Tests setting hidden properties with merging.
+     */
+    public function testSetHiddenWithMerge(): void
+    {
+        $data = ['secret' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Document($data);
+        $entity->setHidden(['secret'], true);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret'], $result);
+
+        $entity->setHidden(['name'], true);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret', 'name'], $result);
+
+        $entity->setHidden(['name'], true);
+        $result = $entity->getHidden();
+        $this->assertSame(['secret', 'name'], $result);
+    }
+
+    /**
+     * Test toArray includes 'virtual' properties.
+     */
+    public function testToArrayVirtualProperties(): void
+    {
+        $entity = new class extends Document {
+            protected function _getName(?string $name): string
+            {
+                return 'Jose';
+            }
+        };
+        $entity->setAccess('*', true);
+        $entity->patch(['email' => 'mark@example.com']);
+
+        $entity->setVirtual(['name']);
+        $expected = ['name' => 'Jose', 'email' => 'mark@example.com'];
+        $this->assertEquals($expected, $entity->toArray());
+
+        $this->assertEquals(['name'], $entity->getVirtual());
+
+        $entity->setHidden(['name']);
+        $expected = ['email' => 'mark@example.com'];
+        $this->assertEquals($expected, $entity->toArray());
+        $this->assertEquals(['name'], $entity->getHidden());
+    }
+
+    /**
+     * Tests the getVisible() method
+     */
+    public function testGetVisible(): void
+    {
+        $entity = new Document();
+        $entity->foo = 'foo';
+        $entity->bar = 'bar';
+
+        $expected = $entity->getVisible();
+        $this->assertSame(['foo', 'bar'], $expected);
+    }
+
+    /**
+     * Tests setting virtual properties with merging.
+     */
+    public function testSetVirtualWithMerge(): void
+    {
+        $data = ['virtual' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Document($data);
+        $entity->setVirtual(['virtual']);
+
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual'], $result);
+
+        $entity->setVirtual(['name'], true);
+
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual', 'name'], $result);
+
+        $entity->setVirtual(['name'], true);
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual', 'name'], $result);
+    }
+
+    /**
+     * Tests error getters and setters
+     */
+    public function testGetErrorAndSetError(): void
+    {
+        $entity = new Document();
+        $this->assertEmpty($entity->getErrors());
+
+        $entity->setError('foo', 'bar');
+        $this->assertEquals(['bar'], $entity->getError('foo'));
+
+        $entity->requireFieldPresence(true);
+        $this->assertEquals([], $entity->getError('non_existent'));
+
+        $expected = [
+            'foo' => ['bar'],
+        ];
+        $result = $entity->getErrors();
+        $this->assertEquals($expected, $result);
+
+        $indexedErrors = [2 => ['foo' => 'bar']];
+        $entity = new Document();
+        $entity->setError('indexes', $indexedErrors);
+
+        $expectedIndexed = [
+            'indexes' => ['2' => ['foo' => 'bar']],
+        ];
+        $result = $entity->getErrors();
+        $this->assertEquals($expectedIndexed, $result);
+    }
+
+    /**
+     * Tests that setError with dotted paths creates nested structure
+     */
+    public function testSetErrorDottedPath(): void
+    {
+        $entity = new Document();
+        $entity->setError('patients._ids', ['dummyRule' => 'Error message']);
+
+        // Should create nested structure that can be retrieved with dotted path
+        $expected = ['dummyRule' => 'Error message'];
+        $this->assertEquals($expected, $entity->getError('patients._ids'));
+
+        // Should also work with getErrors()
+        $expected = [
+            'patients' => [
+                '_ids' => ['dummyRule' => 'Error message'],
+            ],
+        ];
+        $this->assertEquals($expected, $entity->getErrors());
+
+        // Test deeper nesting
+        $entity = new Document();
+        $entity->setError('foo.bar.baz', 'deep error');
+
+        $this->assertEquals(['deep error'], $entity->getError('foo.bar.baz'));
+        $expected = [
+            'foo' => [
+                'bar' => [
+                    'baz' => ['deep error'],
+                ],
+            ],
+        ];
+        $this->assertEquals($expected, $entity->getErrors());
+
+        // Test with string error message
+        $entity = new Document();
+        $entity->setError('field.subfield', 'simple message');
+
+        $this->assertEquals(['simple message'], $entity->getError('field.subfield'));
+    }
+
+    /**
+     * Tests reading errors from nested validator
+     */
+    public function testGetErrorNested(): void
+    {
+        $entity = new Document();
+        $entity->setError('options', ['subpages' => ['_empty' => 'required']]);
+
+        $expected = [
+            'subpages' => ['_empty' => 'required'],
+        ];
+        $this->assertEquals($expected, $entity->getError('options'));
+
+        $expected = ['_empty' => 'required'];
+        $this->assertEquals($expected, $entity->getError('options.subpages'));
+    }
+
+    /**
+     * Tests that it is possible to get errors for nested entities
+     */
+    public function testErrorsDeep(): void
+    {
+        $user = new Document();
+        $owner = new NonExtending();
+        $author = new Extending([
+            'foo' => 'bar',
+            'thing' => 'baz',
+            'user' => $user,
+            'owner' => $owner,
+        ]);
+        $author->setError('thing', ['this is a mistake']);
+        $user->setErrors(['a' => ['error1'], 'b' => ['error2']]);
+        $owner->setErrors(['c' => ['error3'], 'd' => ['error4']]);
+
+        $expected = ['a' => ['error1'], 'b' => ['error2']];
+        $this->assertEquals($expected, $author->getError('user'));
+
+        $expected = ['c' => ['error3'], 'd' => ['error4']];
+        $this->assertEquals($expected, $author->getError('owner'));
+
+        $author->set('multiple', [$user, $owner]);
+        $expected = [
+            ['a' => ['error1'], 'b' => ['error2']],
+            ['c' => ['error3'], 'd' => ['error4']],
+        ];
+        $this->assertEquals($expected, $author->getError('multiple'));
+
+        $expected = [
+            'thing' => $author->getError('thing'),
+            'user' => $author->getError('user'),
+            'owner' => $author->getError('owner'),
+            'multiple' => $author->getError('multiple'),
+        ];
+        $this->assertEquals($expected, $author->getErrors());
+    }
+
+    /**
+     * Tests that check if hasErrors() works
+     */
+    public function testHasErrors(): void
+    {
+        $entity = new Document();
+        $hasErrors = $entity->hasErrors();
+        $this->assertFalse($hasErrors);
+
+        $nestedEntity = new Document();
+        $entity->patch([
+            'nested' => $nestedEntity,
+        ]);
+        $hasErrors = $entity->hasErrors();
+        $this->assertFalse($hasErrors);
+
+        $nestedEntity->setError('description', 'oops');
+        $hasErrors = $entity->hasErrors();
+        $this->assertTrue($hasErrors);
+
+        $hasErrors = $entity->hasErrors(false);
+        $this->assertFalse($hasErrors);
+
+        $entity->clean();
+        $hasErrors = $entity->hasErrors();
+        $this->assertTrue($hasErrors);
+        $hasErrors = $entity->hasErrors(false);
+        $this->assertFalse($hasErrors);
+
+        $nestedEntity->clean();
+        $hasErrors = $entity->hasErrors();
+        $this->assertFalse($hasErrors);
+
+        $entity->setError('foo', []);
+        $this->assertFalse($entity->hasErrors());
+    }
+
+    /**
+     * Test that errors can be read with a path.
+     */
+    public function testErrorPathReading(): void
+    {
+        $assoc = new Document();
+        $assoc2 = new NonExtending();
+        $entity = new Extending([
+            'field' => 'value',
+            'one' => $assoc,
+            'many' => [$assoc2],
+        ]);
+        $entity->setError('wrong', 'Bad stuff');
+        $assoc->setError('nope', 'Terrible things');
+        $assoc2->setError('nope', 'Terrible things');
+
+        $this->assertEquals(['Bad stuff'], $entity->getError('wrong'));
+        $this->assertEquals(['Terrible things'], $entity->getError('many.0.nope'));
+        $this->assertEquals(['Terrible things'], $entity->getError('one.nope'));
+        $this->assertEquals(['nope' => ['Terrible things']], $entity->getError('one'));
+        $this->assertEquals([0 => ['nope' => ['Terrible things']]], $entity->getError('many'));
+        $this->assertEquals(['nope' => ['Terrible things']], $entity->getError('many.0'));
+
+        $this->assertEquals([], $entity->getError('many.0.mistake'));
+        $this->assertEquals([], $entity->getError('one.mistake'));
+        $this->assertEquals([], $entity->getError('one.1.mistake'));
+        $this->assertEquals([], $entity->getError('many.1.nope'));
+    }
+
+    /**
+     * Tests that changing the value of a property will remove errors
+     * stored for it
+     */
+    public function testDirtyRemovesError(): void
+    {
+        $entity = new Document(['a' => 'b']);
+        $entity->setError('a', 'is not good');
+        $entity->set('a', 'c');
+        $this->assertEmpty($entity->getError('a'));
+
+        $entity->setError('a', 'is not good');
+        $entity->setDirty('a', true);
+        $this->assertEmpty($entity->getError('a'));
+    }
+
+    /**
+     * Tests that marking an entity as clean will remove errors too
+     */
+    public function testCleanRemovesErrors(): void
+    {
+        $entity = new Document(['a' => 'b']);
+        $entity->setError('a', 'is not good');
+        $entity->clean();
+        $this->assertEmpty($entity->getErrors());
+    }
+
+    /**
+     * Tests getAccessible() method
+     */
+    public function testGetPatchable(): void
+    {
+        $entity = new Document();
+        $entity->setAccess('*', false);
+        $entity->setAccess('bar', true);
+
+        $patchable = $entity->getAccessible();
+        $expected = [
+            '*' => false,
+            'bar' => true,
+        ];
+        $this->assertSame($expected, $patchable);
+    }
+
+    /**
+     * Tests isAccessible() and setAccess() methods
+     */
+    public function testIsPatchable(): void
+    {
+        $entity = new Document();
+        $entity->setAccess('*', false);
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertFalse($entity->isAccessible('bar'));
+
+        $this->assertSame($entity, $entity->setAccess('foo', true));
+        $this->assertTrue($entity->isAccessible('foo'));
+        $this->assertFalse($entity->isAccessible('bar'));
+
+        $this->assertSame($entity, $entity->setAccess('bar', true));
+        $this->assertTrue($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+
+        $this->assertSame($entity, $entity->setAccess('foo', false));
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+
+        $this->assertSame($entity, $entity->setAccess('bar', false));
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertFalse($entity->isAccessible('bar'));
+    }
+
+    /**
+     * Tests that an array can be used to set
+     */
+    public function testPatchableAsArray(): void
+    {
+        $entity = new Document();
+        $entity->setAccess(['foo', 'bar', 'baz'], true);
+        $this->assertTrue($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+        $this->assertTrue($entity->isAccessible('baz'));
+
+        $entity->setAccess('foo', false);
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+        $this->assertTrue($entity->isAccessible('baz'));
+
+        $entity->setAccess(['foo', 'bar', 'baz'], false);
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertFalse($entity->isAccessible('bar'));
+        $this->assertFalse($entity->isAccessible('baz'));
+    }
+
+    /**
+     * Tests that a wildcard can be used for setting patchable properties
+     */
+    public function testPatchableWildcard(): void
+    {
+        $entity = new Document();
+        $entity->setAccess(['foo', 'bar', 'baz'], true);
+        $this->assertTrue($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+        $this->assertTrue($entity->isAccessible('baz'));
+
+        $entity->setAccess('*', false);
+        $this->assertFalse($entity->isAccessible('foo'));
+        $this->assertFalse($entity->isAccessible('bar'));
+        $this->assertFalse($entity->isAccessible('baz'));
+        $this->assertFalse($entity->isAccessible('newOne'));
+
+        $entity->setAccess('*', true);
+        $this->assertTrue($entity->isAccessible('foo'));
+        $this->assertTrue($entity->isAccessible('bar'));
+        $this->assertTrue($entity->isAccessible('baz'));
+        $this->assertTrue($entity->isAccessible('newOne2'));
+    }
+
+    /**
+     * Tests that only patchable properties can be set
+     */
+    public function testSetWithPatchable(): void
+    {
+        $entity = new Document(['foo' => 1, 'bar' => 2]);
+        $options = ['guard' => true];
+        $entity->setAccess('*', false);
+        $entity->setAccess('foo', true);
+        $entity->set('bar', 3, $options);
+        $entity->set('foo', 4, $options);
+        $this->assertSame(2, $entity->get('bar'));
+        $this->assertSame(4, $entity->get('foo'));
+
+        $entity->setAccess('bar', true);
+        $entity->set('bar', 3, $options);
+        $this->assertSame(3, $entity->get('bar'));
+    }
+
+    /**
+     * Tests that only patchable properties can be set
+     */
+    public function testSetWithPatchableWithArray(): void
+    {
+        $entity = new Document(['foo' => 1, 'bar' => 2]);
+        $options = ['guard' => true];
+        $entity->setAccess('*', false);
+        $entity->setAccess('foo', true);
+        $entity->patch(['bar' => 3, 'foo' => 4], $options);
+        $this->assertSame(2, $entity->get('bar'));
+        $this->assertSame(4, $entity->get('foo'));
+
+        $entity->setAccess('bar', true);
+        $entity->patch(['bar' => 3, 'foo' => 5], $options);
+        $this->assertSame(3, $entity->get('bar'));
+        $this->assertSame(5, $entity->get('foo'));
+    }
+
+    /**
+     * Test that patchable() and single property setting works.
+     */
+    public function testSetWithPatchableSingleProperty(): void
+    {
+        $entity = new Document(['foo' => 1, 'bar' => 2]);
+        $entity->setAccess('*', false);
+        $entity->setAccess('title', true);
+
+        $entity->patch(['title' => 'test', 'body' => 'Nope']);
+        $this->assertSame('test', $entity->title);
+        $this->assertNull($entity->body);
+
+        $entity->body = 'Yep';
+        $this->assertSame('Yep', $entity->body, 'Single set should bypass guards.');
+
+        $entity->set('body', 'Yes');
+        $this->assertSame('Yes', $entity->body, 'Single set should bypass guards.');
+    }
+
+    /**
+     * Tests __debugInfo
+     */
+    public function testDebugInfo(): void
+    {
+        $entity = new Document(['foo' => 'bar'], ['markClean' => true]);
+        $entity->somethingElse = 'value';
+        $entity->setAccess('id', false);
+        $entity->setAccess('name', true);
+        $entity->setVirtual(['baz']);
+        $entity->setDirty('foo', true);
+        $entity->setError('foo', ['An error']);
+        $entity->setInvalidField('foo', 'a value');
+        $entity->setSource('foos');
+        $result = $entity->__debugInfo();
+        $expected = [
+            'foo' => 'bar',
+            'somethingElse' => 'value',
+            'baz' => null,
+            '[new]' => true,
+            '[accessible]' => ['*' => true, 'id' => false, 'name' => true],
+            '[dirty]' => ['somethingElse' => true, 'foo' => true],
+            '[original]' => [],
+            '[originalFields]' => ['foo'],
+            '[virtual]' => ['baz'],
+            '[hasErrors]' => true,
+            '[errors]' => ['foo' => ['An error']],
+            '[invalid]' => ['foo' => 'a value'],
+            '[repository]' => 'foos',
+        ];
+        $this->assertSame($expected, $result);
+    }
+
+    /**
+     * Test the source getter
+     */
+    public function testGetAndSetSource(): void
+    {
+        $entity = new Document();
+        $this->assertSame('', $entity->getSource());
+        $entity->setSource('foos');
+        $this->assertSame('foos', $entity->getSource());
+    }
+
+    /**
+     * Provides empty values
+     *
+     * @return array
+     */
+    public function emptyNamesProvider(): array
+    {
+        return [[''], [null]];
+    }
+
+    /**
+     * Tests that trying to get an empty property name throws exception
+     */
+    public function testEmptyProperties(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $entity = new Document();
+        $entity->get('');
+    }
+
+    /**
+     * Provides empty values
+     */
+    public function testIsDirtyFromClone(): void
+    {
+        $entity = new Document(
+            ['a' => 1, 'b' => 2],
+            ['markNew' => false, 'markClean' => true],
+        );
+
+        $this->assertFalse($entity->isNew());
+        $this->assertFalse($entity->isDirty());
+
+        $cloned = clone $entity;
+        $cloned->setNew(true);
+
+        $this->assertTrue($cloned->isDirty());
+        $this->assertTrue($cloned->isDirty('a'));
+        $this->assertTrue($cloned->isDirty('b'));
+    }
+
+    /**
+     * Tests getInvalid and setInvalid
+     */
+    public function testGetSetInvalid(): void
+    {
+        $entity = new Document();
+        $return = $entity->setInvalid([
+            'title' => 'albert',
+            'body' => 'einstein',
+        ]);
+        $this->assertSame($entity, $return);
+        $this->assertSame([
+            'title' => 'albert',
+            'body' => 'einstein',
+        ], $entity->getInvalid());
+
+        $set = $entity->setInvalid([
+            'title' => 'nikola',
+            'body' => 'tesla',
+        ]);
+        $this->assertSame([
+            'title' => 'albert',
+            'body' => 'einstein',
+        ], $set->getInvalid());
+
+        $overwrite = $entity->setInvalid([
+            'title' => 'nikola',
+            'body' => 'tesla',
+        ], true);
+        $this->assertSame($entity, $overwrite);
+        $this->assertSame([
+            'title' => 'nikola',
+            'body' => 'tesla',
+        ], $entity->getInvalid());
+    }
+
+    /**
+     * Tests getInvalidField
+     */
+    public function testGetSetInvalidField(): void
+    {
+        $entity = new Document();
+        $return = $entity->setInvalidField('title', 'albert');
+        $this->assertSame($entity, $return);
+        $this->assertSame('albert', $entity->getInvalidField('title'));
+
+        $overwrite = $entity->setInvalidField('title', 'nikola');
+        $this->assertSame($entity, $overwrite);
+        $this->assertSame('nikola', $entity->getInvalidField('title'));
+    }
+
+    /**
+     * Tests getInvalidFieldNull
+     */
+    public function testGetInvalidFieldNull(): void
+    {
+        $entity = new Document();
+        $this->assertNull($entity->getInvalidField('foo'));
+    }
+
+    /**
+     * Test hasValue()
+     */
+    public function testHasValue(): void
+    {
+        $entity = new Document([
+            'array' => ['foo' => 'bar'],
+            'emptyArray' => [],
+            'object' => new stdClass(),
+            'string' => 'string',
+            'stringZero' => '0',
+            'emptyString' => '',
+            'intZero' => 0,
+            'intNotZero' => 1,
+            'floatZero' => 0.0,
+            'floatNonZero' => 1.5,
+            'null' => null,
+        ]);
+
+        $this->assertTrue($entity->hasValue('array'));
+        $this->assertFalse($entity->hasValue('emptyArray'));
+        $this->assertTrue($entity->hasValue('object'));
+        $this->assertTrue($entity->hasValue('string'));
+        $this->assertTrue($entity->hasValue('stringZero'));
+        $this->assertFalse($entity->hasValue('emptyString'));
+        $this->assertTrue($entity->hasValue('intZero'));
+        $this->assertTrue($entity->hasValue('intNotZero'));
+        $this->assertTrue($entity->hasValue('floatZero'));
+        $this->assertTrue($entity->hasValue('floatNonZero'));
+        $this->assertFalse($entity->hasValue('null'));
+    }
+
+    /**
+     * Test isOriginalField()
+     */
+    public function testIsOriginalField(): void
+    {
+        $entity = new Document(['foo' => null]);
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(true, $return);
+
+        $entity = new Document([]);
+        $entity->set('foo', null);
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(false, $return);
+
+        $return = $entity->isOriginalField('bar');
+        $this->assertSame(false, $return);
+    }
+
+    /**
+     * Test getOriginalFields()
+     */
+    public function testGetOriginalFields(): void
+    {
+        $entity = new Document(['foo' => 'foo', 'bar' => 'bar']);
+        $entity->set('baz', 'baz');
+        $return = $entity->getOriginalFields();
+        $this->assertEquals(['foo', 'bar'], $return);
+
+        $entity = new Document([]);
+        $entity->set('foo', 'foo');
+        $entity->set('bar', 'bar');
+        $entity->set('baz', 'baz');
+        $return = $entity->getOriginalFields();
+        $this->assertEquals([], $return);
+    }
+
+    /**
+     * Test setOriginalField() inside EntityInterface::setDirty()
+     */
+    public function testSetOriginalFieldInSetDirty(): void
+    {
+        $entity = new Document([]);
+        $entity->set('foo', 'bar');
+
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(false, $return);
+
+        $entity->setDirty('foo', false);
+
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(true, $return);
+    }
+
+    /**
+     * Test setOriginalField() inside EntityInterface::clean()
+     */
+    public function testSetOriginalFieldInClean(): void
+    {
+        $entity = new Document([]);
+        $entity->set('foo', 'bar');
+
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(false, $return);
+
+        $entity->clean();
+
+        $return = $entity->isOriginalField('foo');
+        $this->assertSame(true, $return);
+    }
+
+    /**
+     * Test infinite recursion in getErrors and hasErrors
+     * See https://github.com/cakephp/cakephp/issues/17318
+     */
+    public function testGetErrorsRecursionError(): void
+    {
+        $entity = new Document();
+        $secondEntity = new Document();
+
+        $entity->set('child', $secondEntity);
+        $secondEntity->set('parent', $entity);
+
+        $expectedErrors = ['name' => ['_required' => 'Must be present.']];
+        $secondEntity->setErrors($expectedErrors);
+
+        $this->assertEquals(['child' => $expectedErrors], $entity->getErrors());
+    }
+
+    /**
+     * Test infinite recursion in getErrors and hasErrors
+     * See https://github.com/cakephp/cakephp/issues/17318
+     */
+    public function testHasErrorsRecursionError(): void
+    {
+        $entity = new Document();
+        $secondEntity = new Document();
+
+        $entity->set('child', $secondEntity);
+        $secondEntity->set('parent', $entity);
+
+        $this->assertFalse($entity->hasErrors());
     }
 }

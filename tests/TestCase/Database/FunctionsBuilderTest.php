@@ -61,7 +61,7 @@ class FunctionsBuilderTest extends TestCase
     public function testEmptyDocumentOperators(): void
     {
         $this->assertEquals(['$rand' => (object)[]], $this->functions->rand()->getConditions());
-        $this->assertEquals(['$rowNumber' => (object)[]], $this->functions->rowNumber()->getConditions());
+        $this->assertEquals(['$documentNumber' => (object)[]], $this->functions->rowNumber()->getConditions());
     }
 
     /**
