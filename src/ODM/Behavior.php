@@ -66,7 +66,7 @@ abstract class Behavior implements EventListenerInterface
      *
      * @return \Crustum\Mongo\ODM\BaseCollection
      */
-    public function collection(): Collection
+    public function collection(): BaseCollection
     {
         return $this->collection;
     }

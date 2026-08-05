@@ -269,8 +269,8 @@ class CollectionSchemaTest extends TestCase
         $database = $this->connection->getDatabase();
         $schema = new CollectionSchema('test_users', $mongoCollection, $database);
 
-        $schema->addField('user_id', ['type' => 'string']);
-        $schema->addField('post_id', ['type' => 'string']);
+        $schema->addField('user_id', []);
+        $schema->addField('post_id', []);
 
         $typeMap = $schema->typeMap();
         $this->assertSame('objectid', $typeMap['user_id']);
@@ -288,8 +288,8 @@ class CollectionSchemaTest extends TestCase
         $database = $this->connection->getDatabase();
         $schema = new CollectionSchema('test_users', $mongoCollection, $database);
 
-        $schema->addField('_id', ['type' => 'string']);
-        $schema->addField('id', ['type' => 'string']);
+        $schema->addField('_id', []);
+        $schema->addField('id', []);
 
         $typeMap = $schema->typeMap();
         $this->assertSame('objectid', $typeMap['_id']);
@@ -324,5 +324,242 @@ class CollectionSchemaTest extends TestCase
 
         $rules = $schema->validationRules();
         $this->assertIsArray($rules);
+    }
+
+    /**
+     * Test primaryKey() returns _id.
+     *
+     * @return void
+     */
+    public function testPrimaryKey(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $this->assertSame('_id', $schema->primaryKey());
+    }
+
+    /**
+     * Test automatic _id is exposed as objectid in the type map.
+     *
+     * @return void
+     */
+    public function testAutoIdInTypeMap(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $typeMap = $schema->typeMap();
+        $this->assertSame('objectid', $typeMap['_id']);
+    }
+
+    /**
+     * Test an explicit _id field type wins over the inferred objectid.
+     *
+     * @return void
+     */
+    public function testExplicitIdTypeWins(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->addField('_id', ['type' => 'string']);
+
+        $this->assertSame('string', $schema->fieldType('_id'));
+        $this->assertSame('string', $schema->typeMap()['_id']);
+    }
+
+    /**
+     * Test BSON type spelling is normalized to the canonical type name.
+     *
+     * @return void
+     */
+    public function testBsonTypeNormalization(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->addField('author_id', ['type' => 'string']);
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'object_id_field' => ['bsonType' => 'objectId'],
+                    'long_field' => ['bsonType' => 'long'],
+                    'double_field' => ['bsonType' => 'double'],
+                    'decimal_field' => ['bsonType' => 'decimal'],
+                    'binary_field' => ['bsonType' => 'binData'],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('objectid', $schema->fieldType('object_id_field'));
+        $this->assertSame('int64', $schema->fieldType('long_field'));
+        $this->assertSame('float', $schema->fieldType('double_field'));
+        $this->assertSame('decimal128', $schema->fieldType('decimal_field'));
+        $this->assertSame('binary', $schema->fieldType('binary_field'));
+    }
+
+    /**
+     * Test unknown BSON types remain nullable instead of being guessed.
+     *
+     * @return void
+     */
+    public function testUnknownBsonTypeIsNull(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'weird_field' => ['bsonType' => 'unknownBsonType'],
+                ],
+            ],
+        ]);
+
+        $this->assertNull($schema->fieldType('weird_field'));
+    }
+
+    /**
+     * Test dotted fieldType() resolves through nested object properties.
+     *
+     * @return void
+     */
+    public function testDottedFieldTypeThroughObjects(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'address' => [
+                        'bsonType' => 'object',
+                        'properties' => [
+                            'city' => ['bsonType' => 'string'],
+                            'zip' => ['bsonType' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('string', $schema->fieldType('address.city'));
+        $this->assertSame('string', $schema->fieldType('address.zip'));
+        $this->assertNull($schema->fieldType('address.missing'));
+        $this->assertNull($schema->fieldType('missing.city'));
+    }
+
+    /**
+     * Test dotted fieldType() resolves through arrays of objects.
+     *
+     * @return void
+     */
+    public function testDottedFieldTypeThroughArrays(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'comments' => [
+                        'bsonType' => 'array',
+                        'items' => [
+                            'bsonType' => 'object',
+                            'properties' => [
+                                'author_id' => ['bsonType' => 'objectId'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('objectid', $schema->fieldType('comments.author_id'));
+        $this->assertNull($schema->fieldType('comments.missing'));
+    }
+
+    /**
+     * Test dotted fieldType() returns null when traversal hits a scalar.
+     *
+     * @return void
+     */
+    public function testDottedFieldTypeScalarTraversalFails(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'title' => ['bsonType' => 'string'],
+                ],
+            ],
+        ]);
+
+        $this->assertNull($schema->fieldType('title.something'));
+    }
+
+    /**
+     * Test dotted field() returns the leaf definition with validation info.
+     *
+     * @return void
+     */
+    public function testDottedField(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'address' => [
+                        'bsonType' => 'object',
+                        'properties' => [
+                            'city' => ['bsonType' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $field = $schema->field('address.city');
+        $this->assertNotNull($field);
+        $this->assertSame('string', $field['validation']['bsonType']);
+
+        $this->assertNull($schema->field('address.missing'));
+    }
+
+    /**
+     * Test typeMap() includes validator-derived types normalized to canonical names.
+     *
+     * @return void
+     */
+    public function testTypeMapIncludesValidatorTypes(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'object_id_field' => ['bsonType' => 'objectId'],
+                    'title' => ['bsonType' => 'string'],
+                ],
+            ],
+        ]);
+
+        $typeMap = $schema->typeMap();
+        $this->assertSame('objectid', $typeMap['object_id_field']);
+        $this->assertSame('string', $typeMap['title']);
+        $this->assertSame('objectid', $typeMap['_id']);
+    }
+
+    /**
+     * Test a validator-declared _id keeps its explicit type.
+     *
+     * @return void
+     */
+    public function testExplicitIdValidatorPreserved(): void
+    {
+        $schema = new CollectionSchema('test_users');
+        $schema->setValidationRules([
+            '$jsonSchema' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    '_id' => ['bsonType' => 'string'],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('string', $schema->typeMap()['_id']);
     }
 }

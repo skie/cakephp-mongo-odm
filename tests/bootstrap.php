@@ -51,6 +51,7 @@ use Cake\TestSuite\Fixture\SchemaLoader;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\MongoPlugin;
+use Crustum\Mongo\TestSuite\Fixture\SchemaGenerator;
 
 if (!function_exists('ensureDirectoryExists')) {
     /**
@@ -143,6 +144,9 @@ Plugin::getCollection()->add(new MongoPlugin([
 
 $schemaLoader = new SchemaLoader();
 $schemaLoader->loadInternalFile(TESTS . 'schema.php');
+
+$schemaGenerator = new SchemaGenerator(TESTS . 'schema_mongo.php', 'test_mongo');
+$schemaGenerator->reload();
 
 if (file_exists(CONFIG . 'bootstrap.php')) {
     require CONFIG . 'bootstrap.php';

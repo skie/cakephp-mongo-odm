@@ -23,7 +23,7 @@ class CollectionSchema implements SchemaInterface
      *
      * @var array<string, mixed>
      */
-    protected array $validationRules;
+    protected array $validationRules = [];
 
     /**
      * Collection indexes
@@ -76,6 +76,32 @@ class CollectionSchema implements SchemaInterface
     ];
 
     /**
+     * BSON type aliases mapped to canonical plugin type names.
+     *
+     * Validators report types using the BSON spelling (e.g. `objectId`), which
+     * does not match the `TypeFactory` registry keys. Unknown or unsupported
+     * BSON types are intentionally omitted so they stay nullable rather than
+     * being guessed.
+     *
+     * @var array<string, string>
+     */
+    protected static array $bsonTypeMap = [
+        'objectId' => 'objectid',
+        'string' => 'string',
+        'bool' => 'boolean',
+        'int' => 'int',
+        'long' => 'int64',
+        'double' => 'float',
+        'decimal' => 'decimal128',
+        'date' => 'date',
+        'timestamp' => 'timestamp',
+        'array' => 'array',
+        'object' => 'hash',
+        'binData' => 'binary',
+        'null' => 'raw',
+    ];
+
+    /**
      * Schema options.
      *
      * @var array<string, mixed>
@@ -92,9 +118,8 @@ class CollectionSchema implements SchemaInterface
     public function __construct(string $name, ?Collection $collection = null, ?Database $database = null)
     {
         $this->name = $name;
-        $this->validationRules = [];
 
-        if ($collection !== null && $database !== null) {
+        if ($collection instanceof Collection && $database instanceof Database) {
             try {
                 $collections = $database->listCollections(['filter' => ['name' => $name]]);
                 $collectionInfo = null;
@@ -174,7 +199,10 @@ class CollectionSchema implements SchemaInterface
     /**
      * Get field information including validation rules and indexes
      *
-     * @param string $name The field name
+     * Supports dotted paths such as `address.city`, traversing nested
+     * `$jsonSchema` properties (and array `items` for arrays of objects).
+     *
+     * @param string $name The field name (may be a dotted path)
      * @return array<string, mixed>|null Field information or null
      */
     public function field(string $name): ?array
@@ -185,8 +213,9 @@ class CollectionSchema implements SchemaInterface
             $info = $this->fields[$name];
         }
 
-        if (isset($this->validationRules['$jsonSchema']['properties'][$name])) {
-            $info['validation'] = $this->validationRules['$jsonSchema']['properties'][$name];
+        $property = $this->resolvePropertyPath($name);
+        if ($property !== null) {
+            $info['validation'] = $property;
         }
 
         foreach ($this->indexes as $indexName => $index) {
@@ -206,7 +235,11 @@ class CollectionSchema implements SchemaInterface
     /**
      * Get field type from validation schema or programmatic fields
      *
-     * @param string $name Field name
+     * Supports dotted paths such as `address.city`. BSON type spellings are
+     * normalized to canonical plugin type names so the result can be fed
+     * directly to `TypeFactory::build()`.
+     *
+     * @param string $name Field name (may be a dotted path)
      * @return string|null BSON type or null
      */
     public function fieldType(string $name): ?string
@@ -215,11 +248,79 @@ class CollectionSchema implements SchemaInterface
             return $this->fields[$name]['type'];
         }
 
-        if (isset($this->validationRules['$jsonSchema']['properties'][$name]['bsonType'])) {
-            return $this->validationRules['$jsonSchema']['properties'][$name]['bsonType'];
+        $property = $this->resolvePropertyPath($name);
+        if ($property !== null && isset($property['bsonType'])) {
+            return $this->normalizeBsonType((string)$property['bsonType']);
         }
 
-        return null;
+        return $this->inferFieldType($name);
+    }
+
+    /**
+     * Returns the collection primary key.
+     *
+     * MongoDB creates `_id` automatically, so it is always the primary key.
+     *
+     * @return string
+     */
+    public function primaryKey(): string
+    {
+        return '_id';
+    }
+
+    /**
+     * Resolves a (possibly dotted) field path against the `$jsonSchema`
+     * properties tree.
+     *
+     * An array field's `items` schema is traversed when the path continues
+     * into array elements, so `comments.author_id` resolves when `comments`
+     * is an array of objects.
+     *
+     * @param string $path The field path to resolve
+     * @return array<string, mixed>|null The leaf schema definition, or null
+     */
+    protected function resolvePropertyPath(string $path): ?array
+    {
+        $properties = $this->validationRules['$jsonSchema']['properties'] ?? null;
+        if (!is_array($properties)) {
+            return null;
+        }
+
+        $segments = explode('.', $path);
+        $node = $properties;
+        foreach ($segments as $index => $segment) {
+            if (!is_array($node) || !isset($node[$segment])) {
+                return null;
+            }
+
+            $node = $node[$segment];
+
+            if ($index < count($segments) - 1) {
+                if (isset($node['properties']) && is_array($node['properties'])) {
+                    $node = $node['properties'];
+                } elseif (isset($node['items']) && is_array($node['items'])) {
+                    $node = $node['items'];
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        return is_array($node) ? $node : null;
+    }
+
+    /**
+     * Normalizes a BSON type spelling to a canonical plugin type name.
+     *
+     * Returns null for unknown BSON types so they remain nullable instead of
+     * being guessed.
+     *
+     * @param string $bsonType The BSON type spelling from a validator
+     * @return string|null Canonical plugin type name, or null when unsupported
+     */
+    protected function normalizeBsonType(string $bsonType): ?string
+    {
+        return static::$bsonTypeMap[$bsonType] ?? null;
     }
 
     /**
@@ -382,6 +483,10 @@ class CollectionSchema implements SchemaInterface
     /**
      * Update type map from fields
      *
+     * Combines programmatic field types, validator-derived `bsonType` values
+     * (normalized to canonical type names), and naming-convention inference.
+     * `_id` is exposed as `objectid` unless an explicit definition exists.
+     *
      * @return void
      */
     protected function updateTypeMap(): void
@@ -394,11 +499,37 @@ class CollectionSchema implements SchemaInterface
             }
         }
 
+        foreach ($this->validationRules['$jsonSchema']['properties'] ?? [] as $name => $property) {
+            if (isset($this->typeMap[$name])) {
+                continue;
+            }
+
+            if (!is_array($property)) {
+                continue;
+            }
+
+            if (!isset($property['bsonType'])) {
+                continue;
+            }
+
+            $type = $this->normalizeBsonType((string)$property['bsonType']);
+            if ($type !== null) {
+                $this->typeMap[$name] = $type;
+            }
+        }
+
         $this->autoInferTypes();
+
+        if (!isset($this->typeMap['_id'])) {
+            $this->typeMap['_id'] = 'objectid';
+        }
     }
 
     /**
      * Auto-infer types from naming conventions
+     *
+     * Explicit field definitions and validator `bsonType` values take
+     * precedence; inference fills only the gaps they leave open.
      *
      * @return void
      */
@@ -407,6 +538,10 @@ class CollectionSchema implements SchemaInterface
         $allFields = $this->fields();
 
         foreach ($allFields as $fieldName) {
+            if (isset($this->typeMap[$fieldName])) {
+                continue;
+            }
+
             $inferredType = $this->inferFieldType($fieldName);
             if ($inferredType) {
                 $this->typeMap[$fieldName] = $inferredType;
@@ -417,16 +552,20 @@ class CollectionSchema implements SchemaInterface
     /**
      * Infer field type from naming conventions
      *
-     * @param string $fieldName Field name
+     * Nested paths use the leaf field name for the convention check.
+     *
+     * @param string $fieldName Field name (may be a dotted path)
      * @return string|null Inferred type or null
      */
     protected function inferFieldType(string $fieldName): ?string
     {
-        if (preg_match('/^(.+)_id$/', $fieldName)) {
-            return 'objectid';
+        $leaf = $fieldName;
+        $lastDot = strrpos($fieldName, '.');
+        if ($lastDot !== false) {
+            $leaf = substr($fieldName, $lastDot + 1);
         }
 
-        if ($fieldName === '_id' || $fieldName === 'id') {
+        if ($leaf === '_id' || $leaf === 'id' || preg_match('/^(.+)_id$/', $leaf)) {
             return 'objectid';
         }
 
@@ -555,5 +694,22 @@ class CollectionSchema implements SchemaInterface
     public function getOptions(): array
     {
         return $this->options;
+    }
+
+    /**
+     * Sets the raw MongoDB validation rules for this collection.
+     *
+     * Used when schema metadata is supplied explicitly (application field
+     * metadata) rather than introspected from the database.
+     *
+     * @param array<string, mixed> $validationRules The validation rules.
+     * @return $this
+     */
+    public function setValidationRules(array $validationRules): static
+    {
+        $this->validationRules = $validationRules;
+        $this->updateTypeMap();
+
+        return $this;
     }
 }

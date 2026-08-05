@@ -1498,6 +1498,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if ($association instanceof BelongsTo) {
                 continue;
             }
+
             if ($association instanceof Embedded) {
                 continue;
             }

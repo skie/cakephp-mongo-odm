@@ -59,8 +59,8 @@ final class DocumentSchemaReader
      */
     public static function fields(string $documentClass): array
     {
-        if (isset(static::$cache[$documentClass])) {
-            return static::$cache[$documentClass];
+        if (isset(self::$cache[$documentClass])) {
+            return self::$cache[$documentClass];
         }
 
         $fields = [];
@@ -87,7 +87,7 @@ final class DocumentSchemaReader
             $fields[$name] = $definition;
         }
 
-        return static::$cache[$documentClass] = $fields;
+        return self::$cache[$documentClass] = $fields;
     }
 
     /**
@@ -120,6 +120,6 @@ final class DocumentSchemaReader
      */
     public static function clearCache(): void
     {
-        static::$cache = [];
+        self::$cache = [];
     }
 }

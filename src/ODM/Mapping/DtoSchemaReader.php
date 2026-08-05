@@ -7,7 +7,6 @@ use BackedEnum;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\ODM\Attribute\Field;
-use Crustum\Mongo\ODM\Document;
 use DateTimeInterface;
 use MongoDB\BSON\Decimal128;
 use MongoDB\BSON\ObjectId;
@@ -67,8 +66,8 @@ final class DtoSchemaReader
      */
     public static function fields(string $dtoClass): array
     {
-        if (isset(static::$cache[$dtoClass])) {
-            return static::$cache[$dtoClass];
+        if (isset(self::$cache[$dtoClass])) {
+            return self::$cache[$dtoClass];
         }
 
         $fields = [];
@@ -81,7 +80,7 @@ final class DtoSchemaReader
             }
         }
 
-        return static::$cache[$dtoClass] = $fields;
+        return self::$cache[$dtoClass] = $fields;
     }
 
     /**
@@ -144,14 +143,13 @@ final class DtoSchemaReader
             if (is_a($className, ObjectId::class, true)) {
                 return 'objectid';
             }
+
             if (is_a($className, Decimal128::class, true)) {
                 return 'decimal128';
             }
+
             if (is_a($className, UTCDateTime::class, true) || is_a($className, DateTimeInterface::class, true)) {
                 return 'date';
-            }
-            if (is_a($className, Document::class, true)) {
-                return 'object';
             }
 
             return 'object';
@@ -180,6 +178,6 @@ final class DtoSchemaReader
      */
     public static function clearCache(): void
     {
-        static::$cache = [];
+        self::$cache = [];
     }
 }
