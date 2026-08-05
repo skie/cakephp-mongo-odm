@@ -92,10 +92,10 @@ final class EagerLoader
     /**
      * Gets the normalized containment tree for a repository.
      *
-     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
      * @return array<string, \Crustum\Mongo\ODM\EagerLoadable>
      */
-    public function normalized(Collection $repository): array
+    public function normalized(BaseCollection $repository): array
     {
         if ($this->normalized !== null) {
             return $this->normalized;
@@ -114,10 +114,10 @@ final class EagerLoader
      * Attaches in-pipeline strategies and records external strategies.
      *
      * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
-     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
      * @return void
      */
-    public function attachAssociations(SelectQuery $query, Collection $repository): void
+    public function attachAssociations(SelectQuery $query, BaseCollection $repository): void
     {
         $this->external = [];
         foreach ($this->normalized($repository) as $loadable) {
@@ -182,10 +182,10 @@ final class EagerLoader
     /**
      * Gets a flattened association map for result nesting.
      *
-     * @param \Crustum\Mongo\ODM\Collection $repository The source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
      * @return array<int, array<string, mixed>>
      */
-    public function associationsMap(Collection $repository): array
+    public function associationsMap(BaseCollection $repository): array
     {
         $map = [];
         $this->map($this->normalized($repository), $map);
@@ -287,13 +287,13 @@ final class EagerLoader
      * Normalizes one containment node and its nested associations.
      *
      * @param array<string, mixed> $options The containment options.
-     * @param \Crustum\Mongo\ODM\Collection $repository The parent repository.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The parent repository.
      * @param string $alias The association alias.
      * @param string $aliasPath The dotted alias path.
      * @param string $propertyPath The dotted property path.
      * @return \Crustum\Mongo\ODM\EagerLoadable
      */
-    private function normalize(Collection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
+    private function normalize(BaseCollection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
     {
         $association = $repository->getAssociation($alias);
         if (!$association instanceof Association) {
@@ -334,10 +334,10 @@ final class EagerLoader
      * Applies a containment query builder to the association config.
      *
      * @param array<string, mixed> $config The association config.
-     * @param \Crustum\Mongo\ODM\Collection $target The target collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
      * @return array<string, mixed>
      */
-    private function applyQueryBuilder(array $config, Collection $target): array
+    private function applyQueryBuilder(array $config, BaseCollection $target): array
     {
         if (!isset($config['queryBuilder']) || !is_callable($config['queryBuilder'])) {
             return $config;

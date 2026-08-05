@@ -10,7 +10,7 @@ use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 use RuntimeException;
 
 /**
@@ -49,10 +49,10 @@ class BelongsToMany extends Association
      * Constructor.
      *
      * @param string $alias Association alias.
-     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source Source collection.
      * @param array<string, mixed> $options Association configuration.
      */
-    public function __construct(string $alias, Collection $source, array $options = [])
+    public function __construct(string $alias, BaseCollection $source, array $options = [])
     {
         parent::__construct($alias, $source, $options);
         $this->through = $options['through'] ?? null;
@@ -162,7 +162,7 @@ class BelongsToMany extends Association
     {
         if ($this->through !== null) {
             throw new RuntimeException(
-                'Linking through a join collection is not supported until the Collection layer lands.',
+                'Linking through a join collection is not supported until the BaseCollection layer lands.',
             );
         }
     }

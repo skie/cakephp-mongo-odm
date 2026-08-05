@@ -41,7 +41,7 @@ use Psr\SimpleCache\CacheInterface;
 use function Cake\Core\namespaceSplit;
 
 /**
- * ODM collection (repository) base class.
+ * ODM base collection (repository) class.
  *
  * Maps Cake's `Cake\ORM\Table` onto a MongoDB collection. The collection owns
  * its Mongo collection name, entity class, associations, behaviors, and
@@ -52,7 +52,7 @@ use function Cake\Core\namespaceSplit;
  * @see cake60/src/ORM/Table.php
  * @see 15-odm-phase-2-collection.md
  */
-class Collection implements RepositoryInterface, EventListenerInterface, EventDispatcherInterface, ValidatorAwareInterface
+class BaseCollection implements RepositoryInterface, EventListenerInterface, EventDispatcherInterface, ValidatorAwareInterface
 {
     use CollectionEventsTrait;
     use EventDispatcherTrait;

@@ -8,8 +8,8 @@ use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Closure;
 use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Behavior;
-use Crustum\Mongo\ODM\Collection;
 
 /**
  * Updates configured parent counters after saves and deletes.
@@ -113,12 +113,12 @@ class CounterCacheBehavior extends Behavior
     /**
      * Counts matching target documents.
      *
-     * @param \Crustum\Mongo\ODM\Collection $target The target collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
      * @param mixed $config Counter configuration.
      * @param array<string, mixed> $conditions Base conditions.
      * @return int
      */
-    private function count(Collection $target, mixed $config, array $conditions): int
+    private function count(BaseCollection $target, mixed $config, array $conditions): int
     {
         $finder = (string)($config['finder'] ?? 'all');
         $conditions = array_merge($conditions, is_array($config['conditions'] ?? null) ? $config['conditions'] : []);

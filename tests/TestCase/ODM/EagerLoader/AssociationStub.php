@@ -6,7 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\EagerLoader;
 use BadMethodCallException;
 use Closure;
 use Crustum\Mongo\ODM\Association;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 
 final class AssociationStub extends Association
 {
@@ -16,7 +16,7 @@ final class AssociationStub extends Association
      * @param array<int, array<string, mixed>> $pipeline
      */
     public function __construct(
-        Collection $target,
+        BaseCollection $target,
         string $strategy = 'select',
         private array $pipeline = [],
     ) {

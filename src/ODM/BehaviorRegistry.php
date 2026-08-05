@@ -43,11 +43,11 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\ODM\Collection|null $collection The collection using this registry.
+     * @param \Crustum\Mongo\ODM\BaseCollection|null $collection The collection using this registry.
      */
-    public function __construct(protected ?Collection $collection = null)
+    public function __construct(protected ?BaseCollection $collection = null)
     {
-        if ($collection instanceof Collection) {
+        if ($collection instanceof BaseCollection) {
             $this->setEventManager($collection->getEventManager());
         }
     }
@@ -55,10 +55,10 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
     /**
      * Attaches a collection to this registry.
      *
-     * @param \Crustum\Mongo\ODM\Collection $collection The collection to attach.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection to attach.
      * @return void
      */
-    public function setCollection(Collection $collection): void
+    public function setCollection(BaseCollection $collection): void
     {
         $this->collection = $collection;
         $this->setEventManager($collection->getEventManager());
@@ -115,7 +115,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         if (is_object($class)) {
             $instance = $class;
         } else {
-            if (!$this->collection instanceof Collection) {
+            if (!$this->collection instanceof BaseCollection) {
                 throw new LogicException('A collection is required before loading a behavior.');
             }
 

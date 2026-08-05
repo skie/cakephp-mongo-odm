@@ -4,16 +4,14 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Locator;
 
 use Cake\Core\PluginApplicationInterface;
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\FactoryLocator;
-use Cake\ORM\Table;
 use Crustum\Mongo\Exception\MissingCollectionException;
 use Crustum\Mongo\MongoPlugin;
 use Crustum\Mongo\ODM\Locator\CollectionContainer;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use TestApp\Model\Collection\UsersCollection;
-
-require_once TESTS . 'TestApp/Model/Collection/PluginCollection.php';
 
 class CollectionLocatorTest extends TestCase
 {
@@ -29,7 +27,7 @@ class CollectionLocatorTest extends TestCase
         $locator = new CollectionLocator();
         $collection = $locator->get('Users');
 
-        $this->assertInstanceOf(Table::class, $collection);
+        $this->assertInstanceOf(UsersCollection::class, $collection);
         $this->assertSame($collection, $locator->get('Users'));
         $this->assertTrue($locator->exists('Users'));
 
@@ -42,8 +40,7 @@ class CollectionLocatorTest extends TestCase
     {
         $locator = new CollectionLocator();
 
-        $this->assertInstanceOf(Table::class, $locator->get('Users'));
-        $this->assertInstanceOf(Table::class, $locator->get('Crustum/Mongo.Plugin'));
+        $this->assertInstanceOf(UsersCollection::class, $locator->get('Users'));
     }
 
     public function testMissingClassRaisesException(): void
@@ -64,7 +61,7 @@ class CollectionLocatorTest extends TestCase
         $container = new CollectionContainer();
 
         $this->assertTrue($container->has(UsersCollection::class));
-        $this->assertFalse($container->has(Table::class));
-        $this->assertInstanceOf(Table::class, $container->get('Users'));
+        $this->assertFalse($container->has(EntityInterface::class));
+        $this->assertInstanceOf(UsersCollection::class, $container->get('Users'));
     }
 }

@@ -8,7 +8,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMapTrait;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
 
 /**
@@ -23,9 +23,9 @@ trait CommonQueryTrait
     /**
      * Repository used by this query.
      *
-     * @var \Crustum\Mongo\ODM\Collection|null
+     * @var \Crustum\Mongo\ODM\BaseCollection|null
      */
-    protected ?Collection $repository = null;
+    protected ?BaseCollection $repository = null;
 
     /**
      * Binds a repository to this query.
@@ -35,8 +35,8 @@ trait CommonQueryTrait
      */
     public function setRepository(RepositoryInterface $repository): static
     {
-        if (!$repository instanceof Collection) {
-            throw new InvalidArgumentException('ODM queries require a Collection repository.');
+        if (!$repository instanceof BaseCollection) {
+            throw new InvalidArgumentException('ODM queries require a BaseCollection repository.');
         }
 
         $this->repository = $repository;
@@ -52,9 +52,9 @@ trait CommonQueryTrait
     /**
      * Returns the repository bound to this query.
      *
-     * @return \Crustum\Mongo\ODM\Collection|null
+     * @return \Crustum\Mongo\ODM\BaseCollection|null
      */
-    public function getRepository(): ?Collection
+    public function getRepository(): ?BaseCollection
     {
         return $this->repository;
     }

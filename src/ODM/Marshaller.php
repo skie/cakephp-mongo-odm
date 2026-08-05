@@ -23,18 +23,18 @@ use Throwable;
 final class Marshaller
 {
     /**
-     * Collection associated with this marshaller.
+     * BaseCollection associated with this marshaller.
      *
-     * @var \Crustum\Mongo\ODM\Collection
+     * @var \Crustum\Mongo\ODM\BaseCollection
      */
-    private Collection $collection;
+    private BaseCollection $collection;
 
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\ODM\Collection $collection The collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
      */
-    public function __construct(Collection $collection)
+    public function __construct(BaseCollection $collection)
     {
         $this->collection = $collection;
     }

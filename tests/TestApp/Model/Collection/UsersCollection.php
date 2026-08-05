@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace TestApp\Model\Collection;
 
-use Cake\ORM\Table;
+use Crustum\Mongo\ODM\BaseCollection;
 
-class UsersCollection extends Table
+class UsersCollection extends BaseCollection
 {
 }

@@ -10,7 +10,7 @@ use Cake\ORM\DtoMapper;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
@@ -69,17 +69,17 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      * Constructor.
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection Database connection.
-     * @param string $collection Collection name.
-     * @param \Crustum\Mongo\ODM\Collection|null $repository Repository to bind.
+     * @param string $collection BaseCollection name.
+     * @param \Crustum\Mongo\ODM\BaseCollection|null $repository Repository to bind.
      */
     public function __construct(
         ?Connection $connection = null,
         string $collection = '',
-        ?Collection $repository = null,
+        ?BaseCollection $repository = null,
     ) {
         parent::__construct($connection, $collection);
         $this->eagerLoader = new EagerLoader();
-        if ($repository instanceof Collection) {
+        if ($repository instanceof BaseCollection) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }
@@ -396,7 +396,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
-        if ($this->repository instanceof Collection) {
+        if ($this->repository instanceof BaseCollection) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
 

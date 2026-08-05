@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Query;
 
 use Cake\Datasource\RepositoryInterface;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\DeleteQuery;
 use Crustum\Mongo\ODM\Query\InsertQuery;
@@ -75,6 +75,6 @@ final class QueryTest extends TestCase
     /** @return \Cake\Datasource\RepositoryInterface */
     private function repository(): RepositoryInterface
     {
-        return new Collection(['alias' => 'users', 'registryAlias' => 'Users']);
+        return new BaseCollection(['alias' => 'users', 'registryAlias' => 'Users']);
     }
 }

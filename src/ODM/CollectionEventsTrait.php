@@ -23,7 +23,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.beforeMarshal event is fired before request data is converted into entities.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -37,7 +37,7 @@ trait CollectionEventsTrait
      * Event handlers will get the converted entities, original request data and the options provided
      * to the patchEntity() or newEntity() call.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
@@ -55,7 +55,7 @@ trait CollectionEventsTrait
      * The Collection.buildValidator event is fired when $name validator is created.
      * Behaviors, can use this hook to add in validation methods.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Validation\Validator $validator Validator.
      * @param string $name Name.
      * @return void
@@ -67,7 +67,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.beforeFind event is fired before each find operation.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query Query.
      * @param \ArrayObject<string, mixed> $options Options.
      * @param bool $primary `true` if it is the root query, `false` if it is the associated query.
@@ -82,7 +82,7 @@ trait CollectionEventsTrait
      * Stopping this event will abort the save operation.
      * When the event is stopped the result of the event will be returned.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -94,7 +94,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.afterSave event is fired after an entity is saved.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Saved entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -109,7 +109,7 @@ trait CollectionEventsTrait
      * is triggered only for the primary table on which save() is directly called. The event is not triggered if a
      * transaction is started before calling save.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Saved entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -123,7 +123,7 @@ trait CollectionEventsTrait
      * By stopping this event you will abort the delete operation.
      * When the event is stopped the result of the event will be returned.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Entity to be deleted.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -135,7 +135,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.afterDelete event is fired after an entity has been deleted.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Deleted entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -150,7 +150,7 @@ trait CollectionEventsTrait
      * The event is triggered only for the primary table on which delete() is directly called. The event is not
      * triggered if a transaction is started before calling delete.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity Deleted entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
@@ -163,7 +163,7 @@ trait CollectionEventsTrait
      * The Collection.beforeRules event is fired before an entity has had rules applied.
      * By stopping this event, you can halt the rules checking and set the result of applying rules.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @param string $operation Operation.
@@ -181,7 +181,7 @@ trait CollectionEventsTrait
      * The Collection.afterRules event is fired after an entity has rules applied.
      * By stopping this event, you can return the final value of the rules checking operation.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\Collection> $event Model event.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
      * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @param bool $result Result.

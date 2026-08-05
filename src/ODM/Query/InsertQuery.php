@@ -7,7 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\InsertQuery as DatabaseInsertQuery;
 use Crustum\Mongo\Database\Type\TypeFactory;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 
 /**
  * ODM insert query that accepts Documents and arrays.
@@ -26,16 +26,16 @@ class InsertQuery extends DatabaseInsertQuery
      * Constructor.
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection Connection.
-     * @param string $collection Collection name.
-     * @param \Crustum\Mongo\ODM\Collection|null $repository Repository.
+     * @param string $collection BaseCollection name.
+     * @param \Crustum\Mongo\ODM\BaseCollection|null $repository Repository.
      */
     public function __construct(
         ?Connection $connection = null,
         string $collection = '',
-        ?Collection $repository = null,
+        ?BaseCollection $repository = null,
     ) {
         parent::__construct($connection, $collection);
-        if ($repository instanceof Collection) {
+        if ($repository instanceof BaseCollection) {
             $this->setRepository($repository);
             $this->addDefaultTypes();
         }

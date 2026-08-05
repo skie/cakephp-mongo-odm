@@ -3,18 +3,23 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo;
 
+use Cake\Collection\Collection;
 use Cake\Console\CommandCollection;
 use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
 use Cake\Core\ContainerInterface;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Datasource\FactoryLocator;
+use Cake\Event\EventManager;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\RouteBuilder;
+use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
+use Crustum\Mongo\View\Form\DocumentContext;
 use Crustum\PluginManifest\Manifest\ManifestInterface;
 use Crustum\PluginManifest\Manifest\ManifestTrait;
 use Override;
+use Traversable;
 
 /**
  * Plugin for Crustum/Mongo
@@ -44,6 +49,21 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
                 Configure::load('Crustum/Mongo.mongo', 'default', false);
             }
         }
+
+        // Attach the document context into FormHelper.
+        EventManager::instance()->on('View.beforeRender', function ($event): void {
+            $view = $event->getSubject();
+            $view->Form->addContextProvider('mongo', function ($request, array $data) {
+                $first = null;
+                if (is_array($data['entity'] ?? null) || ($data['entity'] ?? null) instanceof Traversable) {
+                    $first = (new Collection($data['entity']))->first();
+                }
+
+                if (($data['entity'] ?? null) instanceof Document || $first instanceof Document) {
+                    return new DocumentContext($request, $data);
+                }
+            });
+        });
     }
 
     /**

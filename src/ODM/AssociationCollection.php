@@ -56,12 +56,12 @@ class AssociationCollection implements Countable, IteratorAggregate
      * @template T of \Crustum\Mongo\ODM\Association
      * @param class-string<T> $className Association class.
      * @param string $associated Target alias.
-     * @param \Crustum\Mongo\ODM\Collection $sourceCollection Source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $sourceCollection Source collection.
      * @param array<string, mixed> $options Association options.
      * @return T
      * @throws \InvalidArgumentException If the class is not an association.
      */
-    public function load(string $className, string $associated, Collection $sourceCollection, array $options = []): Association
+    public function load(string $className, string $associated, BaseCollection $sourceCollection, array $options = []): Association
     {
         if (!class_exists($className) || !is_subclass_of($className, Association::class)) {
             throw new InvalidArgumentException(sprintf('`%s` must extend `%s`.', $className, Association::class));

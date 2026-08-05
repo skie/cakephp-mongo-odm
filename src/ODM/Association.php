@@ -122,16 +122,16 @@ abstract class Association
     /**
      * Source collection.
      *
-     * @var \Crustum\Mongo\ODM\Collection|null
+     * @var \Crustum\Mongo\ODM\BaseCollection|null
      */
-    protected ?Collection $source = null;
+    protected ?BaseCollection $source = null;
 
     /**
      * Target collection.
      *
-     * @var \Crustum\Mongo\ODM\Collection|null
+     * @var \Crustum\Mongo\ODM\BaseCollection|null
      */
-    protected ?Collection $target = null;
+    protected ?BaseCollection $target = null;
 
     /**
      * Document class used for hydrated associated documents.
@@ -172,10 +172,10 @@ abstract class Association
      * Constructor.
      *
      * @param string $alias Association alias.
-     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source Source collection.
      * @param array<string, mixed> $options Association configuration.
      */
-    public function __construct(string $alias, Collection $source, array $options = [])
+    public function __construct(string $alias, BaseCollection $source, array $options = [])
     {
         [, $this->name] = pluginSplit($alias);
         $this->className = $options['className'] ?? $this->name;
@@ -322,10 +322,10 @@ abstract class Association
     /**
      * Gets the source collection.
      *
-     * @return \Crustum\Mongo\ODM\Collection
+     * @return \Crustum\Mongo\ODM\BaseCollection
      * @throws \InvalidArgumentException If the source is not configured.
      */
-    public function getSource(): Collection
+    public function getSource(): BaseCollection
     {
         return $this->source ?? throw new InvalidArgumentException('Association source is not set.');
     }
@@ -333,10 +333,10 @@ abstract class Association
     /**
      * Sets the source collection.
      *
-     * @param \Crustum\Mongo\ODM\Collection $source Source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source Source collection.
      * @return $this
      */
-    public function setSource(Collection $source): static
+    public function setSource(BaseCollection $source): static
     {
         $this->source = $source;
 
@@ -346,10 +346,10 @@ abstract class Association
     /**
      * Gets the target collection.
      *
-     * @return \Crustum\Mongo\ODM\Collection
+     * @return \Crustum\Mongo\ODM\BaseCollection
      * @throws \InvalidArgumentException If the target is not configured.
      */
-    public function getTarget(): Collection
+    public function getTarget(): BaseCollection
     {
         return $this->target ?? throw new InvalidArgumentException('Association target is not set.');
     }
@@ -357,10 +357,10 @@ abstract class Association
     /**
      * Sets the target collection.
      *
-     * @param \Crustum\Mongo\ODM\Collection $target Target collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target Target collection.
      * @return $this
      */
-    public function setTarget(Collection $target): static
+    public function setTarget(BaseCollection $target): static
     {
         $this->target = $target;
 
@@ -773,10 +773,10 @@ abstract class Association
     /**
      * Gets a repository alias.
      *
-     * @param \Crustum\Mongo\ODM\Collection $repository Repository instance.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository Repository instance.
      * @return string
      */
-    protected function repositoryAlias(Collection $repository): string
+    protected function repositoryAlias(BaseCollection $repository): string
     {
         return $repository->getAlias();
     }

@@ -7,9 +7,9 @@ use Cake\Event\Event;
 use Cake\Event\EventInterface;
 use Cake\Validation\Validator;
 use Crustum\Mongo\ODM\Association;
-use Crustum\Mongo\ODM\Collection;
+use Crustum\Mongo\ODM\BaseCollection;
 
-final class MarshallerCollection extends Collection
+final class MarshallerCollection extends BaseCollection
 {
     /**
      * @var array<int, string>

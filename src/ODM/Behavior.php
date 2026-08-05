@@ -41,10 +41,10 @@ abstract class Behavior implements EventListenerInterface
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\ODM\Collection $collection The collection the behavior is attached to.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection the behavior is attached to.
      * @param array<string, mixed> $config Behavior configuration.
      */
-    public function __construct(protected Collection $collection, array $config = [])
+    public function __construct(protected BaseCollection $collection, array $config = [])
     {
         $this->_config = array_replace($this->defaultConfig, $config);
         $this->_configInitialized = true;
@@ -64,7 +64,7 @@ abstract class Behavior implements EventListenerInterface
     /**
      * Gets the collection this behavior is attached to.
      *
-     * @return \Crustum\Mongo\ODM\Collection
+     * @return \Crustum\Mongo\ODM\BaseCollection
      */
     public function collection(): Collection
     {
