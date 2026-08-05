@@ -175,6 +175,16 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Returns the applied query options.
+     *
+     * @return array<string, mixed>
+     */
+    public function getOptions(): array
+    {
+        return $this->getBuilder()->getOptions();
+    }
+
+    /**
      * Sets the offset.
      *
      * @param int|null $offset Number of rows to skip.

@@ -73,8 +73,6 @@ class DocumentTest extends TestCase
      */
     public function testSetOneParamNoSetters(): void
     {
-        $this->markTestSkipped('ODM missing plain `id` field semantics: `id` maps to `_id` in the ODM — see F13');
-
         $entity = new Document();
 
         $this->assertNull($entity->getOriginal('foo'));
@@ -97,8 +95,6 @@ class DocumentTest extends TestCase
      */
     public function testPatchPropertiesNoSetters(): void
     {
-        $this->markTestSkipped('ODM missing plain `id` field semantics: `id` maps to `_id` in the ODM — see F13');
-
         $entity = new Document();
         $entity->setAccess('*', true);
 

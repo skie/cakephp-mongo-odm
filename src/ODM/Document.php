@@ -88,9 +88,13 @@ class Document implements EntityInterface, ArrayAccess
     public function &__get(string $field): mixed
     {
         if ($field === 'id') {
-            $id = $this->getId();
+            if (array_key_exists('_id', $this->_fields)) {
+                $id = $this->getId();
 
-            return $id;
+                return $id;
+            }
+
+            return $this->entityGet($field);
         }
 
         return $this->entityGet($field);

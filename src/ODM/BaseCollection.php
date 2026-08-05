@@ -41,6 +41,7 @@ use Crustum\Mongo\ODM\Query\QueryFactory;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use LogicException;
+use ReflectionFunction;
 use Psr\SimpleCache\CacheInterface;
 use function Cake\Core\namespaceSplit;
 
@@ -755,11 +756,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Gets the collection schema.
      *
-     * @return \Cake\Datasource\SchemaInterface|null
+     * Lazy-creates an empty `CollectionSchema` when none was set explicitly, so
+     * callers never receive `null`. Mongo is schemaless: fields come from the
+     * application schema readers (`setSchemaFromDto`, `setSchemaFromDocument`,
+     * `setSchemaFromArray`, `addColumn`) rather than database introspection.
+     *
+     * @return \Cake\Datasource\SchemaInterface
      */
-    public function getSchema(): ?SchemaInterface
+    public function getSchema(): SchemaInterface
     {
-        return $this->schema;
+        return $this->schema ??= new CollectionSchema($this->getCollection());
     }
 
     /**
@@ -834,6 +840,43 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function getAssociation(string $name): ?Association
     {
         return $this->associations->get($name);
+    }
+
+    /**
+     * Magic property accessor for associations.
+     *
+     * `$collection->Users` returns the `Users` association (which forwards
+     * method calls to its target via `Association::__call()`), matching
+     * cake60 `Table::__get()`.
+     *
+     * @param string $property The association alias.
+     * @return \Crustum\Mongo\ODM\Association
+     * @throws \BadMethodCallException When no such association is defined.
+     */
+    public function __get(string $property): Association
+    {
+        $association = $this->associations->get($property);
+        if ($association === null) {
+            throw new BadMethodCallException(sprintf(
+                'Undefined property `%s`. You have not defined the `%s` association on `%s`.',
+                $property,
+                $property,
+                static::class,
+            ));
+        }
+
+        return $association;
+    }
+
+    /**
+     * Checks whether a magic association property exists.
+     *
+     * @param string $property The association alias.
+     * @return bool
+     */
+    public function __isset(string $property): bool
+    {
+        return $this->associations->has($property);
     }
 
     /**
@@ -1185,8 +1228,44 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param array<int|string, mixed> $args Arguments for the callable.
      * @return \Crustum\Mongo\ODM\Query\SelectQuery
      */
-    protected function invokeFinder(Closure $callable, SelectQuery $query, array $args): SelectQuery
+    public function invokeFinder(Closure $callable, SelectQuery $query, array $args): SelectQuery
     {
+        $reflected = new ReflectionFunction($callable);
+        $params = $reflected->getParameters();
+
+        if ($args) {
+            $unNamedArgs = [];
+            $namedArgs = [];
+            foreach ($args as $key => $value) {
+                if (is_int($key)) {
+                    $unNamedArgs[$key] = $value;
+                } else {
+                    $namedArgs[$key] = $value;
+                }
+            }
+
+            $query->applyOptions($namedArgs);
+            // Fetch custom args without the query options.
+            $args = $unNamedArgs + array_intersect_key($args, $query->getOptions());
+
+            unset($params[0]);
+            $lastParam = end($params);
+            reset($params);
+
+            if ($lastParam === false || !$lastParam->isVariadic()) {
+                $paramNames = [];
+                foreach ($params as $param) {
+                    $paramNames[] = $param->getName();
+                }
+
+                foreach ($args as $key => $value) {
+                    if (is_string($key) && !in_array($key, $paramNames, true)) {
+                        unset($args[$key]);
+                    }
+                }
+            }
+        }
+
         $result = $callable($query, ...$args);
         if (!$result instanceof SelectQuery) {
             throw new LogicException('Finder must return the query it was given.');

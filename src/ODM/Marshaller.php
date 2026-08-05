@@ -133,7 +133,7 @@ final class Marshaller
                 continue;
             }
 
-            $id = $entity->getId();
+            $id = $entity->id;
             if ($id === null) {
                 continue;
             }
@@ -193,7 +193,7 @@ final class Marshaller
      */
     private function prepare(array $data, array $options): array
     {
-        $options += ['validate' => true, 'associated' => []];
+        $options += ['validate' => true, 'associated' => [], 'isMerge' => false];
         $dataObject = new ArrayObject($data);
         $optionsObject = new ArrayObject($options);
         $this->dispatch('Collection.beforeMarshal', $dataObject, $optionsObject);
@@ -473,6 +473,12 @@ final class Marshaller
     /**
      * Dispatches the `Collection.afterMarshal` event.
      *
+     * Payload order matters: `EventManager::_callListener()` passes data
+     * positionally (`$listener($event, ...array_values($data))`), so the
+     * `afterMarshal(EventInterface, EntityInterface, ArrayObject, ArrayObject)`
+     * listener signature requires the entity first (matching cake's
+     * `compact('entity', 'data', 'options')`).
+     *
      * @param \Crustum\Mongo\ODM\Document $entity The marshalled document.
      * @param array<string, mixed> $data The input data.
      * @param array<string, mixed> $options Marshaller options.
@@ -480,7 +486,11 @@ final class Marshaller
      */
     private function dispatchAfterMarshal(Document $entity, array $data, array $options = []): void
     {
-        $this->dispatch('Collection.afterMarshal', $data, $options, $entity);
+        $this->collection->dispatchEvent('Collection.afterMarshal', [
+            'entity' => $entity,
+            'data' => new ArrayObject($data),
+            'options' => new ArrayObject($options),
+        ]);
     }
 
     /**

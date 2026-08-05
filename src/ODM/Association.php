@@ -9,6 +9,7 @@ use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use function Cake\Core\pluginSplit;
@@ -27,6 +28,7 @@ use function Cake\Core\pluginSplit;
 abstract class Association
 {
     use ConventionsTrait;
+    use LocatorAwareTrait;
 
     /**
      * Association type for many-to-one relationships.
@@ -346,12 +348,44 @@ abstract class Association
     /**
      * Gets the target collection.
      *
+     * When no target was set explicitly, it is resolved lazily through the
+     * collection locator using the association alias (matching cake60
+     * `Association::getTarget()`), so `belongsTo('Users')` targets the `Users`
+     * collection without explicit wiring.
+     *
      * @return \Crustum\Mongo\ODM\BaseCollection
-     * @throws \InvalidArgumentException If the target is not configured.
+     * @throws \InvalidArgumentException If the target cannot be resolved.
      */
     public function getTarget(): BaseCollection
     {
-        return $this->target ?? throw new InvalidArgumentException('Association target is not set.');
+        if ($this->target === null) {
+            if (str_contains($this->className, '.')) {
+                [$plugin] = pluginSplit($this->className, true);
+                $registryAlias = $plugin . $this->name;
+            } else {
+                $registryAlias = $this->name;
+            }
+
+            $locator = $this->getCollectionLocator();
+
+            $config = [];
+            if (!$locator->exists($registryAlias)) {
+                $config = ['className' => $this->className];
+            }
+
+            $target = $locator->get($registryAlias, $config);
+            if (!$target instanceof BaseCollection) {
+                throw new InvalidArgumentException(sprintf(
+                    'Association `%s` target `%s` did not resolve to a BaseCollection.',
+                    $this->getName(),
+                    $registryAlias,
+                ));
+            }
+
+            $this->target = $target;
+        }
+
+        return $this->target;
     }
 
     /**
@@ -572,6 +606,44 @@ abstract class Association
     }
 
     /**
+     * Proxies property retrieval to the target collction. This is handy for getting this
+     * association's associations
+     *
+     * @param string $property the property name
+     * @return self
+     * @throws \RuntimeException if no association with such a name exists
+     */
+    public function __get(string $property): self
+    {
+        return $this->getTarget()->{$property};
+    }
+
+    /**
+     * Proxies the isset call to the target collection. This is handy to check if the
+     * target table has another association with the passed name
+     *
+     * @param string $property the property name
+     * @return bool true if the association exists
+     */
+    public function __isset(string $property): bool
+    {
+        return $this->getTarget()->hasAssociation($property);
+    }
+
+
+    /**
+     * Proxies method calls to the target collection.
+     *
+     * @param string $method The method name.
+     * @param array<int, mixed> $arguments The arguments.
+     * @return mixed
+     */
+    public function __call(string $method, array $arguments): mixed
+    {
+        return $this->getTarget()->{$method}(...$arguments);
+    }
+
+    /**
      * Gets the target collection class name.
      *
      * @return string
@@ -641,34 +713,30 @@ abstract class Association
     }
 
     /**
-     * Splits a finder specification into a finder name and options.
+     * Helper method to infer the requested finder and its options.
      *
-     * Accepts `'name'`, `'name:key=value'`, or `['name', [...]]`.
+     * Returns the inferred options from the finder $type.
      *
-     * @param array<int|string, mixed>|string $finderData The finder specification.
-     * @return array{0: string, 1: array<string, mixed>}
+     * ### Examples:
+     *
+     * The following will call the finder 'translations' with the value of the finder as its options:
+     * $query->contain(['Comments' => ['finder' => ['translations']]]);
+     * $query->contain(['Comments' => ['finder' => ['translations' => []]]]);
+     * $query->contain(['Comments' => ['finder' => ['translations' => ['locales' => ['en_US']]]]]);
+     *
+     * @param array|string $finderData The finder name or an array having the name as key
+     * and options as value.
+     * @return array
      */
     protected function extractFinder(array|string $finderData): array
     {
-        if (is_array($finderData)) {
-            $type = (string)array_shift($finderData);
-            $options = is_array($finderData[0] ?? null) ? $finderData[0] : [];
+        $finderData = (array)$finderData;
 
-            return [$type, $options];
+        if (is_numeric(key($finderData))) {
+            return [current($finderData), []];
         }
 
-        if (!str_contains($finderData, ':')) {
-            return [$finderData, []];
-        }
-
-        [$type, $params] = explode(':', $finderData, 2);
-        $options = [];
-        foreach (array_filter(explode(';', $params)) as $param) {
-            $keyValue = explode('=', $param, 2);
-            $options[$keyValue[0]] = $keyValue[1] ?? true;
-        }
-
-        return [$type, $options];
+        return [key($finderData), current($finderData)];
     }
 
     /**
