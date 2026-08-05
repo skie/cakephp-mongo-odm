@@ -33,6 +33,8 @@ use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
+use Crustum\Mongo\ODM\Mapping\DocumentSchemaReader;
+use Crustum\Mongo\ODM\Mapping\DtoSchemaReader;
 use Crustum\Mongo\ODM\Query\QueryFactory;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
@@ -742,6 +744,36 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $this->schema = $schema;
 
         return $this;
+    }
+
+    /**
+     * Derive this collection's schema from a DTO class.
+     *
+     * Every promoted constructor parameter becomes a field; the type is
+     * inferred from the PHP type hint unless a `#[Field]` attribute overrides
+     * it. This is the primary application-side schema definition mechanism.
+     *
+     * @param class-string $dtoClass The DTO class to read
+     * @return $this
+     */
+    public function setSchemaFromDto(string $dtoClass): static
+    {
+        return $this->setSchema(DtoSchemaReader::read($dtoClass, $this->getCollection()));
+    }
+
+    /**
+     * Derive this collection's schema from a Document class.
+     *
+     * Optional sugar: reads repeatable `#[Field]` attributes declared at class
+     * level on the concrete document. The document stays an `EntityInterface`
+     * data bag; this only supplies application field metadata.
+     *
+     * @param class-string $documentClass The Document class to read
+     * @return $this
+     */
+    public function setSchemaFromDocument(string $documentClass): static
+    {
+        return $this->setSchema(DocumentSchemaReader::read($documentClass, $this->getCollection()));
     }
 
     /**

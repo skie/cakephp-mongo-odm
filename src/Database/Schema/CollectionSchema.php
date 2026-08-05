@@ -85,37 +85,58 @@ class CollectionSchema implements SchemaInterface
     /**
      * Constructor
      *
-     * @param string              $name       Collection name
-     * @param \MongoDB\Collection $collection MongoDB collection instance
-     * @param \MongoDB\Database   $database   MongoDB database instance
+     * @param string                   $name       Collection name
+     * @param \MongoDB\Collection|null $collection MongoDB collection instance
+     * @param \MongoDB\Database|null   $database   MongoDB database instance
      */
-    public function __construct(string $name, Collection $collection, Database $database)
+    public function __construct(string $name, ?Collection $collection = null, ?Database $database = null)
     {
         $this->name = $name;
+        $this->validationRules = [];
 
-        try {
-            $collections = $database->listCollections(['filter' => ['name' => $name]]);
-            $collectionInfo = null;
-            foreach ($collections as $info) {
-                $collectionInfo = $info;
-                break;
-            }
+        if ($collection !== null && $database !== null) {
+            try {
+                $collections = $database->listCollections(['filter' => ['name' => $name]]);
+                $collectionInfo = null;
+                foreach ($collections as $info) {
+                    $collectionInfo = $info;
+                    break;
+                }
 
-            if ($collectionInfo !== null) {
-                $options = $collectionInfo->getOptions();
-                $this->validationRules = $options['validator'] ?? [];
-            } else {
+                if ($collectionInfo !== null) {
+                    $options = $collectionInfo->getOptions();
+                    $this->validationRules = $options['validator'] ?? [];
+                } else {
+                    $this->validationRules = [];
+                }
+            } catch (Exception) {
                 $this->validationRules = [];
             }
-        } catch (Exception) {
-            $this->validationRules = [];
-        }
 
-        foreach ($collection->listIndexes() as $index) {
-            $this->processIndex($index);
+            foreach ($collection->listIndexes() as $index) {
+                $this->processIndex($index);
+            }
         }
 
         $this->updateTypeMap();
+    }
+
+    /**
+     * Build a CollectionSchema from a field definition map without touching the
+     * database. Used by the DTO and attribute schema readers.
+     *
+     * @param string                                      $name   Collection name
+     * @param array<string, array<string, mixed>|string> $fields Field definitions keyed by field name
+     * @return static
+     */
+    public static function fromFields(string $name, array $fields): static
+    {
+        $schema = new static($name);
+        foreach ($fields as $fieldName => $attrs) {
+            $schema->addField($fieldName, $attrs);
+        }
+
+        return $schema;
     }
 
     /**
