@@ -27,8 +27,8 @@ if (!defined('DS')) {
 define('ROOT', $findRoot());
 define('APP_DIR', 'TestApp');
 define('WEBROOT_DIR', 'webroot');
-define('APP', ROOT . '/tests/TestApp/');
-define('CONFIG', ROOT . '/tests/TestApp/config/');
+define('APP', ROOT . '/tests/test_app/TestApp/');
+define('CONFIG', ROOT . '/tests/test_app/TestApp/config/');
 define('WWW_ROOT', ROOT . DS . WEBROOT_DIR . DS);
 define('TESTS', ROOT . DS . 'tests' . DS);
 define('TMP', ROOT . DS . 'tmp' . DS);

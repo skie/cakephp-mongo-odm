@@ -36,7 +36,7 @@
     "autoload-dev": {
         "psr-4": {
             "Crustum\\Mongo\\Test\\": "tests/",
-            "TestApp\\": "tests/TestApp/"
+            "TestApp\\": "tests/test_app/TestApp/"
         }
     },
     "scripts": {
