@@ -440,9 +440,7 @@ class QueryExpressionTest extends TestCase
     public function testAndHelperWithClosure(): void
     {
         $expression = new QueryExpression();
-        $result = $expression->and(function ($exp) {
-            return $exp->add(['a' => 1])->add(['b' => 2]);
-        });
+        $result = $expression->and(fn($exp) => $exp->add(['a' => 1])->add(['b' => 2]));
 
         $this->assertInstanceOf(QueryExpression::class, $result);
         $this->assertSame('$and', $result->getConjunction());
@@ -457,9 +455,7 @@ class QueryExpressionTest extends TestCase
     public function testOrHelperWithClosure(): void
     {
         $expression = new QueryExpression();
-        $result = $expression->or(function ($exp) {
-            return $exp->add(['b' => 2])->add(['c' => 3]);
-        });
+        $result = $expression->or(fn($exp) => $exp->add(['b' => 2])->add(['c' => 3]));
 
         $this->assertInstanceOf(QueryExpression::class, $result);
         $this->assertSame('$or', $result->getConjunction());
@@ -474,9 +470,7 @@ class QueryExpressionTest extends TestCase
     public function testNotHelperWithClosure(): void
     {
         $expression = new QueryExpression();
-        $result = $expression->not(function ($exp) {
-            return $exp->add(['a' => 1]);
-        });
+        $result = $expression->not(fn($exp) => $exp->add(['a' => 1]));
 
         $this->assertEquals(['$nor' => [['a' => 1]]], $result->getConditions());
     }

@@ -57,6 +57,14 @@ return RectorConfig::configure()
         SafeDeclareStrictTypesRector::class,
         IssetOnPropertyObjectToPropertyExistsRector::class,
         IfIssetToCoalescingRector::class,
+        // Event listener closures are deliberately untyped (cake6 parity): the
+        // Marshaller dispatches `ArrayObject` for `$data`/`$options`, not `array`.
+        \Rector\TypeDeclaration\Rector\ClassMethod\ParamTypeByMethodCallTypeRector::class => [
+            __DIR__ . '/tests/TestCase/ODM/MarshallerTest.php',
+        ],
+        \Rector\TypeDeclaration\Rector\ClassMethod\StrictArrayParamDimFetchRector::class => [
+            __DIR__ . '/tests/TestCase/ODM/MarshallerTest.php',
+        ],
     ])
     ->withPreparedSets(
         deadCode: true,

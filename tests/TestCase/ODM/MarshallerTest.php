@@ -351,7 +351,7 @@ class MarshallerTest extends TestCase
         $users->hasOne('Articles', [
             'foreignKey' => 'author_id',
         ]);
-        $articles->getEventManager()->on('Collection.beforeMarshal', function ($event, $data, $options): void {
+        $articles->getEventManager()->on('Collection.beforeMarshal', function ($event, array $data, $options): void {
             // Blank the association, so it doesn't become dirty.
             unset($data['not_a_real_field']);
         });
@@ -984,6 +984,7 @@ class MarshallerTest extends TestCase
 
         $inner = new Document(['id' => 1]);
         $inner->requireFieldPresence(true);
+
         $entity = new Document([
             'tags' => [
                 $inner,
@@ -1443,6 +1444,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', true);
         $entity->setNew(false);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, []);
 
         $this->assertSame($entity, $result);
@@ -1478,6 +1480,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', false);
         $entity->setNew(false);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, ['patchableFields' => ['body' => true]]);
 
         $this->assertSame($entity, $result);
@@ -1504,7 +1507,7 @@ class MarshallerTest extends TestCase
      * @param mixed $value
      */
     #[DataProvider('emptyProvider')]
-    public function testMergeFalseyValues($value): void
+    public function testMergeFalseyValues(int|string $value): void
     {
         $this->markTestSkipped('ODM needs schema type config on Articles collection for cast tests — see F16');
 
@@ -1536,6 +1539,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', true);
         $entity->setNew(false);
         $entity->clean();
+
         $marshall->merge($entity, $data, []);
 
         $this->assertFalse($entity->isDirty('body'), 'unchanged null should not be dirty');
@@ -1673,6 +1677,7 @@ class MarshallerTest extends TestCase
         ];
         $entity->setAccess('*', true);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, []);
 
         $expected = [
@@ -2637,6 +2642,7 @@ class MarshallerTest extends TestCase
 ');
         $entity = $this->articles->get(1, ...['contain' => ['Tags']]);
         $entity->setAccess('*', true);
+
         $original = $entity->tags[0]->_joinData;
 
         $this->assertInstanceOf(Document::class, $entity->tags[0]->_joinData);
@@ -2964,6 +2970,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', false);
         $entity->setNew(false);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, ['fields' => ['title', 'body']]);
 
         $expected = [
@@ -3005,6 +3012,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', false);
         $entity->setNew(false);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, ['fields' => ['body']]);
 
         $expected = [
@@ -3028,6 +3036,7 @@ class MarshallerTest extends TestCase
         $entity->setAccess('*', false);
         $entity->setNew(false);
         $entity->clean();
+
         $result = $marshall->merge($entity, $data, ['fields' => ['body'], 'strictFields' => true]);
 
         $this->assertSame($entity, $result);
@@ -3476,6 +3485,7 @@ class MarshallerTest extends TestCase
 
         $entity->clean();
         $entity->setNew(false);
+
         $result = $marshall->merge($entity, $data, []);
         $this->assertNotEmpty($result->getError('author_id'));
         $this->assertNotEmpty($result->getError('thing'));
@@ -3604,28 +3614,28 @@ class MarshallerTest extends TestCase
 
         $this->articles->Users->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, $data, $options): void {
+            function ($e, array $data, $options): void {
                 $data['secret'] = 'h45h3d';
             },
         );
 
         $this->articles->Comments->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, $data): void {
+            function ($e, array $data): void {
                 $data['comment'] .= ' (modified)';
             },
         );
 
         $this->articles->Tags->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, $data): void {
+            function ($e, array $data): void {
                 $data['tag'] .= ' (modified)';
             },
         );
 
         $this->articles->Tags->junction()->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, $data): void {
+            function ($e, array $data): void {
                 $data['modified_by'] = 1;
             },
         );

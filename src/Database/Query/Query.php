@@ -170,9 +170,9 @@ abstract class Query implements Stringable
      * A `Closure` receives `(QueryExpression $exp, static $query)` and must
      * return the conditions to merge into the filter.
      *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
-     * @param array<int|string, string>                                                    $types      Field => type map used to cast values.
-     * @param bool                                                                         $overwrite  Whether to overwrite existing conditions.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|null $conditions The conditions.
+     * @param array<int|string, string>                                                        $types      Field => type map used to cast values.
+     * @param bool                                                                             $overwrite  Whether to overwrite existing conditions.
      * @return $this
      */
     public function where(
@@ -221,10 +221,10 @@ abstract class Query implements Stringable
      *
      * Compiles to `$exists => false` (Mongo has no null-equality semantics).
      *
-     * @param \Cake\Database\ExpressionInterface|array<int, string>|string $fields A single field or list of fields.
+     * @param array<int, string>|string $fields A single field or list of fields.
      * @return $this
      */
-    public function whereNull(ExpressionInterface|array|string $fields): static
+    public function whereNull(array|string $fields): static
     {
         $conditions = [];
         foreach (is_array($fields) ? $fields : [$fields] as $field) {
@@ -239,10 +239,10 @@ abstract class Query implements Stringable
      *
      * Compiles to `$exists => true` (Mongo has no null-equality semantics).
      *
-     * @param \Cake\Database\ExpressionInterface|array<int, string>|string $fields A single field or list of fields.
+     * @param array<int, string>|string $fields A single field or list of fields.
      * @return $this
      */
-    public function whereNotNull(ExpressionInterface|array|string $fields): static
+    public function whereNotNull(array|string $fields): static
     {
         $conditions = [];
         foreach (is_array($fields) ? $fields : [$fields] as $field) {
@@ -362,7 +362,11 @@ abstract class Query implements Stringable
      */
     public function orderByAsc(ExpressionInterface|Closure|string $field, bool $overwrite = false): static
     {
-        return $this->orderBy([$field => 'ASC'], $overwrite);
+        if ($field instanceof Closure) {
+            $field = $field($this->expr(), $this);
+        }
+
+        return $this->orderBy([(string)$field => 'ASC'], $overwrite);
     }
 
     /**
@@ -374,7 +378,11 @@ abstract class Query implements Stringable
      */
     public function orderByDesc(ExpressionInterface|Closure|string $field, bool $overwrite = false): static
     {
-        return $this->orderBy([$field => 'DESC'], $overwrite);
+        if ($field instanceof Closure) {
+            $field = $field($this->expr(), $this);
+        }
+
+        return $this->orderBy([(string)$field => 'DESC'], $overwrite);
     }
 
     /**

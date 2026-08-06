@@ -31,6 +31,7 @@ final class HarnessSmokeTest extends TestCase
         foreach ($collection->find() as $document) {
             $titles[] = $document['title'];
         }
+
         $this->assertContains('First Article', $titles);
         $this->assertContains('Second Article', $titles);
         $this->assertContains('Third Article', $titles);

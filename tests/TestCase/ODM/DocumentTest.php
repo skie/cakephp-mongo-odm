@@ -174,6 +174,7 @@ class DocumentTest extends TestCase
             'null' => null,
         ], ['markNew' => true]);
         $entity->set('body', 'updated body');
+
         $result = $entity->extractOriginal(['id', 'title', 'body', 'null', 'undefined']);
         $expected = [
             'id' => 1,
@@ -210,6 +211,7 @@ class DocumentTest extends TestCase
             'null' => null,
         ], ['markNew' => true]);
         $entity->set('body', 'updated body');
+
         $result = $entity->getOriginalValues();
         $expected = [
             'id' => 1,
@@ -630,8 +632,8 @@ class DocumentTest extends TestCase
     {
         $entity = Mockery::spy(Document::class)->makePartial();
 
-        $entity['foo'];
-        $entity['bar'];
+        $this->assertNull($entity['foo']);
+        $this->assertNull($entity['bar']);
 
         $entity->shouldHaveReceived('get')
             ->with('foo')
@@ -918,6 +920,7 @@ class DocumentTest extends TestCase
         // Setting different object SHOULD mark field dirty
         $differentObject = new stdClass();
         $differentObject->value = 20.00;
+
         $entity->set('amount', $differentObject);
         $this->assertTrue($entity->isDirty('amount'));
     }
@@ -934,6 +937,7 @@ class DocumentTest extends TestCase
         ]);
         $entity->setDirty('id', false);
         $entity->setDirty('title', false);
+
         $expected = ['author_id' => 3];
         $result = $entity->extract(['id', 'title', 'author_id'], true);
         $this->assertEquals($expected, $result);
@@ -1101,6 +1105,7 @@ class DocumentTest extends TestCase
         };
         $entity->setAccess('*', true);
         $entity->patch(['name' => 'Mark', 'email' => 'mark@example.com']);
+
         $expected = ['name' => 'Jose', 'email' => 'mark@example.com'];
         $this->assertEquals($expected, $entity->toArray());
     }
@@ -1171,6 +1176,7 @@ class DocumentTest extends TestCase
         $entity->patch(['email' => 'mark@example.com']);
 
         $entity->setVirtual(['name']);
+
         $expected = ['name' => 'Jose', 'email' => 'mark@example.com'];
         $this->assertEquals($expected, $entity->toArray());
 
@@ -1320,6 +1326,7 @@ class DocumentTest extends TestCase
             'owner' => $owner,
         ]);
         $author->setError('thing', ['this is a mistake']);
+
         $user->setErrors(['a' => ['error1'], 'b' => ['error2']]);
         $owner->setErrors(['c' => ['error3'], 'd' => ['error4']]);
 
@@ -1395,6 +1402,7 @@ class DocumentTest extends TestCase
             'many' => [$assoc2],
         ]);
         $entity->setError('wrong', 'Bad stuff');
+
         $assoc->setError('nope', 'Terrible things');
         $assoc2->setError('nope', 'Terrible things');
 
@@ -1600,6 +1608,7 @@ class DocumentTest extends TestCase
         $entity->setError('foo', ['An error']);
         $entity->setInvalidField('foo', 'a value');
         $entity->setSource('foos');
+
         $result = $entity->__debugInfo();
         $expected = [
             'foo' => 'bar',
@@ -1773,7 +1782,8 @@ class DocumentTest extends TestCase
         $this->assertSame(true, $return);
 
         $entity = new Document([]);
-        $entity->set('foo', null);
+        $entity->set('foo');
+
         $return = $entity->isOriginalField('foo');
         $this->assertSame(false, $return);
 
@@ -1788,6 +1798,7 @@ class DocumentTest extends TestCase
     {
         $entity = new Document(['foo' => 'foo', 'bar' => 'bar']);
         $entity->set('baz', 'baz');
+
         $return = $entity->getOriginalFields();
         $this->assertEquals(['foo', 'bar'], $return);
 
@@ -1795,6 +1806,7 @@ class DocumentTest extends TestCase
         $entity->set('foo', 'foo');
         $entity->set('bar', 'bar');
         $entity->set('baz', 'baz');
+
         $return = $entity->getOriginalFields();
         $this->assertEquals([], $return);
     }

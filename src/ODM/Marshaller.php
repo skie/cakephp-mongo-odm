@@ -245,7 +245,7 @@ final class Marshaller
     {
         $map = [];
 
-        $types = $this->collection->getSchema()?->typeMap() ?? [];
+        $types = $this->collection->getSchema()->typeMap();
 
         foreach (array_keys($data) as $prop) {
             $prop = (string)$prop;

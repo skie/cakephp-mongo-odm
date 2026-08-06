@@ -338,7 +338,11 @@ class CollectionSchema implements SchemaInterface
         $types = is_array($bsonType) ? $bsonType : [$bsonType];
 
         foreach ($types as $type) {
-            if (!is_string($type) || $type === 'null') {
+            if (!is_string($type)) {
+                continue;
+            }
+
+            if ($type === 'null') {
                 continue;
             }
 

@@ -70,14 +70,9 @@ trait CommonQueryTrait
             return $this;
         }
 
-        $schema = $this->repository->getSchema();
-        if ($schema === null) {
-            return $this;
-        }
-
         $alias = $this->repository->getAlias();
         $types = [];
-        foreach ($schema->typeMap() as $field => $type) {
+        foreach ($this->repository->getSchema()->typeMap() as $field => $type) {
             $types[$field] = $type;
             $types[$alias . '.' . $field] = $type;
             $types[$alias . '__' . $field] = $type;

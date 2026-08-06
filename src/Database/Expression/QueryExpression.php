@@ -293,7 +293,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$and"
      *
-     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with AND
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<int|string, mixed> $conditions Conditions to be joined with AND
      * @return static
      */
     public function and(Closure|array|MongoExpressionInterface $conditions): static
@@ -309,7 +309,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$or"
      *
-     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with OR
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<int|string, mixed> $conditions Conditions to be joined with OR
      * @return static
      */
     public function or(Closure|array|MongoExpressionInterface $conditions): static
@@ -325,7 +325,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * Adds a new set of conditions to this level of the tree and negates the
      * final result by wrapping them in `$nor`.
      *
-     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<string, mixed> $conditions Conditions to be added and negated
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|\Closure|array<string, mixed> $conditions Conditions to be added and negated
      * @return $this
      */
     public function not(Closure|array|MongoExpressionInterface $conditions): static

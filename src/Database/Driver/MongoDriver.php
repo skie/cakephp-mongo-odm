@@ -133,7 +133,7 @@ class MongoDriver implements DriverInterface
             $version = $buildInfo->version ?? '';
             $parts = explode('.', $version);
 
-            return isset($parts[0]) && (int)$parts[0] >= 5;
+            return (int)$parts[0] >= 5;
         } catch (Throwable) {
             return false;
         }

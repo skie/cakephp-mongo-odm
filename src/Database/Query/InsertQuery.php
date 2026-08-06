@@ -78,6 +78,7 @@ class InsertQuery extends Query
         } else {
             $this->documents[] = $values;
         }
+
         $this->dirty();
 
         return $this;

@@ -20,9 +20,11 @@ class GreedyCommentsCollection extends BaseCollection
         if (!is_array($options)) {
             $options = [];
         }
+
         if (empty($options['conditions'])) {
             $options['conditions'] = [];
         }
+
         $options['conditions'] = array_merge($options['conditions'], ['Comments.published' => 'Y']);
 
         return parent::find($type, ...$options);

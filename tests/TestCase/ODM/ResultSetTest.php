@@ -57,9 +57,11 @@ class ResultSetTest extends TestCase
         foreach ($results as $result) {
             $first[] = $result;
         }
+
         foreach ($results as $result) {
             $second[] = $result;
         }
+
         $this->assertEquals($first, $second);
     }
 
@@ -228,9 +230,7 @@ class ResultSetTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Comments');
         $query = $table->find()
-            ->formatResults(function ($results) {
-                return $results;
-            });
+            ->formatResults(fn($results) => $results);
         $res = $query->all();
         $res->isEmpty();
         $this->assertCount(6, $res->toArray());

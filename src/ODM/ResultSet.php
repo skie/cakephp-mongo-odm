@@ -7,6 +7,7 @@ use Cake\Collection\CollectionTrait;
 use Cake\Collection\Iterator\BufferedIterator;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
+use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\Embedded;
@@ -30,6 +31,7 @@ use MongoDB\Model\BSONDocument;
  * @template TKey
  * @template TValue
  * @implements \Cake\Datasource\ResultSetInterface<TKey, TValue>
+ * @extends \IteratorIterator<TKey, TValue, \Traversable<TKey, TValue>>
  */
 class ResultSet extends IteratorIterator implements ResultSetInterface
 {
@@ -75,7 +77,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     {
         parent::__construct(new BufferedIterator($items));
         $this->query = $query;
-        if ($query !== null) {
+        if ($query instanceof SelectQuery) {
             $this->_calculateAssociationMap($query);
         }
     }
@@ -131,10 +133,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             return $this->hydrated[$index] = $result;
         }
 
-        if (is_array($result)) {
-            $result = new BSONDocument($result);
-        }
-        if ($result instanceof BSONDocument) {
+        if (is_array($result) || $result instanceof BSONDocument) {
             $data = $this->mapId((array)$result);
             $data = $this->convertRow($data);
 
@@ -202,9 +201,14 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         foreach ($row as $field => $value) {
             $typeName = $schema->getColumnType((string)$field);
-            if ($typeName === null || !$driver) {
+            if ($typeName === null) {
                 continue;
             }
+
+            if (!$driver instanceof MongoDriver) {
+                continue;
+            }
+
             $row[$field] = TypeFactory::build($typeName)->toPHP($value, $driver);
         }
 
@@ -246,11 +250,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         foreach ($contain as $alias => $options) {
             $association = $repository->getAssociation((string)$alias);
-            if (!$association) {
+            if (!$association instanceof Association) {
                 continue;
             }
 
-            $fullPath = $path ? $path . '.' . $alias : (string)$alias;
+            $fullPath = $path !== '' && $path !== '0' ? $path . '.' . $alias : (string)$alias;
             $config = is_array($options) ? $options : [];
 
             $map[$fullPath] = [
@@ -273,7 +277,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     /**
      * Extracts nested association options from a contain entry.
      *
-     * @param array<string, mixed> $config The contain options.
+     * @param array<int|string, mixed> $config The contain options.
      * @return array<int|string, mixed>
      */
     protected function _containOptions(array $config): array
@@ -288,6 +292,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             ) {
                 continue;
             }
+
             $nested[$key] = $value;
         }
 
@@ -386,7 +391,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
      */
     public function count(): int
     {
-        if ($this->query !== null) {
+        if ($this->query instanceof SelectQuery) {
             return $this->query->count();
         }
 
@@ -402,7 +407,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
      */
     public function __serialize(): array
     {
-        return $this->toArray();
+        return array_values($this->toArray());
     }
 
     /**

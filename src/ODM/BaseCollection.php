@@ -282,6 +282,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if (!$collection || $collection === 'Base') {
                 $collection = $this->alias;
             }
+
             if (!$collection) {
                 throw new CakeException(
                     'You must specify either the `alias` or the `collection` option for the constructor.',
@@ -730,7 +731,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function getConnection(): ?Connection
     {
-        if (!$this->connection) {
+        if (!$this->connection instanceof Connection) {
             $connection = ConnectionManager::get(static::defaultConnectionName());
             if ($connection instanceof Connection) {
                 $this->connection = $connection;
@@ -843,6 +844,17 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Checks whether an association with the given alias is registered.
+     *
+     * @param string $name The association alias.
+     * @return bool True when the association exists.
+     */
+    public function hasAssociation(string $name): bool
+    {
+        return $this->associations->has($name);
+    }
+
+    /**
      * Magic property accessor for associations.
      *
      * `$collection->Users` returns the `Users` association (which forwards
@@ -856,7 +868,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function __get(string $property): Association
     {
         $association = $this->associations->get($property);
-        if ($association === null) {
+        if (!$association instanceof Association) {
             throw new BadMethodCallException(sprintf(
                 'Undefined property `%s`. You have not defined the `%s` association on `%s`.',
                 $property,
@@ -1233,7 +1245,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $reflected = new ReflectionFunction($callable);
         $params = $reflected->getParameters();
 
-        if ($args) {
+        if ($args !== []) {
             $unNamedArgs = [];
             $namedArgs = [];
             foreach ($args as $key => $value) {
@@ -1258,7 +1270,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                     $paramNames[] = $param->getName();
                 }
 
-                foreach ($args as $key => $value) {
+                foreach (array_keys($args) as $key) {
                     if (is_string($key) && !in_array($key, $paramNames, true)) {
                         unset($args[$key]);
                     }
@@ -1729,11 +1741,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         $schema = $this->getSchema();
-        if ($schema instanceof SchemaInterface) {
-            foreach (['title', 'name', 'label'] as $field) {
-                if ($schema->hasColumn($field)) {
-                    return $this->displayField = $field;
-                }
+        foreach (['title', 'name', 'label'] as $field) {
+            if ($schema->hasColumn($field)) {
+                return $this->displayField = $field;
             }
         }
 

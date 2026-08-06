@@ -50,7 +50,7 @@ final class ResultSetFactory
     /**
      * Cached DTO hydrator closures by class name.
      *
-     * @var array<class-string, \Closure(array): object>
+     * @var array<class-string, \Closure(array<string, mixed>): object>
      */
     protected static array $dtoHydrators = [];
 
@@ -158,7 +158,7 @@ final class ResultSetFactory
      * - Static `createFromArray($data, $nested)` factory method (cakephp-dto style)
      * - Constructor with named parameters (DtoMapper reflection)
      *
-     * @param array $row Nested array data
+     * @param array<string, mixed> $row Nested array data
      * @param class-string $dtoClass DTO class name
      * @return object
      */
@@ -171,24 +171,20 @@ final class ResultSetFactory
      * Get a cached hydrator closure for a DTO class.
      *
      * @param class-string $dtoClass DTO class name
-     * @return \Closure(array): object
+     * @return \Closure(array<string, mixed>): object
      */
     public function getDtoHydrator(string $dtoClass): Closure
     {
-        if (!isset(static::$dtoHydrators[$dtoClass])) {
+        if (!isset(self::$dtoHydrators[$dtoClass])) {
             if (method_exists($dtoClass, 'createFromArray')) {
-                static::$dtoHydrators[$dtoClass] = static function (array $row) use ($dtoClass): object {
-                    return $dtoClass::createFromArray($row, true);
-                };
+                self::$dtoHydrators[$dtoClass] = (static fn(array $row): object => $dtoClass::createFromArray($row, true));
             } else {
                 $mapper = $this->getDtoMapper();
-                static::$dtoHydrators[$dtoClass] = static function (array $row) use ($mapper, $dtoClass): object {
-                    return $mapper->map($row, $dtoClass);
-                };
+                self::$dtoHydrators[$dtoClass] = (static fn(array $row): object => $mapper->map($row, $dtoClass));
             }
         }
 
-        return static::$dtoHydrators[$dtoClass];
+        return self::$dtoHydrators[$dtoClass];
     }
 
     /**
@@ -198,7 +194,7 @@ final class ResultSetFactory
      */
     public static function clearDtoHydratorCache(): void
     {
-        static::$dtoHydrators = [];
+        self::$dtoHydrators = [];
     }
 
     /**
@@ -214,7 +210,7 @@ final class ResultSetFactory
     /**
      * Sets the result set class to use.
      *
-     * @param class-string<\Cake\Datasource\ResultSetInterface<array-key, mixed>> $resultSetClass Class name.
+     * @param class-string $resultSetClass Class name.
      * @return $this
      */
     public function setResultSetClass(string $resultSetClass): static

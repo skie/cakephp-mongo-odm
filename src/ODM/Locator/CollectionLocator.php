@@ -51,6 +51,7 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
         if ($className === null && ($options['allowFallbackClass'] ?? true)) {
             $className = BaseCollection::class;
         }
+
         if ($className === null) {
             throw new MissingCollectionException([$options['className']]);
         }

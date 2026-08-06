@@ -358,7 +358,7 @@ abstract class Association
      */
     public function getTarget(): BaseCollection
     {
-        if ($this->target === null) {
+        if (!$this->target instanceof BaseCollection) {
             if (str_contains($this->className, '.')) {
                 [$plugin] = pluginSplit($this->className, true);
                 $registryAlias = $plugin . $this->name;
@@ -723,9 +723,9 @@ abstract class Association
      * $query->contain(['Comments' => ['finder' => ['translations' => []]]]);
      * $query->contain(['Comments' => ['finder' => ['translations' => ['locales' => ['en_US']]]]]);
      *
-     * @param array|string $finderData The finder name or an array having the name as key
+     * @param array<int|string, mixed>|string $finderData The finder name or an array having the name as key
      * and options as value.
-     * @return array
+     * @return array{0: string, 1: mixed}
      */
     protected function extractFinder(array|string $finderData): array
     {

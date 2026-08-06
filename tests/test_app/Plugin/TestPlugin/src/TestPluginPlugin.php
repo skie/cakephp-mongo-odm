@@ -19,9 +19,7 @@ class TestPluginPlugin extends BasePlugin
 
     public function middleware(MiddlewareQueue $middlewareQueue): MiddlewareQueue
     {
-        $middlewareQueue->add(function ($request, $handler) {
-            return $handler->handle($request);
-        });
+        $middlewareQueue->add(fn($request, $handler) => $handler->handle($request));
 
         return $middlewareQueue;
     }

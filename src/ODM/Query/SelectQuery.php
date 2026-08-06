@@ -62,7 +62,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Result set factory used to decorate executed rows.
      *
-     * @var \Crustum\Mongo\ODM\ResultSetFactory|null
+     * @var \Crustum\Mongo\ODM\ResultSetFactory<array<string, mixed>|\Crustum\Mongo\ODM\Document>|null
      */
     protected ?ResultSetFactory $resultSetFactory = null;
 
@@ -525,7 +525,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Gets the result set factory used to decorate executed rows.
      *
-     * @return \Crustum\Mongo\ODM\ResultSetFactory
+     * @return \Crustum\Mongo\ODM\ResultSetFactory<array<string, mixed>|\Crustum\Mongo\ODM\Document>
      */
     public function resultSetFactory(): ResultSetFactory
     {
