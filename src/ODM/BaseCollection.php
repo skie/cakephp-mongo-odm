@@ -8,6 +8,7 @@ use BadMethodCallException;
 use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
@@ -863,13 +864,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * @param string $property The association alias.
      * @return \Crustum\Mongo\ODM\Association
-     * @throws \BadMethodCallException When no such association is defined.
+     * @throws \Cake\Database\Exception\DatabaseException When no such association is defined.
      */
     public function __get(string $property): Association
     {
         $association = $this->associations->get($property);
         if (!$association instanceof Association) {
-            throw new BadMethodCallException(sprintf(
+            throw new DatabaseException(sprintf(
                 'Undefined property `%s`. You have not defined the `%s` association on `%s`.',
                 $property,
                 $property,

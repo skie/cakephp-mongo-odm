@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Datasource\ConnectionManager;
+use Cake\Routing\Router;
 use Cake\TestSuite\Fixture\FixtureStrategyInterface;
 use Cake\TestSuite\Fixture\TruncateStrategy;
 use Cake\TestSuite\TestCase as BaseTestCase;
@@ -48,6 +49,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         ConnectionManager::alias('test_mongo', 'default');
+        Router::reload();
     }
 
     /**

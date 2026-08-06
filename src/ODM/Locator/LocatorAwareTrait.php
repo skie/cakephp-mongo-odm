@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Locator;
 
 use Cake\Datasource\FactoryLocator;
+use Cake\Datasource\Locator\LocatorInterface;
 use Cake\Datasource\RepositoryInterface;
 use UnexpectedValueException;
 
@@ -25,17 +26,17 @@ trait LocatorAwareTrait
     /**
      * The collection locator instance.
      *
-     * @var \Crustum\Mongo\ODM\Locator\CollectionLocator|null
+     * @var \Cake\Datasource\Locator\LocatorInterface<\Cake\Datasource\RepositoryInterface>|null
      */
-    protected ?CollectionLocator $collectionLocator = null;
+    protected ?LocatorInterface $collectionLocator = null;
 
     /**
      * Sets the collection locator.
      *
-     * @param \Crustum\Mongo\ODM\Locator\CollectionLocator $collectionLocator Locator to use for fetching collections.
+     * @param \Cake\Datasource\Locator\LocatorInterface $collectionLocator Locator to use for fetching collections.
      * @return $this
      */
-    public function setCollectionLocator(CollectionLocator $collectionLocator): static
+    public function setCollectionLocator(LocatorInterface $collectionLocator): static
     {
         $this->collectionLocator = $collectionLocator;
 
@@ -47,19 +48,19 @@ trait LocatorAwareTrait
      *
      * Falls back to the factory-registered locator for the `Collection` type.
      *
-     * @return \Crustum\Mongo\ODM\Locator\CollectionLocator The configured or factory-registered locator.
+     * @return \Cake\Datasource\Locator\LocatorInterface<\Cake\Datasource\RepositoryInterface> The configured or factory-registered locator.
      * @throws \UnexpectedValueException If the factory contains another locator type.
      */
-    public function getCollectionLocator(): CollectionLocator
+    public function getCollectionLocator(): LocatorInterface
     {
         if ($this->collectionLocator !== null) {
             return $this->collectionLocator;
         }
 
         $locator = FactoryLocator::get('Collection');
-        if (!$locator instanceof CollectionLocator) {
+        if (!$locator instanceof LocatorInterface) {
             throw new UnexpectedValueException(
-                '`FactoryLocator` must return a CollectionLocator for type `Collection`.',
+                '`FactoryLocator` must return a LocatorInterface for type `Collection`.',
             );
         }
 

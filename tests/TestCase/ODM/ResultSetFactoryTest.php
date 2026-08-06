@@ -30,7 +30,7 @@ class ResultSetFactoryTest extends TestCase
     /**
      * @var \Crustum\Mongo\ODM\BaseCollection
      */
-    protected $table;
+    protected $collection;
 
     /**
      * @var array
@@ -53,7 +53,7 @@ class ResultSetFactoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->table = $this->getCollectionLocator()->get('Articles');
+        $this->collection = $this->getCollectionLocator()->get('Articles');
         $this->factory = new ResultSetFactory();
 
         $this->fixtureData = [
@@ -76,7 +76,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testDebugInfo(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
         $expected = [
             'count' => 3,
@@ -95,7 +95,7 @@ class ResultSetFactoryTest extends TestCase
         $comments->belongsTo('Articles');
 
         // Clear the articles table so we can trigger an empty belongsTo
-        $this->table->deleteAll([]);
+        $this->collection->deleteAll([]);
 
         $comment = $comments->find()->where(['Comments.id' => 1])
             ->contain(['Articles'])
@@ -149,18 +149,18 @@ class ResultSetFactoryTest extends TestCase
     public function testHasOneEagerLoaderLeavesEmptyAssociation(): void
     {
         $this->markTestSkipped('Association eager loading — Phase 4 (F17).');
-        $this->table->hasOne('Comments');
+        $this->collection->hasOne('Comments');
 
         // Clear the comments table so we can trigger an empty hasOne.
         $comments = $this->getCollectionLocator()->get('Comments');
         $comments->deleteAll([]);
 
-        $article = $this->table->get(1, ...['contain' => ['Comments']]);
+        $article = $this->collection->get(1, ...['contain' => ['Comments']]);
         $this->assertNull($article->comment);
         $this->assertSame(1, $article->id);
         $this->assertNotEmpty($article->title);
 
-        $article = $this->table->find()->where(['articles.id' => 1])
+        $article = $this->collection->find()->where(['articles.id' => 1])
             ->contain(['Comments'])
             ->hydrate(false)
             ->first();
@@ -225,7 +225,7 @@ class ResultSetFactoryTest extends TestCase
         $messages = Log::engine('queries')->read();
         $this->assertCount(0, $messages);
 
-        $results = $this->table->find('all')
+        $results = $this->collection->find('all')
             ->where(['id' => '000000000000000000000000'])
             ->all();
 
@@ -245,7 +245,7 @@ class ResultSetFactoryTest extends TestCase
     {
         DtoMapper::clearCache();
 
-        $result = $this->table->find()
+        $result = $this->collection->find()
             ->where(['id' => '000000000000000000000001'])
             ->projectAs(SimpleArticleDto::class)
             ->first();
@@ -263,7 +263,7 @@ class ResultSetFactoryTest extends TestCase
     {
         DtoMapper::clearCache();
 
-        $results = $this->table->find()
+        $results = $this->collection->find()
             ->projectAs(SimpleArticleDto::class)
             ->toArray();
 
@@ -376,7 +376,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testGetDtoClass(): void
     {
-        $query = $this->table->find();
+        $query = $this->collection->find();
         $this->assertNull($query->getDtoClass());
 
         $query->projectAs(SimpleArticleDto::class);
@@ -388,7 +388,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testIsDtoProjectionEnabled(): void
     {
-        $query = $this->table->find();
+        $query = $this->collection->find();
         $this->assertFalse($query->isDtoProjectionEnabled());
 
         $query->projectAs(SimpleArticleDto::class);
@@ -402,7 +402,7 @@ class ResultSetFactoryTest extends TestCase
     {
         DtoMapper::clearCache();
 
-        $result = $this->table->find()
+        $result = $this->collection->find()
             ->where(['id' => '000000000000000000000001'])
             ->projectAs(ArticleArrayDto::class)
             ->first();

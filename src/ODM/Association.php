@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Core\App;
 use Cake\Core\ConventionsTrait;
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
@@ -13,6 +15,7 @@ use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use function Cake\Core\pluginSplit;
+use function Cake\Core\triggerWarning;
 
 /**
  * An association describes a relationship between ODM collections.
@@ -96,9 +99,11 @@ abstract class Association
     /**
      * Binding key fields on the source collection.
      *
-     * @var array<string>|string
+     * When not configured, the owning side's primary key is used (default `_id`).
+     *
+     * @var array<string>|string|null
      */
-    protected string|array $bindingKey = '_id';
+    protected string|array|null $bindingKey = null;
 
     /**
      * Conditions always applied while loading the target.
@@ -183,7 +188,7 @@ abstract class Association
         $this->className = $options['className'] ?? $this->name;
         $this->propertyName = $options['propertyName'] ?? null;
         $this->foreignKey = $options['foreignKey'] ?? null;
-        $this->bindingKey = $options['bindingKey'] ?? '_id';
+        $this->bindingKey = $options['bindingKey'] ?? null;
         $this->conditions = $options['conditions'] ?? [];
         $this->dependent = (bool)($options['dependent'] ?? false);
         $this->onDelete = (string)($options['onDelete'] ?? ($this->dependent ? 'cascade' : 'nullify'));
@@ -191,6 +196,10 @@ abstract class Association
         $this->finder = $options['finder'] ?? 'all';
         if (isset($options['strategy'])) {
             $this->setStrategy((string)$options['strategy']);
+        }
+
+        if (isset($options['collectionLocator'])) {
+            $this->setCollectionLocator($options['collectionLocator']);
         }
 
         $this->setSource($source);
@@ -207,6 +216,19 @@ abstract class Association
 
             $this->documentClass = $class;
         }
+
+        $this->options($options);
+    }
+
+    /**
+     * Override this function to initialize any concrete association class, it will
+     * get passed the original list of options used in the constructor
+     *
+     * @param array<string, mixed> $options List of options used for initialization
+     * @return void
+     */
+    protected function options(array $options): void
+    {
     }
 
     /**
@@ -236,7 +258,21 @@ abstract class Association
      */
     public function getProperty(): string
     {
-        return $this->propertyName ??= Inflector::underscore($this->name);
+        if ($this->propertyName === null) {
+            $this->setProperty($this->propertyName());
+        }
+
+        if (
+            in_array($this->propertyName, $this->getSource()->getSchema()->columns(), true)
+        ) {
+            triggerWarning(sprintf(
+                'Association property name `%s` clashes with field of same name of table `%s`.',
+                $this->propertyName,
+                $this->getSource()->getCollection(),
+            ));
+        }
+
+        return $this->propertyName;
     }
 
     /**
@@ -250,6 +286,18 @@ abstract class Association
         $this->propertyName = $property;
 
         return $this;
+    }
+
+    /**
+     * Returns the default property name based on the association name.
+     *
+     * @return string
+     */
+    protected function propertyName(): string
+    {
+        [, $name] = pluginSplit($this->name);
+
+        return Inflector::underscore($name);
     }
 
     /**
@@ -278,10 +326,20 @@ abstract class Association
     /**
      * Gets the source binding key.
      *
+     * When not manually specified, the primary key of the owning side is used.
+     * The owning side is the source collection when `isOwningSide()` is true,
+     * otherwise the target collection.
+     *
      * @return array<string>|string
      */
     public function getBindingKey(): string|array
     {
+        if ($this->bindingKey === null) {
+            $this->bindingKey = $this->isOwningSide() ?
+                $this->getSource()->getPrimaryKey() :
+                $this->getTarget()->getPrimaryKey();
+        }
+
         return $this->bindingKey;
     }
 
@@ -369,7 +427,8 @@ abstract class Association
             $locator = $this->getCollectionLocator();
 
             $config = [];
-            if (!$locator->exists($registryAlias)) {
+            $exists = $locator->exists($registryAlias);
+            if (!$exists) {
                 $config = ['className' => $this->className];
             }
 
@@ -380,6 +439,24 @@ abstract class Association
                     $this->getName(),
                     $registryAlias,
                 ));
+            }
+
+            if ($exists) {
+                $className = App::className($this->className, 'Model/Collection', 'Collection') ?: BaseCollection::class;
+                if (!$target instanceof $className) {
+                    $msg = "`%s` association `%s` of type `%s` to `%s` doesn't match the expected class `%s`. ";
+                    $msg .= "You can't have an association of the same name with a different target ";
+                    $msg .= '`className` option anywhere in your app.';
+
+                    throw new DatabaseException(sprintf(
+                        $msg,
+                        $this->getSource()::class,
+                        $this->getName(),
+                        $this->type(),
+                        $target::class,
+                        $className,
+                    ));
+                }
             }
 
             $this->target = $target;
@@ -657,9 +734,22 @@ abstract class Association
      *
      * @param string $className The class name.
      * @return $this
+     * @throws \InvalidArgumentException In case the class name is set after the target collection has been
+     *  resolved, and it doesn't match the target collection's class name.
      */
     public function setClassName(string $className): static
     {
+        if (
+            $this->target instanceof BaseCollection &&
+            get_class($this->target) !== App::className($className, 'Model/Collection', 'Collection')
+        ) {
+            throw new InvalidArgumentException(sprintf(
+                "The class name `%s` doesn't match the target table class name of `%s`.",
+                $className,
+                $this->target::class,
+            ));
+        }
+
         $this->className = $className;
 
         return $this;

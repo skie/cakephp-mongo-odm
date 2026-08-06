@@ -18,7 +18,7 @@ class ResultSetTest extends TestCase
     /**
      * @var \Crustum\Mongo\ODM\BaseCollection
      */
-    protected $table;
+    protected $collection;
 
     /**
      * @var array
@@ -36,7 +36,7 @@ class ResultSetTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->table = $this->getCollectionLocator()->get('Articles');
+        $this->collection = $this->getCollectionLocator()->get('Articles');
 
         $this->fixtureData = [
             ['id' => '000000000000000000000001', 'author_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
@@ -50,7 +50,7 @@ class ResultSetTest extends TestCase
      */
     public function testRewind(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
         $first = [];
         $second = [];
@@ -73,11 +73,11 @@ class ResultSetTest extends TestCase
      */
     public function testSerialization(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
         $expected = $results->toArray();
 
-        $query2 = $this->table->find('all');
+        $query2 = $this->collection->find('all');
         $results2 = $query2->all();
         $serialized = serialize($results2);
         $outcome = unserialize($serialized);
@@ -89,7 +89,7 @@ class ResultSetTest extends TestCase
      */
     public function testIteratorAfterSerializationNoHydration(): void
     {
-        $query = $this->table->find('all')->hydrate(false);
+        $query = $this->collection->find('all')->hydrate(false);
         $results = unserialize(serialize($query->all()));
 
         // Use a loop to test Iterator implementation
@@ -104,14 +104,14 @@ class ResultSetTest extends TestCase
     public function testIteratorAfterSerializationHydrated(): void
     {
         $this->markTestSkipped('Hydrated Documents keep canonical `_id` internally — cake `id`-only field shape diverges (F3).');
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = unserialize(serialize($query->all()));
 
         // Use a loop to test Iterator implementation
         foreach ($results as $i => $row) {
             $expected = new Document($this->fixtureData[$i]);
             $expected->setNew(false);
-            $expected->setSource($this->table->getAlias());
+            $expected->setSource($this->collection->getAlias());
             $expected->clean();
             $this->assertEquals($expected, $row, "Row {$i} does not match");
         }
@@ -122,7 +122,7 @@ class ResultSetTest extends TestCase
      */
     public function testJsonSerialize(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
 
         $expected = json_encode($this->fixtureData);
@@ -134,7 +134,7 @@ class ResultSetTest extends TestCase
      */
     public function testFirst(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->hydrate(false)->all();
 
         $row = $results->first();
@@ -149,7 +149,7 @@ class ResultSetTest extends TestCase
      */
     public function testFirstAfterSerialize(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->hydrate(false)->all();
         $results = unserialize(serialize($results));
 
@@ -165,7 +165,7 @@ class ResultSetTest extends TestCase
      */
     public function testCount(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
 
         $this->assertCount(3, $results, 'Should be countable and 3');
@@ -176,7 +176,7 @@ class ResultSetTest extends TestCase
      */
     public function testCountAfterSerialize(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
         $results = unserialize(serialize($results));
 
@@ -189,12 +189,12 @@ class ResultSetTest extends TestCase
     public function testGroupBy(): void
     {
         $this->markTestSkipped('Hydrated Documents keep canonical `_id` internally — cake `id`-only field shape diverges (F3).');
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all()->groupBy('author_id')->toArray();
         $options = [
             'markNew' => false,
             'markClean' => true,
-            'source' => $this->table->getAlias(),
+            'source' => $this->collection->getAlias(),
         ];
         $expected = [
             1 => [
@@ -213,7 +213,7 @@ class ResultSetTest extends TestCase
      */
     public function testDebugInfo(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
         $results = $query->all();
         $expected = [
             'count' => 3,
@@ -228,8 +228,8 @@ class ResultSetTest extends TestCase
      */
     public function testIsEmptyDoesNotConsumeData(): void
     {
-        $table = $this->getCollectionLocator()->get('Comments');
-        $query = $table->find()
+        $collection = $this->getCollectionLocator()->get('Comments');
+        $query = $collection->find()
             ->formatResults(fn($results) => $results);
         $res = $query->all();
         $res->isEmpty();
@@ -241,13 +241,13 @@ class ResultSetTest extends TestCase
      */
     public function testCollectionMinAndMax(): void
     {
-        $query = $this->table->find('all');
+        $query = $this->collection->find('all');
 
         $min = $query->all()->min('id');
-        $minExpected = $this->table->get('000000000000000000000001');
+        $minExpected = $this->collection->get('000000000000000000000001');
 
         $max = $query->all()->max('id');
-        $maxExpected = $this->table->get('000000000000000000000003');
+        $maxExpected = $this->collection->get('000000000000000000000003');
 
         $this->assertEquals($minExpected, $min);
         $this->assertEquals($maxExpected, $max);
@@ -259,7 +259,7 @@ class ResultSetTest extends TestCase
     public function testCollectionMinAndMaxWithAggregateField(): void
     {
         $this->markTestSkipped('SQL `COUNT(*)` aggregate — not applicable to Mongo (F19).');
-        $query = $this->table->find();
+        $query = $this->collection->find();
         $query->select([
             'counter' => 'COUNT(*)',
         ])->groupBy('author_id');

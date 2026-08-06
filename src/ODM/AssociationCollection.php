@@ -5,7 +5,11 @@ namespace Crustum\Mongo\ODM;
 
 use ArrayIterator;
 use Cake\Core\Exception\CakeException;
+use Cake\Datasource\EntityInterface;
+use Cake\Datasource\Locator\LocatorInterface;
 use Countable;
+use Crustum\Mongo\ODM\Association\BelongsTo;
+use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use InvalidArgumentException;
 use IteratorAggregate;
 use Traversable;
@@ -21,6 +25,7 @@ use function Cake\Core\pluginSplit;
 class AssociationCollection implements Countable, IteratorAggregate
 {
     use AssociationsNormalizerTrait;
+    use LocatorAwareTrait;
 
     /**
      * Registered associations keyed by alias.
@@ -28,6 +33,21 @@ class AssociationCollection implements Countable, IteratorAggregate
      * @var array<string, \Crustum\Mongo\ODM\Association>
      */
     protected array $items = [];
+
+    /**
+     * Constructor.
+     *
+     * Sets the default collection locator for associations.
+     * If no locator is provided, the global one will be used.
+     *
+     * @param \Cake\Datasource\Locator\LocatorInterface|null $collectionLocator Collection locator instance.
+     */
+    public function __construct(?LocatorInterface $collectionLocator = null)
+    {
+        if ($collectionLocator !== null) {
+            $this->collectionLocator = $collectionLocator;
+        }
+    }
 
     /**
      * Adds an association to the registry.
@@ -188,5 +208,189 @@ class AssociationCollection implements Countable, IteratorAggregate
         }
 
         return null;
+    }
+
+    /**
+     * Removes all registered associations.
+     *
+     * Once removed associations will no longer be reachable
+     *
+     * @return void
+     */
+    public function removeAll(): void
+    {
+        foreach ($this->items as $alias => $object) {
+            $this->remove($alias);
+        }
+    }
+
+    /**
+     * Save all the associations that are parents of the given entity.
+     *
+     * Parent associations include any association where the given collection
+     * is the owning side.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
+     * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
+     * @param array $associations The list of associations to save parents from.
+     *   associations not in this list will not be saved.
+     * @param array<string, mixed> $options The options for the save operation.
+     * @return bool Success
+     */
+    public function saveParents(BaseCollection $table, EntityInterface $entity, array $associations, array $options = []): bool
+    {
+        if (!$associations) {
+            return true;
+        }
+
+        return $this->saveAssociations($table, $entity, $associations, $options, false);
+    }
+
+    /**
+     * Save all the associations that are children of the given entity.
+     *
+     * Child associations include any association where the given collection
+     * is not the owning side.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
+     * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
+     * @param array $associations The list of associations to save children from.
+     *   associations not in this list will not be saved.
+     * @param array<string, mixed> $options The options for the save operation.
+     * @return bool Success
+     */
+    public function saveChildren(BaseCollection $table, EntityInterface $entity, array $associations, array $options): bool
+    {
+        if (!$associations) {
+            return true;
+        }
+
+        return $this->saveAssociations($table, $entity, $associations, $options, true);
+    }
+
+    /**
+     * Helper method for saving an association's data.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection the save is currently operating on
+     * @param \Cake\Datasource\EntityInterface $entity The entity to save
+     * @param array $associations Array of associations to save.
+     * @param array<string, mixed> $options Original options
+     * @param bool $owningSide Compared with association classes'
+     *   isOwningSide method.
+     * @return bool Success
+     * @throws \InvalidArgumentException When an unknown alias is used.
+     */
+    protected function saveAssociations(
+        BaseCollection $table,
+        EntityInterface $entity,
+        array $associations,
+        array $options,
+        bool $owningSide,
+    ): bool {
+        unset($options['associated']);
+        foreach ($associations as $alias => $nested) {
+            if (is_int($alias)) {
+                $alias = $nested;
+                $nested = [];
+            }
+            $relation = $this->get($alias);
+            if (!$relation) {
+                $msg = sprintf(
+                    'Cannot save `%s`, it is not associated to `%s`.',
+                    $alias,
+                    $table->getAlias(),
+                );
+                throw new InvalidArgumentException($msg);
+            }
+
+            $isParent = $relation instanceof BelongsTo;
+            if ($isParent === $owningSide) {
+                continue;
+            }
+
+            if (!$this->save($relation, $entity, $nested, $options)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Helper method for saving an association's data.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The association object to save with.
+     * @param \Cake\Datasource\EntityInterface $entity The entity to save
+     * @param array<string, mixed> $nested Options for deeper associations
+     * @param array<string, mixed> $options Original options
+     * @return bool Success
+     */
+    protected function save(
+        Association $association,
+        EntityInterface $entity,
+        array $nested,
+        array $options,
+    ): bool {
+        if (!$entity->isDirty($association->getProperty())) {
+            return true;
+        }
+        if ($nested) {
+            $options = $nested + $options;
+        }
+
+        return (bool)$association->saveAssociated($entity, $options);
+    }
+
+    /**
+     * Cascade a delete across the various associations.
+     * Cascade first across associations for which cascadeCallbacks is true.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The entity to delete associations for.
+     * @param array<string, mixed> $options The options used in the delete operation.
+     * @return bool
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options): bool
+    {
+        $noCascade = [];
+        foreach ($this->items as $assoc) {
+            if (!$assoc->getCascadeCallbacks()) {
+                $noCascade[] = $assoc;
+                continue;
+            }
+            $success = $assoc->cascadeDelete($entity, $options);
+            if (!$success) {
+                return false;
+            }
+        }
+
+        foreach ($noCascade as $assoc) {
+            $success = $assoc->cascadeDelete($entity, $options);
+            if (!$success) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns an associative array of association names out a mixed
+     * array. If true is passed, then it returns all association names
+     * in this collection.
+     *
+     * @param array|string|bool $keys the list of association names to normalize
+     * @return array
+     */
+    public function normalizeKeys(array|string|bool $keys): array
+    {
+        if ($keys === true) {
+            $keys = $this->keys();
+        }
+
+        if (!$keys) {
+            return [];
+        }
+
+        return $this->normalizeAssociations($keys);
     }
 }
