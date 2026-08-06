@@ -3,10 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
-use Cake\Database\ExpressionInterface;
-use Closure;
-use Crustum\Mongo\Database\Expression\QueryExpression;
-
 /**
  * Update query for MongoDB updateMany operations.
  *
@@ -39,33 +35,6 @@ class UpdateQuery extends Query
     }
 
     /**
-     * Sets the filter conditions.
-     *
-     * A `Closure` receives `(QueryExpression $exp, UpdateQuery $query)` and must
-     * return the conditions to merge into the filter.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
-     * @param array<int|string, string>                                                    $types      Field => type map used to cast values.
-     * @param bool                                                                         $overwrite  Whether to overwrite existing conditions.
-     * @return $this
-     */
-    public function where(
-        ExpressionInterface|Closure|array|string|null $conditions = [],
-        array $types = [],
-        bool $overwrite = false,
-    ): static {
-        if ($conditions instanceof Closure) {
-            $exp = new QueryExpression();
-            $conditions = $conditions($exp, $this) ?? $exp;
-        }
-
-        $types += $this->getDefaultTypes();
-        $this->builder->where($conditions, $types, $overwrite);
-
-        return $this;
-    }
-
-    /**
      * Adds a `$set` assignment.
      *
      * @param array<string, mixed>|string $field Field name or map of field => value.
@@ -78,6 +47,7 @@ class UpdateQuery extends Query
             $this->update['$set'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -95,6 +65,7 @@ class UpdateQuery extends Query
             $this->update['$unset'] ?? [],
             array_fill_keys($fields, ''),
         );
+        $this->dirty();
 
         return $this;
     }
@@ -112,6 +83,7 @@ class UpdateQuery extends Query
             $this->update['$inc'] ?? [],
             is_array($field) ? $field : [$field => $amount],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -146,6 +118,7 @@ class UpdateQuery extends Query
             $this->update['$push'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -163,6 +136,7 @@ class UpdateQuery extends Query
             $this->update['$pull'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -180,6 +154,7 @@ class UpdateQuery extends Query
             $this->update['$addToSet'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -197,6 +172,7 @@ class UpdateQuery extends Query
             $this->update['$pop'] ?? [],
             is_array($field) ? $field : [$field => $direction],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -214,6 +190,7 @@ class UpdateQuery extends Query
             $this->update['$mul'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -231,6 +208,7 @@ class UpdateQuery extends Query
             $this->update['$rename'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -248,6 +226,7 @@ class UpdateQuery extends Query
             $this->update['$min'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -265,6 +244,7 @@ class UpdateQuery extends Query
             $this->update['$max'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }
@@ -282,6 +262,7 @@ class UpdateQuery extends Query
             $this->update['$currentDate'] ?? [],
             is_array($field) ? $field : [$field => $value],
         );
+        $this->dirty();
 
         return $this;
     }

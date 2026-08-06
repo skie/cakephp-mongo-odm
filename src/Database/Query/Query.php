@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Query;
 
 use Cake\Core\Exception\CakeException;
+use Cake\Database\ExpressionInterface;
+use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\FunctionsBuilder;
 use Crustum\Mongo\Database\TypeMapTrait;
+use InvalidArgumentException;
 use Stringable;
 
 /**
@@ -57,6 +61,16 @@ abstract class Query implements Stringable
     protected string $collection;
 
     /**
+     * Whether the query state was modified since the last execution.
+     *
+     * Used to discard internal caches (compiled query, executed results) and
+     * to apply execution-time optimizations like `first()`'s `limit(1)`.
+     *
+     * @var bool
+     */
+    protected bool $dirty = false;
+
+    /**
      * Constructor.
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection The connection to execute on.
@@ -71,6 +85,16 @@ abstract class Query implements Stringable
             ? $connection->getDriver()
             : null;
         $this->builder = new QueryCompiler($driver);
+    }
+
+    /**
+     * Marks the query as dirty, discarding any cached pre-execution state.
+     *
+     * @return void
+     */
+    protected function dirty(): void
+    {
+        $this->dirty = true;
     }
 
     /**
@@ -105,6 +129,7 @@ abstract class Query implements Stringable
     public function from(string $collection): static
     {
         $this->collection = $collection;
+        $this->dirty();
 
         return $this;
     }
@@ -137,6 +162,324 @@ abstract class Query implements Stringable
     public function func(): FunctionsBuilder
     {
         return $this->functionsBuilder ??= new FunctionsBuilder();
+    }
+
+    /**
+     * Sets the filter conditions.
+     *
+     * A `Closure` receives `(QueryExpression $exp, static $query)` and must
+     * return the conditions to merge into the filter.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
+     * @param array<int|string, string>                                                    $types      Field => type map used to cast values.
+     * @param bool                                                                         $overwrite  Whether to overwrite existing conditions.
+     * @return $this
+     */
+    public function where(
+        ExpressionInterface|Closure|array|string|null $conditions = [],
+        array $types = [],
+        bool $overwrite = false,
+    ): static {
+        if ($conditions instanceof Closure) {
+            $exp = new QueryExpression();
+            $conditions = $conditions($exp, $this) ?? $exp;
+        }
+
+        $types += $this->getDefaultTypes();
+        $this->builder->where($conditions, $types, $overwrite);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Adds conditions with an `$and` operator.
+     *
+     * A `Closure` receives `(QueryExpression $exp, static $query)` and must
+     * return the conditions to add.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $conditions The conditions to add.
+     * @param array<int|string, string>                                                $types      Field => type map used to cast values.
+     * @return $this
+     */
+    public function andWhere(ExpressionInterface|Closure|array|string $conditions, array $types = []): static
+    {
+        if ($conditions instanceof Closure) {
+            $exp = new QueryExpression();
+            $conditions = $conditions($exp, $this) ?? $exp;
+        }
+
+        $types += $this->getDefaultTypes();
+        $this->builder->andWhere($conditions, $types);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Adds an IS NULL condition for the given field(s).
+     *
+     * Compiles to `$exists => false` (Mongo has no null-equality semantics).
+     *
+     * @param \Cake\Database\ExpressionInterface|array<int, string>|string $fields A single field or list of fields.
+     * @return $this
+     */
+    public function whereNull(ExpressionInterface|array|string $fields): static
+    {
+        $conditions = [];
+        foreach (is_array($fields) ? $fields : [$fields] as $field) {
+            $conditions[$field . ' IS'] = null;
+        }
+
+        return $this->where($conditions);
+    }
+
+    /**
+     * Adds an IS NOT NULL condition for the given field(s).
+     *
+     * Compiles to `$exists => true` (Mongo has no null-equality semantics).
+     *
+     * @param \Cake\Database\ExpressionInterface|array<int, string>|string $fields A single field or list of fields.
+     * @return $this
+     */
+    public function whereNotNull(ExpressionInterface|array|string $fields): static
+    {
+        $conditions = [];
+        foreach (is_array($fields) ? $fields : [$fields] as $field) {
+            $conditions[$field . ' IS NOT'] = null;
+        }
+
+        return $this->where($conditions);
+    }
+
+    /**
+     * Adds an IN condition for a field.
+     *
+     * When `allowEmpty` is set and `$values` is empty, an always-false filter is
+     * applied so no documents match.
+     *
+     * @param string $field The field name.
+     * @param array<int, mixed> $values The values to match.
+     * @param array<string, mixed> $options Options (`types`, `allowEmpty`).
+     * @return $this
+     */
+    public function whereInList(string $field, array $values, array $options = []): static
+    {
+        $options += [
+            'types' => [],
+            'allowEmpty' => false,
+        ];
+
+        if ($options['allowEmpty'] && !$values) {
+            return $this->where(['$expr' => ['$eq' => [1, 0]]]);
+        }
+
+        return $this->where([$field . ' IN' => $values], $options['types']);
+    }
+
+    /**
+     * Adds a NOT IN condition for a field.
+     *
+     * When `allowEmpty` is set and `$values` is empty, an always-true filter is
+     * applied so all documents match.
+     *
+     * @param string $field The field name.
+     * @param array<int, mixed> $values The values to exclude.
+     * @param array<string, mixed> $options Options (`types`, `allowEmpty`).
+     * @return $this
+     */
+    public function whereNotInList(string $field, array $values, array $options = []): static
+    {
+        $options += [
+            'types' => [],
+            'allowEmpty' => false,
+        ];
+
+        if ($options['allowEmpty'] && !$values) {
+            return $this->where(['$expr' => ['$eq' => [1, 1]]]);
+        }
+
+        return $this->where([$field . ' NOT IN' => $values], $options['types']);
+    }
+
+    /**
+     * Adds a NOT IN condition that also allows the field to be null.
+     *
+     * When `allowEmpty` is set and `$values` is empty, an always-true filter is
+     * applied so all documents match.
+     *
+     * @param string $field The field name.
+     * @param array<int, mixed> $values The values to exclude.
+     * @param array<string, mixed> $options Options (`types`, `allowEmpty`).
+     * @return $this
+     */
+    public function whereNotInListOrNull(string $field, array $values, array $options = []): static
+    {
+        $options += [
+            'types' => [],
+            'allowEmpty' => false,
+        ];
+
+        if ($options['allowEmpty'] && !$values) {
+            return $this->where(['$expr' => ['$eq' => [1, 1]]]);
+        }
+
+        return $this->where(
+            [
+                'OR' => [$field . ' NOT IN' => $values, $field . ' IS' => null],
+            ],
+            $options['types'],
+        );
+    }
+
+    /**
+     * Sets the sort order.
+     *
+     * A `Closure` receives the query and must return the fields to sort by.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $fields Fields to sort by.
+     * @param bool                                                                    $overwrite Whether to overwrite the existing sort.
+     * @return $this
+     */
+    public function orderBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
+    {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
+        $this->builder->orderBy($fields, $overwrite);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Orders results ascending by a field.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|string $field Field name.
+     * @param bool $overwrite Whether to overwrite the existing sort.
+     * @return $this
+     */
+    public function orderByAsc(ExpressionInterface|Closure|string $field, bool $overwrite = false): static
+    {
+        return $this->orderBy([$field => 'ASC'], $overwrite);
+    }
+
+    /**
+     * Orders results descending by a field.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|string $field Field name.
+     * @param bool $overwrite Whether to overwrite the existing sort.
+     * @return $this
+     */
+    public function orderByDesc(ExpressionInterface|Closure|string $field, bool $overwrite = false): static
+    {
+        return $this->orderBy([$field => 'DESC'], $overwrite);
+    }
+
+    /**
+     * Sets the result limit.
+     *
+     * @param int|null $limit Number of results to return.
+     * @return $this
+     */
+    public function limit(?int $limit): static
+    {
+        $this->builder->limit($limit);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Sets the number of results to skip.
+     *
+     * @param int|null $skip Number of results to skip.
+     * @return $this
+     */
+    public function skip(?int $skip): static
+    {
+        $this->builder->skip($skip);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Sets the number of records to skip (alias for `skip()`).
+     *
+     * @param int|null $offset Number of rows to skip.
+     * @return $this
+     */
+    public function offset(?int $offset): static
+    {
+        return $this->skip($offset);
+    }
+
+    /**
+     * Sets the result page using limit/skip.
+     *
+     * Page numbers start at 1. When no limit is set it defaults to 25.
+     *
+     * @param int $page The page number.
+     * @param int|null $limit The page size.
+     * @return $this
+     * @throws \InvalidArgumentException When the page number is below 1.
+     */
+    public function page(int $page, ?int $limit = null): static
+    {
+        if ($page < 1) {
+            throw new InvalidArgumentException('Pages must start at 1.');
+        }
+
+        if ($limit !== null) {
+            $this->limit($limit);
+        }
+
+        $limit = $this->builder->getLimit();
+        if ($limit === null) {
+            $limit = 25;
+            $this->limit($limit);
+        }
+
+        $this->skip(($page - 1) * $limit);
+
+        return $this;
+    }
+
+    /**
+     * Returns the stored value of a query clause.
+     *
+     * Supports the Mongo clause names: `where`, `select`, `order`, `group`,
+     * `having`, `limit`, `skip`, `offset`, `pipeline`, `options`.
+     *
+     * @param string $name Name of the clause to be returned.
+     * @return mixed
+     * @throws \InvalidArgumentException When the named clause does not exist.
+     */
+    public function clause(string $name): mixed
+    {
+        return match ($name) {
+            'where' => $this->builder->getFilter(),
+            'select' => $this->builder->getProjection(),
+            'order' => $this->builder->getSort(),
+            'group' => $this->builder->getGroup(),
+            'limit' => $this->builder->getLimit(),
+            'skip', 'offset' => $this->builder->getSkip(),
+            'pipeline' => $this->builder->getPipeline(),
+            'options' => $this->builder->getOptions(),
+            default => throw new InvalidArgumentException(sprintf('Invalid clause `%s`.', $name)),
+        };
+    }
+
+    /**
+     * Returns an empty expression object for building conditions.
+     *
+     * @return \Crustum\Mongo\Database\Expression\QueryExpression
+     */
+    public function expr(): QueryExpression
+    {
+        return new QueryExpression();
     }
 
     /**
@@ -182,7 +525,10 @@ abstract class Query implements Stringable
             throw new CakeException('Query has no connection set.');
         }
 
-        return $this->connection->run($this);
+        $result = $this->connection->run($this);
+        $this->dirty = false;
+
+        return $result;
     }
 
     /**

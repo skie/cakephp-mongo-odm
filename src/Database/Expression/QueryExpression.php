@@ -293,11 +293,15 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$and"
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with AND
+     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with AND
      * @return static
      */
-    public function and(array|MongoExpressionInterface $conditions): static
+    public function and(Closure|array|MongoExpressionInterface $conditions): static
     {
+        if ($conditions instanceof Closure) {
+            return $conditions(new static([], '$and'));
+        }
+
         return new static($conditions, '$and');
     }
 
@@ -305,11 +309,15 @@ class QueryExpression extends AbstractExpression implements Countable
      * Returns a new QueryExpression object containing all the conditions passed
      * and set up the conjunction to be "$or"
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with OR
+     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<int|string, mixed> $conditions Conditions to be joined with OR
      * @return static
      */
-    public function or(array|MongoExpressionInterface $conditions): static
+    public function or(Closure|array|MongoExpressionInterface $conditions): static
     {
+        if ($conditions instanceof Closure) {
+            return $conditions(new static([], '$or'));
+        }
+
         return new static($conditions, '$or');
     }
 
@@ -317,11 +325,15 @@ class QueryExpression extends AbstractExpression implements Countable
      * Adds a new set of conditions to this level of the tree and negates the
      * final result by wrapping them in `$nor`.
      *
-     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<string, mixed> $conditions Conditions to be added and negated
+     * @param \Closure|\Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<string, mixed> $conditions Conditions to be added and negated
      * @return $this
      */
-    public function not(array|MongoExpressionInterface $conditions): static
+    public function not(Closure|array|MongoExpressionInterface $conditions): static
     {
+        if ($conditions instanceof Closure) {
+            $conditions = $conditions(new static([], '$nor'));
+        }
+
         if ($conditions instanceof MongoExpressionInterface) {
             $conditions = $conditions->getConditions();
         }

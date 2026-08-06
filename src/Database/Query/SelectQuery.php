@@ -13,7 +13,6 @@ use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\ResultSet;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMap;
-use InvalidArgumentException;
 use IteratorAggregate;
 use Traversable;
 
@@ -43,61 +42,18 @@ class SelectQuery extends Query implements IteratorAggregate
     protected ?TypeMap $selectTypeMap = null;
 
     /**
+     * Cached decorated results, reused until the query is modified.
+     *
+     * @var iterable<array-key, mixed>|null
+     */
+    protected ?iterable $results = null;
+
+    /**
      * Whether rows are cast through the select type map on fetch.
      *
      * @var bool
      */
     protected bool $typeCastEnabled = true;
-
-    /**
-     * Sets the filter conditions.
-     *
-     * A `Closure` receives `(QueryExpression $exp, SelectQuery $query)` and must
-     * return the conditions to merge into the filter.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
-     * @param array<int|string, string>                                                    $types      Field => type map used to cast values.
-     * @param bool                                                                         $overwrite  Whether to overwrite existing conditions.
-     * @return $this
-     */
-    public function where(
-        ExpressionInterface|Closure|array|string|null $conditions = [],
-        array $types = [],
-        bool $overwrite = false,
-    ): static {
-        if ($conditions instanceof Closure) {
-            $exp = new QueryExpression();
-            $conditions = $conditions($exp, $this) ?? $exp;
-        }
-
-        $types += $this->getDefaultTypes();
-        $this->builder->where($conditions, $types, $overwrite);
-
-        return $this;
-    }
-
-    /**
-     * Adds conditions with an `$and` operator.
-     *
-     * A `Closure` receives `(QueryExpression $exp, SelectQuery $query)` and must
-     * return the conditions to add.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $conditions The conditions to add.
-     * @param array<int|string, string>                                                $types      Field => type map used to cast values.
-     * @return $this
-     */
-    public function andWhere(ExpressionInterface|Closure|array|string $conditions, array $types = []): static
-    {
-        if ($conditions instanceof Closure) {
-            $exp = new QueryExpression();
-            $conditions = $conditions($exp, $this) ?? $exp;
-        }
-
-        $types += $this->getDefaultTypes();
-        $this->builder->andWhere($conditions, $types);
-
-        return $this;
-    }
 
     /**
      * Sets the field projection.
@@ -121,26 +77,7 @@ class SelectQuery extends Query implements IteratorAggregate
         }
 
         $this->builder->select($fields, $overwrite);
-
-        return $this;
-    }
-
-    /**
-     * Sets the sort order.
-     *
-     * A `Closure` receives the query and must return the fields to sort by.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $fields Fields to sort by.
-     * @param bool                                                                    $overwrite Whether to overwrite the existing sort.
-     * @return $this
-     */
-    public function orderBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
-    {
-        if ($fields instanceof Closure) {
-            $fields = $fields($this);
-        }
-
-        $this->builder->orderBy($fields, $overwrite);
+        $this->dirty();
 
         return $this;
     }
@@ -158,6 +95,7 @@ class SelectQuery extends Query implements IteratorAggregate
     public function groupBy(ExpressionInterface|array|string $fields, bool $overwrite = false): static
     {
         $this->builder->groupBy($fields, $overwrite);
+        $this->dirty();
 
         return $this;
     }
@@ -186,6 +124,7 @@ class SelectQuery extends Query implements IteratorAggregate
 
         $types += $this->getDefaultTypes();
         $this->builder->having($conditions, $types, $overwrite);
+        $this->dirty();
 
         return $this;
     }
@@ -206,6 +145,7 @@ class SelectQuery extends Query implements IteratorAggregate
 
         $types += $this->getDefaultTypes();
         $this->builder->andHaving($conditions, $types);
+        $this->dirty();
 
         return $this;
     }
@@ -227,63 +167,6 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
-     * Sets the result limit.
-     *
-     * @param int|null $limit Number of results to return.
-     * @return $this
-     */
-    public function limit(?int $limit): static
-    {
-        $this->builder->limit($limit);
-
-        return $this;
-    }
-
-    /**
-     * Sets the number of results to skip.
-     *
-     * @param int|null $skip Number of results to skip.
-     * @return $this
-     */
-    public function skip(?int $skip): static
-    {
-        $this->builder->skip($skip);
-
-        return $this;
-    }
-
-    /**
-     * Sets the result page using limit/skip.
-     *
-     * Page numbers start at 1. When no limit is set it defaults to 25.
-     *
-     * @param int $page The page number.
-     * @param int|null $limit The page size.
-     * @return $this
-     * @throws \InvalidArgumentException When the page number is below 1.
-     */
-    public function page(int $page, ?int $limit = null): static
-    {
-        if ($page < 1) {
-            throw new InvalidArgumentException('Pages must start at 1.');
-        }
-
-        if ($limit !== null) {
-            $this->limit($limit);
-        }
-
-        $limit = $this->builder->getLimit();
-        if ($limit === null) {
-            $limit = 25;
-            $this->limit($limit);
-        }
-
-        $this->skip(($page - 1) * $limit);
-
-        return $this;
-    }
-
-    /**
      * Adds aggregation pipeline stage(s).
      *
      * A `Closure` receives an `AggregationBuilder` and builds stages in place;
@@ -301,6 +184,7 @@ class SelectQuery extends Query implements IteratorAggregate
         }
 
         $this->builder->pipeline($stages);
+        $this->dirty();
 
         return $this;
     }
@@ -314,6 +198,7 @@ class SelectQuery extends Query implements IteratorAggregate
     public function options(array $options): static
     {
         $this->builder->options($options);
+        $this->dirty();
 
         return $this;
     }
@@ -408,21 +293,27 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Returns all documents as a result set.
      *
-     * Rows are cast through the select type map (when enabled) and passed through
-     * the registered result decorators in order.
+     * The executed rows are decorated once and cached until the query is
+     * modified (marked dirty), so repeated `all()` / `first()` / `toArray()`
+     * calls reuse the same result instead of re-hitting Mongo.
      *
      * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
      */
     public function all(): ResultSetInterface
     {
-        $result = $this->execute();
-        if ($result instanceof ResultSetInterface) {
-            return $result;
+        if ($this->results === null || $this->dirty) {
+            $result = $this->execute();
+            if ($result instanceof ResultSetInterface) {
+                $this->results = $result;
+            } else {
+                $rows = $result instanceof Traversable ? $result : (array)$result;
+                $this->results = new ResultSet($this->decorateRows($rows));
+            }
         }
 
-        $rows = $result instanceof Traversable ? $result : (array)$result;
+        assert($this->results instanceof ResultSetInterface);
 
-        return new ResultSet($this->decorateRows($rows));
+        return $this->results;
     }
 
     /**

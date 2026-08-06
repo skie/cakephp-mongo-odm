@@ -8,7 +8,9 @@ use Crustum\Mongo\Database\Enum\DriverFeature;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
+use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
+use Throwable;
 
 /**
  * MongoDB driver for Crustum\Mongo.
@@ -127,12 +129,12 @@ class MongoDriver implements DriverInterface
     {
         try {
             $server = $this->getManager()->selectServer();
-            $buildInfo = $server->executeCommand('admin', new \MongoDB\Driver\Command(['buildInfo' => 1]))->toArray()[0] ?? null;
+            $buildInfo = $server->executeCommand('admin', new Command(['buildInfo' => 1]))->toArray()[0] ?? null;
             $version = $buildInfo->version ?? '';
             $parts = explode('.', $version);
 
             return isset($parts[0]) && (int)$parts[0] >= 5;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }

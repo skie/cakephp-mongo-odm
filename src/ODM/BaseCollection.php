@@ -8,8 +8,8 @@ use BadMethodCallException;
 use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
-use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\RulesChecker;
@@ -41,8 +41,8 @@ use Crustum\Mongo\ODM\Query\QueryFactory;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use LogicException;
-use ReflectionFunction;
 use Psr\SimpleCache\CacheInterface;
+use ReflectionFunction;
 use function Cake\Core\namespaceSplit;
 
 /**

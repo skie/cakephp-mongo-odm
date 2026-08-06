@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
-use Cake\Collection\CollectionInterface;
 use Cake\Collection\CollectionTrait;
 use Cake\Collection\Iterator\BufferedIterator;
 use Cake\Datasource\EntityInterface;
@@ -13,7 +12,6 @@ use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\Embedded;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
-use Iterator;
 use IteratorIterator;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Model\BSONDocument;
@@ -282,10 +280,12 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     {
         $nested = [];
         foreach ($config as $key => $value) {
-            if (!is_int($key) && in_array($key, [
+            if (
+                !is_int($key) && in_array($key, [
                 'strategy', 'fields', 'conditions', 'sort', 'matching', 'queryBuilder',
                 'foreignKey', 'limit', 'skip', 'config',
-            ], true)) {
+                ], true)
+            ) {
                 continue;
             }
             $nested[$key] = $value;

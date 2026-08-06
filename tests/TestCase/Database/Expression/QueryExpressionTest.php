@@ -431,4 +431,53 @@ class QueryExpressionTest extends TestCase
         $this->assertInstanceOf(QueryExpression::class, $result);
         $this->assertEquals(['$or' => [['author_id' => 1]]], $result->getConditions());
     }
+
+    /**
+     * Test the and() helper accepts a closure and invokes it with a fresh AND expression.
+     *
+     * @return void
+     */
+    public function testAndHelperWithClosure(): void
+    {
+        $expression = new QueryExpression();
+        $result = $expression->and(function ($exp) {
+            return $exp->add(['a' => 1])->add(['b' => 2]);
+        });
+
+        $this->assertInstanceOf(QueryExpression::class, $result);
+        $this->assertSame('$and', $result->getConjunction());
+        $this->assertEquals(['a' => 1, 'b' => 2], $result->getConditions());
+    }
+
+    /**
+     * Test the or() helper accepts a closure and invokes it with a fresh OR expression.
+     *
+     * @return void
+     */
+    public function testOrHelperWithClosure(): void
+    {
+        $expression = new QueryExpression();
+        $result = $expression->or(function ($exp) {
+            return $exp->add(['b' => 2])->add(['c' => 3]);
+        });
+
+        $this->assertInstanceOf(QueryExpression::class, $result);
+        $this->assertSame('$or', $result->getConjunction());
+        $this->assertEquals(['$or' => [['b' => 2], ['c' => 3]]], $result->getConditions());
+    }
+
+    /**
+     * Test the not() helper accepts a closure.
+     *
+     * @return void
+     */
+    public function testNotHelperWithClosure(): void
+    {
+        $expression = new QueryExpression();
+        $result = $expression->not(function ($exp) {
+            return $exp->add(['a' => 1]);
+        });
+
+        $this->assertEquals(['$nor' => [['a' => 1]]], $result->getConditions());
+    }
 }

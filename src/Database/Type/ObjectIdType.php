@@ -51,7 +51,7 @@ class ObjectIdType extends BaseType
      *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return string|mixed|null
+     * @return mixed|string|null
      */
     public function toPHP(mixed $value, MongoDriver $driver): mixed
     {

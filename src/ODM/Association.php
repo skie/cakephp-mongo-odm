@@ -630,7 +630,6 @@ abstract class Association
         return $this->getTarget()->hasAssociation($property);
     }
 
-
     /**
      * Proxies method calls to the target collection.
      *

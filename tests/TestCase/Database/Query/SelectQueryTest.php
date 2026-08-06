@@ -427,6 +427,87 @@ class SelectQueryTest extends TestCase
     }
 
     /**
+     * Test whereNull() sugar compiles to `$exists => false`.
+     *
+     * @return void
+     */
+    public function testWhereNullSugar(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereNull('deleted');
+
+        $this->assertFilter(['deleted' => ['$exists' => false]], $query->compile());
+    }
+
+    /**
+     * Test whereNotNull() sugar compiles to `$exists => true`.
+     *
+     * @return void
+     */
+    public function testWhereNotNullSugar(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereNotNull('name');
+
+        $this->assertFilter(['name' => ['$exists' => true]], $query->compile());
+    }
+
+    /**
+     * Test whereInList() sugar compiles to `$in`.
+     *
+     * @return void
+     */
+    public function testWhereInListSugar(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereInList('status', ['a', 'b']);
+
+        $this->assertFilter(['status' => ['$in' => ['a', 'b']]], $query->compile());
+    }
+
+    /**
+     * Test whereInList() with an empty list and allowEmpty applies an always-false filter.
+     *
+     * @return void
+     */
+    public function testWhereInListEmptyAllowEmpty(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereInList('status', [], ['allowEmpty' => true]);
+
+        $this->assertFilter(['$expr' => ['$eq' => [1, 0]]], $query->compile());
+    }
+
+    /**
+     * Test whereNotInList() sugar compiles to `$nin`.
+     *
+     * @return void
+     */
+    public function testWhereNotInListSugar(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereNotInList('status', ['a']);
+
+        $this->assertFilter(['status' => ['$nin' => ['a']]], $query->compile());
+    }
+
+    /**
+     * Test whereNotInListOrNull() sugar compiles to an OR of `$nin` and `$exists => false`.
+     *
+     * @return void
+     */
+    public function testWhereNotInListOrNullSugar(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->whereNotInListOrNull('status', ['a']);
+
+        $this->assertFilter(
+            ['$or' => [['status' => ['$nin' => ['a']]], ['status' => ['$exists' => false]]]],
+            $query->compile(),
+        );
+    }
+
+    /**
      * Test where() accepts a closure returning a plain array.
      *
      * @return void

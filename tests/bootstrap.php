@@ -47,10 +47,12 @@ use Cake\Cache\Cache;
 use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\FactoryLocator;
 use Cake\TestSuite\Fixture\SchemaLoader;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\MongoPlugin;
+use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\TestSuite\Fixture\SchemaGenerator;
 
 if (!function_exists('ensureDirectoryExists')) {
@@ -141,9 +143,6 @@ Plugin::getCollection()->add(new MongoPlugin([
     'bootstrap' => true,
     'routes' => true,
 ]));
-
-use Cake\Datasource\FactoryLocator;
-use Crustum\Mongo\ODM\Locator\CollectionLocator;
 
 FactoryLocator::add('Collection', new CollectionLocator());
 FactoryLocator::add('Mongo', new CollectionLocator());

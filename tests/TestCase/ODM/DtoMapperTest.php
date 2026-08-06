@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\I18n\DateTime;
 use Cake\ORM\DtoMapper;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use TestApp\Dto\ArticleDto;
 use TestApp\Dto\ArticleWithDatesDto;
 use TestApp\Dto\AuthorDto;

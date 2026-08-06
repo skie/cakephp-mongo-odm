@@ -16,6 +16,7 @@ use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
+use Throwable;
 use Traversable;
 
 /**
@@ -236,17 +237,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Sets the offset.
-     *
-     * @param int|null $offset Number of rows to skip.
-     * @return $this
-     */
-    public function offset(?int $offset): static
-    {
-        return $this->skip($offset);
-    }
-
-    /**
      * Returns the first result or throws when no result exists.
      *
      * @return mixed
@@ -265,10 +255,17 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Returns the first result from the executed query, or `null`.
      *
+     * On a fresh (unmodified) query a `limit(1)` is applied so Mongo returns a
+     * single document instead of buffering the full result set.
+     *
      * @return mixed The first row (Document, DTO, or array) or null.
      */
     public function first(): mixed
     {
+        if ($this->dirty) {
+            $this->limit(1);
+        }
+
         return $this->all()->first();
     }
 
@@ -338,7 +335,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
 
         try {
             $schema = $connection->getSchemaCollection()->describe($collection);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
 
@@ -413,28 +410,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     {
         parent::__clone();
         $this->eagerLoader = clone $this->eagerLoader;
-    }
-
-    /**
-     * Orders results ascending by a field.
-     *
-     * @param string $field Field name.
-     * @return $this
-     */
-    public function orderByAsc(string $field): static
-    {
-        return $this->orderBy([$field => 'ASC']);
-    }
-
-    /**
-     * Orders results descending by a field.
-     *
-     * @param string $field Field name.
-     * @return $this
-     */
-    public function orderByDesc(string $field): static
-    {
-        return $this->orderBy([$field => 'DESC']);
     }
 
     /**

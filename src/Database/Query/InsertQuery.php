@@ -78,6 +78,7 @@ class InsertQuery extends Query
         } else {
             $this->documents[] = $values;
         }
+        $this->dirty();
 
         return $this;
     }
@@ -91,6 +92,7 @@ class InsertQuery extends Query
     public function valuesMany(array $values): static
     {
         $this->documents = array_merge($this->documents, array_map($this->filterColumns(...), $values));
+        $this->dirty();
 
         return $this;
     }

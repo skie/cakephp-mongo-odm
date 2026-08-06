@@ -6,7 +6,6 @@ namespace Crustum\Mongo\ODM;
 use Cake\Datasource\ResultSetInterface;
 use Cake\ORM\DtoMapper;
 use Closure;
-use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use MongoDB\Model\BSONDocument;
 

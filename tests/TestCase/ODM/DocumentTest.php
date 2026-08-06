@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Datasource\Exception\MissingPropertyException;
 use Crustum\Mongo\ODM\Document;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Exception;
 use InvalidArgumentException;
 use Mockery;

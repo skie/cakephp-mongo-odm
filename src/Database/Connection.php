@@ -5,13 +5,19 @@ namespace Crustum\Mongo\Database;
 
 use Cake\Cache\Cache;
 use Cake\Core\Exception\CakeException;
+use Cake\Database\ExpressionInterface;
 use Cake\Database\Log\QueryLogger;
 use Cake\Datasource\ConnectionInterface;
 use Closure;
 use Crustum\Mongo\Database\Driver\DriverInterface;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
+use Crustum\Mongo\Database\Query\DeleteQuery;
+use Crustum\Mongo\Database\Query\InsertQuery;
 use Crustum\Mongo\Database\Query\Query;
+use Crustum\Mongo\Database\Query\QueryFactory;
+use Crustum\Mongo\Database\Query\SelectQuery;
+use Crustum\Mongo\Database\Query\UpdateQuery;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\SchemaCollection;
 use Crustum\Mongo\Datasource\Log\MongoLogger;
@@ -72,6 +78,13 @@ class Connection implements ConnectionInterface
      * @var \Crustum\Mongo\Datasource\SchemaCollectionInterface|null
      */
     protected ?SchemaCollectionInterface $schemaCollection = null;
+
+    /**
+     * The query factory.
+     *
+     * @var \Crustum\Mongo\Database\Query\QueryFactory|null
+     */
+    protected ?QueryFactory $queryFactory = null;
 
     /**
      * The active transaction session.
@@ -288,6 +301,76 @@ class Connection implements ConnectionInterface
         $this->schemaCollection = $schemaCollection;
 
         return $this;
+    }
+
+    /**
+     * Returns the query factory for this connection.
+     *
+     * @return \Crustum\Mongo\Database\Query\QueryFactory
+     */
+    public function queryFactory(): QueryFactory
+    {
+        return $this->queryFactory ??= new QueryFactory($this);
+    }
+
+    /**
+     * Creates a select query for this connection.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int $fields Fields for the select clause.
+     * @param array<int, string>|string $collection The collection(s) to query.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @return \Crustum\Mongo\Database\Query\SelectQuery
+     */
+    public function selectQuery(
+        ExpressionInterface|Closure|array|string|float|int $fields = [],
+        array|string $collection = [],
+        array $types = [],
+    ): SelectQuery {
+        return $this->queryFactory()->select($fields, $collection, $types);
+    }
+
+    /**
+     * Creates an insert query for this connection.
+     *
+     * @param string|null $collection The collection to insert into.
+     * @param array<string, mixed> $values The document to insert.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @return \Crustum\Mongo\Database\Query\InsertQuery
+     */
+    public function insertQuery(?string $collection = null, array $values = [], array $types = []): InsertQuery
+    {
+        return $this->queryFactory()->insert($collection, $values, $types);
+    }
+
+    /**
+     * Creates an update query for this connection.
+     *
+     * @param string|null $collection The collection to update.
+     * @param array<string, mixed> $values The update assignments.
+     * @param array<string, mixed> $conditions The filter conditions.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @return \Crustum\Mongo\Database\Query\UpdateQuery
+     */
+    public function updateQuery(
+        ?string $collection = null,
+        array $values = [],
+        array $conditions = [],
+        array $types = [],
+    ): UpdateQuery {
+        return $this->queryFactory()->update($collection, $values, $conditions, $types);
+    }
+
+    /**
+     * Creates a delete query for this connection.
+     *
+     * @param string|null $collection The collection to delete from.
+     * @param array<string, mixed> $conditions The filter conditions.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @return \Crustum\Mongo\Database\Query\DeleteQuery
+     */
+    public function deleteQuery(?string $collection = null, array $conditions = [], array $types = []): DeleteQuery
+    {
+        return $this->queryFactory()->delete($collection, $conditions, $types);
     }
 
     /**
