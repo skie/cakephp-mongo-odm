@@ -685,6 +685,41 @@ abstract class Association
     }
 
     /**
+     * Applies per-association containment options as pipeline stages.
+     *
+     * `conditions` become a `$match`, `fields` a `$project`, `sort` a `$sort`,
+     * and `limit`/`skip` their stages. This keeps eagerly loaded documents
+     * slim (no full-document bloat) and filters embedded associations, mirroring
+     * the `fields`/`conditions`/`sort`/`limit` containment options.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @param array<string, mixed> $options Containment options.
+     * @return void
+     */
+    protected function applyPipelineOptions(AggregationBuilder $builder, array $options): void
+    {
+        if (!empty($options['conditions'])) {
+            $builder->match(is_array($options['conditions']) ? $options['conditions'] : []);
+        }
+
+        if (!empty($options['fields'])) {
+            $builder->project((array)$options['fields']);
+        }
+
+        if (!empty($options['sort'])) {
+            $builder->sort((array)$options['sort']);
+        }
+
+        if (!empty($options['skip'])) {
+            $builder->skip((int)$options['skip']);
+        }
+
+        if (!empty($options['limit'])) {
+            $builder->limit((int)$options['limit']);
+        }
+    }
+
+    /**
      * Proxies property retrieval to the target collction. This is handy for getting this
      * association's associations
      *

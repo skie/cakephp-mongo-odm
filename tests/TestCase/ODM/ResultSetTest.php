@@ -39,9 +39,9 @@ class ResultSetTest extends TestCase
         $this->collection = $this->getCollectionLocator()->get('Articles');
 
         $this->fixtureData = [
-            ['id' => '000000000000000000000001', 'author_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000002', 'author_id' => 3, 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000003', 'author_id' => 1, 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000001', '_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000002', '_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000003', '_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
         ];
     }
 
@@ -94,7 +94,9 @@ class ResultSetTest extends TestCase
 
         // Use a loop to test Iterator implementation
         foreach ($results as $i => $row) {
-            $this->assertEquals($this->fixtureData[$i], $row, "Row {$i} does not match");
+            $fixture = $this->fixtureData[$i];
+            unset($fixture['_id']);
+            $this->assertEquals($fixture, $row, "Row {$i} does not match");
         }
     }
 
@@ -103,7 +105,6 @@ class ResultSetTest extends TestCase
      */
     public function testIteratorAfterSerializationHydrated(): void
     {
-        $this->markTestSkipped('Hydrated Documents keep canonical `_id` internally — cake `id`-only field shape diverges (F3).');
         $query = $this->collection->find('all');
         $results = unserialize(serialize($query->all()));
 
@@ -125,7 +126,7 @@ class ResultSetTest extends TestCase
         $query = $this->collection->find('all');
         $results = $query->all();
 
-        $expected = json_encode($this->fixtureData);
+        $expected = json_encode($this->filterFixtures());
         $this->assertEquals($expected, json_encode($results));
     }
 
@@ -138,10 +139,12 @@ class ResultSetTest extends TestCase
         $results = $query->hydrate(false)->all();
 
         $row = $results->first();
-        $this->assertEquals($this->fixtureData[0], $row);
+        $fixture = $this->fixtureData[0];
+        unset($fixture['_id']);
+        $this->assertEquals($fixture, $row);
 
         $row = $results->first();
-        $this->assertEquals($this->fixtureData[0], $row);
+        $this->assertEquals($fixture, $row);
     }
 
     /**
@@ -154,7 +157,7 @@ class ResultSetTest extends TestCase
         $results = unserialize(serialize($results));
 
         $row = $results->first();
-        $this->assertEquals($this->fixtureData[0], $row);
+        $this->assertEquals($this->getFixture(0, true), $row);
 
         $this->assertSame($row, $results->first());
         $this->assertSame($row, $results->first());
@@ -188,7 +191,7 @@ class ResultSetTest extends TestCase
      */
     public function testGroupBy(): void
     {
-        $this->markTestSkipped('Hydrated Documents keep canonical `_id` internally — cake `id`-only field shape diverges (F3).');
+        // $this->markTestSkipped('Hydrated Documents keep canonical `_id` internally — cake `id`-only field shape diverges (F3).');
         $query = $this->collection->find('all');
         $results = $query->all()->groupBy('author_id')->toArray();
         $options = [
@@ -196,13 +199,14 @@ class ResultSetTest extends TestCase
             'markClean' => true,
             'source' => $this->collection->getAlias(),
         ];
+
         $expected = [
-            1 => [
-                new Document($this->fixtureData[0], $options),
-                new Document($this->fixtureData[2], $options),
+            '000000000000000000000001' => [
+                new Document($this->getFixture(0), $options),
+                new Document($this->getFixture(2), $options),
             ],
-            3 => [
-                new Document($this->fixtureData[1], $options),
+            '000000000000000000000003' => [
+                new Document($this->getFixture(1), $options),
             ],
         ];
         $this->assertEquals($expected, $results);
@@ -268,5 +272,23 @@ class ResultSetTest extends TestCase
         $max = $query->all()->max('counter');
 
         $this->assertTrue($max > $min);
+    }
+
+    protected function getFixture(int $id, bool $skipId = false): ?array {
+        $fixture = $this->fixtureData[$id];
+        if ($skipId) {
+            unset($fixture['_id']);
+        }
+
+        return $fixture;
+    }
+
+    protected function filterFixtures(): array {
+        $fixtures = $this->fixtureData;
+        foreach ($fixtures as &$fixture) {
+            unset($fixture['_id']);
+        }
+
+        return $fixtures;
     }
 }

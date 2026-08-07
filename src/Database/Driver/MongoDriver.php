@@ -3,28 +3,35 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Driver;
 
+use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
+use Cake\Database\Log\QueryLogger;
 use Crustum\Mongo\Database\Enum\DriverFeature;
+use Crustum\Mongo\Database\Log\CommandSubscriber;
+use Crustum\Mongo\Datasource\Log\MongoLogger;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Command;
 use MongoDB\Driver\Manager;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
+use Stringable;
 use Throwable;
 
 /**
  * MongoDB driver for Crustum\Mongo.
  *
- * Reused conceptually from the old `Cake\Mongo\Database\Driver\MongoDriver`,
- * rebuilt as a Mongo-native driver: it no longer extends `Cake\Database\Driver`
- * (PDO machinery). Config **requires** the `database` key (no privileged
- * defaults per the migration-guide convention); `url` may be given directly,
- * otherwise it is assembled from `host`/`port`/`username`/`password`.
- *
- * Not final: tests and drivers mock/extend it.
+ * Mongo-native driver. Config
+ * **requires** the `database` key (no privileged defaults per the
+ * migration-guide convention); `url` may be given directly, otherwise it is
+ * assembled from `host`/`port`/`username`/`password`.
  */
-class MongoDriver implements DriverInterface
+class MongoDriver implements DriverInterface, LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     /**
      * Driver configuration.
      *
@@ -47,6 +54,20 @@ class MongoDriver implements DriverInterface
     protected ?Database $database = null;
 
     /**
+     * Whether to log commands generated during this connection.
+     *
+     * @var bool
+     */
+    protected bool $logQueries = false;
+
+    /**
+     * The command subscriber forwarding driver commands to the query logger.
+     *
+     * @var \Crustum\Mongo\Database\Log\CommandSubscriber|null
+     */
+    protected ?CommandSubscriber $commandSubscriber = null;
+
+    /**
      * Constructor.
      *
      * @param array<string, mixed> $config Driver configuration.
@@ -58,7 +79,115 @@ class MongoDriver implements DriverInterface
             throw new CakeException('Mongo driver requires a "database" key.');
         }
 
+        $config += ['log' => false];
         $this->config = $config;
+
+        if ($config['log'] !== false) {
+            $this->logQueries = true;
+            $this->logger = $this->createLogger($config['log'] === true ? null : $config['log']);
+        }
+    }
+
+    /**
+     * Sets the logger used to log commands.
+     *
+     * Enables query logging, matching `Cake\Database\Driver::setLogger()`.
+     *
+     * @param \Psr\Log\LoggerInterface $logger The logger instance.
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+        $this->enableQueryLogging();
+    }
+
+    /**
+     * Creates a logger instance from a class name.
+     *
+     * @param string|null $className Logger's class name.
+     * @return \Psr\Log\LoggerInterface
+     */
+    protected function createLogger(?string $className): LoggerInterface
+    {
+        $className ??= QueryLogger::class;
+
+        /** @var class-string<\Psr\Log\LoggerInterface>|null $className */
+        $className = App::className($className, 'Cake/Log', 'Log');
+        if ($className === null) {
+            throw new CakeException(
+                'For logging you must either set the `log` config to a FQCN which implements Psr\Log\LoggerInterface' .
+                ' or require the cakephp/log package in your composer config.',
+            );
+        }
+
+        return new $className();
+    }
+
+    /**
+     * Logs a message through the configured logger, when logging is enabled.
+     *
+     * @param \Stringable|string $message The message to log.
+     * @param array<string, mixed> $context Log context.
+     * @return bool Whether the message was logged.
+     */
+    public function log(Stringable|string $message, array $context = []): bool
+    {
+        if ($this->logger === null || !$this->logQueries) {
+            return false;
+        }
+
+        $this->logger->debug((string)$message, $context);
+
+        return true;
+    }
+
+    /**
+     * Enables query logging.
+     *
+     * Registers a `CommandSubscriber` (forwarding driver commands to the query
+     * logger via a `MongoLogger`) so every command emitted on this driver is
+     * captured.
+     *
+     * @return $this
+     */
+    public function enableQueryLogging(): static
+    {
+        $this->logQueries = true;
+
+        if (!$this->commandSubscriber instanceof CommandSubscriber) {
+            $this->commandSubscriber = new CommandSubscriber(new MongoLogger($this->logger ?? new QueryLogger()));
+        }
+
+        $this->commandSubscriber->enable();
+
+        return $this;
+    }
+
+    /**
+     * Disables query logging.
+     *
+     * Unregisters the `CommandSubscriber` so subsequent commands are not captured.
+     *
+     * @return $this
+     */
+    public function disableQueryLogging(): static
+    {
+        $this->logQueries = false;
+
+        $this->commandSubscriber?->disable();
+
+        return $this;
+    }
+
+    /**
+     * Returns whether query logging is enabled.
+     *
+     * @return bool
+     */
+    public function isQueryLoggingEnabled(): bool
+    {
+        return $this->logQueries;
     }
 
     /**

@@ -376,6 +376,7 @@ class HasMany extends Association
             ->localField($this->fieldName($this->getBindingKey()))
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
+        $this->applyPipelineOptions($builder, $options);
 
         return $builder->getPipeline();
     }

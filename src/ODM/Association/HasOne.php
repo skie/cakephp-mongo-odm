@@ -147,6 +147,7 @@ class HasOne extends Association
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
         $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
+        $this->applyPipelineOptions($builder, $options);
 
         return $builder->getPipeline();
     }

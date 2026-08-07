@@ -69,7 +69,24 @@ class SelectLoader implements LoaderInterface
             $targetKey = (string)($many ? ($options['foreignKey'] ?? '_id') : ($options['bindingKey'] ?? '_id'));
             $conditions = is_array($options['conditions'] ?? null) ? $options['conditions'] : [];
             $conditions[$targetKey . ' IN'] = array_values($keys);
-            $rows = $query->where($conditions)->all();
+            $query->where($conditions);
+            if (!empty($options['fields'])) {
+                $fields = (array)$options['fields'];
+                if (!in_array($targetKey, $fields, true)) {
+                    $fields[] = $targetKey;
+                }
+                $query->select($fields);
+            }
+            if (!empty($options['sort'])) {
+                $query->orderBy($options['sort']);
+            }
+            if (!empty($options['limit'])) {
+                $query->limit($options['limit']);
+            }
+            if (!empty($options['skip'])) {
+                $query->skip($options['skip']);
+            }
+            $rows = $query->all();
             $map = [];
             foreach ($rows as $row) {
                 $value = $row instanceof EntityInterface ? $row->get($targetKey) : ($row[$targetKey] ?? null);
@@ -90,8 +107,14 @@ class SelectLoader implements LoaderInterface
             foreach ($entities as $entity) {
                 $value = $entity->get($sourceKey);
                 $key = $value === null ? '' : (string)$value;
-                $entity->set($property, $many ? ($map[$key] ?? []) : ($map[$key] ?? null));
-                $entity->setDirty($property, false);
+                $loaded = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+
+                if ($entity instanceof EntityInterface) {
+                    $entity->set($property, $loaded);
+                    $entity->setDirty($property, false);
+                } elseif (is_array($entity)) {
+                    $entity[$property] = $loaded;
+                }
             }
 
             return $entities;

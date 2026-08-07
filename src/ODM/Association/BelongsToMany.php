@@ -740,6 +740,7 @@ class BelongsToMany extends Association
             ->localField($join . '.' . $this->getTargetForeignKey())
             ->foreignField('_id')
             ->alias($this->getProperty());
+        $this->applyPipelineOptions($builder, $options);
 
         return $builder->getPipeline();
     }

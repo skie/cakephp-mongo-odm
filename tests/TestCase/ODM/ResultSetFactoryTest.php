@@ -53,13 +53,14 @@ class ResultSetFactoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->connection = $this->collection?->getConnection() ?? $this->getCollectionLocator()->get('Articles')->getConnection();
         $this->collection = $this->getCollectionLocator()->get('Articles');
         $this->factory = new ResultSetFactory();
 
         $this->fixtureData = [
-            ['id' => '000000000000000000000001', 'author_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000002', 'author_id' => 3, 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000003', 'author_id' => 1, 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
         ];
     }
 
@@ -90,24 +91,23 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testBelongsToEagerLoaderLeavesEmptyAssociation(): void
     {
-        $this->markTestSkipped('Association eager loading — Phase 4 (F17).');
         $comments = $this->getCollectionLocator()->get('Comments');
         $comments->belongsTo('Articles');
 
         // Clear the articles table so we can trigger an empty belongsTo
         $this->collection->deleteAll([]);
 
-        $comment = $comments->find()->where(['Comments.id' => 1])
+        $comment = $comments->find()->where(['Comments.id' => '000000000000000000000001'])
             ->contain(['Articles'])
             ->hydrate(false)
             ->first();
-        $this->assertSame(1, $comment['id']);
+        $this->assertSame('000000000000000000000001', $comment['id']);
         $this->assertNotEmpty($comment['comment']);
         $this->assertNull($comment['article']);
 
-        $comment = $comments->get(1, ...['contain' => ['Articles']]);
+        $comment = $comments->get('000000000000000000000001', ...['contain' => ['Articles']]);
         $this->assertNull($comment->article);
-        $this->assertSame(1, $comment->id);
+        $this->assertSame('000000000000000000000001', $comment->id);
         $this->assertNotEmpty($comment->comment);
     }
 
@@ -148,24 +148,23 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testHasOneEagerLoaderLeavesEmptyAssociation(): void
     {
-        $this->markTestSkipped('Association eager loading — Phase 4 (F17).');
         $this->collection->hasOne('Comments');
 
         // Clear the comments table so we can trigger an empty hasOne.
         $comments = $this->getCollectionLocator()->get('Comments');
         $comments->deleteAll([]);
 
-        $article = $this->collection->get(1, ...['contain' => ['Comments']]);
+        $article = $this->collection->get('000000000000000000000001', ...['contain' => ['Comments']]);
         $this->assertNull($article->comment);
-        $this->assertSame(1, $article->id);
+        $this->assertSame('000000000000000000000001', $article->id);
         $this->assertNotEmpty($article->title);
 
-        $article = $this->collection->find()->where(['articles.id' => 1])
+        $article = $this->collection->find()->where(['articles.id' => '000000000000000000000001'])
             ->contain(['Comments'])
             ->hydrate(false)
             ->first();
         $this->assertNull($article['comment']);
-        $this->assertSame(1, $article['id']);
+        $this->assertSame('000000000000000000000001', $article['id']);
         $this->assertNotEmpty($article['title']);
     }
 
@@ -205,7 +204,7 @@ class ResultSetFactoryTest extends TestCase
         $this->assertSame('TestPlugin.Comments', $result->getSource());
         $this->assertSame('TestPlugin.Authors', $result->author->getSource());
 
-        $result = $comments->find()->matching('Authors', fn($q) => $q->where(['Authors.id' => 1]))->first();
+        $result = $comments->find()->matching('Authors', fn($q) => $q->where(['Authors.id' => '000000000000000000000001']))->first();
         $this->assertSame('TestPlugin.Comments', $result->getSource());
         $this->assertSame('TestPlugin.Authors', $result->_matchingData['Authors']->getSource());
         $this->clearPlugins();
@@ -216,7 +215,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testQueryLoggingForSelectsWithZeroRows(): void
     {
-        $this->markTestSkipped('SQL query logging — not applicable to Mongo (F19).');
         Log::setConfig('queries', ['className' => 'Array']);
 
         $logger = new QueryLogger();
@@ -232,8 +230,10 @@ class ResultSetFactoryTest extends TestCase
         $this->assertCount(0, $results);
 
         $messages = Log::engine('queries')->read();
-        $message = array_pop($messages);
-        $this->assertStringContainsString('SELECT', $message);
+        $this->assertNotEmpty($messages, 'The query should have been logged.');
+        $message = (string)array_pop($messages);
+        $this->assertStringContainsString('"operation": "aggregate"', $message);
+        $this->assertStringContainsString('"collection": "articles"', $message);
 
         Log::reset();
     }
