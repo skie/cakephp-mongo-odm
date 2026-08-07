@@ -6,7 +6,6 @@ namespace Crustum\Mongo\Database;
 use Cake\Cache\Cache;
 use Cake\Core\Exception\CakeException;
 use Cake\Database\ExpressionInterface;
-use Cake\Database\Log\QueryLogger;
 use Cake\Datasource\ConnectionInterface;
 use Closure;
 use Crustum\Mongo\Database\Driver\DriverInterface;
@@ -24,7 +23,6 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Session;
-use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use Throwable;
 
@@ -594,99 +592,4 @@ class Connection implements ConnectionInterface
         return $this->session;
     }
 
-    /**
-     * Returns whether query logging is enabled.
-     *
-     * @return bool
-     */
-    public function isQueryLoggingEnabled(): bool
-    {
-        $driver = $this->driver;
-        if ($driver instanceof MongoDriver) {
-            return $driver->isQueryLoggingEnabled();
-        }
-
-        return false;
-    }
-
-    /**
-     * Enables query logging.
-     *
-     * Delegates to the driver, which registers the `CommandSubscriber`
-     * (matching `Cake\Database\Driver::enableQueryLogging()`).
-     *
-     * @return $this
-     */
-    public function enableQueryLogging(): static
-    {
-        $driver = $this->driver;
-        if ($driver instanceof MongoDriver) {
-            $driver->enableQueryLogging();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Disables query logging.
-     *
-     * Delegates to the driver, which unregisters the `CommandSubscriber`.
-     *
-     * @return $this
-     */
-    public function disableQueryLogging(): static
-    {
-        $driver = $this->driver;
-        if ($driver instanceof MongoDriver) {
-            $driver->disableQueryLogging();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Returns the query logger.
-     *
-     * Defaults to `Cake\Database\Log\QueryLogger`. The `log` config key may hold
-     * a PSR-3 logger instance or a class name. Delegates to the driver.
-     *
-     * @return \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface
-     */
-    public function getQueryLogger(): QueryLogger|LoggerInterface
-    {
-        $driver = $this->driver;
-        if ($driver instanceof MongoDriver) {
-            $logger = $driver->getLogger();
-            if ($logger instanceof QueryLogger || $logger instanceof LoggerInterface) {
-                return $logger;
-            }
-        }
-
-        $logger = $this->config['log'] ?? null;
-        if ($logger instanceof LoggerInterface) {
-            return $logger;
-        }
-
-        if (is_string($logger) && is_subclass_of($logger, LoggerInterface::class)) {
-            return new $logger();
-        }
-
-        return new QueryLogger();
-    }
-
-    /**
-     * Sets the query logger.
-     *
-     * @param \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface $logger The logger.
-     * @return $this
-     */
-    public function setQueryLogger(QueryLogger|LoggerInterface $logger): static
-    {
-        $driver = $this->driver;
-        if ($driver instanceof MongoDriver) {
-            $driver->setLogger($logger);
-        }
-
-        return $this;
-    }
 }

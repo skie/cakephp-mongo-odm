@@ -103,9 +103,17 @@ class SchemaManager
      */
     public function dropCollection(string $name): bool
     {
-        $result = (array)$this->database()->dropCollection($name);
+        $result = $this->database()->dropCollection($name);
 
-        return ($result['ok'] ?? 0) === 1.0;
+        // `dropCollection` returns null on success; a result document only
+        // arrives on failure (or from the raw command wrapper).
+        if ($result === null) {
+            return true;
+        }
+
+        $result = (array)$result;
+
+        return ($result['ok'] ?? 0) == 1;
     }
 
     /**

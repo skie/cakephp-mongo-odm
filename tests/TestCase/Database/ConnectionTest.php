@@ -6,7 +6,6 @@ namespace Crustum\Mongo\Test\TestCase\Database;
 use Cake\Cache\Cache;
 use Cake\Cache\Engine\FileEngine;
 use Cake\Core\Exception\CakeException;
-use Cake\Database\Log\QueryLogger;
 use Cake\Datasource\ConnectionInterface;
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
@@ -17,7 +16,7 @@ use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\SchemaCollection;
 use Crustum\Mongo\Datasource\SchemaCollectionInterface;
-use Crustum\Mongo\Test\TestCase\Datasource\Log\MemoryLogger;
+use Crustum\Mongo\Test\TestCase\Database\Log\MemoryLogger;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
@@ -249,32 +248,14 @@ class ConnectionTest extends TestCase
     }
 
     /**
-     * Test query logging is disabled by default.
+     * Test the log config wires a PSR-3 logger onto the driver.
+     *
+     * Query logging lives on the driver (matching `Cake\Database\Driver`); the
+     * connection only forwards the `log` config when constructing the driver.
      *
      * @return void
      */
-    public function testQueryLoggingDisabledByDefault(): void
-    {
-        $this->assertFalse($this->connection->isQueryLoggingEnabled());
-    }
-
-    /**
-     * Test getQueryLogger defaults to a QueryLogger.
-     *
-     * @return void
-     */
-    public function testGetQueryLoggerDefault(): void
-    {
-        $logger = $this->connection->getQueryLogger();
-        $this->assertInstanceOf(QueryLogger::class, $logger);
-    }
-
-    /**
-     * Test getQueryLogger resolves a PSR-3 logger from the log config.
-     *
-     * @return void
-     */
-    public function testGetQueryLoggerFromConfig(): void
+    public function testLogConfigWiresDriverLogger(): void
     {
         $logger = new MemoryLogger();
         $connection = new Connection([
@@ -285,67 +266,10 @@ class ConnectionTest extends TestCase
             'log' => $logger,
         ]);
 
-        $this->assertSame($logger, $connection->getQueryLogger());
-    }
-
-    /**
-     * Test setQueryLogger replaces the logger.
-     *
-     * @return void
-     */
-    public function testSetQueryLogger(): void
-    {
-        $logger = new MemoryLogger();
-        $this->assertSame($this->connection, $this->connection->setQueryLogger($logger));
-        $this->assertSame($logger, $this->connection->getQueryLogger());
-    }
-
-    /**
-     * Test enableQueryLogging registers the subscriber and captures a command.
-     *
-     * @return void
-     */
-    public function testEnableQueryLogging(): void
-    {
-        $inner = new MemoryLogger();
-        $this->connection->setQueryLogger($inner);
-        $this->connection->enableQueryLogging();
-
-        try {
-            $this->assertTrue($this->connection->isQueryLoggingEnabled());
-
-            $collection = $this->connection->getCollection('log_connection_test');
-            $collection->deleteMany([]);
-            $collection->insertOne(['title' => 'logged']);
-
-            $commands = array_column(array_column($inner->records, 2), 'command');
-            $this->assertNotEmpty($commands);
-            $this->assertTrue(
-                array_any($commands, static fn(array $command): bool => array_key_exists('insert', $command)),
-            );
-        } finally {
-            $this->connection->disableQueryLogging();
-        }
-    }
-
-    /**
-     * Test disableQueryLogging unregisters the subscriber.
-     *
-     * @return void
-     */
-    public function testDisableQueryLogging(): void
-    {
-        $inner = new MemoryLogger();
-        $this->connection->setQueryLogger($inner);
-        $this->connection->enableQueryLogging();
-        $this->connection->disableQueryLogging();
-
-        $collection = $this->connection->getCollection('log_connection_test');
-        $collection->deleteMany([]);
-        $collection->insertOne(['title' => 'not logged']);
-
-        $this->assertFalse($this->connection->isQueryLoggingEnabled());
-        $this->assertCount(0, $inner->records);
+        $driver = $connection->getDriver();
+        $this->assertInstanceOf(MongoDriver::class, $driver);
+        $this->assertSame($logger, $driver->getLogger());
+        $this->assertTrue($driver->isQueryLoggingEnabled());
     }
 
     /**

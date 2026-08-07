@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Log;
 
-use Crustum\Mongo\Datasource\Log\MongoLogger;
+use Crustum\Mongo\Database\Log\MongoLogger;
 use MongoDB\Driver\Monitoring\CommandFailedEvent;
 use MongoDB\Driver\Monitoring\CommandStartedEvent;
 use MongoDB\Driver\Monitoring\CommandSubscriber as CommandSubscriberInterface;
@@ -17,7 +17,7 @@ use function MongoDB\Driver\Monitoring\removeSubscriber;
  *
  * Implements `MongoDB\Driver\Monitoring\CommandSubscriber` to capture
  * every driver command (find, insert, update, delete, aggregate, …) with its
- * duration and feed it to a `Datasource\Log\MongoLogger`. This is the real
+ * duration and feed it to a `Database\Log\MongoLogger`. This is the real
  * query-logging path for the Database layer.
  *
  * @see mongodb-odm APM/CommandLogger.php
@@ -27,7 +27,7 @@ class CommandSubscriber implements CommandSubscriberInterface
     /**
      * The logger commands are forwarded to.
      *
-     * @var \Crustum\Mongo\Datasource\Log\MongoLogger
+     * @var \Crustum\Mongo\Database\Log\MongoLogger
      */
     protected MongoLogger $logger;
 
@@ -41,7 +41,7 @@ class CommandSubscriber implements CommandSubscriberInterface
     /**
      * Constructor
      *
-     * @param \Crustum\Mongo\Datasource\Log\MongoLogger $logger The logger to forward commands to.
+     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger The logger to forward commands to.
      */
     public function __construct(MongoLogger $logger)
     {
@@ -51,11 +51,24 @@ class CommandSubscriber implements CommandSubscriberInterface
     /**
      * Returns the wrapped logger.
      *
-     * @return \Crustum\Mongo\Datasource\Log\MongoLogger
+     * @return \Crustum\Mongo\Database\Log\MongoLogger
      */
     public function getLogger(): MongoLogger
     {
         return $this->logger;
+    }
+
+    /**
+     * Replaces the wrapped logger.
+     *
+     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger The logger to forward commands to.
+     * @return $this
+     */
+    public function setLogger(MongoLogger $logger): static
+    {
+        $this->logger = $logger;
+
+        return $this;
     }
 
     /**

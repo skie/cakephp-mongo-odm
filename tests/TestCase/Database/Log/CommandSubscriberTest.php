@@ -7,8 +7,8 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
-use Crustum\Mongo\Datasource\Log\MongoLogger;
-use Crustum\Mongo\Test\TestCase\Datasource\Log\MemoryLogger;
+use Crustum\Mongo\Database\Log\MongoLogger;
+use Crustum\Mongo\Test\TestCase\Database\Log\MemoryLogger;
 
 /**
  * Tests for CommandSubscriber against a real Mongo connection.
@@ -21,7 +21,7 @@ class CommandSubscriberTest extends TestCase
     protected Connection $connection;
 
     /**
-     * @var \Crustum\Mongo\Test\TestCase\Datasource\Log\MemoryLogger
+     * @var \Crustum\Mongo\Test\TestCase\Database\Log\MemoryLogger
      */
     protected MemoryLogger $inner;
 

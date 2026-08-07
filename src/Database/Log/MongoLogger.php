@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Datasource\Log;
+namespace Crustum\Mongo\Database\Log;
 
 use Cake\Database\Log\LoggedQuery;
 use Cake\Database\Log\QueryLogger;
@@ -13,12 +13,9 @@ use Throwable;
 /**
  * Logger for MongoDB driver commands.
  *
- * Reused from the previous `Cake\Mongo\Datasource\Log\MongoLogger`. The
- * `Cake\Mongo\Database\Connection` dependency (unused in the original) was
- * dropped so the Datasource layer stays free of Database imports; everything
- * else is preserved: command context is normalized, encoded to JSON, wrapped
- * into a `LoggedQuery` when a duration is present, and delegated to the
- * wrapped logger. Exceptions passed in context are rethrown.
+ * Command context is normalized, encoded to JSON, wrapped into a
+ * `LoggedQuery` when a duration is present, and delegated to the wrapped
+ * logger. Exceptions passed in context are rethrown.
  */
 class MongoLogger extends AbstractLogger
 {

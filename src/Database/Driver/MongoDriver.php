@@ -8,7 +8,7 @@ use Cake\Core\Exception\CakeException;
 use Cake\Database\Log\QueryLogger;
 use Crustum\Mongo\Database\Enum\DriverFeature;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
-use Crustum\Mongo\Datasource\Log\MongoLogger;
+use Crustum\Mongo\Database\Log\MongoLogger;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
@@ -82,7 +82,10 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
         $config += ['log' => false];
         $this->config = $config;
 
-        if ($config['log'] !== false) {
+        if ($config['log'] instanceof LoggerInterface) {
+            $this->logQueries = true;
+            $this->logger = $config['log'];
+        } elseif ($config['log'] !== false) {
             $this->logQueries = true;
             $this->logger = $this->createLogger($config['log'] === true ? null : $config['log']);
         }
@@ -91,7 +94,8 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     /**
      * Sets the logger used to log commands.
      *
-     * Enables query logging, matching `Cake\Database\Driver::setLogger()`.
+     * Enables query logging and re-points an already-registered subscriber at
+     * the new logger, matching `Cake\Database\Driver::setLogger()`.
      *
      * @param \Psr\Log\LoggerInterface $logger The logger instance.
      * @return void
@@ -100,6 +104,20 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     {
         $this->logger = $logger;
         $this->enableQueryLogging();
+
+        if ($this->commandSubscriber instanceof CommandSubscriber) {
+            $this->commandSubscriber->setLogger(new MongoLogger($logger));
+        }
+    }
+
+    /**
+     * Returns the configured logger.
+     *
+     * @return \Psr\Log\LoggerInterface|null
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger;
     }
 
     /**

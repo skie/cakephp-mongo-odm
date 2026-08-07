@@ -20,7 +20,7 @@ return Architecture::define()
         // 'Database' => ['+Cache', 'Datasource', 'I18n'],
         // 'Datasource' => ['Cache', 'Collection', 'Database', '+Event', 'Utility'],
         // 'ODM' => ['Collection', 'Database', 'Datasource', 'Event', '+Utility', 'Validation'],
-        'Database' => ['+Cache', 'Datasource', 'CakeDatasource', 'CakeDatabase', 'I18n'],
+        'Database' => ['+Cache', 'Datasource', 'CakeDatasource', 'CakeDatabase', 'I18n', 'Collection', 'Utility'],
         'Datasource' => ['Cache', 'Collection', 'CakeDatasource', 'Database', '+Event', 'Utility'],
         // 'ODM' => ['Collection', 'Database', 'Datasource', 'Event', '+Utility', 'Validation'],
     ]);
