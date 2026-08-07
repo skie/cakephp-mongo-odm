@@ -416,16 +416,22 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      * Adds containment configuration.
      *
      * @param array<int|string, mixed>|string $associations Associations to contain.
-     * @param bool $overwrite Whether to replace existing containment.
+     * @param \Closure|bool $override Whether to replace existing containment, or a query builder closure.
      * @return $this
      */
-    public function contain(array|string $associations, bool $overwrite = false): static
+    public function contain(array|string $associations, Closure|bool $override = false): static
     {
-        if ($overwrite) {
+        $queryBuilder = null;
+        if ($override === true) {
             $this->eagerLoader->clearContain();
         }
+        if ($override instanceof Closure) {
+            $queryBuilder = $override;
+        }
 
-        $this->eagerLoader->contain($associations);
+        if ($associations) {
+            $this->eagerLoader->contain($associations, $queryBuilder);
+        }
 
         return $this;
     }

@@ -92,9 +92,11 @@ abstract class Association
     /**
      * Foreign key fields on the target collection.
      *
-     * @var array<string>|string|null
+     * `false` disables the foreign key (cake60 semantics).
+     *
+     * @var array<string>|string|false|null
      */
-    protected string|array|null $foreignKey = null;
+    protected string|array|false|null $foreignKey = null;
 
     /**
      * Binding key fields on the source collection.
@@ -108,9 +110,9 @@ abstract class Association
     /**
      * Conditions always applied while loading the target.
      *
-     * @var array<string, mixed>
+     * @var \Closure|array<string, mixed>
      */
-    protected array $conditions = [];
+    protected Closure|array $conditions = [];
 
     /**
      * Configured association loading strategy.
@@ -303,9 +305,9 @@ abstract class Association
     /**
      * Gets the target foreign key.
      *
-     * @return array<string>|string|null
+     * @return array<string>|string|false|null
      */
-    public function getForeignKey(): string|array|null
+    public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey;
     }
@@ -313,10 +315,10 @@ abstract class Association
     /**
      * Sets the target foreign key.
      *
-     * @param array<string>|string|null $key Foreign key fields.
+     * @param array<string>|string|false|null $key Foreign key fields.
      * @return $this
      */
-    public function setForeignKey(string|array|null $key): static
+    public function setForeignKey(string|array|false|null $key): static
     {
         $this->foreignKey = $key;
 
@@ -359,9 +361,9 @@ abstract class Association
     /**
      * Gets conditions applied to target queries.
      *
-     * @return array<string, mixed>
+     * @return \Closure|array<string, mixed>
      */
-    public function getConditions(): array
+    public function getConditions(): Closure|array
     {
         return $this->conditions;
     }
@@ -369,10 +371,10 @@ abstract class Association
     /**
      * Sets conditions applied to target queries.
      *
-     * @param array<string, mixed> $conditions Target conditions.
+     * @param \Closure|array<string, mixed> $conditions Target conditions.
      * @return $this
      */
-    public function setConditions(array $conditions): static
+    public function setConditions(Closure|array $conditions): static
     {
         $this->conditions = $conditions;
 
@@ -826,6 +828,36 @@ abstract class Association
         }
 
         return [key($finderData), current($finderData)];
+    }
+
+    /**
+     * Sort order applied when loading target documents.
+     *
+     * @var \Closure|array<string, mixed>|string|null
+     */
+    protected Closure|array|string|null $sort = null;
+
+    /**
+     * Sets the sort order in which target documents should be returned.
+     *
+     * @param \Closure|array<string, mixed>|string $sort A find() compatible order clause.
+     * @return $this
+     */
+    public function setSort(Closure|array|string $sort): static
+    {
+        $this->sort = $sort;
+
+        return $this;
+    }
+
+    /**
+     * Gets the sort order in which target documents should be returned.
+     *
+     * @return \Closure|array<string, mixed>|string|null
+     */
+    public function getSort(): Closure|array|string|null
+    {
+        return $this->sort;
     }
 
     /**

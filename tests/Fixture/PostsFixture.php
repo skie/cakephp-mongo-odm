@@ -30,8 +30,8 @@ class PostsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'author_id' => 1, 'title' => 'First Post', 'body' => 'First Post Body', 'published' => 'Y'],
-        ['_id' => '000000000000000000000002', 'author_id' => 3, 'title' => 'Second Post', 'body' => 'Second Post Body', 'published' => 'Y'],
-        ['_id' => '000000000000000000000003', 'author_id' => 1, 'title' => 'Third Post', 'body' => 'Third Post Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Post', 'body' => 'First Post Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Post', 'body' => 'Second Post Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Post', 'body' => 'Third Post Body', 'published' => 'Y'],
     ];
 }

@@ -30,9 +30,9 @@ class ProfilesFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'user_id' => 1, 'first_name' => 'mariano', 'last_name' => 'iglesias', 'is_active' => false],
-        ['_id' => '000000000000000000000002', 'user_id' => 2, 'first_name' => 'nate', 'last_name' => 'abele', 'is_active' => false],
-        ['_id' => '000000000000000000000003', 'user_id' => 3, 'first_name' => 'larry', 'last_name' => 'masters', 'is_active' => true],
-        ['_id' => '000000000000000000000004', 'user_id' => 4, 'first_name' => 'garrett', 'last_name' => 'woodworth', 'is_active' => false],
+        ['_id' => '000000000000000000000001', 'user_id' => '000000000000000000000001', 'first_name' => 'mariano', 'last_name' => 'iglesias', 'is_active' => false],
+        ['_id' => '000000000000000000000002', 'user_id' => '000000000000000000000002', 'first_name' => 'nate', 'last_name' => 'abele', 'is_active' => false],
+        ['_id' => '000000000000000000000003', 'user_id' => '000000000000000000000003', 'first_name' => 'larry', 'last_name' => 'masters', 'is_active' => true],
+        ['_id' => '000000000000000000000004', 'user_id' => '000000000000000000000004', 'first_name' => 'garrett', 'last_name' => 'woodworth', 'is_active' => false],
     ];
 }

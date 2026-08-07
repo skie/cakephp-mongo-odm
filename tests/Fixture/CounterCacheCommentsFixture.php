@@ -30,8 +30,8 @@ class CounterCacheCommentsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'title' => 'First Comment', 'user_id' => 1],
-        ['_id' => '000000000000000000000002', 'title' => 'Second Comment', 'user_id' => 1],
-        ['_id' => '000000000000000000000003', 'title' => 'Third Comment', 'user_id' => 2],
+        ['_id' => '000000000000000000000001', 'title' => 'First Comment', 'user_id' => '000000000000000000000001'],
+        ['_id' => '000000000000000000000002', 'title' => 'Second Comment', 'user_id' => '000000000000000000000001'],
+        ['_id' => '000000000000000000000003', 'title' => 'Third Comment', 'user_id' => '000000000000000000000002'],
     ];
 }

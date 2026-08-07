@@ -30,6 +30,6 @@ class UniqueAuthorsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'first_author_id' => null, 'second_author_id' => 1],
+        ['_id' => '000000000000000000000001', 'first_author_id' => null, 'second_author_id' => '000000000000000000000001'],
     ];
 }

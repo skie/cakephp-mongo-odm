@@ -11,6 +11,7 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -24,6 +25,16 @@ use RuntimeException;
  */
 class BelongsToMany extends Association
 {
+    /**
+     * Save strategy that appends targets without removing existing links.
+     */
+    public const string SAVE_APPEND = 'append';
+
+    /**
+     * Save strategy that replaces existing links with the provided targets.
+     */
+    public const string SAVE_REPLACE = 'replace';
+
     /** Valid loading strategies for this association. */
     /**
      * @var array<string>
@@ -31,9 +42,18 @@ class BelongsToMany extends Association
     protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
 
     /**
-     * Join collection alias.
+     * Join collection alias or instance.
+     *
+     * @var \Crustum\Mongo\ODM\BaseCollection|string|null
      */
-    protected ?string $through = null;
+    protected BaseCollection|string|null $through = null;
+
+    /**
+     * Join collection instance resolved by {@see junction()}.
+     *
+     * @var \Crustum\Mongo\ODM\BaseCollection|null
+     */
+    protected ?BaseCollection $junctionCollection = null;
 
     /**
      * Foreign key from the join collection to the source.
@@ -44,6 +64,16 @@ class BelongsToMany extends Association
      * Foreign key from the join collection to the target.
      */
     protected ?string $targetForeignKey = null;
+
+    /**
+     * Property name carrying junction data on the source document.
+     */
+    protected string $junctionProperty = '_joinData';
+
+    /**
+     * Save strategy applied when persisting associated target documents.
+     */
+    protected string $saveStrategy = self::SAVE_REPLACE;
 
     /**
      * Constructor.
@@ -58,6 +88,11 @@ class BelongsToMany extends Association
         $this->through = $options['through'] ?? null;
         $this->joinForeignKey = $options['joinForeignKey'] ?? null;
         $this->targetForeignKey = $options['targetForeignKey'] ?? null;
+        $this->junctionProperty = (string)($options['junctionProperty'] ?? $this->junctionProperty);
+        $this->saveStrategy = (string)($options['saveStrategy'] ?? $this->saveStrategy);
+        if (isset($options['sort'])) {
+            $this->setSort($options['sort']);
+        }
     }
 
     /**
@@ -160,7 +195,7 @@ class BelongsToMany extends Association
      */
     protected function assertNoJoinCollection(): void
     {
-        if ($this->through !== null) {
+        if ($this->through !== null || $this->junctionCollection !== null) {
             throw new RuntimeException(
                 'Linking through a join collection is not supported until the BaseCollection layer lands.',
             );
@@ -193,7 +228,7 @@ class BelongsToMany extends Association
      *
      * @return array<string>|string|null
      */
-    public function getForeignKey(): string|array|null
+    public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getSource()));
     }
@@ -209,26 +244,141 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Gets the join collection alias.
+     * Gets the join collection alias or instance.
      *
-     * @return string|null
+     * @return \Crustum\Mongo\ODM\BaseCollection|string|null
      */
-    public function getThrough(): ?string
+    public function getThrough(): BaseCollection|string|null
     {
         return $this->through;
     }
 
     /**
-     * Sets the join collection alias.
+     * Sets the join collection, either the alias or the instance itself.
      *
-     * @param string $through Join collection alias.
+     * @param \Crustum\Mongo\ODM\BaseCollection|string $through Join collection alias or instance.
      * @return $this
      */
-    public function setThrough(string $through): static
+    public function setThrough(BaseCollection|string $through): static
     {
         $this->through = $through;
 
         return $this;
+    }
+
+    /**
+     * Gets the join collection instance.
+     *
+     * Resolves the configured `through` alias through the collection locator,
+     * or generates the conventional `{source}_{target}` junction name when no
+     * through is configured.
+     *
+     * @return \Crustum\Mongo\ODM\BaseCollection
+     * @throws \InvalidArgumentException When source and target are the same collection.
+     */
+    public function junction(): BaseCollection
+    {
+        if ($this->junctionCollection instanceof BaseCollection) {
+            return $this->junctionCollection;
+        }
+
+        $through = $this->through;
+        if ($through instanceof BaseCollection) {
+            return $this->junctionCollection = $through;
+        }
+
+        if ($through !== null) {
+            $collection = $this->getCollectionLocator()->get($through, ['allowFallbackClass' => true]);
+            if (!$collection instanceof BaseCollection) {
+                throw new InvalidArgumentException(sprintf(
+                    'Junction collection `%s` did not resolve to a BaseCollection.',
+                    $through,
+                ));
+            }
+
+            return $this->junctionCollection = $collection;
+        }
+
+        $source = $this->getSource();
+        $target = $this->getTarget();
+        if ($source->getAlias() === $target->getAlias()) {
+            throw new InvalidArgumentException(sprintf(
+                'The `%s` association on `%s` cannot target the same table.',
+                $this->getName(),
+                $source->getAlias(),
+            ));
+        }
+
+        $names = [$source->getCollection(), $target->getCollection()];
+        sort($names);
+        $alias = Inflector::camelize(implode('_', $names));
+        $collection = $this->getCollectionLocator()->get($alias, [
+            'collection' => implode('_', $names),
+            'allowFallbackClass' => true,
+        ]);
+        if (!$collection instanceof BaseCollection) {
+            throw new InvalidArgumentException(sprintf(
+                'Junction collection `%s` did not resolve to a BaseCollection.',
+                $alias,
+            ));
+        }
+
+        return $this->junctionCollection = $collection;
+    }
+
+    /**
+     * Sets the junction property name.
+     *
+     * @param string $junctionProperty Property name.
+     * @return $this
+     */
+    public function setJunctionProperty(string $junctionProperty): static
+    {
+        $this->junctionProperty = $junctionProperty;
+
+        return $this;
+    }
+
+    /**
+     * Gets the junction property name.
+     *
+     * @return string
+     */
+    public function getJunctionProperty(): string
+    {
+        return $this->junctionProperty;
+    }
+
+    /**
+     * Sets the save strategy.
+     *
+     * @param string $strategy Strategy name.
+     * @return $this
+     * @throws \InvalidArgumentException When an invalid strategy is passed.
+     */
+    public function setSaveStrategy(string $strategy): static
+    {
+        if (!in_array($strategy, [self::SAVE_APPEND, self::SAVE_REPLACE], true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid save strategy "%s". Valid strategies are: %s',
+                $strategy,
+                implode(', ', [self::SAVE_APPEND, self::SAVE_REPLACE]),
+            ));
+        }
+
+        $this->saveStrategy = $strategy;
+
+        return $this;
+    }
+
+    /**
+     * Gets the save strategy.
+     *
+     * @return string
+     */
+    public function getSaveStrategy(): string
+    {
+        return $this->saveStrategy;
     }
 
     /**
@@ -293,6 +443,7 @@ class BelongsToMany extends Association
             'associationType' => $this->type(),
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
+            'sort' => $this->getSort(),
         ];
         if ($this->getStrategy() === self::STRATEGY_LOOKUP) {
             return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
@@ -313,10 +464,14 @@ class BelongsToMany extends Association
             return [];
         }
 
+        $through = $this->through instanceof BaseCollection
+            ? $this->through->getCollection()
+            : $this->through;
+
         $builder = $this->buildAggregation();
         $join = '_join_' . $this->getProperty();
         $builder
-            ->lookup($this->through)
+            ->lookup($through)
             ->localField($this->fieldName($this->getBindingKey()))
             ->foreignField($this->joinForeignKey)
             ->alias($join);

@@ -93,7 +93,7 @@ class BelongsTo extends Association
      *
      * @return array<string>|string|null
      */
-    public function getForeignKey(): string|array|null
+    public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getTarget()));
     }

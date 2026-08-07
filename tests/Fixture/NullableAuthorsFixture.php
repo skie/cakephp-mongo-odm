@@ -33,7 +33,7 @@ class NullableAuthorsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'author_id' => 3],
+        ['_id' => '000000000000000000000001', 'author_id' => '000000000000000000000003'],
         ['_id' => '000000000000000000000002', 'author_id' => null],
     ];
 }

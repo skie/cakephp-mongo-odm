@@ -30,8 +30,8 @@ class CounterCacheUserCategoryPostsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'category_id' => 1, 'user_id' => 1, 'post_count' => 1],
-        ['_id' => '000000000000000000000002', 'category_id' => 2, 'user_id' => 1, 'post_count' => 1],
-        ['_id' => '000000000000000000000003', 'category_id' => 2, 'user_id' => 2, 'post_count' => 1],
+        ['_id' => '000000000000000000000001', 'category_id' => '000000000000000000000001', 'user_id' => '000000000000000000000001', 'post_count' => 1],
+        ['_id' => '000000000000000000000002', 'category_id' => '000000000000000000000002', 'user_id' => '000000000000000000000001', 'post_count' => 1],
+        ['_id' => '000000000000000000000003', 'category_id' => '000000000000000000000002', 'user_id' => '000000000000000000000002', 'post_count' => 1],
     ];
 }

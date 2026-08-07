@@ -30,8 +30,8 @@ class NumberTreesArticlesFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'number_tree_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
-        ['_id' => '000000000000000000000002', 'number_tree_id' => 1, 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
-        ['_id' => '000000000000000000000003', 'number_tree_id' => 11, 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000001', 'number_tree_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000002', 'number_tree_id' => '000000000000000000000001', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+        ['_id' => '000000000000000000000003', 'number_tree_id' => '000000000000000000000011', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
     ];
 }

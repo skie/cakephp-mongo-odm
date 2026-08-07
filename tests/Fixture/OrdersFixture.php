@@ -30,6 +30,6 @@ class OrdersFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'product_category' => 1, 'product_id' => 1],
+        ['_id' => '000000000000000000000001', 'product_category' => 1, 'product_id' => '000000000000000000000001'],
     ];
 }

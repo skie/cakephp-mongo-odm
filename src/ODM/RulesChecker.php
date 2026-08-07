@@ -55,7 +55,7 @@ final class RulesChecker extends BaseRulesChecker
 
         return $this->_addError(
             new ExistsIn($field, $repository, $options),
-            '_existsIn',
+            'existsIn',
             ['errorField' => is_string($field) ? $field : ($field[0] ?? null), 'message' => $message],
         );
     }

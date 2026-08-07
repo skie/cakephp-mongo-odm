@@ -1,0 +1,1849 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\TestCase\ODM\Association;
+
+use Cake\Database\Connection;
+use Cake\Database\Driver\Sqlite;
+use Cake\Database\Driver\Sqlserver;
+use Cake\Database\Expression\OrderByExpression;
+use Cake\Database\Expression\OrderClauseExpression;
+use Cake\Database\Expression\QueryExpression;
+use Cake\Database\Expression\TupleComparison;
+use Cake\Database\ExpressionInterface;
+use Cake\Database\TypeMap;
+use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\EntityInterface;
+use Cake\Datasource\ResultSetInterface;
+use Cake\Log\Log;
+use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Association\HasMany;
+use Crustum\Mongo\ODM\Document;
+use Crustum\Mongo\ODM\Query\SelectQuery;
+use Crustum\Mongo\ODM\ResultSet;
+use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use Closure;
+use InvalidArgumentException;
+use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
+use function Cake\I18n\__;
+
+/**
+ * Tests HasMany class
+ */
+class HasManyTest extends TestCase
+{
+    /**
+     * Fixtures
+     *
+     * @var array<string>
+     */
+    protected array $fixtures = [
+        'plugin.Crustum/Mongo.Categories',
+        'plugin.Crustum/Mongo.Comments',
+        'plugin.Crustum/Mongo.Articles',
+        'plugin.Crustum/Mongo.Tags',
+        'plugin.Crustum/Mongo.Authors',
+        'plugin.Crustum/Mongo.Users',
+        'plugin.Crustum/Mongo.ArticlesTags',
+    ];
+
+    /**
+     * @var \Crustum\Mongo\ODM\BaseCollection
+     */
+    protected $author;
+
+    /**
+     * @var \Crustum\Mongo\ODM\BaseCollection&\Mockery\MockInterface
+     */
+    protected $article;
+
+    /**
+     * @var \Cake\Database\TypeMap
+     */
+    protected $articlesTypeMap;
+
+    /**
+     * @var bool
+     */
+    protected $autoQuote;
+
+    /**
+     * Set up
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setAppNamespace('TestApp');
+
+        $this->author = $this->getCollectionLocator()->get('Authors', [
+            'schema' => [
+                'id' => ['type' => 'integer'],
+                'name' => ['type' => 'string'],
+                '_constraints' => [
+                    'primary' => ['type' => 'primary', 'columns' => ['id']],
+                ],
+            ],
+        ]);
+        $connection = ConnectionManager::get('test_mongo');
+        $article = new BaseCollection([
+            'alias' => 'Articles',
+            'collection' => 'articles',
+            'connection' => $connection,
+        ]);
+        $article->setSchemaFromArray([
+            'id' => ['type' => 'integer'],
+            'title' => ['type' => 'string'],
+            'author_id' => ['type' => 'integer'],
+            '_constraints' => [
+                'primary' => ['type' => 'primary', 'columns' => ['id']],
+            ],
+        ]);
+        $this->article = Mockery::mock($article)->makePartial();
+
+        $this->articlesTypeMap = new TypeMap([
+            'Articles.id' => 'integer',
+            'id' => 'integer',
+            'Articles.title' => 'string',
+            'title' => 'string',
+            'Articles.author_id' => 'integer',
+            'author_id' => 'integer',
+            'Articles__id' => 'integer',
+            'Articles__title' => 'string',
+            'Articles__author_id' => 'integer',
+        ]);
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        ConnectionManager::drop('test_read_write');
+        Log::drop('queries');
+        // Clear the table locator to avoid state leaking to next tests
+        $this->getCollectionLocator()->clear();
+    }
+
+    /**
+     * Tests that foreignKey() returns the correct configured value
+     */
+    public function testSetForeignKey(): void
+    {
+        $assoc = new HasMany('Articles', $this->author);
+        $this->assertSame('author_id', $assoc->getForeignKey());
+        $this->assertSame($assoc, $assoc->setForeignKey('another_key'));
+        $this->assertSame('another_key', $assoc->getForeignKey());
+    }
+
+    /**
+     * Test that foreignKey generation ignores database names in target table.
+     */
+    public function testForeignKeyIgnoreDatabaseName(): void
+    {
+        $this->author->setCollection('schema.authors');
+        $assoc = new HasMany('Articles', $this->author);
+        $this->assertSame('author_id', $assoc->getForeignKey());
+    }
+
+    /**
+     * Tests that the association reports it can be joined
+     */
+    public function testCanBeJoined(): void
+    {
+        $assoc = new HasMany('Test', $this->author);
+        $this->assertFalse($assoc->canBeJoined());
+    }
+
+    /**
+     * Tests setSort() method
+     */
+    public function testSetSort(): void
+    {
+        $assoc = new HasMany('Test', $this->author);
+        $this->assertNull($assoc->getSort());
+
+        $assoc->setSort('id ASC');
+        $this->assertSame('id ASC', $assoc->getSort());
+
+        $assoc->setSort(['id' => 'ASC']);
+        $this->assertSame(['id' => 'ASC'], $assoc->getSort());
+
+        $closure = function () {
+            return ['id' => 'ASC'];
+        };
+        $assoc->setSort($closure);
+        $this->assertSame($closure, $assoc->getSort());
+
+        $expression = new OrderClauseExpression('id', 'ASC');
+        $assoc->setSort($expression);
+        $this->assertSame($expression, $assoc->getSort());
+    }
+
+    /**
+     * Tests that sorting works using the accepted types for `setSort()`.
+     */
+    public function testSorting(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $assoc = $authors->Articles;
+
+        $field = 'Articles.id';
+        $driver = $authors->getConnection()->getDriver();
+
+        $assoc->setSort("{$field} DESC");
+        $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], 'id'));
+
+        $assoc->setSort(['Articles.id' => 'DESC']);
+        $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], 'id'));
+
+        $assoc->setSort(function () {
+            return ['Articles.id' => 'DESC'];
+        });
+        $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], 'id'));
+
+        $assoc->setSort(new OrderClauseExpression('Articles.id', 'DESC'));
+        $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], 'id'));
+    }
+
+    /**
+     * Tests requiresKeys() method
+     */
+    public function testRequiresKeys(): void
+    {
+        $assoc = new HasMany('Test', $this->author);
+        // Default strategy is now subquery, which doesn't require keys
+        $this->assertFalse($assoc->requiresKeys());
+
+        $assoc->setStrategy(HasMany::STRATEGY_SELECT);
+        $this->assertTrue($assoc->requiresKeys());
+
+        $assoc->setStrategy(HasMany::STRATEGY_SUBQUERY);
+        $this->assertFalse($assoc->requiresKeys());
+    }
+
+    /**
+     * Tests that HasMany can't use the join strategy
+     */
+    public function testStrategyFailure(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid strategy `join` was provided');
+        $assoc = new HasMany('Test', $this->author);
+        $assoc->setStrategy(HasMany::STRATEGY_JOIN);
+    }
+
+    /**
+     * Test the eager loader method with no extra options
+     */
+    public function testEagerLoader(): void
+    {
+        $config = [
+            'target' => $this->article,
+            'strategy' => 'select',
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+        $query = $this->article->selectQuery();
+        $this->article->shouldReceive('find')
+            ->andReturn($query);
+        $keys = [1, 2, 3, 4];
+
+        $callable = $association->eagerLoader(compact('keys', 'query'));
+        $row = ['Authors__id' => 1];
+
+        $result = $callable($row);
+        $this->assertArrayHasKey('Articles', $result);
+        $this->assertSame($row['Authors__id'], $result['Articles'][0]->author_id);
+        $this->assertSame($row['Authors__id'], $result['Articles'][1]->author_id);
+
+        $row = ['Authors__id' => 2];
+        $result = $callable($row);
+        $this->assertArrayNotHasKey('Articles', $result);
+
+        $row = ['Authors__id' => 3];
+        $result = $callable($row);
+        $this->assertArrayHasKey('Articles', $result);
+        $this->assertSame($row['Authors__id'], $result['Articles'][0]->author_id);
+
+        $row = ['Authors__id' => 4];
+        $result = $callable($row);
+        $this->assertArrayNotHasKey('Articles', $result);
+    }
+
+    /**
+     * Test the eager loader method with default query clauses
+     */
+    public function testEagerLoaderWithDefaults(): void
+    {
+        $config = [
+            'target' => $this->article,
+            'conditions' => ['Articles.published' => 'Y'],
+            'sort' => ['id' => 'ASC'],
+            'strategy' => 'select',
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+        $keys = [1, 2, 3, 4];
+
+        $query = $this->article->selectQuery();
+        $this->article->shouldReceive('find')
+            ->andReturn($query);
+
+        $association->eagerLoader(compact('keys', 'query'));
+
+        $expected = new QueryExpression(
+            ['Articles.published' => 'Y', 'Articles.author_id IN' => $keys],
+            $this->articlesTypeMap,
+        );
+        $this->assertWhereClause($expected, $query);
+
+        $expected = new OrderByExpression(['id' => 'ASC']);
+        $this->assertOrderClause($expected, $query);
+    }
+
+    /**
+     * Test the eager loader method with overridden query clauses
+     */
+    public function testEagerLoaderWithOverrides(): void
+    {
+        $config = [
+            'target' => $this->article,
+            'conditions' => ['Articles.published' => 'Y'],
+            'sort' => ['id' => 'ASC'],
+            'strategy' => 'select',
+        ];
+        $this->article->hasMany('Comments', ['strategy' => 'select']);
+
+        $association = new HasMany('Articles', $this->author, $config);
+        $keys = [1, 2, 3, 4];
+
+        /** @var \Cake\ORM\Query\SelectQuery $query */
+        $query = $this->article->query();
+        $query->addDefaultTypes($this->article);
+
+        $this->article->shouldReceive('find')
+            ->andReturn($query);
+
+        $association->eagerLoader([
+            'conditions' => ['Articles.id !=' => 3],
+            'sort' => ['title' => 'DESC'],
+            'fields' => ['id', 'title', 'author_id'],
+            'contain' => ['Comments' => ['fields' => ['comment', 'article_id']]],
+            'keys' => $keys,
+            'query' => $query,
+        ]);
+        $expected = [
+            'Articles__id' => 'Articles.id',
+            'Articles__title' => 'Articles.title',
+            'Articles__author_id' => 'Articles.author_id',
+        ];
+        $this->assertSelectClause($expected, $query);
+
+        $expected = new QueryExpression(
+            [
+                'Articles.published' => 'Y',
+                'Articles.id !=' => 3,
+                'Articles.author_id IN' => $keys,
+            ],
+            $query->getTypeMap(),
+        );
+        $this->assertWhereClause($expected, $query);
+
+        $expected = new OrderByExpression(['title' => 'DESC']);
+        $this->assertOrderClause($expected, $query);
+        $this->assertArrayHasKey('Comments', $query->getContain());
+    }
+
+    /**
+     * Test that failing to add the foreignKey to the list of fields will throw an
+     * exception
+     */
+    public function testEagerLoaderFieldsException(): void
+    {
+        // This test now verifies that missing foreign keys are automatically added
+        // instead of throwing an exception
+        $config = [
+            'target' => $this->article,
+            'strategy' => 'select',
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+        $keys = [1, 2, 3, 4];
+
+        // Create a query to be used as sourceQuery
+        $sourceQuery = $this->article->selectQuery();
+
+        // Setup the mock to track what happens
+        $queriesReturned = [];
+        $this->article->shouldReceive('find')
+            ->once()
+            ->with('all')
+            ->andReturnUsing(function () use (&$queriesReturned) {
+                // Preserve the current auto-quoting state (might be affected by other tests)
+                $query = $this->article->selectQuery();
+                $query->enableAutoFields(false);
+                $queriesReturned[] = $query;
+
+                return $query;
+            });
+
+        $loader = $association->eagerLoader([
+            'fields' => ['id', 'title'],
+            'keys' => $keys,
+            'query' => $sourceQuery,
+        ]);
+
+        // Verify that the loader was created successfully
+        $this->assertIsCallable($loader);
+
+        // Verify that find was called and a query was returned
+        $this->assertCount(1, $queriesReturned, 'Find should have been called once');
+
+        // Check the query that was actually modified by the loader
+        $fetchQuery = $queriesReturned[0];
+        $select = $fetchQuery->clause('select');
+
+        // The foreign key should be in the select clause
+        // Handle both quoted and non-quoted identifiers
+        $hasAuthorId = false;
+        foreach ($select as $key => $field) {
+            // Check if the field contains author_id (handles both quoted and non-quoted)
+            if (
+                str_contains((string)$field, 'author_id') ||
+                str_contains((string)$key, 'author_id')
+            ) {
+                $hasAuthorId = true;
+                break;
+            }
+        }
+
+        $this->assertTrue(
+            $hasAuthorId,
+            'Foreign key author_id should be added. Select clause: ' . json_encode($select),
+        );
+    }
+
+    /**
+     * Tests that eager loader accepts a queryBuilder option
+     */
+    public function testEagerLoaderWithQueryBuilder(): void
+    {
+        $config = [
+            'target' => $this->article,
+            'strategy' => 'select',
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+        $keys = [1, 2, 3, 4];
+
+        /** @var \Cake\ORM\Query\SelectQuery $query */
+        $query = $this->article->query();
+        $this->article->shouldReceive('find')
+            ->with('all')
+            ->andReturn($query);
+
+        $queryBuilder = function ($query) {
+            return $query->select(['author_id'])->join('comments')->where(['comments.id' => 1]);
+        };
+        $association->eagerLoader(compact('keys', 'query', 'queryBuilder'));
+
+        $expected = [
+            'Articles__author_id' => 'Articles.author_id',
+        ];
+        $this->assertSelectClause($expected, $query);
+
+        $expected = [
+            [
+                'type' => 'INNER',
+                'alias' => null,
+                'collection' => 'comments',
+                'conditions' => new QueryExpression([], $query->getTypeMap()),
+            ],
+        ];
+        $this->assertJoin($expected, $query);
+
+        $expected = new QueryExpression(
+            [
+                'Articles.author_id IN' => $keys,
+                'comments.id' => 1,
+            ],
+            $query->getTypeMap(),
+        );
+        $this->assertWhereClause($expected, $query);
+    }
+
+    /**
+     * Test the eager loader method with no extra options
+     */
+    public function testEagerLoaderMultipleKeys(): void
+    {
+        $config = [
+            'target' => $this->article,
+            'strategy' => 'select',
+            'foreignKey' => ['author_id', 'site_id'],
+        ];
+
+        $this->author->setPrimaryKey(['id', 'site_id']);
+        $association = new HasMany('Articles', $this->author, $config);
+        $keys = [[1, 10], [2, 20], [3, 30], [4, 40]];
+        $results = new ResultSet([
+            ['id' => '000000000000000000000001', 'title' => 'article 1', 'author_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
+            ['id' => '000000000000000000000002', 'title' => 'article 2', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
+        ]);
+        $tuple = new TupleComparison(
+            ['Articles.author_id', 'Articles.site_id'],
+            $keys,
+            ['integer'],
+            'IN',
+        );
+        $query = new class ($this->article, $results, $tuple) extends SelectQuery {
+            public bool $andWhereCalled = false;
+
+            public function __construct(
+                BaseCollection $table,
+                protected ResultSet $resultSet,
+                protected TupleComparison $expectedTuple,
+            ) {
+                parent::__construct($table);
+            }
+
+            public function andWhere(
+                ExpressionInterface|Closure|array|string $conditions,
+                array $types = [],
+            ): static {
+                if ($conditions == $this->expectedTuple) {
+                    $this->andWhereCalled = true;
+                }
+
+                return $this;
+            }
+
+            public function all(): ResultSetInterface
+            {
+                return $this->resultSet;
+            }
+        };
+        $this->article->shouldReceive('find')
+            ->with('all')
+            ->andReturn($query);
+
+        $callable = $association->eagerLoader(compact('keys', 'query'));
+        $this->assertTrue($query->andWhereCalled);
+        $row = ['Authors__id' => 2, 'Authors__site_id' => 10, 'username' => 'author 1'];
+        $result = $callable($row);
+        $row['Articles'] = [
+            ['id' => '000000000000000000000001', 'title' => 'article 1', 'author_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
+        ];
+        $this->assertEquals($row, $result);
+
+        $row = ['Authors__id' => 1, 'username' => 'author 2', 'Authors__site_id' => 20];
+        $result = $callable($row);
+        $row['Articles'] = [
+            ['id' => '000000000000000000000002', 'title' => 'article 2', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
+        ];
+        $this->assertEquals($row, $result);
+    }
+
+    /**
+     * Test that not selecting join keys fails with an error
+     */
+    public function testEagerloaderNoForeignKeys(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        // Use select strategy explicitly to test that it throws when foreign key is missing
+        $authors->Articles->setStrategy(Association::STRATEGY_SELECT);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unable to load `Articles` association. Ensure foreign key in `Authors`');
+        $query = $authors->find()
+            ->select(['Authors.name'])
+            ->where(['Authors.id' => 1])
+            ->contain('Articles');
+        $query->first();
+    }
+
+    /**
+     * Test cascading deletes.
+     */
+    public function testCascadeDelete(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $config = [
+            'dependent' => true,
+            'target' => $articles,
+            'conditions' => ['Articles.published' => 'Y'],
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+
+        $entity = new Document(['id' => '000000000000000000000001', 'name' => 'PHP']);
+        $this->assertTrue($association->cascadeDelete($entity));
+
+        $published = $articles
+            ->find('published')
+            ->where([
+                'published' => 'Y',
+                'author_id' => '000000000000000000000001',
+            ]);
+        $this->assertCount(0, $published->all());
+    }
+
+    /**
+     * Test cascading deletes with a finder
+     */
+    public function testCascadeDeleteFinder(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $config = [
+            'dependent' => true,
+            'target' => $articles,
+            'finder' => 'published',
+        ];
+        // Exclude one record from the association finder
+        $articles->updateAll(
+            ['published' => 'N'],
+            ['author_id' => '000000000000000000000001', 'title' => 'First Article'],
+        );
+        $association = new HasMany('Articles', $this->author, $config);
+
+        $entity = new Document(['id' => '000000000000000000000001', 'name' => 'PHP']);
+        $this->assertTrue($association->cascadeDelete($entity));
+
+        $published = $articles->find('published')->where(['author_id' => '000000000000000000000001']);
+        $this->assertCount(0, $published->all(), 'Associated records should be removed');
+
+        $all = $articles->find()->where(['author_id' => '000000000000000000000001']);
+        $this->assertCount(1, $all->all(), 'Record not in association finder should remain');
+    }
+
+    /**
+     * Test cascading delete with has many.
+     */
+    public function testCascadeDeleteCallbacks(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $config = [
+            'dependent' => true,
+            'target' => $articles,
+            'conditions' => ['Articles.published' => 'Y'],
+            'cascadeCallbacks' => true,
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+
+        $author = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $this->assertTrue($association->cascadeDelete($author));
+
+        $query = $articles->find()->where(['author_id' => '000000000000000000000001']);
+        $this->assertSame(0, $query->count(), 'Cleared related rows');
+
+        $query = $articles->find()->where(['author_id' => '000000000000000000000003']);
+        $this->assertSame(1, $query->count(), 'other records left behind');
+    }
+
+    /**
+     * Test cascading delete with a rule preventing deletion
+     */
+    public function testCascadeDeleteCallbacksRuleFailure(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $config = [
+            'dependent' => true,
+            'target' => $articles,
+            'cascadeCallbacks' => true,
+        ];
+        $association = new HasMany('Articles', $this->author, $config);
+        $articles = $association->getTarget();
+        $articles->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
+            $rules->addDelete(function () {
+                return false;
+            });
+        });
+
+        $author = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $this->assertFalse($association->cascadeDelete($author));
+        $matching = $articles->find()
+            ->where(['Articles.author_id' => $author->id])
+            ->all();
+        $this->assertGreaterThan(0, count($matching));
+    }
+
+    /**
+     * Test that saveAssociated() ignores non entity values.
+     */
+    public function testSaveAssociatedOnlyEntities(): void
+    {
+        $spy = Mockery::spy(BaseCollection::class);
+        $config = [
+            'target' => $spy,
+        ];
+
+        $entity = new Document([
+            'username' => 'Mark',
+            'email' => 'mark@example.com',
+            'articles' => [
+                ['title' => 'First Post'],
+                new Document(['title' => 'Second Post']),
+            ],
+        ]);
+
+        $association = new HasMany('Articles', $this->author, $config);
+        $result = $association->saveAssociated($entity);
+        $this->assertSame($result, $entity);
+
+        $spy->shouldNotHaveReceived('saveAssociated');
+    }
+
+    /**
+     * Tests that property is being set using the constructor options.
+     */
+    public function testPropertyOption(): void
+    {
+        $config = ['propertyName' => 'thing_placeholder'];
+        $association = new HasMany('Authors', $this->getCollectionLocator()->get('Authors'), $config);
+        $this->assertSame('thing_placeholder', $association->getProperty());
+    }
+
+    /**
+     * Tests propertyName is used during marshalling and validation
+     */
+    public function testPropertyOptionMarshalAndValidation(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setProperty('blogs');
+        $authors->getValidator()
+            ->requirePresence('blogs', true, 'blogs must be set');
+
+        $data = [
+            'name' => 'corey',
+        ];
+        $author = $authors->newEntity($data);
+        $this->assertEmpty($author->blogs, 'No blogs set');
+        $this->assertTrue($author->hasErrors(), 'Should have validation errors');
+        $this->assertArrayHasKey('blogs', $author->getErrors());
+    }
+
+    /**
+     * Test that plugin names are omitted from property()
+     */
+    public function testPropertyNoPlugin(): void
+    {
+        $config = [
+            'target' => $this->article,
+        ];
+        $association = new HasMany('Contacts.Addresses', $this->author, $config);
+        $this->assertSame('addresses', $association->getProperty());
+    }
+
+    /**
+     * Test that the ValueBinder is reset when using strategy = Association::STRATEGY_SUBQUERY
+     */
+    public function testValueBinderUpdateOnSubQueryStrategy(): void
+    {
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $authorsAndArticles = $query
+            ->select([
+                'id',
+                'slug' => $query->func()->concat([
+                    '---',
+                    'name' => 'identifier',
+                ]),
+            ])
+            ->contain('Articles')
+            ->where(['name' => 'mariano'])
+            ->first();
+
+        $this->assertCount(2, $authorsAndArticles->get('articles'));
+    }
+
+    /**
+     * Tests using subquery strategy when parent query
+     * that contains limit without order.
+     */
+    public function testSubqueryWithLimit(): void
+    {
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $result = $query
+            ->contain('Articles')
+            ->first();
+
+        if (in_array($result->name, ['mariano', 'larry'])) {
+            $this->assertNotEmpty($result->articles);
+        } else {
+            $this->assertEmpty($result->articles);
+        }
+    }
+
+    /**
+     * Tests using subquery strategy when parent query
+     * that contains limit with order.
+     */
+    public function testSubqueryWithLimitAndOrder(): void
+    {
+        $this->skipIf(ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver, 'Sql Server does not support ORDER BY on field not in GROUP BY');
+
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $result = $query
+            ->contain('Articles')
+            ->orderBy(['name' => 'ASC'])
+            ->limit(2)
+            ->toArray();
+
+        $this->assertCount(0, $result[0]->articles);
+        $this->assertCount(1, $result[1]->articles);
+    }
+
+    /**
+     * Subquery strategy when a HAVING-referenced select alias would collide
+     * with the binding key column name. The collision must be avoided to
+     * prevent "Duplicate column name" errors in the generated subquery.
+     */
+    public function testSubqueryWithHavingAliasCollidingWithBindingKey(): void
+    {
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        // Alias 'id' collides with the binding key column name. The collision
+        // guard must skip preserving the alias in the generated subquery to
+        // avoid producing a duplicate 'id' column.
+        $query = $Authors->find();
+        $result = $query
+            ->select([
+                'Authors.id',
+                'id' => $query->func()->concat(['x'], ['string']),
+                'cnt' => $query->func()->count($query->identifier('Authors.id')),
+            ])
+            ->contain('Articles')
+            ->groupBy(['Authors.id'])
+            ->having(['cnt >=' => 1], ['cnt' => 'integer'])
+            ->toArray();
+
+        $this->assertNotEmpty($result);
+    }
+
+    /**
+     * Subquery strategy when the same alias is referenced by both ORDER BY
+     * and HAVING. The HAVING branch must not re-add an alias already
+     * preserved by the ORDER BY branch.
+     */
+    public function testSubqueryWithHavingAndOrderOnSameAlias(): void
+    {
+        $this->skipIf(
+            ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
+            'Sql Server does not provide a portable LENGTH() function',
+        );
+
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $result = $query
+            ->select([
+                'name_length' => $query->func()->length(['Authors.name' => 'identifier']),
+            ])
+            ->enableAutoFields()
+            ->contain('Articles')
+            ->groupBy(['Authors.id'])
+            ->having(['name_length >' => 4], ['name_length' => 'integer'])
+            ->orderBy(['name_length' => 'DESC'])
+            ->toArray();
+
+        $this->assertNotEmpty($result);
+    }
+
+    /**
+     * Subquery strategy + HAVING on an aggregate alias.
+     * The aggregate must be preserved in SELECT but skipped in GROUP BY.
+     */
+    public function testSubqueryWithHavingOnAggregateAlias(): void
+    {
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $result = $query
+            ->select([
+                'Authors.id',
+                'Authors.name',
+                'article_count' => $query->func()->count($query->identifier('Articles.id')),
+            ])
+            ->leftJoinWith('Articles')
+            ->contain('Articles')
+            ->groupBy(['Authors.id', 'Authors.name'])
+            ->having(['article_count >' => 0], ['article_count' => 'integer'])
+            ->toArray();
+
+        $this->assertNotEmpty($result);
+    }
+
+    /**
+     * Tests subquery strategy when the parent query uses HAVING on a SELECT alias.
+     *
+     * The alias must be preserved in the generated subquery SELECT, otherwise the
+     * HAVING clause references a column that no longer exists.
+     */
+    public function testSubqueryWithHavingOnSelectAlias(): void
+    {
+        $this->skipIf(
+            ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
+            'Sql Server does not provide a portable LENGTH() function',
+        );
+
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
+
+        $query = $Authors->find();
+        $result = $query
+            ->select([
+                'name_length' => $query->func()->length(['Authors.name' => 'identifier']),
+            ])
+            ->enableAutoFields()
+            ->contain('Articles')
+            ->groupBy(['Authors.id'])
+            ->having(['name_length >' => 5], ['name_length' => 'integer'])
+            ->toArray();
+
+        $names = array_map(fn(EntityInterface $author): string => $author->name, $result);
+        sort($names);
+        $this->assertSame(['garrett', 'mariano'], $names);
+    }
+
+    /**
+     * Subquery strategy with a self-referential HasMany association.
+     *
+     * When source and target alias are the same (e.g. a tree structure
+     * with parent_id), the subquery join alias must not collide with
+     * the outer query's table alias, which would cause
+     * "Column 'X.id' in SELECT is ambiguous" errors.
+     */
+    public function testSubqueryWithSelfReferentialAssociation(): void
+    {
+        $Categories = $this->getCollectionLocator()->get('Categories');
+        $Categories->hasMany('ChildCategories', [
+            'className' => 'Categories',
+            'foreignKey' => 'parent_id',
+            'strategy' => Association::STRATEGY_SUBQUERY,
+        ]);
+
+        $Categories->ChildCategories->hasMany('ChildCategories', [
+            'className' => 'Categories',
+            'foreignKey' => 'parent_id',
+            'strategy' => Association::STRATEGY_SUBQUERY,
+        ]);
+
+        $result = $Categories->find()
+            ->where(['Categories.parent_id' => 0])
+            ->contain('ChildCategories.ChildCategories')
+            ->toArray();
+
+        $this->assertNotEmpty($result);
+        foreach ($result as $category) {
+            $this->assertIsArray($category->child_categories);
+        }
+
+        $nestedPropertyLoaded = false;
+        foreach ($result as $category) {
+            foreach ($category->child_categories as $childCategory) {
+                if (isset($childCategory->child_categories)) {
+                    $this->assertIsArray($childCategory->child_categories);
+                    $nestedPropertyLoaded = true;
+                }
+                if (!empty($childCategory->child_categories)) {
+                    $nestedPropertyLoaded = true;
+                }
+            }
+        }
+
+        $this->assertTrue($nestedPropertyLoaded);
+    }
+
+    /**
+     * Subquery strategy with a self-referential HasMany association whose source
+     * alias already ends in `_subquery`.
+     *
+     * The generated alias for the derived table must not collide with the outer
+     * table alias or SQLite will see ambiguous references.
+     */
+    public function testSubqueryWithSelfReferentialAssociationAliasAlreadyUsingSubquerySuffix(): void
+    {
+        $Categories = $this->getCollectionLocator()->get('Categories');
+        $Categories->hasMany('Categories_subquery', [
+            'className' => 'Categories',
+            'foreignKey' => 'parent_id',
+            'strategy' => Association::STRATEGY_SUBQUERY,
+        ]);
+
+        $Categories->Categories_subquery->hasMany('Categories_subquery', [
+            'className' => 'Categories',
+            'foreignKey' => 'parent_id',
+            'strategy' => Association::STRATEGY_SUBQUERY,
+        ]);
+
+        $result = $Categories->find()
+            ->where(['Categories.parent_id' => 0])
+            ->contain('Categories_subquery.Categories_subquery')
+            ->toArray();
+
+        $this->assertNotEmpty($result);
+        foreach ($result as $category) {
+            $this->assertIsArray($category->categories_subquery);
+            foreach ($category->categories_subquery as $childCategory) {
+                $this->assertTrue(isset($childCategory->categories_subquery));
+                $this->assertIsArray($childCategory->categories_subquery);
+            }
+        }
+    }
+
+    /**
+     * Assertion method for order by clause contents.
+     *
+     * @param array $expected The expected join clause.
+     * @param \Cake\ORM\Query\SelectQuery $query The query to check.
+     */
+    protected function assertJoin($expected, $query): void
+    {
+        $this->assertEquals($expected, array_values($query->clause('join')));
+    }
+
+    /**
+     * Assertion method for where clause contents.
+     *
+     * @param \Cake\Database\QueryExpression $expected The expected where clause.
+     * @param \Cake\ORM\Query\SelectQuery $query The query to check.
+     */
+    protected function assertWhereClause($expected, $query): void
+    {
+        $this->assertEquals($expected, $query->clause('where'));
+    }
+
+    /**
+     * Assertion method for order by clause contents.
+     *
+     * @param \Cake\Database\QueryExpression $expected The expected where clause.
+     * @param \Cake\ORM\Query\SelectQuery $query The query to check.
+     */
+    protected function assertOrderClause($expected, $query): void
+    {
+        $this->assertEquals($expected, $query->clause('order'));
+    }
+
+    /**
+     * Assertion method for select clause contents.
+     *
+     * @param array $expected Array of expected fields.
+     * @param \Cake\ORM\Query\SelectQuery $query The query to check.
+     */
+    protected function assertSelectClause($expected, $query): void
+    {
+        $this->assertEquals($expected, $query->clause('select'));
+    }
+
+    /**
+     * Tests that unlinking calls the right methods
+     */
+    public function testUnlinkSuccess(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $assoc = $this->author->Articles;
+
+        $entity = $this->author->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $initial = $entity->articles;
+        $this->assertCount(2, $initial);
+
+        $assoc->unlink($entity, $entity->articles);
+        $this->assertEmpty($entity->get('articles'), 'Property should be empty');
+
+        $new = $this->author->get('000000000000000000000002', ...['contain' => 'Articles']);
+        $this->assertCount(0, $new->articles, 'DB should be clean');
+        $this->assertSame(4, $this->author->find()->count(), 'Authors should still exist');
+        $this->assertSame(3, $articles->find()->count(), 'Articles should still exist');
+    }
+
+    /**
+     * Tests that unlink with an empty array does nothing
+     */
+    public function testUnlinkWithEmptyArray(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $assoc = $this->author->Articles;
+
+        $entity = $this->author->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $initial = $entity->articles;
+        $this->assertCount(2, $initial);
+
+        $assoc->unlink($entity, []);
+
+        $new = $this->author->get('000000000000000000000001', ...['contain' => 'Articles']);
+        $this->assertCount(2, $new->articles, 'Articles should remain linked');
+        $this->assertSame(4, $this->author->find()->count(), 'Authors should still exist');
+        $this->assertSame(3, $articles->find()->count(), 'Articles should still exist');
+    }
+
+    /**
+     * Tests that link only uses a single database transaction
+     */
+    public function testLinkUsesSingleTransaction(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $assoc = $this->author->Articles;
+
+        // Ensure author in fixture has zero associated articles
+        $entity = $this->author->get('000000000000000000000002', ...['contain' => 'Articles']);
+        $initial = $entity->articles;
+        $this->assertCount(0, $initial);
+
+        // Ensure that after each model is saved, we are still within a transaction.
+        $listenerAfterSave = function ($e, $entity, $options) use ($articles): void {
+            $this->assertTrue(
+                $articles->getConnection()->inTransaction(),
+                'Multiple transactions used to save associated models.',
+            );
+        };
+        $articles->getEventManager()->on('Collection.afterSave', $listenerAfterSave);
+
+        $options = ['atomic' => false];
+        $assoc->link($entity, $articles->find('all')->toArray(), $options);
+
+        // Ensure that link was successful.
+        $new = $this->author->get('000000000000000000000002', ...['contain' => 'Articles']);
+        $this->assertCount(3, $new->articles);
+    }
+
+    /**
+     * Test that saveAssociated() fails on non-empty, non-iterable value
+     */
+    public function testSaveAssociatedNotEmptyNotIterable(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Could not save comments, it cannot be traversed');
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->hasMany('Comments', [
+            'saveStrategy' => HasMany::SAVE_APPEND,
+        ]);
+
+        $entity = $articles->newEmptyEntity();
+        $entity->set('comments', 'oh noes');
+
+        $association->saveAssociated($entity);
+    }
+
+    /**
+     * Data provider for empty values.
+     *
+     * @return array
+     */
+    public static function emptySetDataProvider(): array
+    {
+        return [
+            [''],
+            [false],
+            [null],
+            [[]],
+        ];
+    }
+
+    /**
+     * Test that saving empty sets with the `append` strategy does not
+     * affect the associated records for not yet persisted parent entities.
+     *
+     * @param mixed $value Empty value.
+     */
+    #[DataProvider('emptySetDataProvider')]
+    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnCreate($value): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->hasMany('Comments', [
+            'saveStrategy' => HasMany::SAVE_APPEND,
+        ]);
+
+        $comments = $association->find();
+        $this->assertNotEmpty($comments);
+
+        $entity = $articles->newEmptyEntity();
+        $entity->set('comments', $value);
+
+        $this->assertSame($entity, $association->saveAssociated($entity));
+        $this->assertEquals($value, $entity->get('comments'));
+        $this->assertEquals($comments, $association->find());
+    }
+
+    /**
+     * Test that saving empty sets with the `append` strategy does not
+     * affect the associated records for already persisted parent entities.
+     *
+     * @param mixed $value Empty value.
+     */
+    #[DataProvider('emptySetDataProvider')]
+    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnUpdate($value): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->hasMany('Comments', [
+            'saveStrategy' => HasMany::SAVE_APPEND,
+        ]);
+
+        $entity = $articles->get('000000000000000000000001', ...[
+            'contain' => ['Comments'],
+        ]);
+        $comments = $entity->get('comments');
+        $this->assertNotEmpty($comments);
+
+        $entity->set('comments', $value);
+        $this->assertSame($entity, $association->saveAssociated($entity));
+        $this->assertEquals($value, $entity->get('comments'));
+
+        $entity = $articles->get('000000000000000000000001', ...[
+            'contain' => ['Comments'],
+        ]);
+        $this->assertEquals($comments, $entity->get('comments'));
+    }
+
+    /**
+     * Test that saving empty sets with the `replace` strategy does not
+     * affect the associated records for not yet persisted parent entities.
+     *
+     * @param mixed $value Empty value.
+     */
+    #[DataProvider('emptySetDataProvider')]
+    public function testSaveAssociatedEmptySetWithReplaceStrategyDoesNotAffectAssociatedRecordsOnCreate($value): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->hasMany('Comments', [
+            'saveStrategy' => HasMany::SAVE_REPLACE,
+        ]);
+
+        $comments = $association->find();
+        $this->assertNotEmpty($comments);
+
+        $entity = $articles->newEmptyEntity();
+        $entity->set('comments', $value);
+
+        $this->assertSame($entity, $association->saveAssociated($entity));
+        $this->assertEquals($value, $entity->get('comments'));
+        $this->assertEquals($comments, $association->find());
+    }
+
+    /**
+     * Test that saving empty sets with the `replace` strategy does remove
+     * the associated records for already persisted parent entities.
+     *
+     * @param mixed $value Empty value.
+     */
+    #[DataProvider('emptySetDataProvider')]
+    public function testSaveAssociatedEmptySetWithReplaceStrategyRemovesAssociatedRecordsOnUpdate($value): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->hasMany('Comments', [
+            'saveStrategy' => HasMany::SAVE_REPLACE,
+        ]);
+
+        $entity = $articles->get('000000000000000000000001', ...[
+            'contain' => ['Comments'],
+        ]);
+        $comments = $entity->get('comments');
+        $this->assertNotEmpty($comments);
+
+        $entity->set('comments', $value);
+        $this->assertSame($entity, $association->saveAssociated($entity));
+        $this->assertEquals([], $entity->get('comments'));
+
+        $entity = $articles->get('000000000000000000000001', ...[
+            'contain' => ['Comments'],
+        ]);
+        $this->assertEmpty($entity->get('comments'));
+    }
+
+    /**
+     * Test that the associated entities are not saved when there's any rule
+     * that fail on them and the errors are correctly set on the original entity.
+     */
+    public function testSaveAssociatedWithFailedRuleOnAssociated(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $articles->hasMany('Comments');
+        $comments = $this->getCollectionLocator()->get('Comments');
+        $comments->belongsTo('Users');
+        $rules = $comments->rulesChecker();
+        $rules->add($rules->existsIn('user_id', 'Users'));
+        $article = $articles->newEntity([
+            'title' => 'Bakeries are sky rocketing',
+            'body' => 'All because of cake',
+            'comments' => [
+                [
+                    'user_id' => '000000000000000000000001',
+                    'comment' => 'That is true!',
+                ],
+                [
+                    'user_id' => '000000000000000000000999', // This rule will fail because the user doesn't exist
+                    'comment' => 'Of course',
+                ],
+            ],
+        ], ['associated' => ['Comments']]);
+        $this->assertFalse($article->hasErrors());
+        $this->assertFalse($articles->save($article, ['associated' => ['Comments']]));
+        $this->assertTrue($article->hasErrors());
+        $this->assertFalse($article->comments[0]->hasErrors());
+        $this->assertTrue($article->comments[1]->hasErrors());
+        $this->assertNotEmpty($article->comments[1]->getErrors());
+        $expected = [
+            'user_id' => [
+                'existsIn' => __('This value does not exist'),
+            ],
+        ];
+        $this->assertEquals($expected, $article->comments[1]->getErrors());
+    }
+
+    /**
+     * Tests that providing an invalid strategy throws an exception
+     */
+    public function testInvalidSaveStrategy(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $articles = $this->getCollectionLocator()->get('Articles');
+
+        $association = $articles->hasMany('Comments');
+        $association->setSaveStrategy('anotherThing');
+    }
+
+    /**
+     * Tests saveStrategy
+     */
+    public function testSetSaveStrategy(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+
+        $association = $articles->hasMany('Comments');
+        $this->assertSame($association, $association->setSaveStrategy(HasMany::SAVE_REPLACE));
+        $this->assertSame(HasMany::SAVE_REPLACE, $association->getSaveStrategy());
+    }
+
+    /**
+     * Test that save works with replace saveStrategy and are not deleted once they are not null
+     */
+    public function testSaveReplaceSaveStrategy(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE);
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is nice'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+        $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        $articleId = $entity->articles[0]->id;
+        unset($entity->articles[0]);
+        $entity->setDirty('articles', true);
+
+        $authors->save($entity, ['associated' => ['Articles']]);
+
+        $this->assertSame($sizeArticles - 1, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+        $this->assertTrue($authors->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that save works with replace saveStrategy conditions
+     */
+    public function testSaveReplaceSaveStrategyClosureConditions(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles
+            ->setDependent(true)
+            ->setSaveStrategy('replace')
+            ->setConditions(function () {
+                return ['published' => 'Y'];
+            });
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'Not matching conditions', 'body' => '', 'published' => 'N'],
+                ['title' => 'Random Post', 'body' => 'The cake is nice', 'published' => 'Y'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is yummy', 'published' => 'Y'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever', 'published' => 'Y'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+        // Should be one fewer because of conditions.
+        $this->assertSame($sizeArticles - 1, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        $articleId = $entity->articles[0]->id;
+        unset($entity->articles[0], $entity->articles[1]);
+        $entity->setDirty('articles', true);
+
+        $authors->save($entity, ['associated' => ['Articles']]);
+
+        $this->assertSame($sizeArticles - 2, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        // Should still exist because it doesn't match the association conditions.
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $this->assertTrue($articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that save works with replace saveStrategy, replacing the already persisted entities even if no new entities are passed
+     */
+    public function testSaveReplaceSaveStrategyNotAdding(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy('replace');
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is nice'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+        $this->assertCount($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']]));
+
+        $entity->set('articles', []);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
+        $this->assertCount(0, $authors->Articles->find('all')->where(['author_id' => $entity['id']]));
+    }
+
+    /**
+     * Test that save works with append saveStrategy not deleting or setting null anything
+     */
+    public function testSaveAppendSaveStrategy(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy('append');
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is nice'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+
+        $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        $articleId = $entity->articles[0]->id;
+        unset($entity->articles[0]);
+        $entity->setDirty('articles', true);
+
+        $authors->save($entity, ['associated' => ['Articles']]);
+
+        $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+        $this->assertTrue($authors->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that save has append as the default save strategy
+     */
+    public function testSaveDefaultSaveStrategy(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy(HasMany::SAVE_APPEND);
+        $this->assertSame(HasMany::SAVE_APPEND, $authors->getAssociation('Articles')->getSaveStrategy());
+    }
+
+    /**
+     * Test that the associated entities are unlinked and deleted when they are dependent
+     */
+    public function testSaveReplaceSaveStrategyDependent(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE)
+            ->setDependent(true);
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is nice'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+        $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        $articleId = $entity->articles[0]->id;
+        unset($entity->articles[0]);
+        $entity->setDirty('articles', true);
+
+        $authors->save($entity, ['associated' => ['Articles']]);
+
+        $this->assertSame($sizeArticles - 1, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+        $this->assertFalse($authors->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that the associated entities are unlinked and deleted when they are dependent
+     * when associated entities array is indexed by string keys
+     */
+    public function testSaveReplaceSaveStrategyDependentWithStringKeys(): void
+    {
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE)
+            ->setDependent(true);
+
+        $entity = $authors->newEntity([
+            'name' => 'mylux',
+            'articles' => [
+                ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
+                ['title' => 'Another Random Post', 'body' => 'The cake is nice'],
+                ['title' => 'One more random post', 'body' => 'The cake is forever'],
+            ],
+        ], ['associated' => ['Articles']]);
+
+        $entity = $authors->saveOrFail($entity, ['associated' => ['Articles']]);
+        $sizeArticles = count($entity->articles);
+        $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+
+        $articleId = $entity->articles[0]->id;
+        $entity->articles = [
+            'one' => $entity->articles[1],
+            'two' => $entity->articles[2],
+        ];
+
+        $authors->saveOrFail($entity, ['associated' => ['Articles']]);
+
+        $this->assertSame($sizeArticles - 1, $authors->Articles->find('all')->where(['author_id' => $entity['id']])->count());
+        $this->assertFalse($authors->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that the associated entities are unlinked and deleted when they are dependent
+     *
+     * In the future this should change and apply the finder.
+     */
+    public function testSaveReplaceSaveStrategyDependentWithConditions(): void
+    {
+        $this->getCollectionLocator()->clear();
+        $this->setAppNamespace('TestApp');
+
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE)
+            ->setDependent(true)
+            ->setFinder('published');
+        $articles = $authors->Articles->getTarget();
+
+        // Remove an article from the association finder scope
+        $articles->updateAll(['published' => 'N'], ['author_id' => '000000000000000000000001', 'title' => 'Third Article']);
+
+        $entity = $authors->get('000000000000000000000001', ...['contain' => ['Articles']]);
+        $data = [
+            'name' => 'updated',
+            'articles' => [
+                ['title' => 'New First', 'body' => 'New First', 'published' => 'Y'],
+            ],
+        ];
+        $entity = $authors->patchEntity($entity, $data, ['associated' => ['Articles']]);
+        $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
+        // Should only have one article left as we 'replaced' the others.
+        $this->assertCount(1, $entity->articles);
+
+        // No additional records in db.
+        $this->assertCount(
+            1,
+            $authors->Articles->find()->where(['author_id' => '000000000000000000000001'])->toArray(),
+        );
+
+        $others = $articles->find('all')
+            ->where(['Articles.author_id' => 1, 'published' => 'N'])
+            ->orderByAsc('title')
+            ->toArray();
+        $this->assertCount(
+            1,
+            $others,
+            'Record not matching association condition should stay',
+        );
+        $this->assertSame('Third Article', $others[0]->title);
+    }
+
+    /**
+     * Test that the associated entities are unlinked and deleted when they have a not nullable foreign key
+     */
+    public function testSaveReplaceSaveStrategyNotNullable(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $articles->hasMany('Comments', ['saveStrategy' => HasMany::SAVE_REPLACE]);
+
+        $article = $articles->newEntity([
+            'title' => 'Bakeries are sky rocketing',
+            'body' => 'All because of cake',
+            'comments' => [
+                [
+                    'user_id' => '000000000000000000000001',
+                    'comment' => 'That is true!',
+                ],
+                [
+                    'user_id' => '000000000000000000000002',
+                    'comment' => 'Of course',
+                ],
+            ],
+        ], ['associated' => ['Comments']]);
+
+        $article = $articles->save($article, ['associated' => ['Comments']]);
+        $commentId = $article->comments[0]->id;
+        $sizeComments = count($article->comments);
+
+        $this->assertSame($sizeComments, $articles->Comments->find('all')->where(['article_id' => $article->id])->count());
+        $this->assertTrue($articles->Comments->exists(['id' => $commentId]));
+
+        unset($article->comments[0]);
+        $article->setDirty('comments', true);
+        $article = $articles->save($article, ['associated' => ['Comments']]);
+
+        $this->assertSame($sizeComments - 1, $articles->Comments->find('all')->where(['article_id' => $article->id])->count());
+        $this->assertFalse($articles->Comments->exists(['id' => $commentId]));
+    }
+
+    /**
+     * Test that the associated entities are unlinked and deleted when they have a not nullable foreign key
+     */
+    public function testSaveReplaceSaveStrategyAdding(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $articles->hasMany('Comments', ['saveStrategy' => HasMany::SAVE_REPLACE]);
+
+        $article = $articles->newEntity([
+            'title' => 'Bakeries are sky rocketing',
+            'body' => 'All because of cake',
+            'comments' => [
+                [
+                    'user_id' => '000000000000000000000001',
+                    'comment' => 'That is true!',
+                ],
+                [
+                    'user_id' => '000000000000000000000002',
+                    'comment' => 'Of course',
+                ],
+            ],
+        ], ['associated' => ['Comments']]);
+
+        $article = $articles->save($article, ['associated' => ['Comments']]);
+        $commentId = $article->comments[0]->id;
+        $sizeComments = count($article->comments);
+        $articleId = $article->id;
+
+        $this->assertSame($sizeComments, $articles->Comments->find('all')->where(['article_id' => $article->id])->count());
+        $this->assertTrue($articles->Comments->exists(['id' => $commentId]));
+
+        unset($article->comments[0]);
+        $article->comments[] = $articles->Comments->newEntity([
+            'user_id' => '000000000000000000000001',
+            'comment' => 'new comment',
+        ]);
+
+        $article->setDirty('comments', true);
+        $article = $articles->save($article, ['associated' => ['Comments']]);
+
+        $this->assertSame($sizeComments, $articles->Comments->find('all')->where(['article_id' => $article->id])->count());
+        $this->assertFalse($articles->Comments->exists(['id' => $commentId]));
+        $this->assertTrue($articles->Comments->exists(['comment' => 'new comment', 'article_id' => $articleId]));
+    }
+
+    /**
+     * Tests that dependent, non-cascading deletes are using the association
+     * conditions for deleting associated records.
+     */
+    public function testHasManyNonCascadingUnlinkDeleteUsesAssociationConditions(): void
+    {
+        $Articles = $this->getCollectionLocator()->get('Articles');
+        $Comments = $Articles->hasMany('Comments', [
+            'dependent' => true,
+            'cascadeCallbacks' => false,
+            'saveStrategy' => HasMany::SAVE_REPLACE,
+            'conditions' => [
+                'Comments.published' => 'Y',
+            ],
+        ]);
+
+        $article = $Articles->newEntity([
+            'title' => 'Title',
+            'body' => 'Body',
+            'comments' => [
+                [
+                    'user_id' => '000000000000000000000001',
+                    'comment' => 'First comment',
+                    'published' => 'Y',
+                ],
+                [
+                    'user_id' => '000000000000000000000001',
+                    'comment' => 'Second comment',
+                    'published' => 'Y',
+                ],
+            ],
+        ]);
+        $article = $Articles->save($article);
+        $this->assertNotEmpty($article);
+
+        $comment3 = $Comments->getTarget()->newEntity([
+            'article_id' => $article->get('id'),
+            'user_id' => '000000000000000000000001',
+            'comment' => 'Third comment',
+            'published' => 'N',
+        ]);
+        $comment3 = $Comments->getTarget()->save($comment3);
+        $this->assertNotEmpty($comment3);
+
+        $this->assertSame(3, $Comments->getTarget()->find()->where(['Comments.article_id' => $article->get('id')])->count());
+
+        unset($article->comments[1]);
+        $article->setDirty('comments', true);
+
+        $article = $Articles->save($article);
+        $this->assertNotEmpty($article);
+
+        // Given the association condition of `'Comments.published' => 'Y'`,
+        // it is expected that only one of the three linked comments are
+        // actually being deleted, as only one of them matches the
+        // association condition.
+        $this->assertSame(2, $Comments->getTarget()->find()->where(['Comments.article_id' => $article->get('id')])->count());
+    }
+
+    /**
+     * Tests that non-dependent, non-cascading deletes are using the association
+     * conditions for updating associated records.
+     */
+    public function testHasManyNonDependentNonCascadingUnlinkUpdateUsesAssociationConditions(): void
+    {
+        $Authors = $this->getCollectionLocator()->get('Authors');
+        $Authors->associations()->removeAll();
+        $Articles = $Authors->hasMany('Articles', [
+            'dependent' => false,
+            'cascadeCallbacks' => false,
+            'saveStrategy' => HasMany::SAVE_REPLACE,
+            'conditions' => [
+                'Articles.published' => 'Y',
+            ],
+        ]);
+
+        $author = $Authors->newEntity([
+            'name' => 'Name',
+            'articles' => [
+                [
+                    'title' => 'First article',
+                    'body' => 'First article',
+                    'published' => 'Y',
+                ],
+                [
+                    'title' => 'Second article',
+                    'body' => 'Second article',
+                    'published' => 'Y',
+                ],
+            ],
+        ]);
+        $author = $Authors->save($author);
+        $this->assertNotEmpty($author);
+
+        $article3 = $Articles->getTarget()->newEntity([
+            'author_id' => $author->get('id'),
+            'title' => 'Third article',
+            'body' => 'Third article',
+            'published' => 'N',
+        ]);
+        $article3 = $Articles->getTarget()->save($article3);
+        $this->assertNotEmpty($article3);
+
+        $this->assertSame(3, $Articles->getTarget()->find()->where(['Articles.author_id' => $author->get('id')])->count());
+
+        $article2 = $author->articles[1];
+        unset($author->articles[1]);
+        $author->setDirty('articles', true);
+
+        $author = $Authors->save($author);
+        $this->assertNotEmpty($author);
+
+        // Given the association condition of `'Articles.published' => 'Y'`,
+        // it is expected that only one of the three linked articles are
+        // actually being unlinked (nulled), as only one of them matches the
+        // association condition.
+        $this->assertSame(2, $Articles->getTarget()->find()->where(['Articles.author_id' => $author->get('id')])->count());
+        $this->assertNull($Articles->get($article2->get('id'))->get('author_id'));
+        $this->assertEquals($author->get('id'), $Articles->get($article3->get('id'))->get('author_id'));
+    }
+
+    public function testEagerLoaderConnectionRole(): void
+    {
+        $this->skipIf(!extension_loaded('pdo_sqlite'), 'Skipping as SQLite extension is missing');
+
+        Log::setConfig('queries', [
+            'className' => 'Array',
+            'scopes' => ['queriesLog'],
+        ]);
+
+        ConnectionManager::setConfig('test_read_write', [
+            'className' => Connection::class,
+            'driver' => Sqlite::class,
+            'write' => [
+                'database' => ':memory:',
+                'cached' => 'shared', // used so role configs are unique
+                'log' => true,
+            ],
+            'read' => [
+                'database' => ':memory:',
+                'log' => true,
+            ],
+        ]);
+
+        $connection = ConnectionManager::get('test_read_write');
+        $this->assertNotSame($connection->getDriver(Connection::ROLE_READ), $connection->getDriver(Connection::ROLE_WRITE));
+
+        // Create belongs to many relationships with unique table names
+        $driver = $connection->getDriver(Connection::ROLE_WRITE);
+        $driver->execute('CREATE TABLE unique_items (id int PRIMARY KEY, article_id int);');
+        $driver->execute('CREATE TABLE articles (id int PRIMARY KEY);');
+
+        $driver = $connection->getDriver(Connection::ROLE_READ);
+        $driver->execute('CREATE TABLE unique_items (id int PRIMARY KEY, article_id int);');
+        $driver->execute('CREATE TABLE articles (id int PRIMARY KEY);');
+        $driver->execute('INSERT INTO unique_items (id, article_id) VALUES (1, 1)');
+        $driver->execute('INSERT INTO articles (id) VALUES (1)');
+
+        $articles = $this->getCollectionLocator()->get('Articles')->setConnection($connection);
+        $articles->hasMany('UniqueItems')->setStrategy('select')->getTarget()->setConnection($connection);
+
+        $query = $articles->find();
+        $this->assertSame(Connection::ROLE_WRITE, $query->getConnectionRole(), 'This test assumes select queries still default to write role');
+
+        $results = $query->contain('UniqueItems')->useReadRole()->toArray();
+        $this->assertCount(1, $results);
+        $this->assertCount(1, $results[0]->unique_items);
+        $this->assertSame(1, $results[0]->unique_items[0]->id);
+
+        $logs = Log::engine('queries')->read();
+        $this->assertNotEmpty($logs);
+
+        foreach ($logs as $log) {
+            if (
+                str_contains($log, 'FROM articles') ||
+                str_contains($log, 'FROM unique_items')
+            ) {
+                $this->assertStringContainsString('role=read', $log);
+            }
+        }
+    }
+}

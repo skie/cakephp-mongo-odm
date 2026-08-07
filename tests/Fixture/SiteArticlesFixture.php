@@ -32,9 +32,9 @@ class SiteArticlesFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'author_id' => 1, 'site_id' => 1, 'title' => 'First Article', 'body' => 'First Article Body'],
-        ['_id' => '000000000000000000000002', 'author_id' => 3, 'site_id' => 2, 'title' => 'Second Article', 'body' => 'Second Article Body'],
-        ['_id' => '000000000000000000000003', 'author_id' => 1, 'site_id' => 2, 'title' => 'Third Article', 'body' => 'Third Article Body'],
-        ['_id' => '000000000000000000000004', 'author_id' => 3, 'site_id' => 1, 'title' => 'Fourth Article', 'body' => 'Fourth Article Body'],
+        ['_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body'],
+        ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'site_id' => '000000000000000000000002', 'title' => 'Second Article', 'body' => 'Second Article Body'],
+        ['_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000002', 'title' => 'Third Article', 'body' => 'Third Article Body'],
+        ['_id' => '000000000000000000000004', 'author_id' => '000000000000000000000003', 'site_id' => '000000000000000000000001', 'title' => 'Fourth Article', 'body' => 'Fourth Article Body'],
     ];
 }

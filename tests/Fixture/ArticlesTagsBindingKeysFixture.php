@@ -30,9 +30,9 @@ class ArticlesTagsBindingKeysFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'article_id' => 1, 'tagname' => 'tag1'],
-        ['_id' => '000000000000000000000002', 'article_id' => 1, 'tagname' => 'tag2'],
-        ['_id' => '000000000000000000000003', 'article_id' => 2, 'tagname' => 'tag1'],
-        ['_id' => '000000000000000000000004', 'article_id' => 2, 'tagname' => 'tag3'],
+        ['_id' => '000000000000000000000001', 'article_id' => '000000000000000000000001', 'tagname' => 'tag1'],
+        ['_id' => '000000000000000000000002', 'article_id' => '000000000000000000000001', 'tagname' => 'tag2'],
+        ['_id' => '000000000000000000000003', 'article_id' => '000000000000000000000002', 'tagname' => 'tag1'],
+        ['_id' => '000000000000000000000004', 'article_id' => '000000000000000000000002', 'tagname' => 'tag3'],
     ];
 }

@@ -30,7 +30,7 @@ class SectionsMembersFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'section_id' => 1, 'member_id' => 1],
-        ['_id' => '000000000000000000000002', 'section_id' => 2, 'member_id' => 1],
+        ['_id' => '000000000000000000000001', 'section_id' => '000000000000000000000001', 'member_id' => '000000000000000000000001'],
+        ['_id' => '000000000000000000000002', 'section_id' => '000000000000000000000002', 'member_id' => '000000000000000000000001'],
     ];
 }

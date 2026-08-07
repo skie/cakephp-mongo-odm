@@ -24,6 +24,7 @@ use Cake\ORM\Exception\PersistenceFailedException;
 use Cake\Utility\Inflector;
 use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
+use Crustum\Mongo\ODM\RulesChecker as CrustumRulesChecker;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
@@ -68,9 +69,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * The rules class used for this collection.
      *
-     * @var class-string<\Cake\Datasource\RulesChecker>
+     * @var class-string<\Crustum\Mongo\ODM\RulesChecker>
      */
-    public const string RULES_CLASS = RulesChecker::class;
+    public const string RULES_CLASS = CrustumRulesChecker::class;
 
     /**
      * The alias this object is assigned to validators as.
@@ -477,6 +478,60 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function query(): SelectQuery
     {
         return $this->queryFactory->select($this);
+    }
+
+    /**
+     * Creates a new select query
+     *
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TEntity>
+     */
+    public function selectQuery(): SelectQuery
+    {
+        /** @var \Crustum\Mongo\ODM\Query\SelectQuery<TEntity> $query */
+        $query = $this->queryFactory->select($this);
+
+        return $query;
+    }
+
+    /**
+     * Creates a new non-hydrating select query.
+     *
+     * @return \Crustum\Mongo\ODM\Query\UnhydratedSelectQuery
+     * @since 5.4.0
+     */
+    public function unhydratedSelectQuery(): UnhydratedSelectQuery
+    {
+        return $this->queryFactory->unhydratedSelect($this);
+    }
+
+    /**
+     * Creates a new insert query
+     *
+     * @return \Crustum\Mongo\ODM\Query\InsertQuery
+     */
+    public function insertQuery(): InsertQuery
+    {
+        return $this->queryFactory->insert($this);
+    }
+
+    /**
+     * Creates a new update query
+     *
+     * @return \Crustum\Mongo\ODM\Query\UpdateQuery
+     */
+    public function updateQuery(): UpdateQuery
+    {
+        return $this->queryFactory->update($this);
+    }
+
+    /**
+     * Creates a new delete query
+     *
+     * @return \Crustum\Mongo\ODM\Query\DeleteQuery
+     */
+    public function deleteQuery(): DeleteQuery
+    {
+        return $this->queryFactory->delete($this);
     }
 
     /**
@@ -948,6 +1003,40 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function belongsToMany(string $associated, array $options = []): BelongsToMany
     {
         return $this->associations->load(BelongsToMany::class, $associated, $this, $options);
+    }
+
+    /**
+     * Binds multiple associations in a single call, indexed by association type.
+     *
+     * ```
+     * $this->addAssociations([
+     *     'belongsTo' => ['Authors', 'Categories'],
+     *     'hasMany' => ['Comments' => ['dependent' => true]],
+     * ]);
+     * ```
+     *
+     * Numeric keys are treated as association aliases with empty options.
+     *
+     * @param array<string, array<int|string, mixed>> $params Set of associations to bind (indexed by association type).
+     * @return $this
+     * @see \Crustum\Mongo\ODM\BaseCollection::belongsTo()
+     * @see \Crustum\Mongo\ODM\BaseCollection::hasOne()
+     * @see \Crustum\Mongo\ODM\BaseCollection::hasMany()
+     * @see \Crustum\Mongo\ODM\BaseCollection::belongsToMany()
+     */
+    public function addAssociations(array $params): static
+    {
+        foreach ($params as $assocType => $tables) {
+            foreach ($tables as $associated => $options) {
+                if (is_int($associated)) {
+                    $associated = $options;
+                    $options = [];
+                }
+                $this->{$assocType}($associated, $options);
+            }
+        }
+
+        return $this;
     }
 
     /**

@@ -25,7 +25,7 @@ return [
     ],
     'articles' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'int'],
+            'author_id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
@@ -55,7 +55,7 @@ return [
     ],
     'posts' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'int'],
+            'author_id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
@@ -77,8 +77,8 @@ return [
     ],
     'comments' => [
         'fields' => [
-            'article_id' => ['bsonType' => 'int'],
-            'user_id' => ['bsonType' => 'int'],
+            'article_id' => ['bsonType' => 'string'],
+            'user_id' => ['bsonType' => 'string'],
             'comment' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
         ],
@@ -89,7 +89,7 @@ return [
     ],
     'categories' => [
         'fields' => [
-            'parent_id' => ['bsonType' => 'int'],
+            'parent_id' => ['bsonType' => ['string', 'int']],
             'name' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -99,8 +99,8 @@ return [
     ],
     'articles_tags' => [
         'fields' => [
-            'article_id' => ['bsonType' => 'int'],
-            'tag_id' => ['bsonType' => 'int'],
+            'article_id' => ['bsonType' => 'string'],
+            'tag_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'articles_tags_article_id' => ['key' => ['article_id' => 1]],
@@ -109,8 +109,8 @@ return [
     ],
     'authors_tags' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'int'],
-            'tag_id' => ['bsonType' => 'int'],
+            'author_id' => ['bsonType' => 'string'],
+            'tag_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'authors_tags_author_id' => ['key' => ['author_id' => 1]],
@@ -119,9 +119,9 @@ return [
     ],
     'special_tags' => [
         'fields' => [
-            'article_id' => ['bsonType' => 'int'],
-            'tag_id' => ['bsonType' => 'int'],
-            'author_id' => ['bsonType' => ['int', 'null']],
+            'article_id' => ['bsonType' => 'string'],
+            'tag_id' => ['bsonType' => 'string'],
+            'author_id' => ['bsonType' => ['string', 'null']],
             'extra_info' => ['bsonType' => 'string'],
             'highlighted' => ['bsonType' => 'bool'],
             'highlighted_time' => ['bsonType' => ['string', 'null']],
@@ -133,7 +133,7 @@ return [
     ],
     'featured_tags' => [
         'fields' => [
-            'tag_id' => ['bsonType' => 'int'],
+            'tag_id' => ['bsonType' => 'string'],
             'priority' => ['bsonType' => 'int'],
         ],
         'indexes' => [
@@ -142,7 +142,7 @@ return [
     ],
     'profiles' => [
         'fields' => [
-            'user_id' => ['bsonType' => 'int'],
+            'user_id' => ['bsonType' => 'string'],
             'first_name' => ['bsonType' => 'string'],
             'last_name' => ['bsonType' => 'string'],
             'is_active' => ['bsonType' => 'bool'],
@@ -163,7 +163,7 @@ return [
     'counter_cache_comments' => [
         'fields' => [
             'title' => ['bsonType' => 'string'],
-            'user_id' => ['bsonType' => 'int'],
+            'user_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'counter_cache_comments_user_id' => ['key' => ['user_id' => 1]],
@@ -172,8 +172,8 @@ return [
     'counter_cache_posts' => [
         'fields' => [
             'title' => ['bsonType' => 'string'],
-            'user_id' => ['bsonType' => 'int'],
-            'category_id' => ['bsonType' => 'int'],
+            'user_id' => ['bsonType' => 'string'],
+            'category_id' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'int'],
         ],
         'indexes' => [
@@ -182,8 +182,8 @@ return [
     ],
     'counter_cache_user_category_posts' => [
         'fields' => [
-            'category_id' => ['bsonType' => 'int'],
-            'user_id' => ['bsonType' => 'int'],
+            'category_id' => ['bsonType' => 'string'],
+            'user_id' => ['bsonType' => 'string'],
             'post_count' => ['bsonType' => 'int'],
         ],
         'indexes' => [
@@ -215,7 +215,7 @@ return [
     ],
     'number_trees_articles' => [
         'fields' => [
-            'number_tree_id' => ['bsonType' => 'int'],
+            'number_tree_id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
@@ -239,8 +239,8 @@ return [
     ],
     'site_articles' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'int'],
-            'site_id' => ['bsonType' => 'int'],
+            'author_id' => ['bsonType' => 'string'],
+            'site_id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
         ],
@@ -250,9 +250,9 @@ return [
     ],
     'site_articles_tags' => [
         'fields' => [
-            'article_id' => ['bsonType' => 'int'],
-            'tag_id' => ['bsonType' => 'int'],
-            'site_id' => ['bsonType' => 'int'],
+            'article_id' => ['bsonType' => 'string'],
+            'tag_id' => ['bsonType' => 'string'],
+            'site_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'site_articles_tags_article_id' => ['key' => ['article_id' => 1]],
@@ -261,7 +261,7 @@ return [
     'site_authors' => [
         'fields' => [
             'name' => ['bsonType' => 'string'],
-            'site_id' => ['bsonType' => 'int'],
+            'site_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'site_authors_site_id' => ['key' => ['site_id' => 1]],
@@ -270,7 +270,7 @@ return [
     'site_tags' => [
         'fields' => [
             'name' => ['bsonType' => 'string'],
-            'site_id' => ['bsonType' => 'int'],
+            'site_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'site_tags_site_id' => ['key' => ['site_id' => 1]],
@@ -279,7 +279,7 @@ return [
     'articles_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
         ],
@@ -291,7 +291,7 @@ return [
     'articles_more_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'title' => ['bsonType' => 'string'],
             'subtitle' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
@@ -303,7 +303,7 @@ return [
     'comments_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'comment' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -313,7 +313,7 @@ return [
     'tags_shadow_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'name' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -323,7 +323,7 @@ return [
     'authors_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'name' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -333,7 +333,7 @@ return [
     'special_tags_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'int'],
+            'id' => ['bsonType' => 'string'],
             'extra_info' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -364,8 +364,8 @@ return [
     ],
     'test_plugin_comments' => [
         'fields' => [
-            'article_id' => ['bsonType' => 'int'],
-            'user_id' => ['bsonType' => 'int'],
+            'article_id' => ['bsonType' => 'string'],
+            'user_id' => ['bsonType' => 'string'],
             'comment' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
         ],
@@ -415,8 +415,8 @@ return [
     ],
     'sections_members' => [
         'fields' => [
-            'section_id' => ['bsonType' => 'int'],
-            'member_id' => ['bsonType' => 'int'],
+            'section_id' => ['bsonType' => 'string'],
+            'member_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'sections_members_section_id' => ['key' => ['section_id' => 1]],
@@ -424,7 +424,7 @@ return [
     ],
     'polymorphic_tagged' => [
         'fields' => [
-            'tag_id' => ['bsonType' => 'int'],
+            'tag_id' => ['bsonType' => 'string'],
             'foreign_key' => ['bsonType' => 'int'],
             'foreign_model' => ['bsonType' => 'string'],
             'position' => ['bsonType' => 'int'],
@@ -436,7 +436,7 @@ return [
     'orders' => [
         'fields' => [
             'product_category' => ['bsonType' => 'int'],
-            'product_id' => ['bsonType' => 'int'],
+            'product_id' => ['bsonType' => 'string'],
         ],
         'indexes' => [
             'orders_product_id' => ['key' => ['product_id' => 1]],
@@ -444,7 +444,7 @@ return [
     ],
     'attachments' => [
         'fields' => [
-            'comment_id' => ['bsonType' => 'int'],
+            'comment_id' => ['bsonType' => 'string'],
             'attachment' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -453,8 +453,8 @@ return [
     ],
     'unique_authors' => [
         'fields' => [
-            'first_author_id' => ['bsonType' => ['int', 'null']],
-            'second_author_id' => ['bsonType' => ['int', 'null']],
+            'first_author_id' => ['bsonType' => ['string', 'null']],
+            'second_author_id' => ['bsonType' => ['string', 'null']],
         ],
         'indexes' => [
             'unique_authors_first_author_id' => ['key' => ['first_author_id' => 1]],
@@ -462,7 +462,7 @@ return [
     ],
     'nullable_authors' => [
         'fields' => [
-            'author_id' => ['bsonType' => ['int', 'null']],
+            'author_id' => ['bsonType' => ['string', 'null']],
         ],
         'indexes' => [],
     ],

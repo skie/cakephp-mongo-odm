@@ -131,7 +131,9 @@ class TestFixture implements FixtureInterface
         $collection = $db->getCollection($this->table);
         foreach ($this->records as $record) {
             if (isset($record['_id']) && is_string($record['_id'])) {
-                $record['_id'] = new ObjectId($record['_id']);
+                if (preg_match('/^[0-9a-f]{24}$/', $record['_id'])) {
+                    $record['_id'] = new ObjectId($record['_id']);
+                }
             } elseif (isset($record['id'])) {
                 $record['_id'] = new ObjectId($record['id']);
                 unset($record['id']);
