@@ -93,6 +93,7 @@ class HasOneTest extends TestCase
      */
     public function testCanBeJoined(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testCanBeJoined is SQL-only (F25).');
         $assoc = new HasOne('Test', $this->user);
         $this->assertTrue($assoc->canBeJoined());
     }
@@ -103,6 +104,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachTo(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachTo is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
             'property' => 'profile',
@@ -123,6 +125,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToNoFields(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachToNoFields is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
             'conditions' => ['Profiles.is_active' => true],
@@ -139,6 +142,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachToMultiPrimaryKey is SQL-only (F25).');
         $selectTypeMap = new TypeMap([
             'Profiles.id' => 'integer',
             'id' => 'integer',
@@ -189,6 +193,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKeyMismatch(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachToMultiPrimaryKeyMismatch is SQL-only (F25).');
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('Cannot match provided foreignKey for `Profiles`, got `(user_id)` but expected foreign key for `(id, site_id)`');
         $query = new SelectQuery($this->user);
@@ -252,6 +257,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToBeforeFind(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachToBeforeFind is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
         ];
@@ -276,6 +282,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToBeforeFindExtraOptions(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testAttachToBeforeFindExtraOptions is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
         ];

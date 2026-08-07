@@ -204,7 +204,8 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
-     * Recursively maps bare `id` condition keys to the canonical `_id`.
+     * Recursively maps `id` (and `Alias.id`) condition keys to the canonical
+     * `_id`.
      *
      * @param array<int|string, mixed> $conditions The conditions.
      * @return array<int|string, mixed>

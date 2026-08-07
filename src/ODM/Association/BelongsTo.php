@@ -116,8 +116,9 @@ class BelongsTo extends Association
      */
     public function eagerLoader(array $options): Closure
     {
+        $finder = $this->getFinder();
         $loaderOptions = [
-            'finder' => fn(): QueryInterface => $this->getTarget()->find(),
+            'finder' => fn(): QueryInterface => $this->getTarget()->find(is_array($finder) ? $finder[0] : $finder),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),

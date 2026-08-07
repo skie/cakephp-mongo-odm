@@ -169,6 +169,24 @@ final class EagerLoader
                 continue;
             }
 
+            // cake60: a non-nested association whose foreign key is missing
+            // from the selected source fields cannot be eager loaded.
+            $aliasPath = $loadable->aliasPath();
+            $isBelongsTo = $instance->type() === Association::MANY_TO_ONE;
+            if (!str_contains($aliasPath, '.') && $isBelongsTo && $instance->requiresKeys($loadable->getConfig())) {
+                $sourceAlias = $instance->getSource()->getAlias();
+                $foreignKey = $instance->getForeignKey();
+                $fkField = is_array($foreignKey) ? ($foreignKey[0] ?? null) : $foreignKey;
+                if ($fkField !== null && $fkField !== false) {
+                    foreach ($results as $result) {
+                        if ($result instanceof Document && !$result->has($fkField)) {
+                            $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$sourceAlias}` is selected.";
+                            throw new InvalidArgumentException($message);
+                        }
+                    }
+                }
+            }
+
             $callback = $instance->eagerLoader($loadable->getConfig() + [
                 'query' => $query,
                 'contain' => $loadable->associations(),

@@ -204,7 +204,7 @@ abstract class Association
             $this->setCollectionLocator($options['collectionLocator']);
         }
 
-        $this->setSource($source);
+        $this->source = $source;
 
         if (isset($options['target'])) {
             $this->setTarget($options['target']);

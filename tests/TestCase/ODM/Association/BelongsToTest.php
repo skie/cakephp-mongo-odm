@@ -388,7 +388,7 @@ class BelongsToTest extends TestCase
 
         $query = $articles->find()
             ->select(['Authors.name'])
-            ->where(['Articles.id' => 1])
+            ->where(['Articles.id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
 
@@ -406,16 +406,16 @@ class BelongsToTest extends TestCase
         $articles->belongsTo('Authors')->setStrategy('select');
 
         $query = $articles->find()
-            ->select(['Articles.title', 'Articles.author_id'])
-            ->where(['Articles.id' => 1])
+            ->select(['title', 'author_id'])
+            ->where(['id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
         $this->assertNotEmpty($result->author);
-        $this->assertSame(1, $result->author->id);
+        $this->assertSame('000000000000000000000001', $result->author->id);
 
         $query = $articles->find()
-            ->select(['Articles.title'])
-            ->where(['Articles.id' => 1])
+            ->select(['title'])
+            ->where(['id' => '000000000000000000000001'])
             ->contain('Authors');
 
         $this->expectException(InvalidArgumentException::class);
@@ -435,7 +435,7 @@ class BelongsToTest extends TestCase
             ->setFinder('formatted');
 
         $query = $articles->find()
-            ->where(['Articles.id' => 1])
+            ->where(['id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
 

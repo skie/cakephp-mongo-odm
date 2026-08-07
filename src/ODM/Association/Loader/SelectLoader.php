@@ -48,8 +48,13 @@ class SelectLoader implements LoaderInterface
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
+            $rawSourceKey = $many ? ($options['bindingKey'] ?? '_id') : ($options['foreignKey'] ?? '_id');
+            if ($rawSourceKey === false || $rawSourceKey === null || $rawSourceKey === '') {
+                return $entities;
+            }
+
             $keys = [];
-            $sourceKey = (string)($many ? ($options['bindingKey'] ?? '_id') : ($options['foreignKey'] ?? '_id'));
+            $sourceKey = (string)$rawSourceKey;
             foreach ($entities as $entity) {
                 $key = $entity->get($sourceKey);
                 if ($key !== null) {

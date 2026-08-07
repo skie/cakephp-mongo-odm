@@ -49,6 +49,13 @@ class BelongsToMany extends Association
     protected BaseCollection|string|null $through = null;
 
     /**
+     * Explicit junction collection name (cake60 `joinTable`).
+     *
+     * @var string|null
+     */
+    protected ?string $junctionTableName = null;
+
+    /**
      * Join collection instance resolved by {@see junction()}.
      *
      * @var \Crustum\Mongo\ODM\BaseCollection|null
@@ -93,6 +100,33 @@ class BelongsToMany extends Association
         if (isset($options['sort'])) {
             $this->setSort($options['sort']);
         }
+        if (isset($options['joinCollection'])) {
+            $this->junctionTableName((string)$options['joinCollection']);
+        }
+    }
+
+    /**
+     * Sets or returns the junction collection name.
+     *
+     * @param string|null $name The junction collection name.
+     * @return string
+     */
+    protected function junctionTableName(?string $name = null): string
+    {
+        if ($name === null) {
+            if ($this->junctionTableName === null) {
+                $names = array_map(
+                    static fn(string $c): string => Inflector::underscore($c),
+                    [$this->getSource()->getCollection(), $this->getTarget()->getCollection()],
+                );
+                sort($names);
+                $this->junctionTableName = implode('_', $names);
+            }
+
+            return $this->junctionTableName;
+        }
+
+        return $this->junctionTableName = $name;
     }
 
     /**
@@ -123,6 +157,76 @@ class BelongsToMany extends Association
     public function isOwningSide(): bool
     {
         return true;
+    }
+
+    /**
+     * Saves the associated target documents for this association.
+     *
+     * With the append strategy, existing links are kept and the new targets are
+     * linked. With the replace strategy, the source `_ids` array is replaced.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param array<string, mixed> $options Save options.
+     * @return \Cake\Datasource\EntityInterface|false
+     */
+    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    {
+        $targetEntity = $entity->get($this->getProperty());
+        $strategy = $this->getSaveStrategy();
+
+        $isEmpty = in_array($targetEntity, [null, [], '', false], true);
+        if ($isEmpty && $entity->isNew()) {
+            return $entity;
+        }
+        if ($isEmpty) {
+            $targetEntity = [];
+        }
+
+        if ($strategy === self::SAVE_APPEND) {
+            return $this->saveTarget($entity, $targetEntity, $options);
+        }
+
+        if ($this->replaceLinks($entity, (array)$targetEntity, $options)) {
+            return $entity;
+        }
+
+        return false;
+    }
+
+    /**
+     * Persists each target document and links it to the source `_ids` array.
+     *
+     * @param \Cake\Datasource\EntityInterface $parentEntity The source document.
+     * @param iterable<mixed> $entities Target documents to save and link.
+     * @param array<string, mixed> $options Save options.
+     * @return \Cake\Datasource\EntityInterface|false
+     */
+    protected function saveTarget(
+        EntityInterface $parentEntity,
+        iterable $entities,
+        array $options = [],
+    ): EntityInterface|false {
+        $targetEntities = is_array($entities) ? $entities : iterator_to_array($entities);
+
+        $saved = [];
+        $table = $this->getTarget();
+        foreach ($targetEntities as $entity) {
+            if (!$entity instanceof EntityInterface) {
+                throw new InvalidArgumentException(sprintf(
+                    'Could not save %s, it cannot be traversed.',
+                    $this->getProperty(),
+                ));
+            }
+
+            $result = $table->save($entity, $options);
+            if ($result instanceof EntityInterface) {
+                $saved[] = $result;
+            } else {
+                return false;
+            }
+        }
+
+        return $this->link($parentEntity, $saved, $options) ? $parentEntity : false;
     }
 
     /**
@@ -185,6 +289,21 @@ class BelongsToMany extends Association
         $saved = $this->getSource()->save($sourceEntity, $options);
 
         return $saved instanceof EntityInterface;
+    }
+
+    /**
+     * Replaces the source link set with the given target identifiers.
+     *
+     * For the in-document `_ids` shape this is equivalent to {@see replace()}.
+     *
+     * @param \Cake\Datasource\EntityInterface $sourceEntity The source document.
+     * @param array<int, mixed> $targetEntities Target documents to keep.
+     * @param array<string, mixed> $options Save options.
+     * @return bool
+     */
+    public function replaceLinks(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
+    {
+        return $this->replace($sourceEntity, $targetEntities, $options);
     }
 
     /**
@@ -271,34 +390,55 @@ class BelongsToMany extends Association
      *
      * Resolves the configured `through` alias through the collection locator,
      * or generates the conventional `{source}_{target}` junction name when no
-     * through is configured.
+     * through is configured. When an instance or alias is passed it is used as
+     * the junction. The reciprocal source/target/junction associations are
+     * generated automatically (matching cake60).
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection|string|null $table Junction collection instance or alias.
+     * @return \Crustum\Mongo\ODM\BaseCollection
+     * @throws \InvalidArgumentException When source and target are the same collection.
+     */
+    public function junction(BaseCollection|string|null $table = null): BaseCollection
+    {
+        if ($table === null && $this->junctionCollection instanceof BaseCollection) {
+            return $this->junctionCollection;
+        }
+
+        if ($table instanceof BaseCollection) {
+            $collection = $table;
+        } else {
+            $through = $table ?? $this->through;
+            if ($through instanceof BaseCollection) {
+                $collection = $through;
+            } elseif ($through !== null) {
+                $collection = $this->getCollectionLocator()->get($through, ['allowFallbackClass' => true]);
+                if (!$collection instanceof BaseCollection) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Junction collection `%s` did not resolve to a BaseCollection.',
+                        $through,
+                    ));
+                }
+            } else {
+                $collection = $this->defaultJunctionCollection();
+            }
+        }
+
+        $this->junctionCollection = $collection;
+        $this->generateSourceAssociations($collection, $this->getSource());
+        $this->generateTargetAssociations($collection, $this->getSource(), $this->getTarget());
+        $this->generateJunctionAssociations($collection, $this->getSource(), $this->getTarget());
+
+        return $collection;
+    }
+
+    /**
+     * Resolves or creates the conventional junction collection.
      *
      * @return \Crustum\Mongo\ODM\BaseCollection
      * @throws \InvalidArgumentException When source and target are the same collection.
      */
-    public function junction(): BaseCollection
+    protected function defaultJunctionCollection(): BaseCollection
     {
-        if ($this->junctionCollection instanceof BaseCollection) {
-            return $this->junctionCollection;
-        }
-
-        $through = $this->through;
-        if ($through instanceof BaseCollection) {
-            return $this->junctionCollection = $through;
-        }
-
-        if ($through !== null) {
-            $collection = $this->getCollectionLocator()->get($through, ['allowFallbackClass' => true]);
-            if (!$collection instanceof BaseCollection) {
-                throw new InvalidArgumentException(sprintf(
-                    'Junction collection `%s` did not resolve to a BaseCollection.',
-                    $through,
-                ));
-            }
-
-            return $this->junctionCollection = $collection;
-        }
-
         $source = $this->getSource();
         $target = $this->getTarget();
         if ($source->getAlias() === $target->getAlias()) {
@@ -309,11 +449,10 @@ class BelongsToMany extends Association
             ));
         }
 
-        $names = [$source->getCollection(), $target->getCollection()];
-        sort($names);
-        $alias = Inflector::camelize(implode('_', $names));
+        $tableName = $this->junctionTableName();
+        $alias = Inflector::camelize($tableName);
         $collection = $this->getCollectionLocator()->get($alias, [
-            'collection' => implode('_', $names),
+            'collection' => $tableName,
             'allowFallbackClass' => true,
         ]);
         if (!$collection instanceof BaseCollection) {
@@ -323,7 +462,128 @@ class BelongsToMany extends Association
             ));
         }
 
-        return $this->junctionCollection = $collection;
+        return $collection;
+    }
+
+    /**
+     * Generates the source-side associations for the junction collection.
+     *
+     * - source hasMany junction e.g. Articles hasMany ArticlesTags
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source The source collection.
+     * @return void
+     */
+    protected function generateSourceAssociations(BaseCollection $junction, BaseCollection $source): void
+    {
+        $junctionAlias = $junction->getAlias();
+        $sAlias = $source->getAlias();
+
+        $sourceBindingKey = null;
+        if ($junction->hasAssociation($sAlias)) {
+            $sourceBindingKey = $junction->getAssociation($sAlias)->getBindingKey();
+        }
+
+        if (!$source->hasAssociation($junctionAlias)) {
+            $source->hasMany($junctionAlias, [
+                'target' => $junction,
+                'bindingKey' => $sourceBindingKey,
+                'foreignKey' => $this->getForeignKey(),
+                'strategy' => $this->getStrategy(),
+            ]);
+        }
+    }
+
+    /**
+     * Generates the target-side associations for the junction collection.
+     *
+     * - target hasMany junction e.g. Tags hasMany ArticlesTags
+     * - target belongsToMany source e.g. Tags belongsToMany Articles
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source The source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @return void
+     */
+    protected function generateTargetAssociations(BaseCollection $junction, BaseCollection $source, BaseCollection $target): void
+    {
+        $junctionAlias = $junction->getAlias();
+        $sAlias = $source->getAlias();
+        $tAlias = $target->getAlias();
+
+        $targetBindingKey = null;
+        if ($junction->hasAssociation($tAlias)) {
+            $targetBindingKey = $junction->getAssociation($tAlias)->getBindingKey();
+        }
+
+        if (!$target->hasAssociation($junctionAlias)) {
+            $target->hasMany($junctionAlias, [
+                'target' => $junction,
+                'bindingKey' => $targetBindingKey,
+                'foreignKey' => $this->getTargetForeignKey(),
+                'strategy' => $this->getStrategy(),
+            ]);
+        }
+        if (!$target->hasAssociation($sAlias)) {
+            $target->belongsToMany($sAlias, [
+                'source' => $target,
+                'target' => $source,
+                'foreignKey' => $this->getTargetForeignKey(),
+                'targetForeignKey' => $this->getForeignKey(),
+                'through' => $junction,
+                'conditions' => $this->getConditions(),
+                'strategy' => $this->getStrategy(),
+            ]);
+        }
+    }
+
+    /**
+     * Generates the associations on the junction collection.
+     *
+     * - junction belongsTo source e.g. ArticlesTags belongsTo Articles
+     * - junction belongsTo target e.g. ArticlesTags belongsTo Tags
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source The source collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @return void
+     * @throws \InvalidArgumentException When the existing associations are incompatible.
+     */
+    protected function generateJunctionAssociations(BaseCollection $junction, BaseCollection $source, BaseCollection $target): void
+    {
+        $tAlias = $target->getAlias();
+        $sAlias = $source->getAlias();
+
+        if (!$junction->hasAssociation($tAlias)) {
+            $junction->belongsTo($tAlias, [
+                'foreignKey' => $this->getTargetForeignKey(),
+                'target' => $target,
+            ]);
+        } else {
+            $belongsTo = $junction->getAssociation($tAlias);
+            if ($belongsTo instanceof Association) {
+                if (
+                    $this->getTargetForeignKey() !== $belongsTo->getForeignKey() ||
+                    $target !== $belongsTo->getTarget()
+                ) {
+                    throw new InvalidArgumentException(sprintf(
+                        'The existing `%s` association on `%s` is incompatible with the `%s` association on `%s`.',
+                        $tAlias,
+                        $junction->getAlias(),
+                        $this->getName(),
+                        $source->getAlias(),
+                    ));
+                }
+            }
+        }
+
+        if (!$junction->hasAssociation($sAlias)) {
+            $junction->belongsTo($sAlias, [
+                'bindingKey' => $this->getBindingKey(),
+                'foreignKey' => $this->getForeignKey(),
+                'target' => $source,
+            ]);
+        }
     }
 
     /**

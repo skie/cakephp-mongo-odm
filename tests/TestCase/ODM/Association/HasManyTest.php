@@ -150,6 +150,7 @@ class HasManyTest extends TestCase
      */
     public function testCanBeJoined(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testCanBeJoined is SQL-only (F25).');
         $assoc = new HasMany('Test', $this->author);
         $this->assertFalse($assoc->canBeJoined());
     }
@@ -738,6 +739,7 @@ class HasManyTest extends TestCase
      */
     public function testValueBinderUpdateOnSubQueryStrategy(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testValueBinderUpdateOnSubQueryStrategy is SQL-only (F25).');
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -763,6 +765,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithLimit(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithLimit is SQL-only (F25).');
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -784,6 +787,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithLimitAndOrder(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithLimitAndOrder is SQL-only (F25).');
         $this->skipIf(ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver, 'Sql Server does not support ORDER BY on field not in GROUP BY');
 
         $Authors = $this->getCollectionLocator()->get('Authors');
@@ -807,6 +811,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingAliasCollidingWithBindingKey(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithHavingAliasCollidingWithBindingKey is SQL-only (F25).');
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -835,6 +840,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingAndOrderOnSameAlias(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithHavingAndOrderOnSameAlias is SQL-only (F25).');
         $this->skipIf(
             ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
             'Sql Server does not provide a portable LENGTH() function',
@@ -864,6 +870,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingOnAggregateAlias(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithHavingOnAggregateAlias is SQL-only (F25).');
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -891,6 +898,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingOnSelectAlias(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithHavingOnSelectAlias is SQL-only (F25).');
         $this->skipIf(
             ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
             'Sql Server does not provide a portable LENGTH() function',
@@ -925,6 +933,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithSelfReferentialAssociation(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithSelfReferentialAssociation is SQL-only (F25).');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $Categories->hasMany('ChildCategories', [
             'className' => 'Categories',
@@ -973,6 +982,7 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithSelfReferentialAssociationAliasAlreadyUsingSubquerySuffix(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; testSubqueryWithSelfReferentialAssociationAliasAlreadyUsingSubquerySuffix is SQL-only (F25).');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $Categories->hasMany('Categories_subquery', [
             'className' => 'Categories',
