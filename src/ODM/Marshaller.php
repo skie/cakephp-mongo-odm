@@ -133,7 +133,7 @@ final class Marshaller
                 continue;
             }
 
-            $id = $entity->id;
+            $id = $entity->getId();
             if ($id === null) {
                 continue;
             }
@@ -310,10 +310,6 @@ final class Marshaller
         foreach ($data as $field => $value) {
             if (isset($errors[$field]) && $errors[$field] !== []) {
                 continue;
-            }
-
-            if ($field === 'id' && !array_key_exists('_id', $data)) {
-                $field = '_id';
             }
 
             $callback = $map[$field] ?? null;

@@ -78,7 +78,7 @@ final class ResultSetFactory
         if (!$options['hydrate']) {
             $rows = [];
             foreach ($results as $key => $row) {
-                $rows[$key] = is_array($row) ? $this->mapIdField($row) : $row;
+                $rows[$key] = $row;
             }
 
             return new $this->resultSetClass($rows);
@@ -90,22 +90,6 @@ final class ResultSetFactory
         }
 
         return new $this->resultSetClass($hydrated);
-    }
-
-    /**
-     * Renames the canonical `_id` key to `id` in a raw row.
-     *
-     * @param array<string, mixed> $row The raw row.
-     * @return array<string, mixed>
-     */
-    private function mapIdField(array $row): array
-    {
-        if (array_key_exists('_id', $row) && !array_key_exists('id', $row)) {
-            $row['id'] = $row['_id'];
-            unset($row['_id']);
-        }
-
-        return $row;
     }
 
     /**

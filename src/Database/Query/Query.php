@@ -155,6 +155,23 @@ abstract class Query implements Stringable
     }
 
     /**
+     * Sets the field resolver applied to query field names.
+     *
+     * Delegates to the compiler, which forwards it to the condition expression
+     * builder. Used by the ODM layer to strip repository aliases from Mongo
+     * field names at compilation time.
+     *
+     * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
+     * @return $this
+     */
+    public function setFieldResolver(?\Closure $resolver): static
+    {
+        $this->builder->setFieldResolver($resolver);
+
+        return $this;
+    }
+
+    /**
      * Returns a functions builder for this query.
      *
      * @return \Crustum\Mongo\Database\FunctionsBuilder

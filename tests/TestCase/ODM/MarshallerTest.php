@@ -140,7 +140,7 @@ class MarshallerTest extends TestCase
  — see F17 (association-layer)
 ');
         $data = [
-            'id' => '',
+            '_id' => '',
             'username' => 'superuser',
             'password' => 'root',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -149,8 +149,8 @@ class MarshallerTest extends TestCase
         $marshall = new Marshaller($this->articles);
         $result = $marshall->one($data, []);
 
-        $this->assertFalse($result->isDirty('id'));
-        $this->assertNull($result->id);
+        $this->assertFalse($result->isDirty('_id'));
+        $this->assertNull($result->getId());
     }
 
     /**
@@ -326,7 +326,7 @@ class MarshallerTest extends TestCase
             'title' => 'My title',
             'body' => 'My content',
             'derp' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
                 'username' => 'mark',
             ],
         ];
@@ -391,7 +391,7 @@ class MarshallerTest extends TestCase
             'title' => 'My title',
             'body' => 'My content',
             'user' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
                 'username' => 'mark',
             ],
         ];
@@ -402,13 +402,13 @@ class MarshallerTest extends TestCase
 
         $result = $marshall->one($data, [
             'associated' => [
-                'Users' => ['patchableFields' => ['id' => true]],
+                'Users' => ['patchableFields' => ['_id' => true]],
             ],
             'patchableFields' => ['body' => false, 'user' => true],
         ]);
         $this->assertNull($result->body);
         $this->assertNull($result->user->username);
-        $this->assertSame(1, $result->user->id);
+        $this->assertSame(1, $result->user->getId());
     }
 
     /**
@@ -690,14 +690,14 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 3 => [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 1,
                         'user' => ['username' => 'MyLux'],
                     ],
                 ],
                 5 => [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'active' => 0,
                         'user' => ['username' => 'IronFall'],
@@ -708,8 +708,8 @@ class MarshallerTest extends TestCase
 
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags');
         $tags = $this->getCollectionLocator()->get('Tags');
-        $t1 = $tags->find('all')->where(['id' => 1])->first();
-        $t2 = $tags->find('all')->where(['id' => 2])->first();
+        $t1 = $tags->find('all')->where(['_id' => '000000000000000000000001'])->first();
+        $t2 = $tags->find('all')->where(['_id' => '000000000000000000000002'])->first();
         $articlesTags->belongsTo('Users');
 
         $marshall = new Marshaller($this->articles);
@@ -754,7 +754,7 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 0,
                     ],
@@ -771,7 +771,7 @@ class MarshallerTest extends TestCase
 
         $result = $marshall->one($data, ['associated' => ['Tags._joinData']]);
 
-        $this->assertSame($data['tags'][0]['id'], $result->tags[0]->id);
+        $this->assertSame($data['tags'][0]['_id'], $result->tags[0]->getId());
         $this->assertSame($data['tags'][1]['name'], $result->tags[1]->name);
         $this->assertSame(0, $result->tags[0]->_joinData->active);
         $this->assertSame(1, $result->tags[1]->_joinData->active);
@@ -788,11 +788,11 @@ class MarshallerTest extends TestCase
             'articles' => [
                 // This nested article exists, and we want to update it.
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'title' => 'New tagged article',
                     'body' => 'New tagged article',
                     'user' => [
-                        'id' => 1,
+                        '_id' => '000000000000000000000001',
                         'username' => 'newuser',
                     ],
                     'comments' => [
@@ -843,11 +843,11 @@ class MarshallerTest extends TestCase
             'articles' => [
                 // This nested article exists, and we want to update it.
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'title' => 'New tagged article',
                     'body' => 'New tagged article',
                     'user' => [
-                        'id' => 1,
+                        '_id' => '000000000000000000000001',
                         'username' => 'newuser',
                     ],
                     'comments' => [
@@ -940,7 +940,7 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 0,
                     ],
@@ -953,13 +953,13 @@ class MarshallerTest extends TestCase
             'title' => 'New Title',
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 0,
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'active' => 1,
                     ],
@@ -969,8 +969,8 @@ class MarshallerTest extends TestCase
         $result = $marshall->merge($result, $data, ['associated' => ['Tags._joinData']]);
 
         $this->assertSame($data['title'], $result->title);
-        $this->assertSame($data['tags'][0]['id'], $result->tags[0]->id);
-        $this->assertSame($data['tags'][1]['id'], $result->tags[1]->id);
+        $this->assertSame($data['tags'][0]['_id'], $result->tags[0]->getId());
+        $this->assertSame($data['tags'][1]['_id'], $result->tags[1]->getId());
         $this->assertNotEmpty($result->tags[0]->_joinData);
         $this->assertNotEmpty($result->tags[1]->_joinData);
         $this->assertTrue($result->isDirty('tags'), 'Modified prop should be dirty');
@@ -982,7 +982,7 @@ class MarshallerTest extends TestCase
         // MissingPropertyException should not be thrown for `tags` field
         $marshall->merge($entity, $data, ['associated' => ['Tags._joinData']]);
 
-        $inner = new Document(['id' => 1]);
+        $inner = new Document(['_id' => '000000000000000000000001']);
         $inner->requireFieldPresence(true);
 
         $entity = new Document([
@@ -1015,7 +1015,7 @@ class MarshallerTest extends TestCase
                     ],
                 ],
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 0,
                     ],
@@ -1032,7 +1032,7 @@ class MarshallerTest extends TestCase
         $result = $marshall->one($data, ['associated' => ['Tags._joinData']]);
 
         $this->assertSame($data['tags'][0]['name'], $result->tags[0]->name);
-        $this->assertSame($data['tags'][1]['id'], $result->tags[1]->id);
+        $this->assertSame($data['tags'][1]['_id'], $result->tags[1]->getId());
         $this->assertSame($data['tags'][2]['name'], $result->tags[2]->name);
 
         $this->assertSame(1, $result->tags[0]->_joinData->active);
@@ -1053,7 +1053,7 @@ class MarshallerTest extends TestCase
             'body' => 'My content',
             'author_id' => 1,
             'tags' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
             ],
         ];
 
@@ -1089,7 +1089,7 @@ class MarshallerTest extends TestCase
                     'name' => 'tag5',
                 ],
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                 ],
             ],
         ];
@@ -1129,10 +1129,10 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 3,
+                    '_id' => '000000000000000000000003',
                 ],
                 [
-                    'id' => 4,
+                    '_id' => '000000000000000000000004',
                     'name' => 'tag4',
                 ],
             ],
@@ -1226,7 +1226,7 @@ class MarshallerTest extends TestCase
             'title' => 'new title',
             'body' => 'some content',
             'comments' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
             ],
         ];
 
@@ -1297,8 +1297,8 @@ class MarshallerTest extends TestCase
     public function testManyInvalidData(): void
     {
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
             '_csrfToken' => 'abc123',
         ];
         $marshall = new Marshaller($this->comments);
@@ -1613,7 +1613,7 @@ class MarshallerTest extends TestCase
             'title' => 'My title',
             'body' => 'My content',
             'derp' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
                 'username' => 'mark',
             ],
         ];
@@ -1784,7 +1784,7 @@ class MarshallerTest extends TestCase
  — see F17 (association-layer)
 ');
         $user = new Document([
-            'id' => 1,
+            '_id' => '000000000000000000000001',
             'username' => 'user',
         ]);
         $article = new Document([
@@ -1820,8 +1820,8 @@ class MarshallerTest extends TestCase
  — see F1 (enableHydration alias)
 ');
         $user = new Document(['username' => 'mark', 'password' => 'secret']);
-        $comment1 = new Document(['id' => 1, 'comment' => 'A comment']);
-        $comment2 = new Document(['id' => 2, 'comment' => 'Another comment']);
+        $comment1 = new Document(['_id' => '000000000000000000000001', 'comment' => 'A comment']);
+        $comment2 = new Document(['_id' => '000000000000000000000002', 'comment' => 'Another comment']);
         $entity = new Document([
             'title' => 'My Title',
             'user' => $user,
@@ -1839,10 +1839,10 @@ class MarshallerTest extends TestCase
             'user' => ['password' => 'not so secret'],
             'comments' => [
                 ['comment' => 'Extra comment 1'],
-                ['id' => 2, 'comment' => 'Altered comment 2'],
-                ['id' => 1, 'comment' => 'Altered comment 1'],
-                ['id' => 3, 'comment' => 'Extra comment 3'],
-                ['id' => 4, 'comment' => 'Extra comment 4'],
+                ['_id' => '000000000000000000000002', 'comment' => 'Altered comment 2'],
+                ['_id' => '000000000000000000000001', 'comment' => 'Altered comment 1'],
+                ['_id' => '000000000000000000000003', 'comment' => 'Extra comment 3'],
+                ['_id' => '000000000000000000000004', 'comment' => 'Extra comment 4'],
                 ['comment' => 'Extra comment 2'],
             ],
         ];
@@ -1862,7 +1862,7 @@ class MarshallerTest extends TestCase
 
         $thirdComment = $this->articles->Comments
             ->find()
-            ->where(['id' => 3])
+            ->where(['_id' => '000000000000000000000003'])
             ->enableHydration(false)
             ->first();
 
@@ -1873,7 +1873,7 @@ class MarshallerTest extends TestCase
 
         $forthComment = $this->articles->Comments
             ->find()
-            ->where(['id' => 4])
+            ->where(['_id' => '000000000000000000000004'])
             ->enableHydration(false)
             ->first();
 
@@ -1910,11 +1910,11 @@ class MarshallerTest extends TestCase
         $this->assertCount(3, $result->comments);
         $this->assertTrue($result->isDirty('comments'), 'Updated prop should be dirty');
         $this->assertInstanceOf(Document::class, $result->comments[0]);
-        $this->assertSame(1, $result->comments[0]->id);
+        $this->assertSame(1, $result->comments[0]->getId());
         $this->assertInstanceOf(Document::class, $result->comments[1]);
-        $this->assertSame(2, $result->comments[1]->id);
+        $this->assertSame(2, $result->comments[1]->getId());
         $this->assertInstanceOf(Document::class, $result->comments[2]);
-        $this->assertSame(3, $result->comments[2]->id);
+        $this->assertSame(3, $result->comments[2]->getId());
     }
 
     /**
@@ -1958,8 +1958,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
-                new Document(['id' => 1, 'name' => 'Cake']),
-                new Document(['id' => 2, 'name' => 'PHP']),
+                new Document(['_id' => '000000000000000000000001', 'name' => 'Cake']),
+                new Document(['_id' => '000000000000000000000002', 'name' => 'PHP']),
             ],
         ]);
 
@@ -1993,8 +1993,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
-                new Document(['id' => 1, 'name' => 'Cake']),
-                new Document(['id' => 2, 'name' => 'PHP']),
+                new Document(['_id' => '000000000000000000000001', 'name' => 'Cake']),
+                new Document(['_id' => '000000000000000000000002', 'name' => 'PHP']),
             ],
         ]);
 
@@ -2007,8 +2007,8 @@ class MarshallerTest extends TestCase
 
         // Adding a forced join to have another table with the same column names
         $this->articles->Tags->getEventManager()->on('Collection.beforeFind', function ($e, $query): void {
-            $left = new IdentifierExpression('Tags.id');
-            $right = new IdentifierExpression('a.id');
+            $left = new IdentifierExpression('Tags._id');
+            $right = new IdentifierExpression('a._id');
             $query->leftJoin(['a' => 'tags'], $query->expr()->eq($left, $right));
         });
 
@@ -2084,8 +2084,8 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz moar tags',
             'tags' => [
-                ['id' => 1],
-                ['id' => 2],
+                ['_id' => '000000000000000000000001'],
+                ['_id' => '000000000000000000000002'],
             ],
         ];
         $entity->setAccess('*', true);
@@ -2108,8 +2108,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
-                new Document(['id' => 1, 'name' => 'Cake']),
-                new Document(['id' => 2, 'name' => 'PHP']),
+                new Document(['_id' => '000000000000000000000001', 'name' => 'Cake']),
+                new Document(['_id' => '000000000000000000000002', 'name' => 'PHP']),
             ],
         ]);
 
@@ -2150,8 +2150,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
-                new Document(['id' => 1, 'name' => 'Cake']),
-                new Document(['id' => 2, 'name' => 'PHP']),
+                new Document(['_id' => '000000000000000000000001', 'name' => 'Cake']),
+                new Document(['_id' => '000000000000000000000002', 'name' => 'PHP']),
             ],
         ]);
 
@@ -2183,8 +2183,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
-                new Document(['id' => 1, 'name' => 'Cake']),
-                new Document(['id' => 2, 'name' => 'PHP']),
+                new Document(['_id' => '000000000000000000000001', 'name' => 'Cake']),
+                new Document(['_id' => '000000000000000000000002', 'name' => 'PHP']),
             ],
         ]);
 
@@ -2222,7 +2222,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 3, 'tag' => 'Cake', '_joinData' => 'Invalid'],
+                ['_id' => '000000000000000000000003', 'tag' => 'Cake', '_joinData' => 'Invalid'],
             ],
         ];
         $marshall = new Marshaller($articles);
@@ -2256,7 +2256,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 3, 'tag' => 'Cake', '_joinData' => ['highlighted' => '1', 'author_id' => '99']],
+                ['_id' => '000000000000000000000003', 'tag' => 'Cake', '_joinData' => ['highlighted' => '1', 'author_id' => '99']],
             ],
         ];
         $marshall = new Marshaller($articles);
@@ -2289,7 +2289,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 3, 'tag' => 'Cake', '_joinData' => ['highlighted' => true]],
+                ['_id' => '000000000000000000000003', 'tag' => 'Cake', '_joinData' => ['highlighted' => true]],
             ],
         ];
         $marshall = new Marshaller($articles);
@@ -2304,7 +2304,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 3, 'tag' => 'Cake', '_joinData' => ['highlighted' => true]],
+                ['_id' => '000000000000000000000003', 'tag' => 'Cake', '_joinData' => ['highlighted' => true]],
             ],
         ];
         $marshall = new Marshaller($articles);
@@ -2327,14 +2327,14 @@ class MarshallerTest extends TestCase
             'title' => 'My title',
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 1,
                         'user' => ['username' => 'MyLux'],
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'active' => 0,
                         'user' => ['username' => 'IronFall'],
@@ -2357,8 +2357,8 @@ class MarshallerTest extends TestCase
         $this->assertInstanceOf(Document::class, $result->tags[1]->_joinData->user);
         $this->assertFalse($result->tags[0]->isNew(), 'Should not be new, as id is in db.');
         $this->assertFalse($result->tags[1]->isNew(), 'Should not be new, as id is in db.');
-        $this->assertSame(1, $result->tags[0]->id);
-        $this->assertSame(2, $result->tags[1]->id);
+        $this->assertSame(1, $result->tags[0]->getId());
+        $this->assertSame(2, $result->tags[1]->getId());
 
         $this->assertSame(1, $result->tags[0]->_joinData->active);
         $this->assertSame(0, $result->tags[1]->_joinData->active);
@@ -2386,14 +2386,14 @@ class MarshallerTest extends TestCase
             'title' => 'My title',
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
                         'active' => 1,
                         'user' => ['username' => 'MyLux'],
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'active' => 0,
                         'user' => ['username' => 'IronFall'],
@@ -2424,8 +2424,8 @@ class MarshallerTest extends TestCase
         $this->assertInstanceOf(Document::class, $result->tags[1]->_joinData->user);
         $this->assertFalse($result->tags[0]->isNew(), 'Should not be new, as id is in db.');
         $this->assertFalse($result->tags[1]->isNew(), 'Should not be new, as id is in db.');
-        $this->assertSame(1, $result->tags[0]->id);
-        $this->assertSame(2, $result->tags[1]->id);
+        $this->assertSame(1, $result->tags[0]->getId());
+        $this->assertSame(2, $result->tags[1]->getId());
 
         $this->assertSame(1, $result->tags[0]->_joinData->active);
         $this->assertSame(0, $result->tags[1]->_joinData->active);
@@ -2467,14 +2467,14 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'tag' => 'news',
                     '_joinData' => [
                         'active' => 0,
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     'tag' => 'cakephp',
                     '_joinData' => [
                         'active' => 0,
@@ -2491,7 +2491,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 1, 'tag' => 'Cake', '_joinData' => ['foo' => 'bar']],
+                ['_id' => '000000000000000000000001', 'tag' => 'Cake', '_joinData' => ['foo' => 'bar']],
                 ['tag' => 'new tag', '_joinData' => ['active' => 1, 'foo' => 'baz']],
             ],
         ];
@@ -2530,7 +2530,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data 2',
             'tags' => [
-                ['id' => 1, 'tag' => 'Cake 2', '_junction' => ['foo' => 'bar 2']],
+                ['_id' => '000000000000000000000001', 'tag' => 'Cake 2', '_junction' => ['foo' => 'bar 2']],
                 ['tag' => 'new tag 2', '_junction' => ['active' => 1, 'foo' => 'baz 2']],
             ],
         ];
@@ -2570,7 +2570,7 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'tag' => 'news',
                     '_joinData' => [
                         'active' => 0,
@@ -2578,7 +2578,7 @@ class MarshallerTest extends TestCase
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     'tag' => 'cakephp',
                     '_joinData' => [
                         'active' => 0,
@@ -2599,7 +2599,7 @@ class MarshallerTest extends TestCase
             'title' => 'Haz data',
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'tag' => 'news',
                     '_joinData' => [
                         'foo' => 'bar',
@@ -2607,7 +2607,7 @@ class MarshallerTest extends TestCase
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'active' => 1,
                         'foo' => 'baz',
@@ -2650,7 +2650,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz moar tags',
             'tags' => [
-                ['id' => 1],
+                ['_id' => '000000000000000000000001'],
             ],
         ];
         $marshall = new Marshaller($this->articles);
@@ -2669,15 +2669,15 @@ class MarshallerTest extends TestCase
     public function testMergeManySimple(): void
     {
         $entities = [
-            new OpenArticleEntity(['id' => 1, 'comment' => 'First post', 'user_id' => 2]),
-            new OpenArticleEntity(['id' => 2, 'comment' => 'Second post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
         ];
         $marshall = new Marshaller($this->comments);
         $result = $marshall->mergeMany($entities, $data);
@@ -2697,15 +2697,15 @@ class MarshallerTest extends TestCase
     public function testMergeManyInvalidData(): void
     {
         $entities = [
-            new OpenArticleEntity(['id' => 1, 'comment' => 'First post', 'user_id' => 2]),
-            new OpenArticleEntity(['id' => 2, 'comment' => 'Second post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
             '_csrfToken' => 'abc123',
         ];
         $marshall = new Marshaller($this->comments);
@@ -2723,14 +2723,14 @@ class MarshallerTest extends TestCase
     {
         $entities = [
             new OpenArticleEntity(['comment' => 'First post', 'user_id' => 2]),
-            new OpenArticleEntity(['id' => 2, 'comment' => 'Second post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
-            ['id' => 1, 'comment' => 'Comment 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Comment 1', 'user_id' => 1],
         ];
         $marshall = new Marshaller($this->comments);
         $result = $marshall->mergeMany($entities, $data);
@@ -2781,12 +2781,12 @@ class MarshallerTest extends TestCase
     public function testMergeManyExistingQueryAliases(): void
     {
         $entities = [
-            new OpenArticleEntity(['id' => 1, 'comment' => 'First post', 'user_id' => 2], ['markClean' => true]),
+            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2], ['markClean' => true]),
         ];
 
         $data = [
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 1],
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
         ];
         $this->comments->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
             $query->contain(['Articles']);
@@ -2803,16 +2803,16 @@ class MarshallerTest extends TestCase
     public function testMergeManyExistQueryFails(): void
     {
         $entities = [
-            new Document(['id' => 1, 'comment' => 'First post', 'user_id' => 2]),
-            new Document(['id' => 2, 'comment' => 'Second post', 'user_id' => 2]),
+            new Document(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2]),
+            new Document(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2],
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 1],
-            ['id' => 3, 'comment' => 'New 1'],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000003', 'comment' => 'New 1'],
         ];
         $comments = $this->getCollectionLocator()->get('GreedyComments', [
             'className' => GreedyCommentsTable::class,
@@ -2929,7 +2929,7 @@ class MarshallerTest extends TestCase
                 ],
             ],
             'user' => [
-                'id' => 1,
+                '_id' => '000000000000000000000001',
                 'username' => 'mark',
             ],
         ];
@@ -3070,26 +3070,26 @@ class MarshallerTest extends TestCase
     public function testMergeManyFields(): void
     {
         $entities = [
-            new OpenArticleEntity(['id' => 1, 'comment' => 'First post', 'user_id' => 2]),
-            new OpenArticleEntity(['id' => 2, 'comment' => 'Second post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 10],
-            ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 20],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 10],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 20],
         ];
         $marshall = new Marshaller($this->comments);
-        $result = $marshall->mergeMany($entities, $data, ['fields' => ['id', 'comment']]);
+        $result = $marshall->mergeMany($entities, $data, ['fields' => ['_id', 'comment']]);
 
         $this->assertSame($entities[0], $result[0]);
         $this->assertSame($entities[1], $result[1]);
 
-        $expected = ['id' => 2, 'comment' => 'Changed 2', 'user_id' => 2];
+        $expected = ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2];
         $this->assertEquals($expected, $entities[1]->toArray());
 
-        $expected = ['id' => 1, 'comment' => 'Changed 1', 'user_id' => 2];
+        $expected = ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 2];
         $this->assertEquals($expected, $entities[0]->toArray());
     }
 
@@ -3241,14 +3241,14 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'tags' => [
                 [
-                    'id' => 1,
+                    '_id' => '000000000000000000000001',
                     'tag' => 'news',
                     '_joinData' => [
                         'active' => 0,
                     ],
                 ],
                 [
-                    'id' => 2,
+                    '_id' => '000000000000000000000002',
                     'tag' => 'cakephp',
                     '_joinData' => [
                         'active' => 0,
@@ -3265,7 +3265,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz data',
             'tags' => [
-                ['id' => 1, 'tag' => 'Cake', '_joinData' => ['foo' => 'bar', 'crazy' => 'something']],
+                ['_id' => '000000000000000000000001', 'tag' => 'Cake', '_joinData' => ['foo' => 'bar', 'crazy' => 'something']],
                 ['tag' => 'new tag', '_joinData' => ['active' => 1, 'foo' => 'baz']],
             ],
         ];
@@ -3422,7 +3422,7 @@ class MarshallerTest extends TestCase
         ];
         $marshall = new Marshaller($this->articles);
         $entity = new Document([
-            'id' => 1,
+            '_id' => '000000000000000000000001',
             'title' => 'Foo',
             'body' => 'My Content',
             'author_id' => 1,
@@ -3435,9 +3435,9 @@ class MarshallerTest extends TestCase
 
         $this->articles->getValidator()
             ->requirePresence('thing', 'update')
-            ->requirePresence('id', 'update')
+            ->requirePresence('_id', 'update')
             ->add('author_id', 'numeric', ['rule' => 'numeric'])
-            ->add('id', 'numeric', ['rule' => 'numeric', 'on' => 'update']);
+            ->add('_id', 'numeric', ['rule' => 'numeric', 'on' => 'update']);
 
         $expected = clone $entity;
         $result = $marshall->merge($expected, $data, []);
@@ -3445,7 +3445,7 @@ class MarshallerTest extends TestCase
         $this->assertSame($expected, $result);
         $this->assertSame(1, $result->author_id);
         $this->assertNotEmpty($result->getError('thing'));
-        $this->assertEmpty($result->getError('id'));
+        $this->assertEmpty($result->getError('_id'));
 
         $this->articles->getValidator()->requirePresence('thing', 'create');
         $result = $marshall->merge($entity, $data, []);
@@ -3824,7 +3824,7 @@ class MarshallerTest extends TestCase
             ],
         ];
 
-        $this->articles->Comments->setPrimaryKey(['id', 'article_id']);
+        $this->articles->Comments->setPrimaryKey(['_id', 'article_id']);
 
         $marshaller = new Marshaller($this->articles);
         $marshaller->one($data, ['associated' => ['Comments']]);

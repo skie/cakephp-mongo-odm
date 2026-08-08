@@ -28,7 +28,6 @@ class DocumentTest extends TestCase
         $document = new Document(['_id' => $id, 'name' => 'one']);
 
         $this->assertSame((string)$id, $document->getId());
-        $this->assertSame((string)$id, $document->id);
         $this->assertFalse($document->isNew());
 
         $new = new Document();
@@ -48,7 +47,7 @@ class DocumentTest extends TestCase
         ]));
 
         $data = $document->toArray();
-        $this->assertSame((string)$id, $data['id']);
+        $this->assertSame((string)$id, $data['_id']);
         $this->assertSame('2024-01-01 00:00:00', $data['when']);
         $this->assertSame('12.50', $data['amount']);
         $this->assertSame((string)$id, $data['nested']['value']);

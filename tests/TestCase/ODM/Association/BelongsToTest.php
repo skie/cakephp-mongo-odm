@@ -52,26 +52,26 @@ class BelongsToTest extends TestCase
         parent::setUp();
         $this->company = $this->getCollectionLocator()->get('Companies', [
             'schema' => [
-                'id' => ['type' => 'integer'],
+                '_id' => ['type' => 'integer'],
                 'company_name' => ['type' => 'string'],
                 '_constraints' => [
-                    'primary' => ['type' => 'primary', 'columns' => ['id']],
+                    'primary' => ['type' => 'primary', 'columns' => ['_id']],
                 ],
             ],
         ]);
         $this->client = $this->getCollectionLocator()->get('Clients', [
             'schema' => [
-                'id' => ['type' => 'integer'],
+                '_id' => ['type' => 'integer'],
                 'client_name' => ['type' => 'string'],
                 'company_id' => ['type' => 'integer'],
                 '_constraints' => [
-                    'primary' => ['type' => 'primary', 'columns' => ['id']],
+                    'primary' => ['type' => 'primary', 'columns' => ['_id']],
                 ],
             ],
         ]);
         $this->companiesTypeMap = new TypeMap([
-            'Companies.id' => 'integer',
-            'id' => 'integer',
+            'Companies._id' => 'integer',
+            '_id' => 'integer',
             'Companies.company_name' => 'string',
             'company_name' => 'string',
             'Companies__id' => 'integer',
@@ -102,7 +102,7 @@ class BelongsToTest extends TestCase
             ->belongsTo('Authors')
             ->setForeignKey('author_id');
 
-        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles.id')->first();
+        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
         $this->assertSame('mariano', $article->author->name);
 
         $assoc
@@ -111,7 +111,7 @@ class BelongsToTest extends TestCase
                 'Authors.name' => 'larry',
             ]);
 
-        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles.id')->first();
+        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
         $this->assertSame('larry', $article->author->name);
     }
 
@@ -173,7 +173,7 @@ class BelongsToTest extends TestCase
         $association->attachTo($query);
 
         $expected = [
-            'Companies__id' => 'Companies.id',
+            'Companies__id' => 'Companies._id',
             'Companies__company_name' => 'Companies.company_name',
         ];
         $this->assertEquals($expected, $query->clause('select'));
@@ -184,7 +184,7 @@ class BelongsToTest extends TestCase
                 'type' => 'LEFT',
                 'conditions' => new QueryExpression([
                     'Companies.is_active' => true,
-                    ['Companies.id' => new IdentifierExpression('Clients.company_id')],
+                    ['Companies._id' => new IdentifierExpression('Clients.company_id')],
                 ], $this->companiesTypeMap),
             ],
         ];
@@ -219,7 +219,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
-        $this->company->setPrimaryKey(['id', 'tenant_id']);
+        $this->company->setPrimaryKey(['_id', 'tenant_id']);
         $config = [
             'foreignKey' => ['company_id', 'company_tenant_id'],
             'target' => $this->company,
@@ -230,7 +230,7 @@ class BelongsToTest extends TestCase
         $association->attachTo($query);
 
         $expected = [
-            'Companies__id' => 'Companies.id',
+            'Companies__id' => 'Companies._id',
             'Companies__company_name' => 'Companies.company_name',
         ];
         $this->assertEquals($expected, $query->clause('select'));
@@ -241,7 +241,7 @@ class BelongsToTest extends TestCase
             'Companies' => [
                 'conditions' => new QueryExpression([
                     'Companies.is_active' => true,
-                    ['Companies.id' => $field1, 'Companies.tenant_id' => $field2],
+                    ['Companies._id' => $field1, 'Companies.tenant_id' => $field2],
                 ], $this->companiesTypeMap),
                 'collection' => 'companies',
                 'type' => 'LEFT',
@@ -259,7 +259,7 @@ class BelongsToTest extends TestCase
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('Cannot match provided foreignKey for `Companies`, got `(company_id)` but expected foreign key for `(id, tenant_id)`');
-        $this->company->setPrimaryKey(['id', 'tenant_id']);
+        $this->company->setPrimaryKey(['_id', 'tenant_id']);
         $query = $this->client->selectQuery();
         $config = [
             'foreignKey' => 'company_id',
@@ -284,7 +284,7 @@ class BelongsToTest extends TestCase
         $mock->shouldReceive('delete')->never();
 
         $association = new BelongsTo('Companies', $this->client, $config);
-        $entity = new Document(['company_name' => 'CakePHP', 'id' => '000000000000000000000001']);
+        $entity = new Document(['company_name' => 'CakePHP', '_id' => '000000000000000000000001']);
         $this->assertTrue($association->cascadeDelete($entity));
     }
 
@@ -388,7 +388,7 @@ class BelongsToTest extends TestCase
 
         $query = $articles->find()
             ->select(['Authors.name'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
 
@@ -407,15 +407,15 @@ class BelongsToTest extends TestCase
 
         $query = $articles->find()
             ->select(['title', 'author_id'])
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
         $this->assertNotEmpty($result->author);
-        $this->assertSame('000000000000000000000001', $result->author->id);
+        $this->assertSame('000000000000000000000001', $result->author->getId());
 
         $query = $articles->find()
             ->select(['title'])
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->contain('Authors');
 
         $this->expectException(InvalidArgumentException::class);
@@ -435,7 +435,7 @@ class BelongsToTest extends TestCase
             ->setFinder('formatted');
 
         $query = $articles->find()
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->contain('Authors');
         $result = $query->firstOrFail();
 

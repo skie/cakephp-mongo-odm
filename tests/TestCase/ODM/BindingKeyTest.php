@@ -77,7 +77,7 @@ class BindingKeyTest extends TestCase
         ];
         $this->assertEquals(
             $expected,
-            $result->all()->combine('id', 'auth_user.id')->toArray(),
+            $result->all()->combine('_id', 'auth_user._id')->toArray(),
         );
     }
 
@@ -100,7 +100,7 @@ class BindingKeyTest extends TestCase
             ->where(['username' => 'jose'])
             ->first();
 
-        $this->assertSame('000000000000000000000003', $result->site_author->id);
+        $this->assertSame('000000000000000000000003', $result->site_author->getId());
     }
 
     /**
@@ -116,13 +116,13 @@ class BindingKeyTest extends TestCase
             'strategy' => $strategy,
         ]);
 
-        $authors->updateAll(['name' => 'garrett'], ['id >' => 2]);
+        $authors->updateAll(['name' => 'garrett'], ['_id >' => 2]);
         $result = $users->find()
             ->contain(['SiteAuthors'])
             ->where(['username' => 'garrett']);
 
         $expected = ['000000000000000000000003', '000000000000000000000004'];
-        $result = $result->all()->extract('site_authors.{*}.id')->toArray();
+        $result = $result->all()->extract('site_authors.{*}._id')->toArray();
         $this->assertEquals($expected, $result);
     }
 }

@@ -241,13 +241,13 @@ class AssociationTest extends TestCase
      */
     public function testBindingKeyDefault(): void
     {
-        $this->source->setPrimaryKey(['id', 'site_id']);
+        $this->source->setPrimaryKey(['_id', 'site_id']);
         $this->association
             ->shouldReceive('isOwningSide')
             ->once()
             ->andReturn(true);
         $result = $this->association->getBindingKey();
-        $this->assertEquals(['id', 'site_id'], $result);
+        $this->assertEquals(['_id', 'site_id'], $result);
     }
 
     /**

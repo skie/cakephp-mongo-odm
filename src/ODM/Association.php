@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM;
 use Cake\Core\App;
 use Cake\Core\ConventionsTrait;
 use Cake\Database\Exception\DatabaseException;
+use Cake\Database\ExpressionInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
@@ -868,17 +869,17 @@ abstract class Association
     /**
      * Sort order applied when loading target documents.
      *
-     * @var \Closure|array<string, mixed>|string|null
+     * @var \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null
      */
-    protected Closure|array|string|null $sort = null;
+    protected ExpressionInterface|Closure|array|string|null $sort = null;
 
     /**
      * Sets the sort order in which target documents should be returned.
      *
-     * @param \Closure|array<string, mixed>|string $sort A find() compatible order clause.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $sort A find() compatible order clause.
      * @return $this
      */
-    public function setSort(Closure|array|string $sort): static
+    public function setSort(ExpressionInterface|Closure|array|string $sort): static
     {
         $this->sort = $sort;
 
@@ -888,9 +889,9 @@ abstract class Association
     /**
      * Gets the sort order in which target documents should be returned.
      *
-     * @return \Closure|array<string, mixed>|string|null
+     * @return \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null
      */
-    public function getSort(): Closure|array|string|null
+    public function getSort(): ExpressionInterface|Closure|array|string|null
     {
         return $this->sort;
     }

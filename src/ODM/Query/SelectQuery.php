@@ -171,6 +171,42 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Sets the field projection.
+     *
+     * Field aliasing is handled by the Database-layer field resolver
+     * (configured in {@see \Crustum\Mongo\ODM\Query\CommonQueryTrait::configureFieldResolver()}),
+     * so this is a plain passthrough.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int $fields Fields to include/exclude.
+     * @param bool $overwrite Whether to overwrite the existing projection.
+     * @return $this
+     */
+    public function select(
+        ExpressionInterface|Closure|array|string|float|int $fields = [],
+        bool $overwrite = false,
+    ): static {
+        return parent::select($fields, $overwrite);
+    }
+
+    /**
+     * Adds fields to group by.
+     *
+     * Field aliasing is handled by the Database-layer field resolver.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string>|string $fields Fields to group by.
+     * @param bool $overwrite Whether to overwrite the existing group fields.
+     * @return $this
+     */
+    public function groupBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
+    {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
+        return parent::groupBy($fields, $overwrite);
+    }
+
+    /**
      * Provides the legacy query order alias required by QueryInterface.
      *
      * @param \Closure|array<string, mixed>|string $fields Sort fields.
@@ -180,51 +216,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function order(Closure|array|string $fields, bool $overwrite = false): static
     {
         return $this->orderBy($fields, $overwrite);
-    }
-
-    /**
-     * Adds filter conditions, mapping the cake `id` field to the canonical
-     * Mongo `_id` so `where(['id' => X])` hits the primary key.
-     *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
-     * @param array<int|string, string> $types Field => type map used to cast values.
-     * @param bool $overwrite Whether to overwrite existing conditions.
-     * @return $this
-     */
-    public function where(
-        ExpressionInterface|Closure|array|string|null $conditions = [],
-        array $types = [],
-        bool $overwrite = false,
-    ): static {
-        if (is_array($conditions)) {
-            $conditions = $this->normalizeIdConditions($conditions);
-        }
-
-        return parent::where($conditions, $types, $overwrite);
-    }
-
-    /**
-     * Recursively maps `id` (and `Alias.id`) condition keys to the canonical
-     * `_id`.
-     *
-     * @param array<int|string, mixed> $conditions The conditions.
-     * @return array<int|string, mixed>
-     */
-    protected function normalizeIdConditions(array $conditions): array
-    {
-        foreach ($conditions as $key => $value) {
-            if (is_string($key) && ($key === 'id' || preg_match('/^.+\.id$/', $key))) {
-                $conditions['_id'] = $value;
-                unset($conditions[$key]);
-                continue;
-            }
-
-            if (is_array($value)) {
-                $conditions[$key] = $this->normalizeIdConditions($value);
-            }
-        }
-
-        return $conditions;
     }
 
     /**

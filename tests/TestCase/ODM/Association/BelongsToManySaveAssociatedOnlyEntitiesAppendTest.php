@@ -33,18 +33,18 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
         parent::setUp();
         $this->tag = new BaseCollection(['alias' => 'Tags', 'collection' => 'tags']);
         $this->tag->setSchemaFromArray([
-            'id' => ['type' => 'integer'],
+            '_id' => ['type' => 'integer'],
             'name' => ['type' => 'string'],
             '_constraints' => [
-                'primary' => ['type' => 'primary', 'columns' => ['id']],
+                'primary' => ['type' => 'primary', 'columns' => ['_id']],
             ],
         ]);
         $this->article = new BaseCollection(['alias' => 'Articles', 'collection' => 'articles']);
         $this->article->setSchemaFromArray([
-            'id' => ['type' => 'integer'],
+            '_id' => ['type' => 'integer'],
             'name' => ['type' => 'string'],
             '_constraints' => [
-                'primary' => ['type' => 'primary', 'columns' => ['id']],
+                'primary' => ['type' => 'primary', 'columns' => ['_id']],
             ],
         ]);
     }
@@ -57,7 +57,7 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
         $connection = ConnectionManager::get('test_mongo');
         /** @var \Cake\Test\TestCase\ORM\Association\MockedCollection&\Mockery\MockInterface $table */
         $target = new MockedCollection(['collection' => 'tags', 'connection' => $connection]);
-        $target->setPrimaryKey('id');
+        $target->setPrimaryKey('_id');
         $table = Mockery::mock($target)->makePartial();
 
         $config = [
@@ -66,7 +66,7 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
         ];
 
         $entity = new Document([
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'First Post',
             'tags' => [
                 ['tag' => 'nope'],

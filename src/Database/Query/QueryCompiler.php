@@ -110,6 +110,34 @@ class QueryCompiler
     }
 
     /**
+     * Sets the field resolver applied to query field names.
+     *
+     * The resolver is forwarded to the condition expression builder so filter
+     * fields resolve the same way regardless of how conditions were provided
+     * (arrays or closures). When unset, fields pass through unchanged.
+     *
+     * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
+     * @return $this
+     */
+    public function setFieldResolver(?\Closure $resolver): static
+    {
+        $this->expressionBuilder->setFieldResolver($resolver);
+
+        return $this;
+    }
+
+    /**
+     * Resolves a field name through the configured resolver.
+     *
+     * @param string $field The raw field name.
+     * @return string The resolved Mongo field name.
+     */
+    protected function resolveField(string $field): string
+    {
+        return $this->expressionBuilder->resolveField($field);
+    }
+
+    /**
      * Add filter conditions to the query.
      *
      * A `Closure` receives the expression builder and must return the conditions.
@@ -230,9 +258,12 @@ class QueryCompiler
             }
 
             if (is_numeric($key)) {
-                $projection[$value] = 1;
+                $projection[$this->resolveField((string)$value)] = 1;
             } else {
-                $projection[$key] = $value;
+                $resolvedValue = is_string($value) && !str_starts_with($value, '$')
+                    ? $this->resolveField($value)
+                    : $value;
+                $projection[$this->resolveField((string)$key)] = $resolvedValue;
             }
         }
 
@@ -279,7 +310,7 @@ class QueryCompiler
                 $direction = strtolower($direction) === 'desc' ? -1 : 1;
             }
 
-            $normalized[$field] = $direction;
+            $normalized[$this->resolveField((string)$field)] = $direction;
         }
 
         $this->sort = $overwrite ? $normalized : array_merge($this->sort, $normalized);
@@ -312,7 +343,10 @@ class QueryCompiler
             $fields = [$fields];
         }
 
-        $this->group = array_merge($this->group, array_values(array_map(strval(...), $fields)));
+        $this->group = array_merge($this->group, array_values(array_map(
+            fn(string $field): string => $this->resolveField($field),
+            array_map(strval(...), $fields),
+        )));
 
         return $this;
     }

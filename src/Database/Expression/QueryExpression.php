@@ -107,6 +107,25 @@ class QueryExpression extends AbstractExpression implements Countable
     }
 
     /**
+     * Adds a field-to-field comparison (`leftField = rightField`).
+     *
+     * Compiles to `$expr` (`{$expr: {$eq: ['$leftField', '$rightField']}}`),
+     * the Mongo analog of cake's `equalFields` for SQL join conditions.
+     *
+     * @param string $leftField The left field name.
+     * @param string $rightField The right field name.
+     * @return $this
+     */
+    public function equalFields(string $leftField, string $rightField): static
+    {
+        return $this->add(new ComparisonExpression(
+            new IdentifierExpression($leftField),
+            new IdentifierExpression($rightField),
+            '$eq',
+        ));
+    }
+
+    /**
      * Adds a new condition in the form "field != value".
      *
      * @param string $field Field to compare

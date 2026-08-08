@@ -48,15 +48,25 @@ class SelectLoader implements LoaderInterface
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
-            $rawSourceKey = $many ? ($options['bindingKey'] ?? '_id') : ($options['foreignKey'] ?? '_id');
+            // Key ownership follows the relation type: belongsTo (manyToOne)
+            // stores the FK on the source and matches the target binding key;
+            // hasOne/hasMany match the target FK against the source binding key.
+            $sourceHoldsForeignKey = ($options['associationType'] ?? '') === 'manyToOne';
+            $rawSourceKey = $sourceHoldsForeignKey
+                ? ($options['foreignKey'] ?? '_id')
+                : ($options['bindingKey'] ?? '_id');
             if ($rawSourceKey === false || $rawSourceKey === null || $rawSourceKey === '') {
                 return $entities;
             }
 
             $keys = [];
             $sourceKey = (string)$rawSourceKey;
-            foreach ($entities as $entity) {
-                $key = $entity->get($sourceKey);
+            $sourcePath = isset($options['sourcePath']) ? (string)$options['sourcePath'] : '';
+            $sourceEntities = $this->collectSourceEntities($entities, $sourcePath);
+            foreach ($sourceEntities as $sourceEntity) {
+                $key = $sourceEntity instanceof EntityInterface
+                    ? $sourceEntity->get($sourceKey)
+                    : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
                 if ($key !== null) {
                     $keys[(string)$key] = $key;
                 }
@@ -66,12 +76,22 @@ class SelectLoader implements LoaderInterface
                 return $entities;
             }
 
-            $targetKey = (string)($many ? ($options['foreignKey'] ?? '_id') : ($options['bindingKey'] ?? '_id'));
-            $conditions = is_array($options['conditions'] ?? null) ? $options['conditions'] : [];
+            $targetKey = (string)($sourceHoldsForeignKey
+                ? ($options['bindingKey'] ?? '_id')
+                : ($options['foreignKey'] ?? '_id'));
+            $conditions = $options['conditions'] ?? [];
+            if ($conditions instanceof \Closure) {
+                $conditions = $conditions($query);
+            }
+            $conditions = is_array($conditions) ? $conditions : [];
             $conditions[$targetKey . ' IN'] = array_values($keys);
             $query->where($conditions);
             if (!empty($options['fields'])) {
-                $fields = (array)$options['fields'];
+                $fields = $options['fields'];
+                if ($fields instanceof \Closure) {
+                    $fields = $fields($query);
+                }
+                $fields = (array)$fields;
                 if (!in_array($targetKey, $fields, true)) {
                     $fields[] = $targetKey;
                 }
@@ -104,20 +124,93 @@ class SelectLoader implements LoaderInterface
             $property = (string)$options['nestKey'];
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
-            foreach ($entities as $entity) {
-                $value = $entity->get($sourceKey);
+            foreach ($sourceEntities as $sourceEntity) {
+                $value = $sourceEntity instanceof EntityInterface
+                    ? $sourceEntity->get($sourceKey)
+                    : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
                 $key = $value === null ? '' : (string)$value;
                 $loaded = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
 
-                if ($entity instanceof EntityInterface) {
-                    $entity->set($property, $loaded);
-                    $entity->setDirty($property, false);
-                } elseif (is_array($entity)) {
-                    $entity[$property] = $loaded;
+                if ($sourceEntity instanceof EntityInterface) {
+                    $sourceEntity->set($property, $loaded);
+                    $sourceEntity->setDirty($property, false);
+                } elseif (is_array($sourceEntity)) {
+                    $sourceEntity[$property] = $loaded;
                 }
             }
 
             return $entities;
         };
+    }
+
+    /**
+     * Collects the flat list of source entities to match against.
+     *
+     * For a top-level association this is the passed result set. For a nested
+     * association the dotted `sourcePath` (e.g. `comments.user`) is walked on
+     * each result so keys are read from the already-loaded parent entities.
+     *
+     * @param iterable<mixed> $entities The result set.
+     * @param string $sourcePath The dotted property path, or empty for top-level.
+     * @return array<int, mixed>
+     */
+    protected function collectSourceEntities(iterable $entities, string $sourcePath): array
+    {
+        if ($sourcePath === '') {
+            return is_array($entities) ? array_values($entities) : iterator_to_array($entities, false);
+        }
+
+        $segments = explode('.', $sourcePath);
+        // The last segment is this association's own property; parents are the
+        // entities that own it (the path without the final segment).
+        array_pop($segments);
+        $collected = [];
+        foreach ($entities as $entity) {
+            $this->walkSourcePath($entity, $segments, $collected);
+        }
+
+        return $collected;
+    }
+
+    /**
+     * Recursively walks a property path on an entity/array collecting leaves.
+     *
+     * @param mixed $entity The current value.
+     * @param array<int, string> $segments The remaining path segments.
+     * @param array<int, mixed> $collected The collected leaves.
+     * @return void
+     */
+    protected function walkSourcePath(mixed $entity, array $segments, array &$collected): void
+    {
+        $segment = array_shift($segments);
+        if ($segment === null) {
+            if ($entity instanceof EntityInterface || is_array($entity)) {
+                $collected[] = $entity;
+            }
+
+            return;
+        }
+
+        $value = $entity instanceof EntityInterface
+            ? $entity->get($segment)
+            : (is_array($entity) ? ($entity[$segment] ?? null) : null);
+
+        if ($value === null) {
+            return;
+        }
+
+        if (is_iterable($value) && !($value instanceof EntityInterface) && !is_array($value)) {
+            $value = iterator_to_array($value, false);
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            foreach ($value as $item) {
+                $this->walkSourcePath($item, $segments, $collected);
+            }
+
+            return;
+        }
+
+        $this->walkSourcePath($value, $segments, $collected);
     }
 }

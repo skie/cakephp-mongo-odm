@@ -9,7 +9,7 @@ namespace TestApp\Dto;
 readonly class ArticleArrayDto
 {
     public function __construct(
-        public string $id,
+        public string $_id,
         public string $title,
         public ?string $body = null,
         public ?AuthorArrayDto $author = null,
@@ -26,7 +26,7 @@ readonly class ArticleArrayDto
     public static function createFromArray(array $data, bool $ignoreMissing = false): self
     {
         return new self(
-            id: $data['id'],
+            _id: $data['_id'],
             title: $data['title'],
             body: $data['body'] ?? null,
             author: isset($data['author']) && is_array($data['author'])

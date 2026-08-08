@@ -9,13 +9,13 @@ namespace TestApp\Dto;
 readonly class CommentDto
 {
     /**
-     * @param string $id
+     * @param string $_id
      * @param string $comment
      * @param int $article_id
      * @param int $user_id
      */
     public function __construct(
-        public string $id,
+        public string $_id,
         public string $comment,
         public int $article_id,
         public int $user_id,

@@ -33,7 +33,7 @@ class ContainOptionsTest extends TestCase
 
         $this->assertNotEmpty($result->author);
         $this->assertSame('mariano', $result->author->name);
-        $this->assertSame('000000000000000000000001', $result->author->id);
+        $this->assertSame('000000000000000000000001', $result->author->getId());
     }
 
     public function testContainFieldsSlimsAssociatedDocument(): void

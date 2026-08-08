@@ -19,11 +19,16 @@ Read this together with `docs/Queries.md` (the full query surface).
 
 ## Hard rules
 
-1. **No `buildPipeline(array)` on associations.** Associations do not return stage arrays;
-   they configure the query or compose a sub-`Pipeline`.
+1. **Associations build lookup pipelines via `buildPipeline(array)`.** Contract C5
+   sanctions `Association::buildPipeline($options)` returning stage arrays; the ODM
+   `EagerLoader` appends them with `$query->pipeline($stages)` (see
+   `docs/reference/21-orm-database-boundary-proposals.md` P7). Where a sub-pipeline fits
+   better (conditions scoped inside `$lookup`), use the `lookup(..., ['pipeline' =>
+   fn (SelectQuery $q) => ...])` form instead of sequential appended stages.
 
-2. **No `$query->pipeline($stages)` with hand-built arrays.** The query-level `pipeline()`
-   exists for user escape hatches. ODM code composes through the builder / sugar methods.
+2. **`$query->pipeline($stages)` is the sanctioned composition point for
+   association stages.** Hand-built escape-hatch stages are allowed at the query
+   surface; prefer the builder / sugar methods for the long tail.
 
 3. **Filters and repository conditions go through `where()`.** Behavior filters, soft-delete,
    and any collection-level discriminator inject conditions into `where()` — the compiler
@@ -31,7 +36,8 @@ Read this together with `docs/Queries.md` (the full query surface).
 
 4. **Eager loading uses `$lookup` with a sub-`Pipeline`.** One `$lookup` per association, its
    conditions inside the sub-pipeline (nested builder or `Pipeline`), not sequential
-   `$lookup`→`$match`→`$addFields` appended stages.
+   `$lookup`→`$match`→`$addFields` appended stages. `buildPipeline()` (rule 1) is the
+   opt-in join-style variant for simple associations.
 
 5. **Association stages land before `$skip`/`$limit`.** A `limit()` in the query must apply
    after joins. Compose lookup stages ahead of pagination, never after it.
@@ -45,6 +51,20 @@ Read this together with `docs/Queries.md` (the full query surface).
 7. **Prefer query sugar; use the builder only for the long tail.** Common stages
    (`groupBy`, `window`, `lookup`, `unwind`, `addFields`, `sample`, `facet`, ...) have
    `$this`-returning sugar on the query. The builder is the escape hatch.
+
+## Field conventions (ODM layer)
+
+- **`_id` is the only primary-key name.** There is no `id` alias. `Document::getId()` /
+  `setId()` are thin sugar over `_id`; `toArray()` keeps the `_id` key.
+- **`Alias.field` keys are resolved to bare fields at the ODM query layer.**
+  `where(['Authors._id' => X])`, `orderBy(['Articles._id' => 'DESC'])`,
+  `groupBy(['Authors._id'])` — `CommonQueryTrait` strips the repository alias prefix so
+  Mongo never sees a dotted alias path. This is shared by Select, Update, and Delete
+  queries (`updateAll` / `deleteAll` / `exists` conditions resolve the same way reads do).
+- **`select()` is respected by result shaping.** `ResultSet::groupResult()` trims the root
+  document to the selected projection, so `select(['Authors.name'])` excludes the rest of
+  the root row. The Database compiler stays alias-agnostic and array-based — no query-level
+  expression tree (see `docs/reference/20-database-layer-gap-analysis.md` Finding 4).
 
 ## Patterns
 

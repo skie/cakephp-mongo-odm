@@ -9,7 +9,7 @@ namespace TestApp\Dto;
 readonly class AuthorArrayDto
 {
     public function __construct(
-        public string $id,
+        public string $_id,
         public string $name,
     ) {
     }
@@ -24,7 +24,7 @@ readonly class AuthorArrayDto
     public static function createFromArray(array $data, bool $ignoreMissing = false): self
     {
         return new self(
-            id: $data['id'],
+            _id: $data['_id'],
             name: $data['name'],
         );
     }

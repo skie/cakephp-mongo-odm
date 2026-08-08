@@ -11,14 +11,14 @@ use Cake\ORM\Attribute\CollectionOf;
 readonly class ArticleDto
 {
     /**
-     * @param string $id
+     * @param string $_id
      * @param string $title
      * @param string|null $body
      * @param \TestApp\Dto\AuthorDto|null $author
      * @param array<\TestApp\Dto\CommentDto> $comments
      */
     public function __construct(
-        public string $id,
+        public string $_id,
         public string $title,
         public ?string $body = null,
         public ?AuthorDto $author = null,

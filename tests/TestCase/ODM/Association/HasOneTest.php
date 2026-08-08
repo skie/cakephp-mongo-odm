@@ -75,7 +75,7 @@ class HasOneTest extends TestCase
             ->hasOne('Profiles')
             ->setForeignKey('user_id');
 
-        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users.id')->first();
+        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('mariano', $user->profile->first_name);
 
         $assoc
@@ -84,7 +84,7 @@ class HasOneTest extends TestCase
                 'Profiles.first_name' => 'larry',
             ]);
 
-        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users.id')->first();
+        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('larry', $user->profile->first_name);
     }
 
@@ -115,7 +115,7 @@ class HasOneTest extends TestCase
         $query = $this->user->find();
         $association->attachTo($query);
 
-        $results = $query->orderBy('Users.id')->toArray();
+        $results = $query->orderBy('Users._id')->toArray();
         $this->assertCount(1, $results, 'Only one record because of conditions & join type');
         $this->assertSame('masters', $results[0]->Profiles['last_name']);
     }
@@ -144,8 +144,8 @@ class HasOneTest extends TestCase
     {
         $this->markTestSkipped('ODM has no SQL joins; testAttachToMultiPrimaryKey is SQL-only (F25).');
         $selectTypeMap = new TypeMap([
-            'Profiles.id' => 'integer',
-            'id' => 'integer',
+            'Profiles._id' => 'integer',
+            '_id' => 'integer',
             'Profiles.first_name' => 'string',
             'first_name' => 'string',
             'Profiles.user_id' => 'integer',
@@ -166,7 +166,7 @@ class HasOneTest extends TestCase
             'foreignKey' => ['user_id', 'user_site_id'],
         ];
 
-        $this->user->setPrimaryKey(['id', 'site_id']);
+        $this->user->setPrimaryKey(['_id', 'site_id']);
         $association = new HasOne('Profiles', $this->user, $config);
 
         $query = new SelectQuery($this->user);
@@ -176,7 +176,7 @@ class HasOneTest extends TestCase
             'Profiles' => [
                 'conditions' => new QueryExpression([
                     'Profiles.is_active' => true,
-                    ['Users.id' => $field1, 'Users.site_id' => $field2],
+                    ['Users._id' => $field1, 'Users.site_id' => $field2],
                 ], $selectTypeMap),
                 'type' => 'LEFT',
                 'collection' => 'profiles',
@@ -201,7 +201,7 @@ class HasOneTest extends TestCase
             'target' => $this->profile,
             'conditions' => ['Profiles.is_active' => true],
         ];
-        $this->user->setPrimaryKey(['id', 'site_id']);
+        $this->user->setPrimaryKey(['_id', 'site_id']);
         $association = new HasOne('Profiles', $this->user, $config);
         $association->attachTo($query, ['includeFields' => false]);
     }
@@ -323,7 +323,7 @@ class HasOneTest extends TestCase
             $this->fail('Callbacks should not be triggered when callbacks do not cascade.');
         });
 
-        $entity = new Document(['id' => '000000000000000000000001']);
+        $entity = new Document(['_id' => '000000000000000000000001']);
         $association->cascadeDelete($entity);
 
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000001']);
@@ -332,7 +332,7 @@ class HasOneTest extends TestCase
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000003']);
         $this->assertSame(1, $query->count(), 'other records left behind');
 
-        $user = new Document(['id' => '000000000000000000000003']);
+        $user = new Document(['_id' => '000000000000000000000003']);
         $this->assertTrue($association->cascadeDelete($user));
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000003']);
         $this->assertSame(0, $query->count(), 'Matching record was deleted.');
@@ -381,7 +381,7 @@ class HasOneTest extends TestCase
         ];
         $association = new HasOne('Profiles', $this->user, $config);
 
-        $user = new Document(['id' => '000000000000000000000001']);
+        $user = new Document(['_id' => '000000000000000000000001']);
         $this->assertTrue($association->cascadeDelete($user));
 
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000001']);
@@ -390,7 +390,7 @@ class HasOneTest extends TestCase
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000003']);
         $this->assertSame(1, $query->count(), 'other records left behind');
 
-        $user = new Document(['id' => '000000000000000000000003']);
+        $user = new Document(['_id' => '000000000000000000000003']);
         $this->assertTrue($association->cascadeDelete($user));
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000003']);
         $this->assertSame(0, $query->count(), 'Matching record was deleted.');
@@ -414,10 +414,10 @@ class HasOneTest extends TestCase
             });
         });
 
-        $user = new Document(['id' => '000000000000000000000001']);
+        $user = new Document(['_id' => '000000000000000000000001']);
         $this->assertFalse($association->cascadeDelete($user));
         $matching = $profiles->find()
-            ->where(['Profiles.user_id' => $user->id])
+            ->where(['Profiles.user_id' => $user->getId()])
             ->all();
         $this->assertGreaterThan(0, count($matching));
     }

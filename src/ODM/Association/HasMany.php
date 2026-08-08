@@ -352,6 +352,7 @@ class HasMany extends Association
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),
             'associationType' => $this->type(),
+            'sort' => $this->getSort(),
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];

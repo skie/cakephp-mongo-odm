@@ -3,7 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
+use Cake\Database\ExpressionInterface;
+use Cake\Database\Expression\OrderClauseExpression;
+use Cake\Database\ValueBinder;
 use Cake\Datasource\RepositoryInterface;
+use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
@@ -45,8 +49,36 @@ trait CommonQueryTrait
         if ($connection instanceof Connection) {
             $this->setConnection($connection);
         }
+        $this->configureFieldResolver();
 
         return $this;
+    }
+
+    /**
+     * Configures the Database-layer field resolver for this repository.
+     *
+     * Mongo has no table aliases, so `Alias.field` keys are stripped to their
+     * bare field (`Alias._id` → `_id`) at compilation time — the Mongo analog
+     * of cake's `IdentifierQuoter`. This is set once here, shared by Select,
+     * Update, and Delete queries, so `where` / `orderBy` / `select` / `groupBy`
+     * / `updateAll` / `deleteAll` / `exists` all resolve identically without
+     * per-method interception.
+     *
+     * @return void
+     */
+    protected function configureFieldResolver(): void
+    {
+        $alias = $this->repository?->getAlias();
+        if ($alias === null || $alias === '') {
+            return;
+        }
+
+        $this->setFieldResolver(
+            static fn(string $field): string =>
+                str_starts_with($field, $alias . '.')
+                    ? substr($field, strlen($alias) + 1)
+                    : $field,
+        );
     }
 
     /**
@@ -81,6 +113,61 @@ trait CommonQueryTrait
         $this->getTypeMap()->addDefaults($types);
 
         return $this;
+    }
+
+    /**
+     * Adds filter conditions.
+     *
+     * Field aliasing is handled by the Database-layer field resolver
+     * (configured in {@see configureFieldResolver()}), so this is a plain
+     * passthrough. Closures are resolved by the Database query layer
+     * recursively, mirroring cake.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions The conditions.
+     * @param array<int|string, string> $types Field => type map used to cast values.
+     * @param bool $overwrite Whether to overwrite existing conditions.
+     * @return $this
+     */
+    public function where(
+        ExpressionInterface|Closure|array|string|null $conditions = [],
+        array $types = [],
+        bool $overwrite = false,
+    ): static {
+        return parent::where($conditions, $types, $overwrite);
+    }
+
+    /**
+     * Adds sort order.
+     *
+     * Only the cake `OrderClauseExpression` form needs translation here; field
+     * aliasing is handled by the Database-layer field resolver.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $fields Fields to sort by.
+     * @param bool $overwrite Whether to overwrite the existing sort.
+     * @return $this
+     */
+    public function orderBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
+    {
+        if ($fields instanceof OrderClauseExpression) {
+            $fields = [(string)$fields->getField() => $this->orderDirection($fields)];
+        }
+
+        return parent::orderBy($fields, $overwrite);
+    }
+
+    /**
+     * Reads the direction of an order clause expression.
+     *
+     * `OrderClauseExpression` exposes no direction getter; the direction is
+     * derived from its rendered SQL (`field DIRECTION`), which is stable for
+     * the plain field/direction constructor shape used here.
+     *
+     * @param \Cake\Database\Expression\OrderClauseExpression $expression The order clause.
+     * @return string
+     */
+    protected function orderDirection(OrderClauseExpression $expression): string
+    {
+        return str_ends_with($expression->sql(new ValueBinder()), ' DESC') ? 'DESC' : 'ASC';
     }
 
     /**

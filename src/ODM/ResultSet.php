@@ -14,7 +14,6 @@ use Crustum\Mongo\ODM\Association\Embedded;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use IteratorIterator;
-use MongoDB\BSON\ObjectId;
 use MongoDB\Model\BSONDocument;
 
 /**
@@ -124,8 +123,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         if (!$this->query || !$this->query->isHydrationEnabled() || $this->query->isDtoProjectionEnabled()) {
             if (is_array($result) || $result instanceof BSONDocument) {
-                $data = $this->exposeId((array)$result);
-                $data = $this->convertRow($data);
+                $data = $this->convertRow((array)$result);
 
                 return $this->hydrated[$index] = $data;
             }
@@ -134,53 +132,12 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
 
         if (is_array($result) || $result instanceof BSONDocument) {
-            $data = $this->mapId((array)$result);
-            $data = $this->convertRow($data);
+            $data = $this->convertRow((array)$result);
 
             return $this->hydrated[$index] = $this->groupResult($data);
         }
 
         return $this->hydrated[$index] = $result;
-    }
-
-    /**
-     * Exposes the canonical `_id` as `id` (string form) while keeping `_id`.
-     *
-     * Hydrated Documents keep the canonical `_id` internally (Marshaller,
-     * associations, rules read `get('_id')`); `id` is prepended for cake
-     * key-order parity in `toArray()` / JSON output.
-     *
-     * @param array<string, mixed> $row The raw row.
-     * @return array<string, mixed>
-     */
-    protected function mapId(array $row): array
-    {
-        if (array_key_exists('_id', $row)) {
-            $id = $row['_id'];
-            $row = ['id' => $id instanceof ObjectId ? (string)$id : $id] + $row;
-        }
-
-        return $row;
-    }
-
-    /**
-     * Exposes the canonical `_id` as `id` (string form) in a raw row.
-     *
-     * The `_id` key is renamed (not duplicated) so unhydrated rows and DTO
-     * mapping see exactly what cake's result rows expose.
-     *
-     * @param array<string, mixed> $row The raw row.
-     * @return array<string, mixed>
-     */
-    protected function exposeId(array $row): array
-    {
-        if (array_key_exists('_id', $row)) {
-            $id = $row['_id'];
-            $row['id'] = $id instanceof ObjectId ? (string)$id : $id;
-            unset($row['_id']);
-        }
-
-        return $row;
     }
 
     /**
@@ -230,73 +187,62 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             return;
         }
 
-        $eagerLoader = $query->getEagerLoader();
-        $contain = $eagerLoader->getContain();
-
-        $this->_containMap = $this->_buildAssociationMap($contain, $repository);
-    }
-
-    /**
-     * Builds the association map recursively.
-     *
-     * @param array<int|string, mixed> $contain The containments array.
-     * @param \Crustum\Mongo\ODM\BaseCollection $repository The current repository.
-     * @param string $path The current contain path.
-     * @return array<string, array{instance: \Crustum\Mongo\ODM\Association, config: array<string, mixed>, nestKey: string, matching: bool}>
-     */
-    protected function _buildAssociationMap(array $contain, BaseCollection $repository, string $path = ''): array
-    {
         $map = [];
-
-        foreach ($contain as $alias => $options) {
-            $association = $repository->getAssociation((string)$alias);
-            if (!$association instanceof Association) {
-                continue;
-            }
-
-            $fullPath = $path !== '' && $path !== '0' ? $path . '.' . $alias : (string)$alias;
-            $config = is_array($options) ? $options : [];
-
-            $map[$fullPath] = [
-                'instance' => $association,
-                'config' => $config,
-                'nestKey' => (string)$alias,
-                'matching' => !empty($config['matching']),
+        foreach ($query->getEagerLoader()->associationsMap($repository) as $entry) {
+            $map[$entry['aliasPath']] = [
+                'instance' => $entry['instance'],
+                'config' => $entry['config'],
+                'nestKey' => $entry['nestKey'],
+                'matching' => $entry['matching'],
             ];
-
-            $nested = $this->_containOptions($config);
-            if ($nested !== []) {
-                $target = $association->getTarget();
-                $map = array_merge($map, $this->_buildAssociationMap($nested, $target, $fullPath));
-            }
         }
 
-        return $map;
+        $this->_containMap = $map;
     }
 
     /**
-     * Extracts nested association options from a contain entry.
+     * Trims a root row to the fields selected via `select()`.
      *
-     * @param array<int|string, mixed> $config The contain options.
-     * @return array<int|string, mixed>
+     * Mongo rows are already nested, so a projection filters the root document
+     * fields. Include-style projections (`field => 1`) keep only the listed
+     * fields; exclude-style projections (`field => 0`) drop the listed fields.
+     * Nested association data is left untouched — it is deconstructed before
+     * the entity is built. A missing key (e.g. `_id` not selected) surfaces as
+     * absent on the row, so eager loading can detect unusable selects.
+     *
+     * @param array<string, mixed> $row The converted row data.
+     * @return array<string, mixed>
      */
-    protected function _containOptions(array $config): array
+    protected function applySelectClause(array $row): array
     {
-        $nested = [];
-        foreach ($config as $key => $value) {
-            if (
-                !is_int($key) && in_array($key, [
-                'strategy', 'fields', 'conditions', 'sort', 'matching', 'queryBuilder',
-                'foreignKey', 'limit', 'skip', 'config',
-                ], true)
-            ) {
-                continue;
-            }
-
-            $nested[$key] = $value;
+        $projection = $this->query?->clause('select') ?? [];
+        if ($projection === []) {
+            return $row;
         }
 
-        return $nested;
+        $exclude = array_all(
+            $projection,
+            fn(mixed $v): bool => (int)$v === 0,
+        );
+
+        if ($exclude) {
+            $row = array_diff_key($row, array_flip(array_keys($projection)));
+        } else {
+            // Include-style projection: keep keys whose bare field matches a
+            // projection key, or whose mapped value is a string field name.
+            $keep = [];
+            foreach ($projection as $key => $value) {
+                if ((int)$value === 1) {
+                    $keep[] = (string)$key;
+                } elseif (is_string($value) && !str_starts_with($value, '$')) {
+                    $keep[] = $value;
+                }
+            }
+
+            $row = array_intersect_key($row, array_fill_keys($keep, true));
+        }
+
+        return $row;
     }
 
     /**
@@ -311,6 +257,8 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         if (!$repository instanceof BaseCollection) {
             return new Document($row, ['source' => null]);
         }
+
+        $row = $this->applySelectClause($row);
 
         $results = [];
         $matching = [];
@@ -371,7 +319,6 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
      */
     protected function hydrateRow(array $row, BaseCollection $repository): EntityInterface
     {
-        $row = $this->mapId($row);
         $row = $this->convertRow($row);
 
         return $repository->newEntity($row, [

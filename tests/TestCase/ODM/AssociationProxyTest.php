@@ -89,7 +89,7 @@ class AssociationProxyTest extends TestCase
         $articles = $this->getCollectionLocator()->get('articles');
         $authors = $this->getCollectionLocator()->get('authors');
         // Exclude a record from the published finder.
-        $articles->updateAll(['published' => 'N'], ['id' => '000000000000000000000001']);
+        $articles->updateAll(['published' => 'N'], ['_id' => '000000000000000000000001']);
 
         $authors->Articles->setFinder('published');
         $authors->Articles->updateAll(['published' => '?'], '1=1');
@@ -125,7 +125,7 @@ class AssociationProxyTest extends TestCase
         $articles = $this->getCollectionLocator()->get('articles');
         $authors = $this->getCollectionLocator()->get('authors');
         // Exclude a record from the published finder.
-        $articles->updateAll(['published' => 'N'], ['id' => '000000000000000000000001']);
+        $articles->updateAll(['published' => 'N'], ['_id' => '000000000000000000000001']);
 
         $authors->Articles->setFinder('published');
         $authors->Articles->deleteAll('1=1');

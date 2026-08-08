@@ -18,7 +18,8 @@ use MongoDB\Model\BSONDocument;
  *
  * This entity uses the CakePHP entity trait for accessors, dirty tracking,
  * original values, errors, visibility, and guarded properties. MongoDB's
- * `_id` field remains canonical; `id` is only an accessor convenience.
+ * `_id` field is the canonical primary key; `getId()`/`setId()` are thin
+ * sugar over it. There is no `id` alias field.
  *
  * @see cake60/src/Datasource/EntityTrait.php
  * @implements \ArrayAccess<string, mixed>
@@ -26,7 +27,6 @@ use MongoDB\Model\BSONDocument;
 class Document implements EntityInterface, ArrayAccess
 {
     use EntityTrait {
-        __get as protected entityGet;
         toArray as protected entityToArray;
     }
 
@@ -75,29 +75,6 @@ class Document implements EntityInterface, ArrayAccess
         if ($options['markClean']) {
             $this->clean();
         }
-    }
-
-    /**
-     * Gets a document property.
-     *
-     * The `id` property is mapped to MongoDB's canonical `_id` field.
-     *
-     * @param string $field The property name.
-     * @return mixed The property value.
-     */
-    public function &__get(string $field): mixed
-    {
-        if ($field === 'id') {
-            if (array_key_exists('_id', $this->_fields)) {
-                $id = $this->getId();
-
-                return $id;
-            }
-
-            return $this->entityGet($field);
-        }
-
-        return $this->entityGet($field);
     }
 
     /**
@@ -153,22 +130,15 @@ class Document implements EntityInterface, ArrayAccess
     /**
      * Converts the entity into a BSON-friendly array representation.
      *
-     * The canonical `_id` field is exposed as `id` so results match the cake
-     * `Entity` contract (`toArray()`, JSON, groupBy, DTO mapping all see `id`).
+     * The canonical `_id` key is preserved (values converted to strings for
+     * ObjectId / Decimal128 and formatted dates), so output matches the Mongo
+     * document shape. There is no `id` alias key.
      *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
-        $data = $this->exportValue($this->entityToArray());
-
-        if (array_key_exists('_id', $data)) {
-            $id = $data['_id'];
-            $data['id'] = $id instanceof ObjectId ? (string)$id : $id;
-            unset($data['_id']);
-        }
-
-        return $data;
+        return $this->exportValue($this->entityToArray());
     }
 
     /**

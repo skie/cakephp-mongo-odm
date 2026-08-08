@@ -28,6 +28,43 @@ class QueryBuilder
     protected array $_conditions = [];
 
     /**
+     * Optional field resolver applied to condition field names.
+     *
+     * The Database layer is alias-agnostic; when set (by the ODM layer), every
+     * condition field is passed through this callable so repository aliases
+     * (`Alias.field`) become bare Mongo fields before compilation.
+     *
+     * @var \Closure|null
+     */
+    protected ?\Closure $fieldResolver = null;
+
+    /**
+     * Sets the field resolver applied to condition field names.
+     *
+     * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
+     * @return $this
+     */
+    public function setFieldResolver(?\Closure $resolver): static
+    {
+        $this->fieldResolver = $resolver;
+
+        return $this;
+    }
+
+    /**
+     * Resolves a condition field name through the configured resolver.
+     *
+     * @param string $field The raw field name.
+     * @return string The resolved Mongo field name.
+     */
+    public function resolveField(string $field): string
+    {
+        return $this->fieldResolver !== null
+            ? ($this->fieldResolver)($field)
+            : $field;
+    }
+
+    /**
      * Add conditions to the query
      *
      * @param \Crustum\Mongo\Database\Expression\Expression|array<string, mixed>|string $conditions The conditions to add
@@ -339,7 +376,7 @@ class QueryBuilder
                                         $field = explode(' ', $nk)[0];
                                     }
 
-                                    $nestedConditions[$field] = $this->parseCondition($nk, $nv);
+                            $nestedConditions[$this->resolveField($field)] = $this->parseCondition($nk, $nv);
                                 }
                             }
 
@@ -364,7 +401,7 @@ class QueryBuilder
                                 $field = explode(' ', $k)[0];
                             }
 
-                            $parsed[] = [$field => $this->parseCondition($k, $v)];
+                            $parsed[] = [$this->resolveField($field) => $this->parseCondition($k, $v)];
                         } elseif (is_array($v)) {
                             $parsed[] = $this->parse($v);
                         }
@@ -377,7 +414,16 @@ class QueryBuilder
             }
 
             if (is_string($key) && str_starts_with($key, '$')) {
-                $result[$key] = $value;
+                if (is_array($value)) {
+                    if (in_array(strtoupper($key), ['$OR', '$AND', '$NOR'], true)) {
+                        $result[$key] = array_map(fn(mixed $c): mixed => is_array($c) ? $this->parse($c) : $c, $value);
+                    } else {
+                        $result[$key] = $this->parseExprValue($value);
+                    }
+                } else {
+                    $result[$key] = $value;
+                }
+
                 continue;
             }
 
@@ -399,16 +445,47 @@ class QueryBuilder
                 $field = explode(' ', $key)[0];
             }
 
+            $resolvedField = $this->resolveField($field);
             $parsedCondition = $this->parseCondition($key, $value);
             if (isset($result[$field]) && is_array($result[$field]) && is_array($parsedCondition)) {
                 $operator = key($parsedCondition);
-                $result[$field] = isset($result[$field][$operator]) ? $parsedCondition : array_merge($result[$field], $parsedCondition);
+                $result[$resolvedField] = isset($result[$field][$operator]) ? $parsedCondition : array_merge($result[$field], $parsedCondition);
             } else {
-                $result[$field] = $parsedCondition;
+                $result[$resolvedField] = $parsedCondition;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Parses an `$expr`-style value, resolving field-path operands.
+     *
+     * `$expr` operands are `$field` strings (e.g. `$Author.user_id`). Array
+     * values recurse; `$field` strings that carry the repository alias prefix
+     * are resolved to bare fields (`$Author.user_id` → `$user_id`).
+     *
+     * @param mixed $value The `$expr` operand value.
+     * @return mixed
+     */
+    protected function parseExprValue(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $resolved = [];
+            foreach ($value as $k => $v) {
+                $resolved[$k] = is_string($k) && str_starts_with($k, '$') && in_array(strtoupper($k), ['$AND', '$OR', '$NOR'], true)
+                    ? $this->parseExprValue($v)
+                    : $this->parseExprValue($v);
+            }
+
+            return $resolved;
+        }
+
+        if (is_string($value) && str_starts_with($value, '$')) {
+            return '$' . $this->resolveField(substr($value, 1));
+        }
+
+        return $value;
     }
 
     /**

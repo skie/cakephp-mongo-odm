@@ -34,7 +34,7 @@ class DtoMapperTest extends TestCase
     public function testMapSimpleDto(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'body' => 'Test Body',
         ];
@@ -42,7 +42,7 @@ class DtoMapperTest extends TestCase
         $dto = $this->mapper->map($data, SimpleArticleDto::class);
 
         $this->assertInstanceOf(SimpleArticleDto::class, $dto);
-        $this->assertSame('000000000000000000000001', $dto->id);
+        $this->assertSame('000000000000000000000001', $dto->_id);
         $this->assertSame('Test Article', $dto->title);
         $this->assertSame('Test Body', $dto->body);
     }
@@ -50,14 +50,14 @@ class DtoMapperTest extends TestCase
     public function testMapWithNullableField(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
         ];
 
         $dto = $this->mapper->map($data, SimpleArticleDto::class);
 
         $this->assertInstanceOf(SimpleArticleDto::class, $dto);
-        $this->assertSame('000000000000000000000001', $dto->id);
+        $this->assertSame('000000000000000000000001', $dto->_id);
         $this->assertSame('Test Article', $dto->title);
         $this->assertNull($dto->body);
     }
@@ -65,7 +65,7 @@ class DtoMapperTest extends TestCase
     public function testMapWithDefaultValue(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
         ];
 
@@ -78,10 +78,10 @@ class DtoMapperTest extends TestCase
     public function testMapNestedDto(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'author' => [
-                'id' => '000000000000000000000010',
+                '_id' => '000000000000000000000010',
                 'name' => 'John Doe',
             ],
         ];
@@ -90,14 +90,14 @@ class DtoMapperTest extends TestCase
 
         $this->assertInstanceOf(ArticleDto::class, $dto);
         $this->assertInstanceOf(AuthorDto::class, $dto->author);
-        $this->assertSame('000000000000000000000010', $dto->author->id);
+        $this->assertSame('000000000000000000000010', $dto->author->_id);
         $this->assertSame('John Doe', $dto->author->name);
     }
 
     public function testMapNestedDtoNull(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'author' => null,
         ];
@@ -111,11 +111,11 @@ class DtoMapperTest extends TestCase
     public function testMapCollectionOfDtos(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'comments' => [
-                ['id' => '000000000000000000000001', 'comment' => 'First comment', 'article_id' => 1, 'user_id' => 1],
-                ['id' => '000000000000000000000002', 'comment' => 'Second comment', 'article_id' => 1, 'user_id' => 2],
+                ['_id' => '000000000000000000000001', 'comment' => 'First comment', 'article_id' => 1, 'user_id' => 1],
+                ['_id' => '000000000000000000000002', 'comment' => 'Second comment', 'article_id' => 1, 'user_id' => 2],
             ],
         ];
 
@@ -132,7 +132,7 @@ class DtoMapperTest extends TestCase
     public function testMapCollectionEmpty(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'comments' => [],
         ];
@@ -146,7 +146,7 @@ class DtoMapperTest extends TestCase
     public function testMapWithExtraFields(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'body' => 'Test Body',
             'extra_field' => 'ignored',
@@ -156,7 +156,7 @@ class DtoMapperTest extends TestCase
         $dto = $this->mapper->map($data, SimpleArticleDto::class);
 
         $this->assertInstanceOf(SimpleArticleDto::class, $dto);
-        $this->assertSame('000000000000000000000001', $dto->id);
+        $this->assertSame('000000000000000000000001', $dto->_id);
         $this->assertSame('Test Article', $dto->title);
         $this->assertSame('Test Body', $dto->body);
     }
@@ -164,29 +164,29 @@ class DtoMapperTest extends TestCase
     public function testMapComplexNestedStructure(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'body' => 'Test Body',
             'author' => [
-                'id' => '000000000000000000000010',
+                '_id' => '000000000000000000000010',
                 'name' => 'Jane Doe',
             ],
             'comments' => [
-                ['id' => '000000000000000000000001', 'comment' => 'Great article!', 'article_id' => 1, 'user_id' => 5],
-                ['id' => '000000000000000000000002', 'comment' => 'Thanks for sharing', 'article_id' => 1, 'user_id' => 6],
-                ['id' => '000000000000000000000003', 'comment' => 'Very helpful', 'article_id' => 1, 'user_id' => 7],
+                ['_id' => '000000000000000000000001', 'comment' => 'Great article!', 'article_id' => 1, 'user_id' => 5],
+                ['_id' => '000000000000000000000002', 'comment' => 'Thanks for sharing', 'article_id' => 1, 'user_id' => 6],
+                ['_id' => '000000000000000000000003', 'comment' => 'Very helpful', 'article_id' => 1, 'user_id' => 7],
             ],
         ];
 
         $dto = $this->mapper->map($data, ArticleDto::class);
 
         $this->assertInstanceOf(ArticleDto::class, $dto);
-        $this->assertSame('000000000000000000000001', $dto->id);
+        $this->assertSame('000000000000000000000001', $dto->_id);
         $this->assertSame('Test Article', $dto->title);
         $this->assertSame('Test Body', $dto->body);
 
         $this->assertInstanceOf(AuthorDto::class, $dto->author);
-        $this->assertSame('000000000000000000000010', $dto->author->id);
+        $this->assertSame('000000000000000000000010', $dto->author->_id);
         $this->assertSame('Jane Doe', $dto->author->name);
 
         $this->assertCount(3, $dto->comments);
@@ -196,7 +196,7 @@ class DtoMapperTest extends TestCase
 
     public function testCacheIsUsed(): void
     {
-        $data = ['id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body'];
+        $data = ['_id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body'];
 
         // First call populates cache
         $this->mapper->map($data, SimpleArticleDto::class);
@@ -209,7 +209,7 @@ class DtoMapperTest extends TestCase
 
     public function testClearCache(): void
     {
-        $data = ['id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body'];
+        $data = ['_id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body'];
 
         $this->mapper->map($data, SimpleArticleDto::class);
 
@@ -227,7 +227,7 @@ class DtoMapperTest extends TestCase
         $modified = new DateTime('2024-06-20 14:45:00');
 
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'created' => $created,
             'modified' => $modified,
@@ -236,7 +236,7 @@ class DtoMapperTest extends TestCase
         $dto = $this->mapper->map($data, ArticleWithDatesDto::class);
 
         $this->assertInstanceOf(ArticleWithDatesDto::class, $dto);
-        $this->assertSame('000000000000000000000001', $dto->id);
+        $this->assertSame('000000000000000000000001', $dto->_id);
         $this->assertSame('Test Article', $dto->title);
         // DateTime objects should be passed through, not mapped
         $this->assertSame($created, $dto->created);
@@ -246,7 +246,7 @@ class DtoMapperTest extends TestCase
     public function testMapWithNullDateTime(): void
     {
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'created' => null,
             'modified' => null,

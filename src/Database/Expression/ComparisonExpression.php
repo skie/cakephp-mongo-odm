@@ -22,11 +22,11 @@ class ComparisonExpression extends AbstractExpression
     ];
 
     /**
-     * The field name
+     * The field name, or an identifier reference for field-to-field comparisons.
      *
-     * @var string
+     * @var string|\Crustum\Mongo\Database\Expression\IdentifierExpression
      */
-    protected string $field;
+    protected string|IdentifierExpression $field;
 
     /**
      * The value to compare
@@ -45,15 +45,38 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Constructor
      *
-     * @param string $field Field name
-     * @param mixed $value Value to compare
-     * @param string $operator Comparison operator
+     * @param string|\Crustum\Mongo\Database\Expression\IdentifierExpression $field Field name or identifier reference.
+     * @param mixed $value Value to compare.
+     * @param string $operator Comparison operator.
      */
-    public function __construct(string $field, mixed $value, string $operator)
+    public function __construct(string|IdentifierExpression $field, mixed $value, string $operator)
     {
         $this->field = $field;
         $this->value = $value;
         $this->operator = self::OPERATORS[$operator] ?? $operator;
+    }
+
+    /**
+     * Gets the compared field.
+     *
+     * @return string|\Crustum\Mongo\Database\Expression\IdentifierExpression
+     */
+    public function getField(): string|IdentifierExpression
+    {
+        return $this->field;
+    }
+
+    /**
+     * Sets the compared field.
+     *
+     * @param string|\Crustum\Mongo\Database\Expression\IdentifierExpression $field The field name or identifier reference.
+     * @return $this
+     */
+    public function setField(string|IdentifierExpression $field): static
+    {
+        $this->field = $field;
+
+        return $this;
     }
 
     /**
@@ -76,13 +99,33 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Compile the expression to MongoDB query format
      *
+     * A comparison between two identifier references (field-to-field) compiles
+     * to an `$expr` document (`{$expr: {$op: ['$left', '$right']}}`); a
+     * field-to-value comparison compiles to the regular `{field: value}` form.
+     *
      * @return array<string, mixed>
      */
     protected function compile(): array
     {
         $value = $this->value;
-        if ($value instanceof MongoExpressionInterface) {
+        if ($value instanceof MongoExpressionInterface && !$value instanceof IdentifierExpression) {
             $value = $value->getConditions();
+        }
+
+        if ($this->field instanceof IdentifierExpression) {
+            $fieldPath = $this->exprPath($this->field->getIdentifier());
+
+            return [
+                '$expr' => [$this->operator => [$fieldPath, $this->exprValue($value)]],
+            ];
+        }
+
+        if ($value instanceof IdentifierExpression) {
+            $valuePath = $this->exprPath($value->getIdentifier());
+
+            return [
+                '$expr' => [$this->operator => ['$' . (string)$this->field, $valuePath]],
+            ];
         }
 
         if ($this->operator === '$eq') {
@@ -92,6 +135,32 @@ class ComparisonExpression extends AbstractExpression
         return [
             $this->field => [$this->operator => $value],
         ];
+    }
+
+    /**
+     * Normalizes an identifier-wrapped operand to its `$field` path.
+     *
+     * @param mixed $value The operand.
+     * @return mixed The `$field` path or the raw value.
+     */
+    protected function exprValue(mixed $value): mixed
+    {
+        return $value instanceof IdentifierExpression
+            ? $this->exprPath($value->getIdentifier())
+            : $value;
+    }
+
+    /**
+     * Prefixes a field name with `$` unless it already carries one.
+     *
+     * Let variables (`$$name`) keep their double prefix.
+     *
+     * @param string $field The field name.
+     * @return string The `$field` path.
+     */
+    protected function exprPath(string $field): string
+    {
+        return str_starts_with($field, '$') ? $field : '$' . $field;
     }
 
     /**

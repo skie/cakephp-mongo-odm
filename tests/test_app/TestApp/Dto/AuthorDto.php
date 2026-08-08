@@ -9,11 +9,11 @@ namespace TestApp\Dto;
 readonly class AuthorDto
 {
     /**
-     * @param string $id
+     * @param string $_id
      * @param string $name
      */
     public function __construct(
-        public string $id,
+        public string $_id,
         public string $name,
     ) {
     }

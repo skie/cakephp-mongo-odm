@@ -123,6 +123,48 @@ final class EagerLoader
         foreach ($this->normalized($repository) as $loadable) {
             $this->dispatch($loadable, $query);
         }
+
+        $this->ensureKeyFieldsSelected($query, $repository);
+    }
+
+    /**
+     * Ensures belongsTo foreign keys are present in the projection.
+     *
+     * A `belongsTo` association reads its key from the source row, so an
+     * explicit `select()` that omits the foreign key would break eager
+     * loading. Mirroring cake's auto-fields behaviour, the foreign key is
+     * appended for `belongsTo` associations. HasMany/HasOne read their key
+     * from the source primary key (`_id`), which cake requires to be selected
+     * explicitly — omitting it is a real "Unable to load" error.
+     *
+     * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return void
+     */
+    protected function ensureKeyFieldsSelected(SelectQuery $query, BaseCollection $repository): void
+    {
+        $projection = $query->clause('select');
+        if ($projection === [] || $this->external === []) {
+            return;
+        }
+
+        $alias = $repository->getAlias();
+        foreach ($this->external as $loadable) {
+            $instance = $loadable->instance();
+            if ($instance === null || $instance->type() !== Association::MANY_TO_ONE) {
+                continue;
+            }
+
+            $key = $instance->getForeignKey();
+            if (is_array($key)) {
+                $key = $key[0] ?? null;
+            }
+            if ($key === null || $key === false || array_key_exists($key, $projection)) {
+                continue;
+            }
+
+            $query->select([$alias . '.' . $key]);
+        }
     }
 
     /**
@@ -169,18 +211,19 @@ final class EagerLoader
                 continue;
             }
 
-            // cake60: a non-nested association whose foreign key is missing
-            // from the selected source fields cannot be eager loaded.
+            // cake60: a non-nested association whose binding/foreign key is
+            // missing from the selected source fields cannot be eager loaded.
             $aliasPath = $loadable->aliasPath();
-            $isBelongsTo = $instance->type() === Association::MANY_TO_ONE;
-            if (!str_contains($aliasPath, '.') && $isBelongsTo && $instance->requiresKeys($loadable->getConfig())) {
-                $sourceAlias = $instance->getSource()->getAlias();
-                $foreignKey = $instance->getForeignKey();
-                $fkField = is_array($foreignKey) ? ($foreignKey[0] ?? null) : $foreignKey;
-                if ($fkField !== null && $fkField !== false) {
+            if (!str_contains($aliasPath, '.') && $instance->requiresKeys($loadable->getConfig())) {
+                $source = $instance->getSource();
+                $keyField = $instance->type() === Association::MANY_TO_ONE
+                    ? $instance->getForeignKey()
+                    : $instance->getBindingKey();
+                $keyField = is_array($keyField) ? ($keyField[0] ?? null) : $keyField;
+                if ($keyField !== null && $keyField !== false) {
                     foreach ($results as $result) {
-                        if ($result instanceof Document && !$result->has($fkField)) {
-                            $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$sourceAlias}` is selected.";
+                        if ($result instanceof Document && !$result->has($keyField)) {
+                            $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$source->getAlias()}` is selected.";
                             throw new InvalidArgumentException($message);
                         }
                     }
@@ -190,6 +233,7 @@ final class EagerLoader
             $callback = $instance->eagerLoader($loadable->getConfig() + [
                 'query' => $query,
                 'contain' => $loadable->associations(),
+                'sourcePath' => $loadable->propertyPath(),
             ]);
             $results = $callback($results);
         }
@@ -327,9 +371,13 @@ final class EagerLoader
         foreach ($options as $nestedAlias => $nestedOptions) {
             if (!isset($this->containOptions[$nestedAlias])) {
                 $nestedOptions = is_array($nestedOptions) ? $nestedOptions : [];
+                $nestedAssociation = $target->getAssociation($nestedAlias);
+                $nestedProperty = $nestedAssociation instanceof Association
+                    ? $nestedAssociation->getProperty()
+                    : strtolower((string)$nestedAlias);
                 $loadable->addAssociation(
                     $nestedAlias,
-                    $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath . '.' . strtolower($nestedAlias)),
+                    $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath . '.' . $nestedProperty),
                 );
             }
         }
@@ -411,7 +459,16 @@ final class EagerLoader
     private function map(array $loadables, array &$map): void
     {
         foreach ($loadables as $loadable) {
-            $map[] = ['alias' => $loadable->name(), 'aliasPath' => $loadable->aliasPath(), 'propertyPath' => $loadable->propertyPath(), 'strategy' => $loadable->getConfig()['strategy']];
+            $map[] = [
+                'alias' => $loadable->name(),
+                'aliasPath' => $loadable->aliasPath(),
+                'propertyPath' => $loadable->propertyPath(),
+                'strategy' => $loadable->getConfig()['strategy'],
+                'instance' => $loadable->instance(),
+                'config' => $loadable->getConfig(),
+                'nestKey' => $loadable->aliasPath(),
+                'matching' => (bool)($loadable->getConfig()['matching'] ?? false),
+            ];
             $this->map($loadable->associations(), $map);
         }
     }

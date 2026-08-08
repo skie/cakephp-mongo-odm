@@ -61,10 +61,10 @@ class AssociationsNormalizerTraitTest extends TestCase
                 ],
             ],
             'mixed options and associations' => [
-                ['Comments' => ['fields' => ['id', 'body'], 'Users']],
+                ['Comments' => ['fields' => ['_id', 'body'], 'Users']],
                 [
                     'Comments' => [
-                        'fields' => ['id', 'body'],
+                        'fields' => ['_id', 'body'],
                         'associated' => [
                             'Users' => [],
                         ],

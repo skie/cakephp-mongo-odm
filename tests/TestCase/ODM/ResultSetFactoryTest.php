@@ -58,9 +58,9 @@ class ResultSetFactoryTest extends TestCase
         $this->factory = new ResultSetFactory();
 
         $this->fixtureData = [
-            ['id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
         ];
     }
 
@@ -97,17 +97,17 @@ class ResultSetFactoryTest extends TestCase
         // Clear the articles table so we can trigger an empty belongsTo
         $this->collection->deleteAll([]);
 
-        $comment = $comments->find()->where(['Comments.id' => '000000000000000000000001'])
+        $comment = $comments->find()->where(['Comments._id' => '000000000000000000000001'])
             ->contain(['Articles'])
             ->hydrate(false)
             ->first();
-        $this->assertSame('000000000000000000000001', $comment['id']);
+        $this->assertSame('000000000000000000000001', $comment['_id']);
         $this->assertNotEmpty($comment['comment']);
         $this->assertNull($comment['article']);
 
         $comment = $comments->get('000000000000000000000001', ...['contain' => ['Articles']]);
         $this->assertNull($comment->article);
-        $this->assertSame('000000000000000000000001', $comment->id);
+        $this->assertSame('000000000000000000000001', $comment->getId());
         $this->assertNotEmpty($comment->comment);
     }
 
@@ -117,7 +117,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testBelongsToEagerLoaderWithAutoFieldsFalse(): void
     {
-        $this->markTestSkipped('Association eager loading — Phase 4 (F17).');
+        $this->markTestSkipped('Association eager loading вЂ” Phase 4 (F17).');
         $authors = $this->getCollectionLocator()->get('Authors');
 
         $author = $authors->newEntity(['name' => null]);
@@ -127,15 +127,15 @@ class ResultSetFactoryTest extends TestCase
         $articles->belongsTo('Authors');
 
         $article = $articles->newEntity([
-            'author_id' => $author->id,
+            'author_id' => $author->getId(),
             'title' => 'article with author with null name',
         ]);
         $articles->save($article);
 
         $result = $articles->find()
-            ->select(['Articles.id', 'Articles.title', 'Authors.name'])
+            ->select(['Articles._id', 'Articles.title', 'Authors.name'])
             ->contain(['Authors'])
-            ->where(['Articles.id' => $article->id])
+            ->where(['Articles._id' => $article->getId()])
             ->disableAutoFields()
             ->hydrate(false)
             ->first();
@@ -156,15 +156,15 @@ class ResultSetFactoryTest extends TestCase
 
         $article = $this->collection->get('000000000000000000000001', ...['contain' => ['Comments']]);
         $this->assertNull($article->comment);
-        $this->assertSame('000000000000000000000001', $article->id);
+        $this->assertSame('000000000000000000000001', $article->getId());
         $this->assertNotEmpty($article->title);
 
-        $article = $this->collection->find()->where(['articles.id' => '000000000000000000000001'])
+        $article = $this->collection->find()->where(['Articles._id' => '000000000000000000000001'])
             ->contain(['Comments'])
             ->hydrate(false)
             ->first();
         $this->assertNull($article['comment']);
-        $this->assertSame('000000000000000000000001', $article['id']);
+        $this->assertSame('000000000000000000000001', $article['_id']);
         $this->assertNotEmpty($article['title']);
     }
 
@@ -174,7 +174,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testFetchMissingDefaultAlias(): void
     {
-        $this->markTestSkipped('SQL select-clause aliasing — not applicable to Mongo (F19).');
+        $this->markTestSkipped('SQL select-clause aliasing вЂ” not applicable to Mongo (F19).');
         $comments = $this->getCollectionLocator()->get('Comments');
         $query = $comments->find()->select(['Other__field' => 'test']);
         $query->disableAutoFields();
@@ -193,7 +193,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testSourceOnContainAssociations(): void
     {
-        $this->markTestSkipped('Association eager loading — Phase 4 (F17).');
+        $this->markTestSkipped('Association eager loading вЂ” Phase 4 (F17).');
         $this->loadPlugins(['TestPlugin']);
         $comments = $this->getCollectionLocator()->get('TestPlugin.Comments');
         $comments->belongsTo('Authors', [
@@ -204,7 +204,7 @@ class ResultSetFactoryTest extends TestCase
         $this->assertSame('TestPlugin.Comments', $result->getSource());
         $this->assertSame('TestPlugin.Authors', $result->author->getSource());
 
-        $result = $comments->find()->matching('Authors', fn($q) => $q->where(['Authors.id' => '000000000000000000000001']))->first();
+        $result = $comments->find()->matching('Authors', fn($q) => $q->where(['Authors._id' => '000000000000000000000001']))->first();
         $this->assertSame('TestPlugin.Comments', $result->getSource());
         $this->assertSame('TestPlugin.Authors', $result->_matchingData['Authors']->getSource());
         $this->clearPlugins();
@@ -224,7 +224,7 @@ class ResultSetFactoryTest extends TestCase
         $this->assertCount(0, $messages);
 
         $results = $this->collection->find('all')
-            ->where(['id' => '000000000000000000000000'])
+            ->where(['_id' => '000000000000000000000000'])
             ->all();
 
         $this->assertCount(0, $results);
@@ -246,12 +246,12 @@ class ResultSetFactoryTest extends TestCase
         DtoMapper::clearCache();
 
         $result = $this->collection->find()
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->projectAs(SimpleArticleDto::class)
             ->first();
 
         $this->assertInstanceOf(SimpleArticleDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertSame('First Article', $result->title);
         $this->assertSame('First Article Body', $result->body);
     }
@@ -278,7 +278,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsWithBelongsTo(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection — Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
+        $this->markTestSkipped('Association eager loading with DTO projection вЂ” Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');
@@ -286,12 +286,12 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Authors'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleDto::class)
             ->first();
 
         $this->assertInstanceOf(ArticleDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertSame('First Article', $result->title);
         $this->assertInstanceOf(AuthorDto::class, $result->author);
         $this->assertSame('mariano', $result->author->name);
@@ -302,7 +302,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsWithHasMany(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection — Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
+        $this->markTestSkipped('Association eager loading with DTO projection вЂ” Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');
@@ -310,12 +310,12 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Comments'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleDto::class)
             ->first();
 
         $this->assertInstanceOf(ArticleDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertIsArray($result->comments);
         $this->assertGreaterThan(0, count($result->comments));
         foreach ($result->comments as $comment) {
@@ -339,7 +339,7 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Authors'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleDto::class)
             ->first();
 
@@ -363,7 +363,7 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Comments'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleDto::class)
             ->first();
 
@@ -403,12 +403,12 @@ class ResultSetFactoryTest extends TestCase
         DtoMapper::clearCache();
 
         $result = $this->collection->find()
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->projectAs(ArticleArrayDto::class)
             ->first();
 
         $this->assertInstanceOf(ArticleArrayDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertSame('First Article', $result->title);
         $this->assertSame('First Article Body', $result->body);
     }
@@ -418,7 +418,7 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsCreateFromArrayWithBelongsTo(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection — Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
+        $this->markTestSkipped('Association eager loading with DTO projection вЂ” Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');
@@ -426,12 +426,12 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Authors'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleArrayDto::class)
             ->first();
 
         $this->assertInstanceOf(ArticleArrayDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertSame('First Article', $result->title);
         $this->assertInstanceOf(AuthorArrayDto::class, $result->author);
         $this->assertSame('mariano', $result->author->name);
@@ -453,7 +453,7 @@ class ResultSetFactoryTest extends TestCase
 
         $result = $articles->find()
             ->contain(['Authors'])
-            ->where(['Articles.id' => '000000000000000000000001'])
+            ->where(['Articles._id' => '000000000000000000000001'])
             ->projectAs(ArticleArrayDto::class)
             ->first();
 
@@ -477,9 +477,9 @@ class ResultSetFactoryTest extends TestCase
         $this->assertSame($hydrator, $hydrator2);
 
         // Test the hydrator works
-        $result = $hydrator(['id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body']);
+        $result = $hydrator(['_id' => '000000000000000000000001', 'title' => 'Test', 'body' => 'Body']);
         $this->assertInstanceOf(SimpleArticleDto::class, $result);
-        $this->assertSame('000000000000000000000001', $result->id);
+        $this->assertSame('000000000000000000000001', $result->_id);
         $this->assertSame('Test', $result->title);
     }
 
@@ -499,9 +499,9 @@ class ResultSetFactoryTest extends TestCase
         $this->assertSame($hydrator, $hydrator2);
 
         // Test the hydrator works
-        $result = $hydrator(['id' => '000000000000000000000002', 'title' => 'Test 2', 'body' => 'Body 2']);
+        $result = $hydrator(['_id' => '000000000000000000000002', 'title' => 'Test 2', 'body' => 'Body 2']);
         $this->assertInstanceOf(ArticleArrayDto::class, $result);
-        $this->assertSame('000000000000000000000002', $result->id);
+        $this->assertSame('000000000000000000000002', $result->_id);
         $this->assertSame('Test 2', $result->title);
     }
 
@@ -535,11 +535,11 @@ class ResultSetFactoryTest extends TestCase
         DtoMapper::clearCache();
         ResultSetFactory::clearDtoHydratorCache();
 
-        $row = ['id' => '000000000000000000000003', 'title' => 'Hydrate Test', 'body' => 'Body'];
+        $row = ['_id' => '000000000000000000000003', 'title' => 'Hydrate Test', 'body' => 'Body'];
         $result = $this->factory->hydrateDto($row, SimpleArticleDto::class);
 
         $this->assertInstanceOf(SimpleArticleDto::class, $result);
-        $this->assertSame('000000000000000000000003', $result->id);
+        $this->assertSame('000000000000000000000003', $result->_id);
         $this->assertSame('Hydrate Test', $result->title);
     }
 }

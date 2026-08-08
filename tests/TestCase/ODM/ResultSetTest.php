@@ -39,9 +39,9 @@ class ResultSetTest extends TestCase
         $this->collection = $this->getCollectionLocator()->get('Articles');
 
         $this->fixtureData = [
-            ['id' => '000000000000000000000001', '_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000002', '_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
-            ['id' => '000000000000000000000003', '_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000001', 'author_id' => '000000000000000000000001', 'title' => 'First Article', 'body' => 'First Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000003', 'author_id' => '000000000000000000000001', 'title' => 'Third Article', 'body' => 'Third Article Body', 'published' => 'Y'],
         ];
     }
 
@@ -94,9 +94,7 @@ class ResultSetTest extends TestCase
 
         // Use a loop to test Iterator implementation
         foreach ($results as $i => $row) {
-            $fixture = $this->fixtureData[$i];
-            unset($fixture['_id']);
-            $this->assertEquals($fixture, $row, "Row {$i} does not match");
+            $this->assertEquals($this->fixtureData[$i], $row, "Row {$i} does not match");
         }
     }
 
@@ -126,7 +124,7 @@ class ResultSetTest extends TestCase
         $query = $this->collection->find('all');
         $results = $query->all();
 
-        $expected = json_encode($this->filterFixtures());
+        $expected = json_encode($this->fixtureData);
         $this->assertEquals($expected, json_encode($results));
     }
 
@@ -139,12 +137,10 @@ class ResultSetTest extends TestCase
         $results = $query->hydrate(false)->all();
 
         $row = $results->first();
-        $fixture = $this->fixtureData[0];
-        unset($fixture['_id']);
-        $this->assertEquals($fixture, $row);
+        $this->assertEquals($this->fixtureData[0], $row);
 
         $row = $results->first();
-        $this->assertEquals($fixture, $row);
+        $this->assertEquals($this->fixtureData[0], $row);
     }
 
     /**
@@ -157,7 +153,7 @@ class ResultSetTest extends TestCase
         $results = unserialize(serialize($results));
 
         $row = $results->first();
-        $this->assertEquals($this->getFixture(0, true), $row);
+        $this->assertEquals($this->fixtureData[0], $row);
 
         $this->assertSame($row, $results->first());
         $this->assertSame($row, $results->first());
@@ -202,11 +198,11 @@ class ResultSetTest extends TestCase
 
         $expected = [
             '000000000000000000000001' => [
-                new Document($this->getFixture(0), $options),
-                new Document($this->getFixture(2), $options),
+                new Document($this->fixtureData[0], $options),
+                new Document($this->fixtureData[2], $options),
             ],
             '000000000000000000000003' => [
-                new Document($this->getFixture(1), $options),
+                new Document($this->fixtureData[1], $options),
             ],
         ];
         $this->assertEquals($expected, $results);
@@ -247,10 +243,10 @@ class ResultSetTest extends TestCase
     {
         $query = $this->collection->find('all');
 
-        $min = $query->all()->min('id');
+        $min = $query->all()->min('_id');
         $minExpected = $this->collection->get('000000000000000000000001');
 
-        $max = $query->all()->max('id');
+        $max = $query->all()->max('_id');
         $maxExpected = $this->collection->get('000000000000000000000003');
 
         $this->assertEquals($minExpected, $min);
@@ -272,23 +268,5 @@ class ResultSetTest extends TestCase
         $max = $query->all()->max('counter');
 
         $this->assertTrue($max > $min);
-    }
-
-    protected function getFixture(int $id, bool $skipId = false): ?array {
-        $fixture = $this->fixtureData[$id];
-        if ($skipId) {
-            unset($fixture['_id']);
-        }
-
-        return $fixture;
-    }
-
-    protected function filterFixtures(): array {
-        $fixtures = $this->fixtureData;
-        foreach ($fixtures as &$fixture) {
-            unset($fixture['_id']);
-        }
-
-        return $fixtures;
     }
 }
