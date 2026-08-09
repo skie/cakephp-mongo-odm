@@ -70,12 +70,8 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
      * @param string $class The short or fully-qualified class name.
      * @return class-string<\Crustum\Mongo\ODM\Behavior>|null
      */
-    protected function _resolveClassName(string $class): ?string
+    public static function className(string $class): ?string
     {
-        if (class_exists($class)) {
-            return is_a($class, Behavior::class, true) ? $class : null;
-        }
-
         $candidate = App::className($class, 'Model/Behavior', 'Behavior')
             ?: App::className($class, 'ODM/Behavior', 'Behavior');
         if ($candidate !== null && is_a($candidate, Behavior::class, true)) {
@@ -85,6 +81,21 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
         $candidate = __NAMESPACE__ . '\\Behavior\\' . $class . 'Behavior';
 
         return class_exists($candidate) && is_a($candidate, Behavior::class, true) ? $candidate : null;
+    }
+
+    /**
+     * Resolves a behavior class name.
+     *
+     * @param string $class The short or fully-qualified class name.
+     * @return class-string<\Crustum\Mongo\ODM\Behavior>|null
+     */
+    protected function _resolveClassName(string $class): ?string
+    {
+        if (class_exists($class)) {
+            return is_a($class, Behavior::class, true) ? $class : null;
+        }
+
+        return static::className($class);
     }
 
     /**
@@ -167,7 +178,7 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
 
         $this->getEventManager()->off($behavior);
 
-        foreach ($behavior->implementedFinders() as $finder) {
+        foreach ($behavior->implementedFinders() as $finder => $method) {
             unset($this->finderMap[strtolower((string)$finder)]);
         }
 
@@ -218,7 +229,8 @@ final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherIn
      */
     public function getFinder(string $method): Closure
     {
-        $binding = $this->finderMap[strtolower($method)] ?? null;
+        $method = strtolower($method);
+        $binding = $this->finderMap[$method] ?? null;
         if ($binding !== null && $this->has($binding[0])) {
             return $this->get($binding[0])->getFinder($binding[1]);
         }
