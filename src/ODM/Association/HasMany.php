@@ -315,7 +315,45 @@ class HasMany extends Association
             $conditions['_id NOT IN'] = $ids;
         }
 
-        return $target->deleteAll($conditions) >= 0;
+        $foreignKey = array_keys($foreignKeyReference);
+        if ($this->getDependent() || !$this->foreignKeyAcceptsNull($target, $foreignKey)) {
+            if ($this->getCascadeCallbacks()) {
+                foreach ($target->find('all')->where($conditions)->toArray() as $related) {
+                    if (!$target->delete($related, $options)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            $target->deleteAll($conditions);
+
+            return true;
+        }
+
+        $target->updateAll(array_fill_keys($foreignKey, null), $conditions);
+
+        return true;
+    }
+
+    /**
+     * Whether the foreign key fields accept null values.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @param array<int, string> $foreignKey The foreign key fields.
+     * @return bool
+     */
+    protected function foreignKeyAcceptsNull(BaseCollection $target, array $foreignKey): bool
+    {
+        $schema = $target->getSchema();
+        foreach ($foreignKey as $field) {
+            if (method_exists($schema, 'isNullable') && !$schema->isNullable($field)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
