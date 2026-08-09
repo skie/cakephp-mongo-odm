@@ -2398,8 +2398,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function normalizeAssociated(array $associated): array
     {
-        if ($associated === []) {
-            return [];
+        if (in_array(true, $associated, true)) {
+            return $this->associations->keys();
         }
 
         $result = [];
