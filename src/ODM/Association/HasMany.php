@@ -40,7 +40,7 @@ class HasMany extends Association
     /**
      * @var array<string>
      */
-    protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
+    protected array $validStrategies = [self::STRATEGY_SUBQUERY, self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
 
     /**
      * Gets the relationship type.
@@ -59,7 +59,41 @@ class HasMany extends Association
      */
     protected function defaultStrategy(): string
     {
-        return self::STRATEGY_SELECT;
+        return self::STRATEGY_SUBQUERY;
+    }
+
+    /**
+     * Sets the loading strategy.
+     *
+     * @param string $strategy Strategy name.
+     * @return $this
+     * @throws \InvalidArgumentException If the strategy is unsupported.
+     */
+    public function setStrategy(string $strategy): static
+    {
+        if (!in_array($strategy, $this->validStrategies, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid strategy `%s` was provided',
+                $strategy,
+            ));
+        }
+
+        $this->strategy = $strategy;
+
+        return $this;
+    }
+
+    /**
+     * Whether the association requires binding keys to be selected.
+     *
+     * @param array<string, mixed> $options Loader options.
+     * @return bool
+     */
+    public function requiresKeys(array $options = []): bool
+    {
+        $strategy = $options['strategy'] ?? $this->strategy ?? $this->defaultStrategy();
+
+        return $strategy === self::STRATEGY_SELECT;
     }
 
     /**
