@@ -320,10 +320,7 @@ class BelongsToMany extends Association
         $table = $this->getTarget();
         foreach ($targetEntities as $entity) {
             if (!$entity instanceof EntityInterface) {
-                throw new InvalidArgumentException(sprintf(
-                    'Could not save %s, it cannot be traversed.',
-                    $this->getProperty(),
-                ));
+                continue;
             }
 
             $result = $table->save($entity, $options);

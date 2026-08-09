@@ -10,7 +10,6 @@ use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
-use InvalidArgumentException;
 
 /**
  * Represents a one-to-one relationship from the source document.
@@ -65,15 +64,8 @@ class HasOne extends Association
     public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
     {
         $targetEntity = $entity->get($this->getProperty());
-        if ($targetEntity === null) {
-            return $entity;
-        }
-
         if (!$targetEntity instanceof EntityInterface) {
-            throw new InvalidArgumentException(sprintf(
-                'Could not save %s, it cannot be traversed.',
-                $this->getProperty(),
-            ));
+            return $entity;
         }
 
         $saved = $this->getTarget()->save($targetEntity, $options);
@@ -83,7 +75,7 @@ class HasOne extends Association
 
         $foreignKey = (array)$this->getForeignKey();
         $reference = $saved->extract((array)$this->getBindingKey());
-        $entity->set(array_combine($foreignKey, $reference));
+        $entity->patch(array_combine($foreignKey, $reference), ['guard' => false]);
 
         return $entity;
     }
@@ -152,3 +144,4 @@ class HasOne extends Association
         return $builder->getPipeline();
     }
 }
+
