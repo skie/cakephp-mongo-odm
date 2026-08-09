@@ -181,6 +181,10 @@ final class Marshaller
         $entity = new $class();
         $entity->setSource($this->collection->getRegistryAlias());
 
+        if (array_key_exists('markNew', $options) && $options['markNew'] !== null) {
+            $entity->setNew((bool)$options['markNew']);
+        }
+
         return $entity;
     }
 

@@ -1193,11 +1193,57 @@ class BelongsToMany extends Association
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField('_id')
             ->alias($this->getProperty());
-        $this->applyPipelineOptions($builder, $options + $this->associationPipelineOptions());
+        $pipelineOptions = $options + $this->associationPipelineOptions();
+        $pipelineFields = $pipelineOptions['fields'] ?? null;
+        unset($pipelineOptions['fields']);
+        $this->applyPipelineOptions($builder, $pipelineOptions);
         $this->applyAssociationSort($builder);
         $this->applyFinderConditions($builder);
+        $this->applyFieldsProjection($builder, $pipelineFields);
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Projects the loaded target array onto the requested fields.
+     *
+     * Containment `fields`/`select` options are applied to each element of the
+     * loaded property array via a `$map` expression.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @param array<string, mixed> $options Pipeline options.
+     * @return void
+     */
+    protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void
+    {
+        if ($fields === null) {
+            return;
+        }
+
+        $fields = (array)$fields;
+        if (array_is_list($fields)) {
+            $fields = array_fill_keys($fields, 1);
+        }
+
+        $alias = $this->getTarget()->getAlias();
+        $projection = [];
+        foreach ($fields as $field => $value) {
+            if (str_starts_with((string)$field, $alias . '.')) {
+                $field = substr((string)$field, strlen($alias) + 1);
+            }
+            $projection[(string)$field] = '$$item.' . $field;
+        }
+
+        $property = $this->getProperty();
+        $builder->addStage('$addFields', [
+            $property => [
+                '$map' => [
+                    'input' => '$' . $property,
+                    'as' => 'item',
+                    'in' => $projection,
+                ],
+            ],
+        ]);
     }
 
     /**

@@ -772,7 +772,11 @@ abstract class Association
         }
 
         if (!empty($options['fields'])) {
-            $builder->project((array)$options['fields']);
+            $fields = (array)$options['fields'];
+            if (array_is_list($fields)) {
+                $fields = array_fill_keys($fields, 1);
+            }
+            $builder->project($fields);
         }
 
         if (!empty($options['sort'])) {
