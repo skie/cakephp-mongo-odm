@@ -239,8 +239,8 @@ return [
     ],
     'site_articles' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'objectId'],
-            'site_id' => ['bsonType' => 'objectId'],
+            'author_id' => ['bsonType' => ['objectId', 'null']],
+            'site_id' => ['bsonType' => ['objectId', 'null']],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
         ],

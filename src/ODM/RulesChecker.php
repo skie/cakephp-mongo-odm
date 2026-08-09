@@ -6,9 +6,12 @@ namespace Crustum\Mongo\ODM;
 use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\RuleInvoker;
 use Cake\Datasource\RulesChecker as BaseRulesChecker;
+use Cake\Utility\Inflector;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Rule\ExistsIn;
 use Crustum\Mongo\ODM\Rule\ExistsInNullable;
 use Crustum\Mongo\ODM\Rule\IsUnique;
+use Crustum\Mongo\ODM\Rule\LinkConstraint;
 use Crustum\Mongo\ODM\Rule\ValidCount;
 
 /**
@@ -119,5 +122,100 @@ final class RulesChecker extends BaseRulesChecker
         unset($options['message']);
 
         return [$message ?: $default, $options];
+    }
+
+    /**
+     * Validates whether links to the given association exist.
+     *
+     * @param \Crustum\Mongo\ODM\Association|string $association The association to check for links.
+     * @param string|null $field The name of the association property. When supplied, this is the name used to set
+     *   possible errors. When absent, the name is inferred from `$association`.
+     * @param string|null $message The error message to show in case the rule does not pass.
+     * @return \Cake\Datasource\RuleInvoker
+     */
+    public function isLinkedTo(
+        Association|string $association,
+        ?string $field = null,
+        ?string $message = null,
+    ): RuleInvoker {
+        return $this->addLinkConstraintRule(
+            $association,
+            $field,
+            $message,
+            LinkConstraint::STATUS_LINKED,
+            'isLinkedTo',
+        );
+    }
+
+    /**
+     * Validates whether links to the given association do not exist.
+     *
+     * @param \Crustum\Mongo\ODM\Association|string $association The association to check for links.
+     * @param string|null $field The name of the association property. When supplied, this is the name used to set
+     *   possible errors. When absent, the name is inferred from `$association`.
+     * @param string|null $message The error message to show in case the rule does not pass.
+     * @return \Cake\Datasource\RuleInvoker
+     */
+    public function isNotLinkedTo(
+        Association|string $association,
+        ?string $field = null,
+        ?string $message = null,
+    ): RuleInvoker {
+        return $this->addLinkConstraintRule(
+            $association,
+            $field,
+            $message,
+            LinkConstraint::STATUS_NOT_LINKED,
+            'isNotLinkedTo',
+        );
+    }
+
+    /**
+     * Adds a link constraint rule.
+     *
+     * @param \Crustum\Mongo\ODM\Association|string $association The association to check for links.
+     * @param string|null $errorField The name of the property to use for setting possible errors. When absent,
+     *   the name is inferred from `$association`.
+     * @param string|null $message The error message to show in case the rule does not pass.
+     * @param string $linkStatus The link status required for the check to pass.
+     * @param string $ruleName The alias/name of the rule.
+     * @return \Cake\Datasource\RuleInvoker
+     * @throws \InvalidArgumentException In case the `$association` argument is of an invalid type.
+     */
+    protected function addLinkConstraintRule(
+        Association|string $association,
+        ?string $errorField,
+        ?string $message,
+        string $linkStatus,
+        string $ruleName,
+    ): RuleInvoker {
+        if ($association instanceof Association) {
+            $associationAlias = $association->getName();
+            $errorField ??= $association->getProperty();
+        } else {
+            $associationAlias = $association;
+
+            if ($errorField === null) {
+                $repository = $this->_options['repository'] ?? null;
+                if ($repository instanceof BaseCollection) {
+                    $association = $repository->getAssociation($association);
+                    $errorField = $association->getProperty();
+                } else {
+                    $errorField = Inflector::underscore($association);
+                }
+            }
+        }
+
+        $message ??= sprintf(
+            'Cannot modify row: a constraint for the `%s` association fails.',
+            $associationAlias,
+        );
+
+        $rule = new LinkConstraint(
+            $association,
+            $linkStatus,
+        );
+
+        return $this->_addError($rule, $ruleName, compact('errorField', 'message'));
     }
 }
