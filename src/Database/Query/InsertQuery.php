@@ -58,6 +58,7 @@ class InsertQuery extends Query
     public function into(string $collection): static
     {
         $this->collection = $collection;
+        $this->applySchemaTypes();
 
         return $this;
     }

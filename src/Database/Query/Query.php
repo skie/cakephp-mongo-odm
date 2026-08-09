@@ -155,7 +155,9 @@ abstract class Query implements Stringable
 
         try {
             $schema = $this->connection->getSchemaCollection()->describe($this->collection);
-            $this->builder->setTypeMap($schema->typeMap());
+            $typeMap = $schema->typeMap();
+            $this->builder->setTypeMap($typeMap);
+            $this->getTypeMap()->addDefaults($typeMap);
         } catch (Throwable) {
             // Schema metadata is best-effort; ignore and run untyped.
         }

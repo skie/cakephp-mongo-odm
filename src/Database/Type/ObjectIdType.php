@@ -74,6 +74,10 @@ class ObjectIdType extends BaseType
             return null;
         }
 
+        if (is_int($value) || is_float($value)) {
+            return (string)$value;
+        }
+
         if (is_string($value)) {
             try {
                 new ObjectId($value);
@@ -84,7 +88,7 @@ class ObjectIdType extends BaseType
             }
         }
 
-        return $value;
+        return is_scalar($value) ? (string)$value : null;
     }
 
     /**
