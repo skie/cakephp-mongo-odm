@@ -7,12 +7,13 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
-use RuntimeException;
 
 /**
  * Represents a many-to-many relationship.
@@ -39,7 +40,7 @@ class BelongsToMany extends Association
     /**
      * @var array<string>
      */
-    protected array $validStrategies = [self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
+    protected array $validStrategies = [self::STRATEGY_SUBQUERY, self::STRATEGY_SELECT, self::STRATEGY_LOOKUP];
 
     /**
      * Join collection alias or instance.
@@ -140,13 +141,65 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Sets the loading strategy.
+     *
+     * `subquery` (cake60 default) maps to the aggregation lookup pipeline;
+     * `select` uses a separate batched query. `join` is unsupported in the ODM.
+     *
+     * @param string $strategy Strategy name.
+     * @return $this
+     * @throws \InvalidArgumentException If the strategy is unsupported.
+     */
+    public function setStrategy(string $strategy): static
+    {
+        if (!in_array($strategy, $this->validStrategies, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid strategy `%s` was provided',
+                $strategy,
+            ));
+        }
+
+        $this->strategy = $strategy;
+
+        return $this;
+    }
+
+    /**
+     * Gets the loading strategy.
+     *
+     * @return string
+     */
+    public function getStrategy(): string
+    {
+        $strategy = $this->strategy ??= $this->defaultStrategy();
+        if ($strategy === self::STRATEGY_SUBQUERY) {
+            return self::STRATEGY_LOOKUP;
+        }
+
+        return $strategy;
+    }
+
+    /**
+     * Whether the association requires binding keys to be selected.
+     *
+     * @param array<string, mixed> $options Loader options.
+     * @return bool
+     */
+    public function requiresKeys(array $options = []): bool
+    {
+        $strategy = $this->strategy ?? $this->defaultStrategy();
+
+        return $strategy === self::STRATEGY_SELECT;
+    }
+
+    /**
      * Gets the default loading strategy.
      *
      * @return string
      */
     protected function defaultStrategy(): string
     {
-        return self::STRATEGY_SELECT;
+        return self::STRATEGY_SUBQUERY;
     }
 
     /**
@@ -230,52 +283,109 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Appends target identifiers to the source `_ids` array.
+     * Associates the source document to each of the target documents provided by
+     * creating links in the junction collection. Both the source document and each
+     * of the target documents are assumed to be already persisted.
      *
-     * @param \Cake\Datasource\EntityInterface $sourceEntity The source document.
-     * @param array<int, mixed> $targetEntities Target documents to link.
-     * @param array<string, mixed> $options Save options.
-     * @return bool
+     * This method does not check link uniqueness.
+     *
+     * @param \Cake\Datasource\EntityInterface $sourceEntity the row belonging to the `source` side
+     *   of this association
+     * @param array<\Cake\Datasource\EntityInterface> $targetEntities list of entities belonging to the `target` side
+     *   of this association
+     * @param array<string, mixed> $options list of options to be passed to the internal `save` call
+     * @throws \InvalidArgumentException when any of the values in $targetEntities is
+     *   detected to not be already persisted
+     * @return bool true on success, false otherwise
      */
     public function link(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
     {
-        $this->assertNoJoinCollection();
+        $this->checkPersistenceStatus($sourceEntity, $targetEntities);
         $property = $this->getProperty();
-        $current = (array)$sourceEntity->get($property);
-        $sourceEntity->set(
-            $property,
-            array_values(array_unique(array_merge($current, $this->extractIds($targetEntities)))),
-        );
-        $saved = $this->getSource()->save($sourceEntity, $options);
+        $links = $sourceEntity->get($property) ?: [];
+        $links = array_merge($links, $targetEntities);
+        $sourceEntity->set($property, $links);
 
-        return $saved instanceof EntityInterface;
+        $connection = $this->getSource()->getConnection();
+        assert($connection instanceof Connection);
+
+        return $connection->transactional(
+            function () use ($sourceEntity, $targetEntities, $options) {
+                return $this->saveLinks($sourceEntity, $targetEntities, $options);
+            },
+        );
     }
 
     /**
-     * Removes target identifiers from the source `_ids` array.
+     * Removes all links between the passed source entity and each of the provided
+     * target entities. This method assumes that all passed objects are already persisted
+     * in the database and that each of them contain a primary key value.
      *
-     * @param \Cake\Datasource\EntityInterface $sourceEntity The source document.
-     * @param array<int, mixed> $targetEntities Target documents to unlink.
-     * @param array<string, mixed> $options Save options.
-     * @return bool
+     * ### Options
+     *
+     * Additionally to the default options accepted by `Table::delete()`, the following
+     * keys are supported:
+     *
+     * - cleanProperty: Whether to remove all the objects in `$targetEntities` that
+     * are stored in `$sourceEntity` (default: true)
+     *
+     * @param \Cake\Datasource\EntityInterface $sourceEntity An entity persisted in the source collection for
+     *   this association.
+     * @param array<\Cake\Datasource\EntityInterface> $targetEntities List of entities persisted in the target collection for
+     *   this association.
+     * @param array<string, mixed>|bool $options List of options to be passed to the internal `delete` call,
+     *   or a `boolean` as `cleanProperty` key shortcut.
+     * @throws \InvalidArgumentException If non-persisted entities are passed or if
+     *   any of them is lacking a primary key value.
+     * @return bool Success
      */
-    public function unlink(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
+    public function unlink(EntityInterface $sourceEntity, array $targetEntities, array|bool $options = []): bool
     {
-        $this->assertNoJoinCollection();
-        $property = $this->getProperty();
-        $removed = $this->extractIds($targetEntities);
-        $current = array_filter(
-            (array)$sourceEntity->get($property),
-            static fn(mixed $id): bool => !in_array($id, $removed, true),
-        );
-        $sourceEntity->set($property, array_values($current));
-        $saved = $this->getSource()->save($sourceEntity, $options);
+        if (is_bool($options)) {
+            $options = [
+                'cleanProperty' => $options,
+            ];
+        } else {
+            $options += ['cleanProperty' => true];
+        }
 
-        return $saved instanceof EntityInterface;
+        $this->checkPersistenceStatus($sourceEntity, $targetEntities);
+        $property = $this->getProperty();
+
+        $links = $this->collectJointEntities($sourceEntity, $targetEntities);
+        $return = $this->junction()->deleteMany($links, $options);
+        if ($return === false) {
+            return false;
+        }
+
+        /** @var array<\Cake\Datasource\EntityInterface> $existing */
+        $existing = $sourceEntity->get($property) ?: [];
+        if (!$options['cleanProperty'] || empty($existing)) {
+            return true;
+        }
+
+        /** @var \SplObjectStorage<\Cake\Datasource\EntityInterface, null> $storage */
+        $storage = new \SplObjectStorage();
+        foreach ($targetEntities as $e) {
+            $storage->offsetSet($e);
+        }
+
+        foreach ($existing as $k => $e) {
+            if ($storage->offsetExists($e)) {
+                unset($existing[$k]);
+            }
+        }
+
+        $sourceEntity->set($property, array_values($existing));
+        $sourceEntity->setDirty($property, false);
+
+        return true;
     }
 
     /**
-     * Replaces the source `_ids` array with the given target identifiers.
+     * Replaces the source link set with the given target documents.
+     *
+     * For the junction-collection shape this delegates to {@see replaceLinks()}.
      *
      * @param \Cake\Datasource\EntityInterface $sourceEntity The source document.
      * @param array<int, mixed> $targetEntities Target documents to keep.
@@ -284,17 +394,11 @@ class BelongsToMany extends Association
      */
     public function replace(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
     {
-        $this->assertNoJoinCollection();
-        $sourceEntity->set($this->getProperty(), $this->extractIds($targetEntities));
-        $saved = $this->getSource()->save($sourceEntity, $options);
-
-        return $saved instanceof EntityInterface;
+        return $this->replaceLinks($sourceEntity, $targetEntities, $options);
     }
 
     /**
-     * Replaces the source link set with the given target identifiers.
-     *
-     * For the in-document `_ids` shape this is equivalent to {@see replace()}.
+     * Replaces the source link set with the given target documents.
      *
      * @param \Cake\Datasource\EntityInterface $sourceEntity The source document.
      * @param array<int, mixed> $targetEntities Target documents to keep.
@@ -303,43 +407,295 @@ class BelongsToMany extends Association
      */
     public function replaceLinks(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
     {
-        return $this->replace($sourceEntity, $targetEntities, $options);
+        $bindingKey = (array)$this->getBindingKey();
+        $primaryValue = $sourceEntity->extract($bindingKey);
+
+        if (count(array_filter($primaryValue, static fn(mixed $v): bool => $v !== null)) !== count($bindingKey)) {
+            throw new InvalidArgumentException('Could not find primary key value for source entity');
+        }
+
+        $connection = $this->junction()->getConnection();
+        assert($connection instanceof Connection);
+
+        return $connection->transactional(
+            function () use ($sourceEntity, $targetEntities, $primaryValue, $options) {
+                $junction = $this->junction();
+                $target = $this->getTarget();
+
+                /** @var array<string> $foreignKey */
+                $foreignKey = array_values(array_filter((array)$this->getForeignKey(), 'is_string'));
+                $assocForeignKey = array_values(array_filter(
+                    (array)$junction->getAssociation($target->getAlias())->getForeignKey(),
+                    'is_string',
+                ));
+
+                $existing = $this->findExistingLinks($junction, $foreignKey, $assocForeignKey, $primaryValue);
+                $jointEntities = $this->collectJointEntities($sourceEntity, $targetEntities);
+                $inserts = $this->diffLinks($existing, $jointEntities, $targetEntities, $options);
+                if ($inserts === false) {
+                    return false;
+                }
+
+                if ($inserts && !$this->saveTarget($sourceEntity, $inserts, $options)) {
+                    return false;
+                }
+
+                $property = $this->getProperty();
+
+                if ($inserts !== []) {
+                    $inserted = array_combine(
+                        array_keys($inserts),
+                        (array)$sourceEntity->get($property),
+                    ) ?: [];
+                    $targetEntities = $inserted + $targetEntities;
+                }
+
+                ksort($targetEntities);
+                $sourceEntity->set($property, array_values($targetEntities));
+                $sourceEntity->setDirty($property, false);
+
+                return true;
+            },
+        );
     }
 
     /**
-     * Rejects link mutations when a join collection is configured.
+     * Throws an exception should any of the passed entities is not persisted.
      *
+     * @param \Cake\Datasource\EntityInterface $sourceEntity the row belonging to the `source` side
+     *   of this association
+     * @param array<\Cake\Datasource\EntityInterface> $targetEntities list of entities belonging to the `target` side
+     *   of this association
      * @return void
-     * @throws \RuntimeException When a join collection is configured.
+     * @throws \InvalidArgumentException
      */
-    protected function assertNoJoinCollection(): void
+    protected function checkPersistenceStatus(EntityInterface $sourceEntity, array $targetEntities): void
     {
-        if ($this->through !== null || $this->junctionCollection !== null) {
-            throw new RuntimeException(
-                'Linking through a join collection is not supported until the BaseCollection layer lands.',
-            );
+        if ($sourceEntity->isNew()) {
+            throw new InvalidArgumentException('Source entity needs to be persisted before links can be created or removed.');
+        }
+
+        foreach ($targetEntities as $entity) {
+            if ($entity->isNew()) {
+                throw new InvalidArgumentException('Cannot link entities that have not been persisted yet.');
+            }
         }
     }
 
     /**
-     * Extracts target document identifiers.
+     * Creates links between the source entity and each of the passed target entities.
      *
-     * @param array<int, mixed> $entities Target documents.
-     * @return array<int, mixed>
+     * @param \Cake\Datasource\EntityInterface $sourceEntity the entity from source collection in this
+     *   association
+     * @param array<\Cake\Datasource\EntityInterface> $targetEntities list of entities to link to the source entity
+     * @param array<string, mixed> $options list of options accepted by `Table::save()`
+     * @return bool success
      */
-    protected function extractIds(array $entities): array
+    protected function saveLinks(EntityInterface $sourceEntity, array $targetEntities, array $options): bool
     {
-        $ids = [];
-        foreach ($entities as $entity) {
-            if ($entity instanceof EntityInterface) {
-                $id = $entity->get('_id');
-                if ($id !== null) {
-                    $ids[] = $id;
+        $target = $this->getTarget();
+        $junction = $this->junction();
+        $entityClass = $junction->getDocumentClass();
+        $belongsTo = $junction->getAssociation($target->getAlias());
+        /** @var array<string> $foreignKey */
+        $foreignKey = (array)$this->getForeignKey();
+        /** @var array<string> $assocForeignKey */
+        $assocForeignKey = (array)$belongsTo->getForeignKey();
+        $targetBindingKey = (array)$belongsTo->getBindingKey();
+        $bindingKey = (array)$this->getBindingKey();
+        $jointProperty = $this->junctionProperty;
+        $junctionRegistryAlias = $junction->getRegistryAlias();
+
+        foreach ($targetEntities as $e) {
+            $joint = $e->get($jointProperty);
+            if (!($joint instanceof EntityInterface)) {
+                $joint = new $entityClass([], ['markNew' => true, 'source' => $junctionRegistryAlias]);
+            }
+            $sourceKeys = array_combine($foreignKey, $sourceEntity->extract($bindingKey));
+            $targetKeys = array_combine($assocForeignKey, $e->extract($targetBindingKey));
+
+            $changedKeys = $sourceKeys !== $joint->extract($foreignKey) ||
+                $targetKeys !== $joint->extract($assocForeignKey);
+
+            if ($changedKeys) {
+                $joint->setNew(true);
+                $joint->unset($junction->getPrimaryKey());
+                $joint->patch(array_merge($sourceKeys, $targetKeys), ['guard' => false]);
+            }
+            $saved = $junction->save($joint, $options);
+
+            if (!$saved && !empty($options['atomic'])) {
+                return false;
+            }
+
+            $e->set($jointProperty, $joint);
+            $e->setDirty($jointProperty, false);
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns the list of joint entities that exist between the source entity
+     * and each of the passed target entities.
+     *
+     * @param \Cake\Datasource\EntityInterface $sourceEntity The row belonging to the source side
+     *   of this association.
+     * @param array<int, mixed> $targetEntities The rows belonging to the target side of this
+     *   association.
+     * @return array<\Cake\Datasource\EntityInterface>
+     */
+    protected function collectJointEntities(EntityInterface $sourceEntity, array $targetEntities): array
+    {
+        $target = $this->getTarget();
+        $source = $this->getSource();
+        $junction = $this->junction();
+        $jointProperty = $this->junctionProperty;
+        $primary = (array)$target->getPrimaryKey();
+
+        $result = [];
+        $missing = [];
+
+        foreach ($targetEntities as $entity) {
+            if (!($entity instanceof EntityInterface)) {
+                continue;
+            }
+            $joint = $entity->get($jointProperty);
+
+            if (!($joint instanceof EntityInterface)) {
+                $missing[] = $entity->extract($primary);
+                continue;
+            }
+
+            $result[] = $joint;
+        }
+
+        if (!$missing) {
+            return $result;
+        }
+
+        $belongsTo = $junction->getAssociation($target->getAlias());
+        $hasMany = $source->getAssociation($junction->getAlias());
+        /** @var array<string> $foreignKey */
+        $foreignKey = (array)$this->getForeignKey();
+        /** @var array<string> $assocForeignKey */
+        $assocForeignKey = (array)$belongsTo->getForeignKey();
+        $sourceKey = $sourceEntity->extract((array)$source->getPrimaryKey());
+
+        $conditions = [];
+        foreach ($missing as $key) {
+            $conditions[] = array_combine(
+                $assocForeignKey,
+                array_values((array)$key),
+            );
+        }
+
+        $found = $hasMany->find()
+            ->where(array_combine($foreignKey, $sourceKey))
+            ->where(['OR' => $conditions])
+            ->toArray();
+
+        return array_merge($result, $found);
+    }
+
+    /**
+     * Finds the existing junction links for a source entity.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param array<string> $foreignKey The source-side foreign key fields.
+     * @param array<string> $assocForeignKey The target-side foreign key fields.
+     * @param array<int|string, mixed> $primaryValue The source primary key values.
+     * @return array<\Cake\Datasource\EntityInterface>
+     */
+    protected function findExistingLinks(BaseCollection $junction, array $foreignKey, array $assocForeignKey, array $primaryValue): array
+    {
+        $conditions = array_combine($foreignKey, $primaryValue);
+
+        return $junction->find()
+            ->where($conditions)
+            ->toArray();
+    }
+
+    /**
+     * Helper method used to delete the difference between the links passed in
+     * `$existing` and `$jointEntities`.
+     *
+     * @param array<\Cake\Datasource\EntityInterface> $existing existing link documents
+     * @param array<\Cake\Datasource\EntityInterface> $jointEntities link documents that should be persisted
+     * @param array<int, mixed> $targetEntities entities in target collection that are related to
+     *   the `$jointEntities`
+     * @param array<string, mixed> $options list of options accepted by `Table::delete()`
+     * @return array<int, mixed>|false Array of entities not deleted or false in case of deletion failure.
+     */
+    protected function diffLinks(
+        array $existing,
+        array $jointEntities,
+        array $targetEntities,
+        array $options = [],
+    ): array|false {
+        $junction = $this->junction();
+        $target = $this->getTarget();
+        $belongsTo = $junction->getAssociation($target->getAlias());
+        /** @var array<string> $foreignKey */
+        $foreignKey = (array)$this->getForeignKey();
+        /** @var array<string> $assocForeignKey */
+        $assocForeignKey = (array)$belongsTo->getForeignKey();
+
+        $keys = array_merge($foreignKey, $assocForeignKey);
+        $deletes = [];
+        $unmatchedEntityKeys = [];
+        $present = [];
+
+        foreach ($jointEntities as $i => $entity) {
+            $unmatchedEntityKeys[$i] = $entity->extract($keys);
+            $present[$i] = array_values($entity->extract($assocForeignKey));
+        }
+
+        foreach ($existing as $existingLink) {
+            $existingKeys = $existingLink->extract($keys);
+            $found = false;
+            foreach ($unmatchedEntityKeys as $i => $unmatchedKeys) {
+                $matched = true;
+                foreach ($keys as $key) {
+                    if ($existingKeys[$key] != $unmatchedKeys[$key]) {
+                        $matched = false;
+                        break;
+                    }
+                }
+                if ($matched) {
+                    unset($unmatchedEntityKeys[$i]);
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                $deletes[] = $existingLink;
+            }
+        }
+
+        $primary = (array)$target->getPrimaryKey();
+        $jointProperty = $this->junctionProperty;
+        foreach ($targetEntities as $k => $entity) {
+            if (!($entity instanceof EntityInterface)) {
+                continue;
+            }
+            $key = array_values($entity->extract($primary));
+            foreach ($present as $i => $data) {
+                if ($key === $data && !$entity->get($jointProperty)) {
+                    unset($targetEntities[$k], $present[$i]);
+                    break;
                 }
             }
         }
 
-        return $ids;
+        foreach ($deletes as $entity) {
+            if (!$junction->delete($entity, $options) && !empty($options['atomic'])) {
+                return false;
+            }
+        }
+
+        return $targetEntities;
     }
 
     /**
@@ -424,11 +780,45 @@ class BelongsToMany extends Association
         }
 
         $this->junctionCollection = $collection;
+        $this->configureJunctionSchema($collection);
         $this->generateSourceAssociations($collection, $this->getSource());
         $this->generateTargetAssociations($collection, $this->getSource(), $this->getTarget());
         $this->generateJunctionAssociations($collection, $this->getSource(), $this->getTarget());
 
         return $collection;
+    }
+
+    /**
+     * Configures the junction collection schema so link foreign keys are
+     * converted to ObjectId on write.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @return void
+     */
+    protected function configureJunctionSchema(BaseCollection $junction): void
+    {
+        try {
+            $schema = $junction->getSchema();
+            if (method_exists($schema, 'hasField') && $schema->hasField('_id')) {
+                return;
+            }
+
+            $fields = [
+                '_id' => ['type' => 'objectid'],
+            ];
+            $sourceKey = $this->getForeignKey();
+            if (is_string($sourceKey)) {
+                $fields[$sourceKey] = ['type' => 'objectid'];
+            }
+            $targetKey = $this->getTargetForeignKey();
+            if (is_string($targetKey)) {
+                $fields[$targetKey] = ['type' => 'objectid'];
+            }
+
+            $junction->setSchemaFromArray($fields);
+        } catch (\Throwable) {
+            // Junction may be a partial mock without schema support; skip.
+        }
     }
 
     /**
@@ -713,35 +1103,134 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Builds lookup stages through the join collection.
+     * Builds lookup stages through the junction collection.
+     *
+     * The junction is resolved through {@see junction()} (either the configured
+     * `through` or the conventional `{source}_{target}` collection). Keys are
+     * taken from the junction's belongsTo associations when not configured.
      *
      * @param array<string, mixed> $options Pipeline options.
      * @return array<int, array<string, mixed>>
      */
     public function buildPipeline(array $options = []): array
     {
-        if ($this->through === null || $this->joinForeignKey === null || $this->targetForeignKey === null) {
+        $junction = $this->junction();
+        $target = $this->getTarget();
+
+        $joinForeignKey = $this->joinForeignKey
+            ?? $this->junctionJoinForeignKey($junction, $this->getSource());
+        $targetForeignKey = $this->targetForeignKey
+            ?? $this->junctionJoinForeignKey($junction, $target);
+        if ($joinForeignKey === null || $targetForeignKey === null) {
             return [];
         }
 
-        $through = $this->through instanceof BaseCollection
-            ? $this->through->getCollection()
-            : $this->through;
+        $through = $junction->getCollection();
 
         $builder = $this->buildAggregation();
         $join = '_join_' . $this->getProperty();
         $builder
             ->lookup($through)
             ->localField($this->fieldName($this->getBindingKey()))
-            ->foreignField($this->joinForeignKey)
+            ->foreignField($joinForeignKey)
             ->alias($join);
         $builder
-            ->lookup($this->getTarget()->getAlias())
-            ->localField($join . '.' . $this->getTargetForeignKey())
+            ->lookup($target->getCollection())
+            ->localField($join . '.' . $targetForeignKey)
             ->foreignField('_id')
             ->alias($this->getProperty());
-        $this->applyPipelineOptions($builder, $options);
+        $this->applyPipelineOptions($builder, $options + $this->associationPipelineOptions());
+        $this->applyAssociationSort($builder);
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Sorts the loaded target array using `$sortArray`.
+     *
+     * A regular `$sort` sorts the top-level documents, not the in-array lookup
+     * results, so the configured association sort is applied to the loaded
+     * property array directly.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return void
+     */
+    protected function applyAssociationSort(AggregationBuilder $builder): void
+    {
+        $sort = $this->getSort();
+        if ($sort === null) {
+            return;
+        }
+
+        $normalized = $this->normalizeSort($sort);
+        if ($normalized === []) {
+            return;
+        }
+
+        // Strip the target alias prefix (`Tags._id` -> `_id`) because the sort
+        // applies to the in-array lookup documents.
+        $alias = $this->getTarget()->getAlias();
+        $stripped = [];
+        foreach ($normalized as $field => $direction) {
+            if (str_starts_with((string)$field, $alias . '.')) {
+                $field = substr((string)$field, strlen($alias) + 1);
+            }
+            $stripped[(string)$field] = $direction;
+        }
+
+        $property = $this->getProperty();
+        $builder->addStage('$addFields', [
+            $property => [
+                '$sortArray' => [
+                    'input' => '$' . $property,
+                    'sortBy' => $stripped,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Collects pipeline options configured on the association itself.
+     *
+     * `conditions`, `sort`, `fields`, `limit` and `skip` set through the
+     * association (not the containment array) apply to the loaded targets.
+     *
+     * @return array<string, mixed>
+     */
+    protected function associationPipelineOptions(): array
+    {
+        $options = [];
+        $conditions = $this->getConditions();
+        if ($conditions !== []) {
+            $options['conditions'] = $conditions;
+        }
+        $sort = $this->getSort();
+        if ($sort !== null) {
+            $options['sort'] = $sort;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Resolves the junction foreign key for one side of the link.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $side The source or target collection.
+     * @return string|null
+     */
+    protected function junctionJoinForeignKey(BaseCollection $junction, BaseCollection $side): ?string
+    {
+        $association = $junction->getAssociation($side->getAlias());
+        if (!$association instanceof Association) {
+            return null;
+        }
+
+        $key = $association->getForeignKey();
+        if (is_array($key)) {
+            return $key[0] ?? null;
+        }
+
+        return $key === false ? null : $key;
     }
 }

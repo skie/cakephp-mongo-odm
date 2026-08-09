@@ -366,4 +366,19 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
 
         return [];
     }
+
+    /**
+     * Returns an array that can be used to describe the internal state of this
+     * object.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'connected' => $this->isConnected(),
+            'database' => $this->database instanceof Database ? $this->database->getDatabaseName() : null,
+            'logQueries' => $this->logQueries,
+        ];
+    }
 }

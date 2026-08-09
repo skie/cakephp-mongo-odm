@@ -597,4 +597,24 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
 
         return $resultSet;
     }
+
+    /**
+     * Returns an array that can be used to describe the internal state of this
+     * object.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        $eagerLoader = $this->getEagerLoader();
+
+        return parent::__debugInfo() + [
+            'hydrate' => $this->hydrate,
+            'formatters' => count($this->formatters),
+            'contain' => $eagerLoader->getContain(),
+            'extraOptions' => $this->getOptions(),
+            'dtoClass' => $this->dtoClass,
+            'repository' => $this->repository,
+        ];
+    }
 }

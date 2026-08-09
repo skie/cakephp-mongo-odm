@@ -393,7 +393,12 @@ final class EagerLoader
      */
     private function defaultStrategy(Association $association): string
     {
-        return $association->getStrategy() === 'embed' ? 'embed' : 'select';
+        $strategy = $association->getStrategy();
+        if ($strategy === Association::STRATEGY_EMBED || $strategy === Association::STRATEGY_LOOKUP) {
+            return $strategy;
+        }
+
+        return Association::STRATEGY_SELECT;
     }
 
     /**

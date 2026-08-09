@@ -592,4 +592,39 @@ class Connection implements ConnectionInterface
         return $this->session;
     }
 
+    /**
+     * Returns an array that can be used to describe the internal state of this
+     * object.
+     *
+     * Secrets (password, username, host, database, port) are masked.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        $secrets = [
+            'password' => '*****',
+            'username' => '*****',
+            'host' => '*****',
+            'database' => '*****',
+            'port' => '*****',
+        ];
+        $replace = array_intersect_key($secrets, $this->config);
+        $config = $replace + $this->config;
+
+        if (isset($config['read'])) {
+            $config['read'] = array_intersect_key($secrets, $config['read']) + $config['read'];
+        }
+        if (isset($config['write'])) {
+            $config['write'] = array_intersect_key($secrets, $config['write']) + $config['write'];
+        }
+
+        return [
+            'config' => $config,
+            'name' => $this->name,
+            'driver' => get_debug_type($this->driver),
+            'inTransaction' => $this->inTransaction(),
+        ];
+    }
+
 }

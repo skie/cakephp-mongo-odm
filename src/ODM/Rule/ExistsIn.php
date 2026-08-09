@@ -38,9 +38,13 @@ class ExistsIn
     /**
      * Constructor.
      *
+     * Available option for $options is 'allowNullableNulls' flag.
+     * Set to true to accept composite foreign keys where one or more nullable columns are null.
+     *
      * @param array<string>|string $fields The local fields to check.
      * @param \Cake\Datasource\RepositoryInterface|string $repository The target repository or alias.
      * @param array<string, mixed> $options Rule options.
+     *     Options 'allowNullableNulls' will make the rule pass if given foreign keys are set to `null`.
      */
     public function __construct(array|string $fields, RepositoryInterface|string $repository, array $options = [])
     {
@@ -63,26 +67,60 @@ class ExistsIn
             return true;
         }
 
-        $hasNull = array_any($this->fields, static fn(string $field): bool => $entity->get($field) === null);
-        if ($this->options['allowNullableNulls'] && $hasNull) {
-            return true;
+        $fields = $this->fields;
+        $source = $this->repository;
+        if (is_string($source)) {
+            $source = $options['repository'] ?? null;
         }
 
-        $repository = $this->repository;
-        if (is_string($repository)) {
-            $repository = $options['repository'] ?? null;
-        }
-
-        if (!$repository instanceof RepositoryInterface) {
+        if (!$source instanceof RepositoryInterface) {
             throw new InvalidArgumentException('The `repository` option must resolve to a repository instance.');
         }
 
         $targetFields = $this->options['targetFields'] ?? array_fill(0, count($this->fields), '_id');
+
+        if ($this->fieldsAreNull($entity, $source)) {
+            return true;
+        }
+
+        if ($this->options['allowNullableNulls'] && method_exists($source, 'getSchema')) {
+            $schema = $source->getSchema();
+            foreach ($fields as $i => $field) {
+                if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
+                    unset($targetFields[$i], $fields[$i]);
+                }
+            }
+        }
+
         $conditions = [];
-        foreach (array_values($this->fields) as $index => $field) {
+        foreach (array_values($fields) as $index => $field) {
             $conditions[$targetFields[$index] ?? '_id'] = $entity->get($field);
         }
 
-        return $repository->exists($conditions);
+        return $source->exists($conditions);
+    }
+
+    /**
+     * Checks whether the given document fields are nullable and null.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to check.
+     * @param \Cake\Datasource\RepositoryInterface $source The repository to use schema from.
+     * @return bool
+     */
+    protected function fieldsAreNull(EntityInterface $entity, RepositoryInterface $source): bool
+    {
+        if (!method_exists($source, 'getSchema')) {
+            return false;
+        }
+
+        $nulls = 0;
+        $schema = $source->getSchema();
+        foreach ($this->fields as $field) {
+            if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
+                $nulls++;
+            }
+        }
+
+        return $nulls === count($this->fields);
     }
 }

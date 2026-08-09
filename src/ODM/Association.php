@@ -6,7 +6,9 @@ namespace Crustum\Mongo\ODM;
 use Cake\Core\App;
 use Cake\Core\ConventionsTrait;
 use Cake\Database\Exception\DatabaseException;
+use Cake\Database\Expression\OrderClauseExpression;
 use Cake\Database\ExpressionInterface;
+use Cake\Database\ValueBinder;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
@@ -68,6 +70,20 @@ abstract class Association
      * Strategy that hydrates documents from the root document.
      */
     public const string STRATEGY_EMBED = 'embed';
+
+    /**
+     * cake60 join strategy compatibility constant.
+     *
+     * The ODM has no SQL joins; this maps to the aggregation lookup strategy.
+     */
+    public const string STRATEGY_JOIN = 'join';
+
+    /**
+     * cake60 subquery strategy compatibility constant.
+     *
+     * The ODM has no subqueries; this maps to the separate-query strategy.
+     */
+    public const string STRATEGY_SUBQUERY = 'subquery';
 
     /**
      * Association alias.
@@ -676,6 +692,58 @@ abstract class Association
     }
 
     /**
+     * Normalizes a sort specification into a Mongo `$sort` object.
+     *
+     * Accepts `'field DESC'`, `['field' => 'DESC']`, `['field' => -1]`, and
+     * `OrderClauseExpression` instances, mirroring the query-layer orderBy()
+     * parsing.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $sort The sort specification.
+     * @return array<string, int>
+     */
+    protected function normalizeSort(ExpressionInterface|Closure|array|string $sort): array
+    {
+        if ($sort instanceof Closure) {
+            $sort = $sort($this);
+        }
+
+        if ($sort instanceof OrderClauseExpression) {
+            $sort = [(string)$sort->getField() => $this->orderDirection($sort)];
+        }
+
+        if (is_string($sort)) {
+            $parts = explode(' ', trim($sort), 2);
+            if (count($parts) === 2) {
+                $sort = [$parts[0] => strtolower($parts[1]) === 'desc' ? -1 : 1];
+            } else {
+                $sort = [$sort => 1];
+            }
+        }
+
+        $normalized = [];
+        foreach ($sort as $field => $direction) {
+            if (is_string($direction)) {
+                $direction = strtolower($direction) === 'desc' ? -1 : 1;
+            }
+
+            $normalized[(string)$field] = (int)$direction;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Reads the direction of an order clause expression.
+     *
+     * @param \Cake\Database\Expression\OrderClauseExpression $expression The order clause.
+     * @return string
+     */
+    protected function orderDirection(OrderClauseExpression $expression): string
+    {
+        return str_ends_with($expression->sql(new ValueBinder()), ' DESC') ? 'DESC' : 'ASC';
+    }
+
+    /**
      * Creates an aggregation builder for this association.
      *
      * @return \Crustum\Mongo\Database\Aggregation\AggregationBuilder
@@ -708,7 +776,7 @@ abstract class Association
         }
 
         if (!empty($options['sort'])) {
-            $builder->sort((array)$options['sort']);
+            $builder->sort($this->normalizeSort($options['sort']));
         }
 
         if (!empty($options['skip'])) {

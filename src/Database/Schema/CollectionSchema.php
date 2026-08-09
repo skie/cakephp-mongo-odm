@@ -744,4 +744,21 @@ class CollectionSchema implements SchemaInterface
 
         return $this;
     }
+
+    /**
+     * Returns an array that can be used to describe the internal state of this
+     * object.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'collection' => $this->name(),
+            'fields' => $this->fields,
+            'indexes' => $this->indexes,
+            'typeMap' => $this->typeMap,
+            'options' => $this->options,
+        ];
+    }
 }

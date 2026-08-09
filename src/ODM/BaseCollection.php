@@ -21,13 +21,16 @@ use Cake\Event\EventListenerInterface;
 use Cake\Event\EventManager;
 use Cake\Event\EventManagerInterface;
 use Cake\ORM\Exception\PersistenceFailedException;
+use Cake\ORM\Exception\RolledbackTransactionException;
 use Cake\Utility\Inflector;
 use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
+use Crustum\Mongo\ODM\Rule\IsUnique as CrustumIsUnique;
 use Crustum\Mongo\ODM\RulesChecker as CrustumRulesChecker;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Exception\MissingDocumentException;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -39,8 +42,13 @@ use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\Mapping\DocumentSchemaReader;
 use Crustum\Mongo\ODM\Mapping\DtoSchemaReader;
+use Crustum\Mongo\ODM\Query\DeleteQuery;
+use Crustum\Mongo\ODM\Query\InsertQuery;
 use Crustum\Mongo\ODM\Query\QueryFactory;
 use Crustum\Mongo\ODM\Query\SelectQuery;
+use Crustum\Mongo\ODM\Query\UnhydratedSelectQuery;
+use Crustum\Mongo\ODM\Query\UpdateQuery;
+use Exception;
 use InvalidArgumentException;
 use LogicException;
 use Psr\SimpleCache\CacheInterface;
@@ -72,6 +80,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @var class-string<\Crustum\Mongo\ODM\RulesChecker>
      */
     public const string RULES_CLASS = CrustumRulesChecker::class;
+
+    /**
+     * The rule class used by validateUnique().
+     *
+     * @var class-string<\Crustum\Mongo\ODM\Rule\IsUnique>
+     */
+    public const string IS_UNIQUE_CLASS = CrustumIsUnique::class;
 
     /**
      * The alias this object is assigned to validators as.
@@ -163,6 +178,14 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @var class-string<\Crustum\Mongo\ODM\Document>|null
      */
     protected ?string $documentClass = null;
+
+    /**
+     * Whether documents passed to save/delete/patch/loadInto must match the
+     * configured document class.
+     *
+     * @var bool
+     */
+    protected bool $assertDocumentClass = true;
 
     /**
      * The field used as the human-readable display field.
@@ -483,11 +506,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Creates a new select query
      *
-     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TEntity>
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery
      */
     public function selectQuery(): SelectQuery
     {
-        /** @var \Crustum\Mongo\ODM\Query\SelectQuery<TEntity> $query */
         $query = $this->queryFactory->select($this);
 
         return $query;
@@ -502,6 +524,32 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function unhydratedSelectQuery(): UnhydratedSelectQuery
     {
         return $this->queryFactory->unhydratedSelect($this);
+    }
+
+    /**
+     * Creates a new unhydrated select query and applies a finder to it.
+     *
+     * @param string $type Finder name.
+     * @param mixed ...$args Finder arguments.
+     * @return \Crustum\Mongo\ODM\Query\UnhydratedSelectQuery
+     * @throws \Cake\Core\Exception\CakeException When a finder returns a query that is not unhydrated.
+     */
+    public function unhydratedFind(string $type = 'all', mixed ...$args): UnhydratedSelectQuery
+    {
+        $query = $this->unhydratedSelectQuery();
+        $result = $this->callFinder($type, $query, ...$args);
+
+        if (!$result instanceof UnhydratedSelectQuery) {
+            throw new CakeException(sprintf(
+                'The `%s` finder must return the query it was given when called via unhydratedFind(); '
+                . 'got `%s` instead. Finders that build a fresh query cannot preserve the '
+                . 'non-hydrating contract - use find() for those.',
+                $type,
+                get_debug_type($result),
+            ));
+        }
+
+        return $result;
     }
 
     /**
@@ -593,6 +641,129 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Returns a single document after finding one by primary key value or
+     * creating a new one if it doesn't exist.
+     *
+     * If a document matching $search can be found, it will be returned. If not,
+     * a new entity will be created with $search used as the default data. The
+     * new entity will be saved and returned.
+     *
+     * If your find conditions require custom order, associations or conditions, then the $search
+     * parameter can be a callable that takes the Query as the argument, or a SelectQuery object passed
+     * as the $search parameter. Allowing you to customize the find results.
+     *
+     * ### Options
+     *
+     * The options array is passed to the save method with exception to the following keys:
+     *
+     * - atomic: Whether to execute the methods for find, save and callbacks inside a database
+     *   transaction (default: true)
+     * - defaults: Whether to use the search criteria as default values for the new entity (default: true)
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing
+     *   documents by. Note that when you pass a query object you'll have to use
+     *   the 2nd arg of the method to modify the entity data before saving.
+     * @param callable|array<string, mixed>|null $callback An array of data key/value pairs or a callback that will
+     *   be invoked for newly created entities. This callback will be called *before* the entity
+     *   is persisted.
+     * @param array<string, mixed> $options The options to use when saving.
+     * @return \Cake\Datasource\EntityInterface A document.
+     * @throws \Cake\ORM\Exception\PersistenceFailedException When the entity couldn't be saved
+     */
+    public function findOrCreate(
+        SelectQuery|callable|array $search,
+        callable|array|null $callback = null,
+        array $options = [],
+    ): EntityInterface {
+        $options = new ArrayObject($options + [
+            'atomic' => true,
+            'defaults' => true,
+        ]);
+
+        $entity = $this->executeTransaction(
+            fn() => $this->processFindOrCreate($search, $callback, $options->getArrayCopy()),
+            (bool)$options['atomic'],
+        );
+
+        if ($entity && $this->transactionCommitted((bool)$options['atomic'], true)) {
+            $this->dispatchEvent('Collection.afterSaveCommit', compact('entity', 'options'));
+        }
+
+        return $entity;
+    }
+
+    /**
+     * Performs the actual find and/or create of an entity based on the passed options.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find an existing document by, or a callable that will
+     *   customize the find query.
+     * @param callable|array<string, mixed>|null $callback Data or a callback that will be invoked for newly
+     *   created entities. This callback will be called *before* the entity
+     *   is persisted.
+     * @param array<string, mixed> $options The options to use when saving.
+     * @return \Cake\Datasource\EntityInterface|array<string, mixed> A document.
+     * @throws \Cake\ORM\Exception\PersistenceFailedException When the entity couldn't be saved
+     * @throws \InvalidArgumentException
+     */
+    protected function processFindOrCreate(
+        SelectQuery|callable|array $search,
+        callable|array|null $callback = null,
+        array $options = [],
+    ): EntityInterface|array {
+        $query = $this->getFindOrCreateQuery($search);
+
+        $row = $query->first();
+        if ($row !== null) {
+            return $row;
+        }
+
+        $data = $search;
+        if (is_array($callback) && !is_callable($callback)) {
+            $data = $callback + $search;
+            $callback = null;
+        }
+
+        $entity = $this->newEmptyEntity();
+        if ($options['defaults'] && is_array($data)) {
+            $patchableFields = array_combine(array_keys($data), array_fill(0, count($data), true));
+            $entity = $this->patchEntity($entity, $data, ['patchableFields' => $patchableFields]);
+        }
+        if ($callback !== null) {
+            /** @var \Cake\Datasource\EntityInterface $entity */
+            $entity = $callback($entity) ?: $entity;
+        }
+        unset($options['defaults']);
+
+        $result = $this->save($entity, $options);
+
+        if ($result === false) {
+            throw new PersistenceFailedException($entity, ['findOrCreate']);
+        }
+
+        return $entity;
+    }
+
+    /**
+     * Gets the query object for findOrCreate().
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>
+     */
+    protected function getFindOrCreateQuery(SelectQuery|callable|array $search): SelectQuery
+    {
+        if (is_callable($search)) {
+            $query = $this->find();
+            $search($query);
+        } elseif (is_array($search)) {
+            $query = $this->find()->where($search);
+        } else {
+            $query = $search;
+        }
+
+        return $query;
+    }
+
+    /**
      * Persists a document.
      *
      * @param \Cake\Datasource\EntityInterface $entity The document.
@@ -660,6 +831,136 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Persists multiple documents of a collection.
+     *
+     * The records will be saved in a transaction which will be rolled back if
+     * any one of the records fails to save due to failed validation or database
+     * error.
+     *
+     * @template TSavedDocument of \Cake\Datasource\EntityInterface
+     * @param iterable<TSavedDocument> $entities Documents to save.
+     * @param array<string, mixed> $options Options used when calling save() for each document.
+     * @return iterable<TSavedDocument>|false False on failure, documents list on success.
+     * @throws \Exception
+     */
+    public function saveMany(iterable $entities, array $options = []): iterable|false
+    {
+        try {
+            return $this->doSaveMany($entities, $options);
+        } catch (PersistenceFailedException) {
+            return false;
+        }
+    }
+
+    /**
+     * Persists multiple documents of a collection or throws a PersistenceFailedException
+     * if any one of the records fails to save.
+     *
+     * The records will be saved in a transaction which will be rolled back if
+     * any one of the records fails to save due to failed validation or database
+     * error.
+     *
+     * @template TSavedDocument of \Cake\Datasource\EntityInterface
+     * @param iterable<TSavedDocument> $entities Documents to save.
+     * @param array<string, mixed> $options Options used when calling save() for each document.
+     * @return iterable<TSavedDocument> Documents list.
+     * @throws \Exception
+     * @throws \Cake\ORM\Exception\PersistenceFailedException If a document couldn't be saved.
+     */
+    public function saveManyOrFail(iterable $entities, array $options = []): iterable
+    {
+        return $this->doSaveMany($entities, $options);
+    }
+
+    /**
+     * @template TSavedDocument of \Cake\Datasource\EntityInterface
+     * @param iterable<TSavedDocument> $entities Documents to save.
+     * @param array<string, mixed> $options Options used when calling save() for each document.
+     * @throws \Cake\ORM\Exception\PersistenceFailedException If a document couldn't be saved.
+     * @throws \Exception If a document couldn't be saved.
+     * @return iterable<TSavedDocument> Documents list.
+     */
+    protected function doSaveMany(iterable $entities, array $options = []): iterable
+    {
+        $options = new ArrayObject(
+            $options + [
+                'atomic' => true,
+                'checkRules' => true,
+                '_primary' => true,
+            ],
+        );
+        $options['_cleanOnSuccess'] = false;
+
+        /** @var array<bool> $isNew */
+        $isNew = [];
+        $cleanupOnFailure = function ($entities) use (&$isNew): void {
+            /** @var iterable<\Cake\Datasource\EntityInterface> $entities */
+            foreach ($entities as $key => $entity) {
+                if (isset($isNew[$key]) && $isNew[$key]) {
+                    $entity->unset($this->getPrimaryKey());
+                    $entity->setNew(true);
+                }
+            }
+        };
+
+        /** @var \Cake\Datasource\EntityInterface|null $failed */
+        $failed = null;
+        try {
+            $this->executeTransaction(function () use ($entities, $options, &$isNew, &$failed): bool {
+                $options = (array)$options;
+                foreach ($entities as $key => $entity) {
+                    $isNew[$key] = $entity->isNew();
+                    if ($this->save($entity, $options) === false) {
+                        $failed = $entity;
+
+                        return false;
+                    }
+                }
+
+                return true;
+            }, (bool)$options['atomic']);
+        } catch (Exception $e) {
+            $cleanupOnFailure($entities);
+
+            throw $e;
+        }
+
+        if ($failed !== null) {
+            $cleanupOnFailure($entities);
+
+            throw new PersistenceFailedException($failed, ['saveMany']);
+        }
+
+        $cleanupOnSuccess = function (EntityInterface $entity) use (&$cleanupOnSuccess): void {
+            $entity->clean();
+            $entity->setNew(false);
+
+            foreach (array_keys($entity->toArray()) as $field) {
+                $value = $entity->get($field);
+
+                if ($value instanceof EntityInterface) {
+                    $cleanupOnSuccess($value);
+                } elseif (is_array($value) && current($value) instanceof EntityInterface) {
+                    foreach ($value as $associated) {
+                        $cleanupOnSuccess($associated);
+                    }
+                }
+            }
+        };
+
+        if ($this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
+            foreach ($entities as $entity) {
+                $this->dispatchEvent('Collection.afterSaveCommit', compact('entity', 'options'));
+                if ($options['atomic'] || $options['_primary']) {
+                    $cleanupOnSuccess($entity);
+                }
+            }
+        }
+
+        return $entities;
+    }
+
+    /**
      * Deletes a document.
      *
      * @param \Cake\Datasource\EntityInterface $entity The document.
@@ -687,6 +988,106 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         return $success;
+    }
+
+    /**
+     * Deletes multiple documents of a collection.
+     *
+     * The records will be deleted in a transaction which will be rolled back if
+     * any one of the records fails to delete due to failed validation or database
+     * error.
+     *
+     * @template TDeletedDocument of \Cake\Datasource\EntityInterface
+     * @param iterable<TDeletedDocument> $entities Documents to delete.
+     * @param array<string, mixed> $options Options used when calling delete() for each document.
+     * @return iterable<TDeletedDocument>|false Documents list on success, false on failure.
+     * @see \Crustum\Mongo\ODM\BaseCollection::delete() for options and events related to this method.
+     */
+    public function deleteMany(iterable $entities, array $options = []): iterable|false
+    {
+        $failed = $this->doDeleteMany($entities, $options);
+
+        if ($failed !== null) {
+            return false;
+        }
+
+        return $entities;
+    }
+
+    /**
+     * Deletes multiple documents of a collection or throws a PersistenceFailedException
+     * if any one of the records fails to delete.
+     *
+     * The records will be deleted in a transaction which will be rolled back if
+     * any one of the records fails to delete due to failed validation or database
+     * error.
+     *
+     * @param iterable<\Cake\Datasource\EntityInterface> $entities Documents to delete.
+     * @param array<string, mixed> $options Options used when calling delete() for each document.
+     * @return void
+     * @throws \Cake\ORM\Exception\PersistenceFailedException
+     * @see \Crustum\Mongo\ODM\BaseCollection::delete() for options and events related to this method.
+     */
+    public function deleteManyOrFail(iterable $entities, array $options = []): void
+    {
+        $failed = $this->doDeleteMany($entities, $options);
+
+        if ($failed !== null) {
+            throw new PersistenceFailedException($failed, ['deleteMany']);
+        }
+    }
+
+    /**
+     * @param iterable<\Cake\Datasource\EntityInterface> $entities Documents to delete.
+     * @param array<string, mixed> $options Options used.
+     * @return \Cake\Datasource\EntityInterface|null
+     */
+    protected function doDeleteMany(iterable $entities, array $options = []): ?EntityInterface
+    {
+        $options = new ArrayObject($options + [
+                'atomic' => true,
+                'checkRules' => true,
+                '_primary' => true,
+            ]);
+
+        $failed = $this->executeTransaction(function () use ($entities, $options) {
+            foreach ($entities as $entity) {
+                if (!$this->processDelete($entity, $options)) {
+                    return $entity;
+                }
+            }
+
+            return null;
+        }, (bool)$options['atomic']);
+
+        if ($failed === null && $this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
+            foreach ($entities as $entity) {
+                $this->dispatchEvent('Collection.afterDeleteCommit', [
+                    'entity' => $entity,
+                    'options' => $options,
+                ]);
+            }
+        }
+
+        return $failed;
+    }
+
+    /**
+     * Try to delete a document or throw a PersistenceFailedException if the document is new,
+     * has no primary key value, application rules checks failed or the delete was aborted by a callback.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to remove.
+     * @param array<string, mixed> $options The options for the delete.
+     * @return void
+     * @throws \Cake\ORM\Exception\PersistenceFailedException
+     * @see \Crustum\Mongo\ODM\BaseCollection::delete()
+     */
+    public function deleteOrFail(EntityInterface $entity, array $options = []): void
+    {
+        $deleted = $this->delete($entity, $options);
+        if ($deleted === false) {
+            throw new PersistenceFailedException($entity, ['delete']);
+        }
     }
 
     /**
@@ -739,6 +1140,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function patchEntity(EntityInterface $entity, array $data, array $options = []): EntityInterface
     {
+        $this->assertDocumentClass($entity);
+
         if (!$entity instanceof Document) {
             throw new InvalidArgumentException('patchEntity() requires a Document.');
         }
@@ -758,6 +1161,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function patchEntities(iterable $entities, array $data, array $options = []): array
     {
+        foreach ($entities as $entity) {
+            $this->assertDocumentClass($entity);
+        }
+
         $options['associated'] ??= $this->associations->keys();
 
         return $this->marshaller()->mergeMany($entities, $data, $options);
@@ -1218,6 +1625,83 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Enables the assertion that documents passed to save/delete/patch/loadInto
+     * match the collection's configured document class.
+     *
+     * @param bool $enable Whether to enable. Defaults to true.
+     * @return $this
+     * @see \Crustum\Mongo\ODM\BaseCollection::assertDocumentClass()
+     */
+    public function enableDocumentClassAssertion(bool $enable = true): static
+    {
+        $this->assertDocumentClass = $enable;
+
+        return $this;
+    }
+
+    /**
+     * Disables the document-class assertion for this collection. Use when foreign
+     * documents are passed intentionally (e.g. polymorphic patterns).
+     *
+     * @return $this
+     */
+    public function disableDocumentClassAssertion(): static
+    {
+        $this->assertDocumentClass = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns whether the document-class assertion is enabled for this collection.
+     *
+     * @return bool
+     */
+    public function isDocumentClassAssertionEnabled(): bool
+    {
+        return $this->assertDocumentClass;
+    }
+
+    /**
+     * Asserts that the given document belongs to this collection instance.
+     *
+     * The document must either be an instance of the collection's configured
+     * document class, or an instance of the generic ``\Crustum\Mongo\ODM\Document``
+     * class. The generic class is allowed as an escape hatch for ad-hoc usage
+     * such as ``$collection->delete(new Document(['_id' => $id]))``.
+     *
+     * Catches mistakes like ``$this->Invoices->delete($orderDocument)`` where
+     * a document from a different collection is passed.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to validate.
+     * @return void
+     * @throws \InvalidArgumentException When the document does not match the
+     *   configured document class.
+     */
+    protected function assertDocumentClass(EntityInterface $entity): void
+    {
+        if (!$this->assertDocumentClass) {
+            return;
+        }
+
+        if ($entity->getSource() === $this->getRegistryAlias()) {
+            return;
+        }
+
+        $documentClass = $this->getDocumentClass();
+        if ($entity instanceof $documentClass || $entity::class === Document::class) {
+            return;
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Entity of class `%s` does not match the document class `%s` configured for collection `%s`.',
+            $entity::class,
+            $documentClass,
+            $this->getRegistryAlias(),
+        ));
+    }
+
+    /**
      * Sets the primary key field.
      *
      * @param array<string>|string $key The primary key field.
@@ -1377,6 +1861,86 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Provides the dynamic findBy and findAllBy methods.
+     *
+     * @param string $method The method name that was fired.
+     * @param array<int, mixed> $args List of arguments passed to the function.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array>
+     * @throws \BadMethodCallException when there are missing arguments, or when
+     *  and & or are combined.
+     */
+    protected function dynamicFinder(string $method, array $args): SelectQuery
+    {
+        $method = Inflector::underscore($method);
+        preg_match('/^find_([\w]+)_by_/', $method, $matches);
+        if (!$matches) {
+            // find_by_ is 8 characters.
+            $fields = substr($method, 8);
+            $findType = 'all';
+        } else {
+            $fields = substr($method, strlen($matches[0]));
+            $findType = Inflector::variable($matches[1]);
+        }
+        $hasOr = str_contains($fields, '_or_');
+        $hasAnd = str_contains($fields, '_and_');
+
+        $makeConditions = function ($fields, $args): array {
+            $conditions = [];
+            if (count($args) < count($fields)) {
+                throw new BadMethodCallException(sprintf(
+                    'Not enough arguments for magic finder. Got %s required %s',
+                    count($args),
+                    count($fields),
+                ));
+            }
+            foreach ($fields as $field) {
+                $conditions[$this->aliasField($field)] = array_shift($args);
+            }
+
+            return $conditions;
+        };
+
+        if ($hasOr && $hasAnd) {
+            throw new BadMethodCallException(
+                'Cannot mix "and" & "or" in a magic finder. Use find() instead.',
+            );
+        }
+
+        if ($hasOr === false && $hasAnd === false) {
+            $conditions = $makeConditions([$fields], $args);
+        } elseif ($hasOr) {
+            $fields = explode('_or_', $fields);
+            $conditions = [
+                'OR' => $makeConditions($fields, $args),
+            ];
+        } else {
+            $fields = explode('_and_', $fields);
+            $conditions = $makeConditions($fields, $args);
+        }
+
+        return $this->find($findType, conditions: $conditions);
+    }
+
+    /**
+     * Handles dynamic finders.
+     *
+     * @param string $method name of the method to be invoked
+     * @param array<int, mixed> $args List of arguments passed to the function
+     * @return mixed
+     * @throws \BadMethodCallException
+     */
+    public function __call(string $method, array $args): mixed
+    {
+        if (preg_match('/^find(?:\w+)?By/', $method) > 0) {
+            return $this->dynamicFinder($method, $args);
+        }
+
+        throw new BadMethodCallException(
+            sprintf('Unknown method `%s` called on `%s`', $method, static::class),
+        );
+    }
+
+    /**
      * Default finder; returns the query unchanged.
      *
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query.
@@ -1523,6 +2087,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function processSave(EntityInterface $entity, ArrayObject $options): EntityInterface|false
     {
+        $this->assertDocumentClass($entity);
+
         $primaryKey = (array)$this->getPrimaryKey();
 
         if ($options['checkExisting'] && $primaryKey !== [] && $entity->isNew() && $entity->has($primaryKey)) {
@@ -1562,7 +2128,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $success = $isNew ? $this->insert($entity) : $this->update($entity);
 
         if ($success) {
-            $success = $this->saveChildren($entity, $options);
+            $success = $this->onSaveSuccess($entity, $options);
         }
 
         if (!$success && $isNew) {
@@ -1574,6 +2140,38 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Handles the saving of children associations and executing the afterSave logic
+     * once the document for this collection has been saved successfully.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity the document to be saved
+     * @param \ArrayObject<string, mixed> $options the options to use for the save operation
+     * @return bool True on success
+     * @throws \Cake\ORM\Exception\RolledbackTransactionException If the transaction
+     *   is aborted in the afterSave event.
+     */
+    protected function onSaveSuccess(EntityInterface $entity, ArrayObject $options): bool
+    {
+        $success = $this->saveChildren($entity, $options);
+
+        if (!$success && $options['atomic']) {
+            return false;
+        }
+
+        $connection = $this->getConnection();
+        if ($options['atomic'] && $connection instanceof Connection && !$connection->inTransaction()) {
+            throw new RolledbackTransactionException(['collection' => static::class]);
+        }
+
+        if (!$options['atomic'] && !$options['_primary']) {
+            $entity->clean();
+            $entity->setNew(false);
+            $entity->setSource($this->getRegistryAlias());
+        }
+
+        return true;
+    }
+
+    /**
      * Inserts a new document into the collection.
      *
      * @param \Cake\Datasource\EntityInterface $entity The document.
@@ -1581,7 +2179,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function insert(EntityInterface $entity): EntityInterface|false
     {
+        $primaryKey = (array)$this->getPrimaryKey();
         $data = $entity->toArray();
+
+        // Generate the primary key up front (like cake _newId) so a new
+        // document always has an `_id` on the entity after the insert.
+        if (!$entity->has($primaryKey)) {
+            $newId = $this->newId(array_values($primaryKey));
+            if ($newId !== null) {
+                $entity->set('_id', $newId);
+                $data['_id'] = $newId;
+            }
+        }
 
         $query = $this->queryFactory->insert($this);
         $query->values($data);
@@ -1594,9 +2203,37 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         if (isset($data['_id'])) {
             $entity->set('_id', $data['_id']);
+        } elseif (isset($ids[0]) && $ids[0] !== '') {
+            $entity->set('_id', $ids[0]);
         }
 
         return $entity;
+    }
+
+    /**
+     * Generates a primary key value for a new document.
+     *
+     * Only single-column primary keys generate; composite keys return null
+     * (Mongo assigns them). Delegates to the configured id generator / type.
+     *
+     * @param list<string> $primary The primary key columns.
+     * @return string|null The generated id, or null when not applicable.
+     */
+    protected function newId(array $primary): ?string
+    {
+        if (count($primary) !== 1) {
+            return null;
+        }
+
+        $schema = $this->getSchema();
+        $typeName = $schema->getColumnType($primary[0]);
+        if ($typeName === null) {
+            return null;
+        }
+
+        $type = TypeFactory::build($typeName);
+
+        return (string)$type->newId();
     }
 
     /**
@@ -1654,6 +2291,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function processDelete(EntityInterface $entity, ArrayObject $options): bool
     {
+        $this->assertDocumentClass($entity);
+
         if ($entity->isNew()) {
             return false;
         }
@@ -1807,6 +2446,52 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Loads the specified associations in the passed document or list of documents
+     * by executing extra queries in the collection and merging the results in the
+     * appropriate properties.
+     *
+     * ### Example:
+     *
+     * ```
+     * $user = $usersCollection->get(1);
+     * $user = $usersCollection->loadInto($user, ['Articles.Tags', 'Articles.Comments']);
+     * echo $user->articles[0]->title;
+     * ```
+     *
+     * You can also load associations for multiple documents at once
+     *
+     * ### Example:
+     *
+     * ```
+     * $users = $usersCollection->find()->where([...])->toArray();
+     * $users = $usersCollection->loadInto($users, ['Articles.Tags', 'Articles.Comments']);
+     * echo $user[1]->articles[0]->title;
+     * ```
+     *
+     * The properties for the associations to be loaded will be overwritten on each document.
+     *
+     * @param \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> $entities a single document or list of documents
+     * @param array<int|string, mixed> $contain A `contain()` compatible array.
+     * @see \Crustum\Mongo\ODM\Query\SelectQuery::contain()
+     * @return \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface>
+     */
+    public function loadInto(EntityInterface|array $entities, array $contain): EntityInterface|array
+    {
+        if ($entities instanceof EntityInterface) {
+            $this->assertDocumentClass($entities);
+        } else {
+            foreach ($entities as $entity) {
+                $this->assertDocumentClass($entity);
+            }
+        }
+
+        /** @var \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> $result */
+        $result = new LazyEagerLoader()->loadInto($entities, $contain, $this);
+
+        return $result;
+    }
+
+    /**
      * Sets the display field.
      *
      * @param array<string>|string $field The display field.
@@ -1838,5 +2523,115 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         return $this->displayField = $this->getPrimaryKey();
+    }
+
+    /**
+     * Resolves an association by name, following dotted aliases.
+     *
+     * @param string $name The alias used for the association.
+     * @return \Crustum\Mongo\ODM\Association|null Either the association or null.
+     */
+    protected function findAssociation(string $name): ?Association
+    {
+        if (!str_contains($name, '.')) {
+            return $this->associations->get($name);
+        }
+
+        $result = null;
+        [$name, $next] = array_pad(explode('.', $name, 2), 2, null);
+        if ($name !== null) {
+            $result = $this->associations->get($name);
+        }
+
+        if ($result !== null && $next !== null) {
+            return $result->getTarget()->getAssociation($next);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Validator method used to check the uniqueness of a value for a column.
+     * This is meant to be used with the validation API and not to be called
+     * directly.
+     *
+     * ### Example:
+     *
+     * ```
+     * $validator->add('email', [
+     *  'unique' => ['rule' => 'validateUnique', 'provider' => 'table']
+     * ])
+     * ```
+     *
+     * Unique validation can be scoped to the value of another column:
+     *
+     * ```
+     * $validator->add('email', [
+     *  'unique' => [
+     *      'rule' => ['validateUnique', ['scope' => 'site_id']],
+     *      'provider' => 'table'
+     *  ]
+     * ]);
+     * ```
+     *
+     * In the above example, the email uniqueness will be scoped to only documents having
+     * the same site_id. Scoping will only be used if the scoping field is present in
+     * the data to be validated.
+     *
+     * @param mixed $value The value of column to be checked for uniqueness.
+     * @param array<string, mixed> $options The options array, optionally containing the 'scope' key.
+     *   May also be the validation context, if there are no options.
+     * @param array<string, mixed>|null $context Either the validation context or null.
+     * @return bool True if the value is unique, or false if a non-scalar, non-unique value was given.
+     */
+    public function validateUnique(mixed $value, array $options = [], ?array $context = null): bool
+    {
+        if ($context === null) {
+            $context = $options;
+        }
+        $entity = new ($this->getDocumentClass())(
+            $context['data'],
+            [
+                'useSetters' => false,
+                'markNew' => $context['newRecord'],
+                'source' => $this->getRegistryAlias(),
+            ],
+        );
+        $fields = array_merge(
+            [$context['field']],
+            isset($options['scope']) ? (array)$options['scope'] : [],
+        );
+        $values = $entity->extract($fields);
+        foreach ($values as $field) {
+            if ($field !== null && !is_scalar($field)) {
+                return false;
+            }
+        }
+        $class = static::IS_UNIQUE_CLASS;
+        $rule = new $class($fields, $options);
+
+        return $rule($entity, ['repository' => $this]);
+    }
+
+    /**
+     * Returns an array that can be used to describe the internal state of this
+     * object.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        $connection = $this->getConnection();
+
+        return [
+            'registryAlias' => $this->getRegistryAlias(),
+            'collection' => $this->getCollection(),
+            'alias' => $this->getAlias(),
+            'documentClass' => $this->getDocumentClass(),
+            'associations' => $this->associations->keys(),
+            'behaviors' => $this->behaviors->loaded(),
+            'defaultConnection' => static::defaultConnectionName(),
+            'connectionName' => $connection instanceof Connection ? $connection->configName() : null,
+        ];
     }
 }

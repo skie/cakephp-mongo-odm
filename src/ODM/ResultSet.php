@@ -294,11 +294,9 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
         }
 
-        $entity = $repository->newEntity($results + $row, [
-            'source' => $repository->getRegistryAlias(),
-            'markNew' => false,
-            'markClean' => true,
-        ]);
+        $entity = $repository->newEmptyEntity();
+        $entity->setSource($repository->getRegistryAlias());
+        $entity->patch($results + $row, ['guard' => false]);
 
         if ($matching !== []) {
             $entity->set('_matchingData', $matching);
