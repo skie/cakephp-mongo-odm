@@ -722,7 +722,10 @@ abstract class Association
 
         $normalized = [];
         foreach ($sort as $field => $direction) {
-            if (is_string($direction)) {
+            if (is_int($field)) {
+                $field = $direction;
+                $direction = 1;
+            } elseif (is_string($direction)) {
                 $direction = strtolower($direction) === 'desc' ? -1 : 1;
             }
 

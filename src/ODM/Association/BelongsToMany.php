@@ -1179,6 +1179,7 @@ class BelongsToMany extends Association
             return [];
         }
 
+        $targetBindingKey = $this->junctionTargetBindingKey($junction, $target);
         $through = $junction->getCollection();
 
         $builder = $this->buildAggregation();
@@ -1191,7 +1192,7 @@ class BelongsToMany extends Association
         $builder
             ->lookup($target->getCollection())
             ->localField($join . '.' . $targetForeignKey)
-            ->foreignField('_id')
+            ->foreignField($targetBindingKey)
             ->alias($this->getProperty());
         $pipelineOptions = $options + $this->associationPipelineOptions();
         $pipelineFields = $pipelineOptions['fields'] ?? null;
@@ -1216,7 +1217,7 @@ class BelongsToMany extends Association
      */
     protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void
     {
-        if ($fields === null) {
+        if ($fields === null || $fields === []) {
             return;
         }
 
@@ -1402,5 +1403,25 @@ class BelongsToMany extends Association
         }
 
         return $key === false ? null : $key;
+    }
+
+    /**
+     * Resolves the target binding key used by the junction's belongsTo association.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @return string
+     */
+    protected function junctionTargetBindingKey(BaseCollection $junction, BaseCollection $target): string
+    {
+        $association = $junction->getAssociation($target->getAlias());
+        if ($association instanceof Association) {
+            $key = $association->getBindingKey();
+            if (is_string($key) && $key !== '') {
+                return $key;
+            }
+        }
+
+        return '_id';
     }
 }
