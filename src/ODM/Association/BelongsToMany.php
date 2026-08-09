@@ -1086,6 +1086,168 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Proxies a find to the target collection, applying target conditions and,
+     * when junction conditions exist, joining through the junction collection.
+     *
+     * @param array<string, mixed>|string|null $type The finder name.
+     * @param mixed ...$args Finder arguments.
+     * @return \Cake\Datasource\QueryInterface
+     */
+    public function find(array|string|null $type = null, mixed ...$args): QueryInterface
+    {
+        $type = $type ?: $this->getFinder();
+        [$type, $opts] = $this->extractFinder($type);
+        $args += $opts;
+
+        $query = $this->getTarget()
+            ->find($type, ...$args)
+            ->where($this->targetConditions());
+
+        if ($this->junctionConditions()) {
+            $this->appendJunctionJoin($query);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Returns filtered conditions that reference the target collection.
+     *
+     * @return mixed Generally an array. If the conditions are not an array,
+     *   the association conditions are returned unmodified.
+     */
+    protected function targetConditions(): mixed
+    {
+        $conditions = $this->getConditions();
+        if (!is_array($conditions)) {
+            return $conditions;
+        }
+
+        $matching = [];
+        $alias = $this->getAlias() . '.';
+        foreach ($conditions as $field => $value) {
+            if (is_string($field) && str_starts_with($field, $alias)) {
+                $matching[$field] = $value;
+            } elseif (is_int($field)) {
+                $matching[$field] = $value;
+            }
+        }
+
+        return $matching;
+    }
+
+    /**
+     * Returns filtered conditions that specifically reference the junction collection.
+     *
+     * @return array<string, mixed>
+     */
+    protected function junctionConditions(): array
+    {
+        $matching = [];
+        $conditions = $this->getConditions();
+        if (!is_array($conditions)) {
+            return $matching;
+        }
+
+        $alias = $this->junction()->getAlias() . '.';
+        foreach ($conditions as $field => $value) {
+            $isString = is_string($field);
+            if ($isString && str_starts_with($field, $alias)) {
+                $matching[$field] = $value;
+            }
+            if ($isString && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
+                $operator = '$' . strtolower($field);
+                $matching[$operator] = in_array($operator, ['$or', '$and'], true) && is_array($value) && array_is_list($value) === false
+                    ? [$value]
+                    : $value;
+            }
+        }
+
+        return $matching;
+    }
+
+    /**
+     * Appends a `$lookup` through the junction collection and filters the
+     * target on junction conditions.
+     *
+     * @param \Cake\Datasource\QueryInterface $query The target query.
+     * @return void
+     */
+    protected function appendJunctionJoin(QueryInterface $query): void
+    {
+        if (!$query instanceof \Crustum\Mongo\ODM\Query\SelectQuery) {
+            return;
+        }
+
+        $junction = $this->junction();
+        $target = $this->getTarget();
+
+        $targetForeignKey = $this->targetForeignKey
+            ?? $this->junctionJoinForeignKey($junction, $target);
+        if ($targetForeignKey === null) {
+            return;
+        }
+
+        $builder = $this->buildAggregation();
+        $join = '_junction';
+        $builder
+            ->lookup($junction->getCollection())
+            ->localField('_id')
+            ->foreignField($targetForeignKey)
+            ->alias($join);
+
+        $match = [];
+        $junctionAlias = $junction->getAlias() . '.';
+        foreach ($this->junctionConditions() as $field => $value) {
+            $field = (string)$field;
+            $upper = strtoupper(ltrim($field, '$'));
+            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $match[$field] = $this->stripJunctionAlias($value, $junctionAlias, $join);
+                continue;
+            }
+            if (str_starts_with($field, $junctionAlias)) {
+                $field = $join . '.' . substr($field, strlen($junctionAlias));
+            }
+            $match[$field] = $value;
+        }
+        $builder->match($match);
+
+        $query->pipeline($builder->getPipeline());
+    }
+
+    /**
+     * Recursively replaces a junction alias prefix inside condition groups.
+     *
+     * @param array<int|string, mixed> $conditions The condition group.
+     * @param string $junctionAlias The junction alias prefix.
+     * @param string $join The lookup alias.
+     * @return array<int|string, mixed>
+     */
+    protected function stripJunctionAlias(array $conditions, string $junctionAlias, string $join): array
+    {
+        $stripped = [];
+        foreach ($conditions as $field => $value) {
+            if (is_array($value) && array_keys($value) !== range(0, count($value) - 1)) {
+                $stripped[$field] = $this->stripJunctionAlias($value, $junctionAlias, $join);
+                continue;
+            }
+            if (is_array($value) && array_is_list($value)) {
+                $stripped[$field] = array_map(
+                    fn(mixed $item): mixed => is_array($item) ? $this->stripJunctionAlias($item, $junctionAlias, $join) : $item,
+                    $value,
+                );
+                continue;
+            }
+            $field = (string)$field;
+            if (str_starts_with($field, $junctionAlias)) {
+                $field = $join . '.' . substr($field, strlen($junctionAlias));
+            }
+            $stripped[$field] = $value;
+        }
+
+        return $stripped;
+    }
+    /**
      * Gets the join collection source key.
      *
      * @return string|null
