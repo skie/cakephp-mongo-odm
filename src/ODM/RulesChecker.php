@@ -33,7 +33,7 @@ final class RulesChecker extends BaseRulesChecker
 
         return $this->_addError(
             new IsUnique($fields, $options),
-            '_isUnique',
+            'isUnique',
             ['errorField' => $fields[0] ?? null, 'message' => $message],
         );
     }
@@ -101,7 +101,7 @@ final class RulesChecker extends BaseRulesChecker
 
         return $this->_addError(
             new ValidCount($field),
-            '_validCount',
+            'validCount',
             ['count' => $count, 'operator' => $operator, 'message' => $message] + ['errorField' => $field],
         );
     }

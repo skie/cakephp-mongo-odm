@@ -22,7 +22,7 @@ class ObjectIdType extends BaseType
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
      * @return \MongoDB\BSON\ObjectId|null
      */
-    public function toDatabase(mixed $value, MongoDriver $driver): ?ObjectId
+    public function toDatabase(mixed $value, MongoDriver $driver): mixed
     {
         if ($value === null || $value === '') {
             return null;
@@ -32,15 +32,13 @@ class ObjectIdType extends BaseType
             return $value;
         }
 
-        try {
-            return new ObjectId((string)$value);
-        } catch (Exception $exception) {
-            throw new InvalidArgumentException(
-                sprintf('Cannot convert value "%s" to ObjectId', $value),
-                0,
-                $exception,
-            );
+        if (is_string($value) && preg_match('/^[0-9a-f]{24}$/i', $value)) {
+            return new ObjectId($value);
         }
+
+        // Non-hex values (e.g. integer or string foreign keys) pass through so
+        // existence lookups simply match nothing instead of failing to encode.
+        return $value;
     }
 
     /**
