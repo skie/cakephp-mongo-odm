@@ -93,11 +93,14 @@ class BelongsToMany extends Association
     public function __construct(string $alias, BaseCollection $source, array $options = [])
     {
         parent::__construct($alias, $source, $options);
+        $this->dependent = (bool)($options['dependent'] ?? true);
         $this->through = $options['through'] ?? null;
         $this->joinForeignKey = $options['joinForeignKey'] ?? null;
         $this->targetForeignKey = $options['targetForeignKey'] ?? null;
         $this->junctionProperty = (string)($options['junctionProperty'] ?? $this->junctionProperty);
-        $this->saveStrategy = (string)($options['saveStrategy'] ?? $this->saveStrategy);
+        if (isset($options['saveStrategy'])) {
+            $this->setSaveStrategy((string)$options['saveStrategy']);
+        }
         if (isset($options['sort'])) {
             $this->setSort($options['sort']);
         }
@@ -244,6 +247,58 @@ class BelongsToMany extends Association
         }
 
         return false;
+    }
+
+    /**
+     * Cascades deletes to the junction collection.
+     *
+     * When `dependent` is enabled the junction links for the source entity are
+     * removed. With `cascadeCallbacks` each link is deleted through the
+     * collection (firing events); otherwise a bulk `deleteAll()` runs.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param array<string, mixed> $options Delete options.
+     * @return bool
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        if (!$this->getDependent()) {
+            return true;
+        }
+
+        /** @var array<string> $foreignKeys */
+        $foreignKeys = (array)$this->getForeignKey();
+        $bindingKeys = (array)$this->getBindingKey();
+        $conditions = [];
+
+        if ($bindingKeys !== []) {
+            $conditions = array_combine($foreignKeys, $entity->extract($bindingKeys));
+        }
+
+        $table = $this->junction();
+        $hasMany = $this->getSource()->getAssociation($table->getAlias());
+        if ($this->getCascadeCallbacks()) {
+            /** @var \Cake\Datasource\EntityInterface $related */
+            foreach ($hasMany->find('all')->where($conditions)->toArray() as $related) {
+                $success = $table->delete($related, $options);
+                if (!$success) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        $assocConditions = $hasMany->getConditions();
+        if (is_array($assocConditions)) {
+            $conditions = array_merge($conditions, $assocConditions);
+        } else {
+            $conditions[] = $assocConditions;
+        }
+
+        $table->deleteAll($conditions);
+
+        return true;
     }
 
     /**
@@ -1010,9 +1065,8 @@ class BelongsToMany extends Association
     {
         if (!in_array($strategy, [self::SAVE_APPEND, self::SAVE_REPLACE], true)) {
             throw new InvalidArgumentException(sprintf(
-                'Invalid save strategy "%s". Valid strategies are: %s',
+                'Invalid save strategy `%s`',
                 $strategy,
-                implode(', ', [self::SAVE_APPEND, self::SAVE_REPLACE]),
             ));
         }
 
@@ -1141,8 +1195,78 @@ class BelongsToMany extends Association
             ->alias($this->getProperty());
         $this->applyPipelineOptions($builder, $options + $this->associationPipelineOptions());
         $this->applyAssociationSort($builder);
+        $this->applyFinderConditions($builder);
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Applies the association finder's conditions to the loaded target array.
+     *
+     * The finder is executed on a scratch target query and its compiled filter
+     * is applied as a `$match` on the loaded property array.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return void
+     */
+    protected function applyFinderConditions(AggregationBuilder $builder): void
+    {
+        $finder = $this->getFinder();
+        if (is_array($finder)) {
+            [$finder, $opts] = $this->extractFinder($finder);
+        }
+        if (!$finder || $finder === 'all') {
+            return;
+        }
+
+        $query = $this->getTarget()->find($finder, ...(is_array($opts ?? null) ? $opts : []));
+        $compiled = $query->compile();
+        $filter = $compiled['filter'] ?? [];
+        if ($filter === []) {
+            return;
+        }
+
+        $property = $this->getProperty();
+        $var = '$' . $property;
+        $builder->addStage('$addFields', [
+            $property => [
+                '$filter' => [
+                    'input' => $var,
+                    'as' => 'item',
+                    'cond' => $this->filterExpression($filter, '$$item'),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Converts a Mongo filter into an `$expr`-style condition expression.
+     *
+     * @param array<string, mixed> $filter The Mongo filter.
+     * @param string $var The item variable prefix (`$$item`).
+     * @return array<string, mixed>
+     */
+    protected function filterExpression(array $filter, string $var): array
+    {
+        $expr = [];
+        foreach ($filter as $field => $value) {
+            if (strtoupper((string)$field) === '$AND' && is_array($value)) {
+                foreach ($value as $nested) {
+                    if (is_array($nested)) {
+                        $expr[] = $this->filterExpression($nested, $var);
+                    }
+                }
+                continue;
+            }
+
+            if (str_starts_with((string)$field, '$')) {
+                continue;
+            }
+
+            $expr[] = ['$eq' => [$var . '.' . $field, $value]];
+        }
+
+        return ['$and' => $expr];
     }
 
     /**
