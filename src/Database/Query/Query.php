@@ -13,6 +13,7 @@ use Crustum\Mongo\Database\FunctionsBuilder;
 use Crustum\Mongo\Database\TypeMapTrait;
 use InvalidArgumentException;
 use Stringable;
+use Throwable;
 
 /**
  * Base query class for MongoDB.
@@ -129,9 +130,35 @@ abstract class Query implements Stringable
     public function from(string $collection): static
     {
         $this->collection = $collection;
+        $this->applySchemaTypes();
         $this->dirty();
 
         return $this;
+    }
+
+    /**
+     * Loads the collection's schema type map into the compiler.
+     *
+     * When the connection exposes schema metadata for the target collection,
+     * field types (e.g. `objectid` for foreign keys) are registered on the
+     * compiler so condition values are cast before compilation. Missing or
+     * incomplete schema metadata is tolerated — the query still runs, just
+     * without type-based casting.
+     *
+     * @return void
+     */
+    protected function applySchemaTypes(): void
+    {
+        if ($this->collection === '' || !$this->connection instanceof Connection) {
+            return;
+        }
+
+        try {
+            $schema = $this->connection->getSchemaCollection()->describe($this->collection);
+            $this->builder->setTypeMap($schema->typeMap());
+        } catch (Throwable) {
+            // Schema metadata is best-effort; ignore and run untyped.
+        }
     }
 
     /**
@@ -169,6 +196,222 @@ abstract class Query implements Stringable
         $this->builder->setFieldResolver($resolver);
 
         return $this;
+    }
+
+    /**
+     * Adds an ad-hoc `$lookup` join against another collection.
+     *
+     * SQL-style facade over Mongo `$lookup`. The builder receives a select
+     * query for the target collection and configures it fluently; the
+     * conditions are compiled into a `$lookup` pipeline. Field-to-field
+     * comparisons use `equalFields()` (left = source field, right = target
+     * field); value conditions use the ordinary `where()` / expression API.
+     *
+     * ```php
+     * $connection->selectQuery()
+     *     ->from('authors')
+     *     ->join('author_audits', function (SelectQuery $q) {
+     *         $q->where(fn($exp) => $exp
+     *             ->equalFields('authors.user_id', 'author_audits.foreign_key')
+     *             ->eq('author_audits.model', 'Author'));
+     *     });
+     * ```
+     *
+     * A field is treated as a **source** field when it is prefixed with
+     * anything other than the target alias/collection; it becomes a `let`
+     * variable referenced as `$$field` inside the pipeline. A field prefixed
+     * with the target alias (or unqualified) is a target field and stays a
+     * bare `$field`.
+     *
+     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param callable $builder Callable receiving a target query to configure.
+     * @param array{inner?: bool, asArray?: bool} $options Join options.
+     * @return $this
+     */
+    public function join(string|array $from, callable $builder, array $options = []): static
+    {
+        return $this->buildJoin($from, $builder, $options, left: false);
+    }
+
+    /**
+     * Adds a LEFT-style `$lookup` join (keeps source rows with no match).
+     *
+     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param callable $builder Callable receiving a target query to configure.
+     * @param array{inner?: bool, asArray?: bool} $options Join options.
+     * @return $this
+     */
+    public function leftJoin(string|array $from, callable $builder, array $options = []): static
+    {
+        return $this->buildJoin($from, $builder, $options, left: true);
+    }
+
+    /**
+     * Shared `$lookup` join construction.
+     *
+     * `join()` is INNER (drops source rows with no match); `leftJoin()` is
+     * LEFT (keeps them, `$unwind preserveNullAndEmptyArrays`). `asArray`
+     * keeps the nested array without `$unwind`.
+     *
+     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param callable $builder Callable receiving a target query to configure.
+     * @param array{inner?: bool, asArray?: bool} $options Join options.
+     * @param bool $left Whether this is a LEFT join.
+     * @return $this
+     */
+    protected function buildJoin(string|array $from, callable $builder, array $options, bool $left): static
+    {
+        $join = $this->normalizeJoin($from);
+
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            throw new CakeException('Join requires a connection.');
+        }
+
+        $targetQuery = $connection->selectQuery()->from($join['collection']);
+        $result = $builder($targetQuery);
+        $targetQuery = $result instanceof SelectQuery ? $result : $targetQuery;
+        $compiled = $targetQuery->compile();
+        $filter = $compiled['filter'] ?? [];
+
+        [$let, $match] = $this->buildJoinLookup($filter, $join);
+
+        $lookup = ['from' => $join['collection'], 'as' => $join['as']];
+        if ($let !== []) {
+            $lookup['let'] = $let;
+        }
+        if ($match !== []) {
+            $lookup['pipeline'] = [['$match' => $match]];
+        }
+
+        $this->builder->pipeline([['$lookup' => $lookup]]);
+
+        // `join` is INNER (drop unmatched), `leftJoin` is LEFT (keep them).
+        $inner = $left ? false : true;
+        if ($inner) {
+            $this->builder->pipeline([['$match' => [$join['as'] => ['$ne' => []]]]]);
+        }
+
+        if (empty($options['asArray'])) {
+            $this->builder->pipeline([
+                ['$unwind' => ['path' => '$' . $join['as'], 'preserveNullAndEmptyArrays' => $left]],
+            ]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Normalizes the join target argument.
+     *
+     * @param string|array<string, string> $from The target collection or `[alias => collection]`.
+     * @return array{alias: string, as: string, collection: string}
+     */
+    protected function normalizeJoin(string|array $from): array
+    {
+        if (is_string($from)) {
+            return ['alias' => $from, 'as' => $from, 'collection' => $from];
+        }
+
+        $alias = (string)key($from);
+        $collection = (string)current($from);
+
+        return ['alias' => $alias, 'as' => $alias, 'collection' => $collection];
+    }
+
+    /**
+     * Builds `let` variables and the rewritten `$match` from a join filter.
+     *
+     * @param array<string, mixed> $filter The compiled target filter.
+     * @param array{alias: string, as: string, collection: string} $join The normalized join.
+     * @return array{0: array<string, string>, 1: array<string, mixed>}
+     */
+    protected function buildJoinLookup(array $filter, array $join): array
+    {
+        $targetAlias = $join['alias'];
+        $let = [];
+        $match = $this->rewriteJoinFilter($filter, $targetAlias, $let);
+
+        return [$let, $match];
+    }
+
+    /**
+     * Recursively rewrites a join filter, extracting source refs into `let`.
+     *
+     * @param mixed $value The filter node.
+     * @param string $targetAlias The target collection alias.
+     * @param array<string, string> $let Accumulated let variables.
+     * @return mixed
+     */
+    protected function rewriteJoinFilter(mixed $value, string $targetAlias, array &$let): mixed
+    {
+        if (is_array($value)) {
+            $rewritten = [];
+            foreach ($value as $k => $v) {
+                if ($k === '$expr') {
+                    $rewritten[$k] = $this->rewriteExpr($v, $targetAlias, $let);
+                } elseif (is_string($k) && str_starts_with($k, $targetAlias . '.')) {
+                    $rewritten[substr($k, strlen($targetAlias) + 1)] = $this->rewriteJoinFilter($v, $targetAlias, $let);
+                } elseif (is_string($k) && str_contains($k, '.')) {
+                    $bare = substr($k, strpos($k, '.') + 1);
+                    $letName = $this->letVariableName($bare);
+                    $let[$letName] = '$' . $k;
+                    $rewritten[$bare] = $this->rewriteJoinFilter($v, $targetAlias, $let);
+                } else {
+                    $rewritten[$k] = $this->rewriteJoinFilter($v, $targetAlias, $let);
+                }
+            }
+
+            return $rewritten;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Rewrites `$expr` operands, extracting source field paths into `let`.
+     *
+     * @param mixed $expr The `$expr` value.
+     * @param string $targetAlias The target collection alias.
+     * @param array<string, string> $let Accumulated let variables.
+     * @return mixed
+     */
+    protected function rewriteExpr(mixed $expr, string $targetAlias, array &$let): mixed
+    {
+        if (is_array($expr)) {
+            $rewritten = [];
+            foreach ($expr as $k => $v) {
+                if (is_string($v) && str_starts_with($v, '$' . $targetAlias . '.')) {
+                    $rewritten[$k] = '$' . substr($v, strlen('$' . $targetAlias . '.'));
+                } elseif (is_string($v) && str_starts_with($v, '$') && str_contains($v, '.')) {
+                    $field = substr($v, 1);
+                    $bare = substr($field, strpos($field, '.') + 1);
+                    $letName = $this->letVariableName($bare);
+                    $let[$letName] = '$' . $bare;
+                    $rewritten[$k] = '$$' . $letName;
+                } else {
+                    $rewritten[$k] = $this->rewriteExpr($v, $targetAlias, $let);
+                }
+            }
+
+            return $rewritten;
+        }
+
+        return $expr;
+    }
+
+    /**
+     * Returns a Mongo-safe `let` variable name for a source field.
+     *
+     * Mongo `let` variables may not start with `_` (e.g. `_id`), so such
+     * fields get a `source_` prefix (`_id` → `source_id`).
+     *
+     * @param string $field The source field name.
+     * @return string The let variable name.
+     */
+    protected function letVariableName(string $field): string
+    {
+        return str_starts_with($field, '_') ? 'source_' . $field : $field;
     }
 
     /**

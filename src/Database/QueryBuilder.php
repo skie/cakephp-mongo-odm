@@ -87,7 +87,9 @@ class QueryBuilder
         }
 
         foreach ($conditions as $field => $value) {
-            if (is_string($value) && strlen($value) === 24 && ctype_xdigit($value)) {
+            if (is_array($value)) {
+                $value = $this->convertIdValues($value);
+            } elseif (is_string($value) && strlen($value) === 24 && ctype_xdigit($value)) {
                 $value = new ObjectId($value);
             }
 
@@ -95,6 +97,29 @@ class QueryBuilder
         }
 
         return $this;
+    }
+
+    /**
+     * Recursively converts 24-hex string values to ObjectId inside arrays.
+     *
+     * `IN`/`$in` conditions carry arrays of identifier values; each string that
+     * looks like an ObjectId hex is converted so the query matches ObjectId
+     * foreign keys in the database.
+     *
+     * @param array<int|string, mixed> $values The values to convert.
+     * @return array<int|string, mixed>
+     */
+    protected function convertIdValues(array $values): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $values[$key] = $this->convertIdValues($value);
+            } elseif (is_string($value) && strlen($value) === 24 && ctype_xdigit($value)) {
+                $values[$key] = new ObjectId($value);
+            }
+        }
+
+        return $values;
     }
 
     /**

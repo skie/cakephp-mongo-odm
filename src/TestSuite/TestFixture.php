@@ -129,14 +129,30 @@ class TestFixture implements FixtureInterface
         }
 
         $collection = $db->getCollection($this->table);
+
+        $typeMap = [];
+        try {
+            $typeMap = $db->getSchemaCollection()->describe($this->table)->typeMap();
+        } catch (Throwable) {
+            // Schema metadata is best-effort; fall back to naming conventions.
+        }
+
         foreach ($this->records as $record) {
-            if (isset($record['_id']) && is_string($record['_id'])) {
-                if (preg_match('/^[0-9a-f]{24}$/', $record['_id'])) {
-                    $record['_id'] = new ObjectId($record['_id']);
-                }
-            } elseif (isset($record['id'])) {
-                $record['_id'] = new ObjectId($record['id']);
+            if (isset($record['id']) && !isset($record['_id'])) {
+                $record['_id'] = $record['id'];
                 unset($record['id']);
+            }
+
+            foreach ($record as $field => $value) {
+                if (!is_string($value) || !preg_match('/^[0-9a-f]{24}$/', $value)) {
+                    continue;
+                }
+
+                $isObjectId = $field === '_id'
+                    || ($typeMap[$field] ?? null) === 'objectid';
+                if ($isObjectId) {
+                    $record[$field] = new ObjectId($value);
+                }
             }
 
             $collection->insertOne($record);

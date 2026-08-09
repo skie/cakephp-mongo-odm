@@ -27,7 +27,9 @@ class SelectOrderGroupClauseTest extends TestCase
     protected array $fixtures = [
         'plugin.Crustum/Mongo.Articles',
         'plugin.Crustum/Mongo.Authors',
+        'plugin.Crustum/Mongo.Audits',
         'plugin.Crustum/Mongo.Comments',
+        'plugin.Crustum/Mongo.Profiles',
         'plugin.Crustum/Mongo.Users',
     ];
 
@@ -526,46 +528,125 @@ class SelectOrderGroupClauseTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function testLookupWithEqualFieldsPolymorphic(): void
+    public function testJoinPolymorphic(): void
     {
         $users = $this->getCollectionLocator()->get('Users');
 
         $result = $users->find()
-            ->lookup('comments', [
-                'let' => ['user_id' => '$_id'],
-                'pipeline' => fn($q) => $q->where(
-                    fn($exp) => $exp->equalFields('comments.user_id', '$$user_id'),
-                ),
-                'as' => 'comments',
-            ])
-            ->where(['Users._id' => '000000000000000000000002'])
+            ->join('profiles', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'profiles.first_name'));
+            }, ['asArray' => true])
+            ->where(['Users.username' => 'nate'])
             ->firstOrFail();
 
-        $this->assertNotEmpty($result->comments);
-        foreach ($result->comments as $comment) {
-            $this->assertSame('000000000000000000000002', $comment->user_id);
-        }
+        $this->assertNotEmpty($result->profiles);
+        $this->assertSame('abele', $result->profiles[0]->last_name);
     }
 
-    public function testLookupWithEqualFieldsClosure(): void
+    public function testJoinWithValueCondition(): void
     {
         $users = $this->getCollectionLocator()->get('Users');
 
         $result = $users->find()
-            ->lookup('comments', [
-                'let' => ['user_id' => '$_id'],
-                'pipeline' => fn($q) => $q->where([
-                    '$and' => [
-                        ['$expr' => ['$eq' => ['$user_id', '$$user_id']]],
-                        ['comment' => 'First Comment for First Article'],
-                    ],
-                ]),
-                'as' => 'comments',
-            ])
+            ->join('profiles', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'profiles.first_name')
+                    ->eq('profiles.is_active', false));
+            }, ['asArray' => true])
+            ->where(['Users.username' => 'nate'])
+            ->firstOrFail();
+
+        $this->assertNotEmpty($result->profiles);
+        $this->assertSame('abele', $result->profiles[0]->last_name);
+    }
+
+    public function testJoinAliased(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users');
+
+        $result = $users->find()
+            ->join(['prof' => 'profiles'], function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'prof.first_name'));
+            }, ['asArray' => true])
+            ->where(['Users.username' => 'mariano'])
+            ->firstOrFail();
+
+        $this->assertNotEmpty($result->prof);
+        $this->assertSame('iglesias', $result->prof[0]->last_name);
+    }
+
+    public function testLeftJoinPreservesNulls(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users');
+
+        // leftJoin keeps source rows even when the joined collection has no
+        // match (SQL LEFT JOIN semantics via $unwind preserveNull).
+        $result = $users->find()
+            ->leftJoin('profiles', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'profiles.first_name'));
+            })
+            ->where(['Users.username' => 'mariano'])
+            ->firstOrFail();
+
+        $this->assertSame('mariano', $result->username);
+        $this->assertArrayHasKey('profiles', $result->toArray());
+    }
+
+    public function testInnerJoinDropsNoMatch(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users');
+
+        // `join` is INNER: a username that matches no profile is dropped.
+        $rows = $users->find()
+            ->join('profiles', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'profiles.first_name'));
+            })
+            ->where(['Users.username' => 'mariano'])
+            ->all()
+            ->toArray();
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('mariano', $rows[0]->username);
+    }
+
+    public function testLeftJoinAsArray(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users');
+
+        // `asArray` keeps the joined docs as a nested array (no $unwind).
+        $result = $users->find()
+            ->leftJoin('profiles', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users.username', 'profiles.first_name'));
+            }, ['asArray' => true])
+            ->where(['Users.username' => 'mariano'])
+            ->firstOrFail();
+
+        $this->assertNotEmpty($result->profiles);
+        $this->assertCount(1, $result->profiles);
+    }
+
+    public function testJoinPolymorphicForeignKey(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users');
+
+        // `foreign_key` does not end in `_id`; type resolution comes from the
+        // schema type map (objectid), so `Users._id` matches `audits.foreign_key`.
+        $result = $users->find()
+            ->join('audits', function ($q) {
+                $q->where(fn($exp) => $exp
+                    ->equalFields('Users._id', 'audits.foreign_key')
+                    ->eq('audits.model', 'Users'));
+            }, ['asArray' => true])
             ->where(['Users._id' => '000000000000000000000002'])
             ->firstOrFail();
 
-        $this->assertNotEmpty($result->comments);
-        $this->assertCount(1, $result->comments);
+        $this->assertNotEmpty($result->audits);
+        $this->assertCount(1, $result->audits);
+        $this->assertSame('updated user 2', $result->audits[0]->note);
     }
 }

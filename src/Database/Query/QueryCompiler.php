@@ -29,6 +29,13 @@ class QueryCompiler
     protected array $filter = [];
 
     /**
+     * Collection schema type map (field => type) used for value casting.
+     *
+     * @var array<string, string>
+     */
+    protected array $typeMap = [];
+
+    /**
      * Field projection (which fields to return)
      *
      * @var array<string, mixed>
@@ -122,6 +129,23 @@ class QueryCompiler
     public function setFieldResolver(?\Closure $resolver): static
     {
         $this->expressionBuilder->setFieldResolver($resolver);
+
+        return $this;
+    }
+
+    /**
+     * Sets the collection schema type map used to cast condition values.
+     *
+     * Fields with a `objectid` type have their 24-hex string values (scalar or
+     * inside `IN` arrays) converted to `ObjectId` before compilation, matching
+     * ObjectId foreign keys in the database.
+     *
+     * @param array<string, string> $typeMap Field => type map.
+     * @return $this
+     */
+    public function setTypeMap(array $typeMap): static
+    {
+        $this->typeMap = $typeMap;
 
         return $this;
     }
@@ -633,10 +657,6 @@ class QueryCompiler
      */
     protected function castConditions(array $conditions, array $types): array
     {
-        if ($types === []) {
-            return $conditions;
-        }
-
         foreach ($conditions as $key => $value) {
             if (is_string($key) && (str_starts_with($key, '$') || in_array(strtoupper($key), ['AND', 'OR', 'NOT'], true))) {
                 $conditions[$key] = is_array($value) ? $this->castConditions($value, $types) : $value;
@@ -646,6 +666,8 @@ class QueryCompiler
             $field = is_string($key) && str_contains($key, ' ') ? explode(' ', $key)[0] : $key;
             if (is_string($field) && isset($types[$field])) {
                 $conditions[$key] = $this->castValue($value, $types[$field]);
+            } elseif (is_string($field) && isset($this->typeMap[$field])) {
+                $conditions[$key] = $this->castValue($value, $this->typeMap[$field]);
             } elseif (is_array($value)) {
                 $conditions[$key] = $this->castConditions($value, $types);
             }

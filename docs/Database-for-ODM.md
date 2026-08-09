@@ -65,6 +65,11 @@ Read this together with `docs/Queries.md` (the full query surface).
   document to the selected projection, so `select(['Authors.name'])` excludes the rest of
   the root row. The Database compiler stays alias-agnostic and array-based — no query-level
   expression tree (see `docs/reference/20-database-layer-gap-analysis.md` Finding 4).
+- **Identifier types come from the schema, not field names.** A field whose schema type is
+  `objectid` (`*_id`, `foreign_key`, any name) has its 24-hex string values converted to
+  `ObjectId` when compiling conditions (scalar or inside `IN` arrays) and when loading
+  fixtures. `parent_id`-style fields declared as `string`/`int` stay strings. See
+  `docs/reference/23-join-facade-design.md` §8.
 
 ## Patterns
 
@@ -75,6 +80,80 @@ Read this together with `docs/Queries.md` (the full query surface).
 $query->where(['deleted' => false]);                 // -> $match, prepended by the compiler
 $query->where(fn (QueryExpression $exp) => $exp->isNull('deleted_at'));
 ```
+
+### Ad-hoc join (SQL-style over `$lookup`)
+
+`join()` / `leftJoin()` are fluent facades over Mongo `$lookup`, defined on the Database
+base `Query` and inherited by ODM queries. Field-to-field comparisons use `equalFields()`
+(left = source field, right = target field); value conditions use `where()` / expressions.
+No `$` / `$$` / `$expr` / flat-array `$lookup` is written by the caller.
+
+```php
+// INNER join: rows with no match are dropped
+$authors->find()
+    ->join('author_audits', function (SelectQuery $q) {
+        $q->where(fn(QueryExpression $exp) => $exp
+            ->equalFields('Authors.user_id', 'author_audits.foreign_key')
+            ->eq('author_audits.model', 'Author'));
+    });
+
+// LEFT join: source rows are kept even without a match
+$authors->find()
+    ->leftJoin('author_audits', function (SelectQuery $q) {
+        $q->where(fn(QueryExpression $exp) => $exp
+            ->equalFields('Authors.user_id', 'author_audits.foreign_key'));
+    });
+
+// Aliased join: `['audits' => 'author_audits']` becomes the `as` key / alias
+$authors->find()
+    ->join(['audits' => 'author_audits'], function (SelectQuery $q) {
+        $q->where(fn(QueryExpression $exp) => $exp
+            ->equalFields('Authors.user_id', 'audits.foreign_key'));
+    }, ['asArray' => true]);   // keep the nested array, skip $unwind
+```
+
+Notes:
+- The result is a **nested array** under the join alias (`$row->author_audits`), not flat
+  SQL columns.
+- Source fields carry the source alias (`Authors.`), target fields the join alias /
+  collection (`author_audits.`); unqualified fields default to the target.
+- `equalFields()` compiles to `$expr`; identifier conversion is schema-driven (see field
+  conventions above).
+
+### Join-scoped writes (recommendation)
+
+`save()` / `delete()` work on **one document by `_id`** — they never need a join.
+`updateAll()` / `deleteAll()` are raw bulk ops and Mongo cannot run a `$lookup`
+inside them. To scope a write to rows that match a join, do it in two steps
+(recommended) or via aggregation (for updates):
+
+```php
+// Delete: find the joined `_id`s, then deleteAll by them (raw, no events — like cake)
+$ids = $authors->find()
+    ->select(['Authors._id'])
+    ->join('author_audits', function (SelectQuery $q) {
+        $q->where(fn(QueryExpression $exp) => $exp
+            ->equalFields('Authors.user_id', 'author_audits.foreign_key')
+            ->eq('author_audits.model', 'Author'));
+    })
+    ->all()
+    ->extract('_id')
+    ->toList();
+
+$affected = $authors->deleteAll(['_id IN' => $ids]);
+
+// Update the same way: collect `_id`s, then updateAll
+$affected = $authors->updateAll(['archived' => true], ['_id IN' => $ids]);
+```
+
+If you need per-row **events** (`Collection.beforeSave/afterSave`,
+`beforeDelete/afterDelete`) on the matched rows, iterate the joined query and
+call `save()`/`delete()` per document instead of `updateAll`/`deleteAll` — the
+join is just a `find()`; the write still goes through the row-level path.
+
+For an **update that writes values derived from the joined collection**, use the
+aggregation form (`$lookup` → `$set` → `$merge`); note it returns a cursor, not
+`updateMany`'s modified count, so it is not a drop-in for `updateAll()`:
 
 ### Referenced association (eager load)
 
