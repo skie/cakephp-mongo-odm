@@ -10,6 +10,7 @@ use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
+use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
 
 /**
@@ -50,6 +51,21 @@ class HasMany extends Association
     public function type(): string
     {
         return self::ONE_TO_MANY;
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param string $alias Association alias.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source Source collection.
+     * @param array<string, mixed> $options Association configuration.
+     */
+    public function __construct(string $alias, BaseCollection $source, array $options = [])
+    {
+        parent::__construct($alias, $source, $options);
+        if (isset($options['saveStrategy'])) {
+            $this->setSaveStrategy((string)$options['saveStrategy']);
+        }
     }
 
     /**
@@ -124,6 +140,13 @@ class HasMany extends Association
      */
     public function setSaveStrategy(string $strategy): static
     {
+        if (!in_array($strategy, [self::SAVE_APPEND, self::SAVE_REPLACE], true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid save strategy `%s`',
+                $strategy,
+            ));
+        }
+
         $this->saveStrategy = $strategy;
 
         return $this;
