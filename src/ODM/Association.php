@@ -1055,14 +1055,25 @@ abstract class Association
     }
 
     /**
-     * Proxies a delete to the target collection.
+     * Proxies a delete to the target collection, applying the association
+     * finder and conditions to the filter.
      *
      * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
      * @return int
      */
     public function deleteAll(array|Closure|string|null $conditions): int
     {
-        return $this->getTarget()->deleteAll($conditions);
+        $query = $this->find();
+        if ($conditions !== null) {
+            $query->where($conditions);
+        }
+
+        $filter = [];
+        if ($query instanceof SelectQuery) {
+            $filter = $query->compile()['filter'] ?? [];
+        }
+
+        return $this->getTarget()->deleteAll($filter);
     }
 
     /**

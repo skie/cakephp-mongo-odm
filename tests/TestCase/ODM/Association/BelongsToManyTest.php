@@ -932,7 +932,7 @@ class BelongsToManyTest extends TestCase
 
         $other = $joint->find()->where(['tag_id' => '000000000000000000000001'])->toArray();
         $this->assertCount(1, $other, 'Non matching joint record should remain.');
-        $this->assertSame(1, $other[0]->article_id);
+        $this->assertSame('000000000000000000000001', $other[0]->article_id);
     }
 
     /**
@@ -985,7 +985,7 @@ class BelongsToManyTest extends TestCase
 
         $other = $joint->find()->where(['tag_id' => '000000000000000000000001'])->toArray();
         $this->assertCount(1, $other, 'Non matching joint record should remain.');
-        $this->assertSame(2, $other[0]->article_id);
+        $this->assertSame('000000000000000000000002', $other[0]->article_id);
     }
 
     /**

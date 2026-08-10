@@ -59,8 +59,7 @@ class DependentDeleteHelper
             return true;
         }
 
-        $deleteConditions = $association->find()->where($conditions)->clause('where');
-        $association->deleteAll($deleteConditions);
+        $association->deleteAll($conditions);
 
         return true;
     }

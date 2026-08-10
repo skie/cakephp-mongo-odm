@@ -698,9 +698,52 @@ class BelongsToMany extends Association
     {
         $conditions = array_combine($foreignKey, $primaryValue);
 
-        return $junction->find()
+        $links = $junction->find()
             ->where($conditions)
             ->toArray();
+
+        if ($links === []) {
+            return [];
+        }
+
+        // The junction records only count as existing links when the related
+        // target document passes the association finder (cake60 joins through
+        // the junction, applying the target association finder/conditions).
+        $target = $this->getTarget();
+        $targetBindingKey = (array)$junction->getAssociation($target->getAlias())->getBindingKey();
+        $targetIds = [];
+        foreach ($links as $link) {
+            $values = $link->extract($assocForeignKey);
+            foreach ((array)$values as $value) {
+                if ($value !== null) {
+                    $targetIds[(string)$value] = $value;
+                }
+            }
+        }
+
+        if ($targetIds === []) {
+            return [];
+        }
+
+        $matching = $this->find()
+            ->where([$this->fieldName($targetBindingKey) . ' IN' => array_values($targetIds)])
+            ->all();
+
+        $matchedKeys = [];
+        $targetBindingField = $targetBindingKey[0] ?? '_id';
+        foreach ($matching as $row) {
+            $id = $row instanceof EntityInterface
+                ? $row->get($targetBindingField)
+                : ($row[$targetBindingField] ?? null);
+            if ($id !== null) {
+                $matchedKeys[(string)$id] = true;
+            }
+        }
+
+        return array_values(array_filter(
+            $links,
+            fn(EntityInterface $link): bool => !empty($matchedKeys[(string)(array_values($link->extract($assocForeignKey))[0] ?? null)]),
+        ));
     }
 
     /**
