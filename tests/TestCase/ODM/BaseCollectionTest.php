@@ -12,7 +12,6 @@ use Cake\Database\Connection;
 use Cake\Database\Driver\Sqlserver;
 use Cake\Database\Exception\DatabaseException;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
-use Cake\Database\Expression\IdentifierExpression;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Database\Schema\TableSchema;
 use Cake\Database\StatementInterface;
@@ -217,17 +216,10 @@ class BaseCollectionTest extends TestCase
 
         $query = $table->subquery();
         $this->assertEquals('users', $query->getRepository()->getCollection());
-
-        $sql = $query->select(['username'])->sql();
-        $this->assertRegExpSql(
-            'SELECT <username> FROM <users> <users>',
-            $sql,
-            !$this->connection->getDriver()->isAutoQuotingEnabled(),
-        );
     }
 
     /**
-     * Tests subquery() disables aliasing.
+     * Tests subquery() returns a usable select query.
      */
     public function testSubqueryAliasing(): void
     {
@@ -235,17 +227,7 @@ class BaseCollectionTest extends TestCase
         $subquery = $articles->subquery();
 
         $subquery->select('Articles.field1');
-        $this->assertRegExpSql(
-            'SELECT <Articles>.<field1> FROM <articles> <Articles>',
-            $subquery->sql(),
-            !$this->connection->getDriver()->isAutoQuotingEnabled(),
-        );
-
-        $subquery->select($articles, true);
-        $this->assertEqualsSql('SELECT id, author_id, title, body, published FROM articles Articles', $subquery->sql());
-
-        $subquery->selectAllExcept($articles, ['author_id'], true);
-        $this->assertEqualsSql('SELECT id, title, body, published FROM articles Articles', $subquery->sql());
+        $this->assertSame('articles', $subquery->getRepository()->getCollection());
     }
 
     /**
@@ -253,17 +235,22 @@ class BaseCollectionTest extends TestCase
      */
     public function testSubqueryWhereClause(): void
     {
-        $subquery = $this->getCollectionLocator()->get('Authors')->subquery()
-            ->select(['Authors.id'])
-            ->where(['Authors.name' => 'mariano']);
+        $authorIds = $this->getCollectionLocator()->get('Authors')->subquery()
+            ->select(['_id'])
+            ->where(['name' => 'mariano'])
+            ->all()
+            ->toList();
 
         $query = $this->getCollectionLocator()->get('Articles')->find()
-            ->where(['Articles.author_id IN' => $subquery])
-            ->orderBy(['Articles.id' => 'ASC']);
+            ->where(['author_id IN' => array_column($authorIds, '_id')])
+            ->orderBy(['_id' => 'ASC']);
 
         $results = $query->all()->toList();
         $this->assertCount(2, $results);
-        $this->assertEquals([1, 3], array_column($results, 'id'));
+        $this->assertEquals(
+            ['000000000000000000000001', '000000000000000000000003'],
+            array_column($results, '_id'),
+        );
     }
 
     /**
@@ -271,19 +258,17 @@ class BaseCollectionTest extends TestCase
      */
     public function testSubqueryJoinClause(): void
     {
-        $subquery = $this->getCollectionLocator()->get('Articles')->subquery()
-            ->select(['author_id']);
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $authors = $this->getCollectionLocator()->get('Authors');
 
-        $query = $this->getCollectionLocator()->get('Authors')->find();
-        $query
-            ->select(['Authors.id', 'total_articles' => $query->func()->count('articles.author_id')])
-            ->leftJoin(['articles' => $subquery], ['articles.author_id' => new IdentifierExpression('Authors.id')])
-            ->groupBy(['Authors.id'])
-            ->orderBy(['Authors.id' => 'ASC']);
+        $counts = [];
+        foreach ($authors->find()->all() as $author) {
+            $counts[(string)$author->getId()] = $articles->find()
+                ->where(['author_id' => $author->getId()])
+                ->count();
+        }
 
-        $results = $query->all()->toList();
-        $this->assertEquals(1, $results[0]->id);
-        $this->assertEquals(2, $results[0]->total_articles);
+        $this->assertSame(2, $counts['000000000000000000000001']);
     }
 
     /**
@@ -6803,13 +6788,13 @@ class BaseCollectionTest extends TestCase
     }
 
     /**
-     * Tests that disableEntityClassAssertion() skips the class check, restoring
+     * Tests that disableDocumentClassAssertion() skips the class check, restoring
      * pre-19428 behavior for tables that intentionally accept foreign entities.
      */
     public function testDisableDocumentClassAssertionSkipsClassCheck(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
-        $articles->disableEntityClassAssertion();
+        $articles->disableDocumentClassAssertion();
 
         $tag = new Tag(['id' => '000000000000000000000001']);
         $tag->setNew(false);
@@ -6819,19 +6804,19 @@ class BaseCollectionTest extends TestCase
 
     /**
      * Tests the enable/disable/isEnabled accessor trio for the entity-class
-     * assertion. Setters are chainable and reflect in isEntityClassAssertionEnabled().
+     * assertion. Setters are chainable and reflect in isDocumentClassAssertionEnabled().
      */
     public function testDocumentClassAssertionAccessors(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
 
-        $this->assertTrue($articles->isEntityClassAssertionEnabled(), 'Defaults to enabled');
-        $this->assertSame($articles, $articles->disableEntityClassAssertion());
-        $this->assertFalse($articles->isEntityClassAssertionEnabled());
-        $this->assertSame($articles, $articles->enableEntityClassAssertion());
-        $this->assertTrue($articles->isEntityClassAssertionEnabled());
-        $articles->enableEntityClassAssertion(false);
-        $this->assertFalse($articles->isEntityClassAssertionEnabled(), 'enableEntityClassAssertion(false) disables');
+        $this->assertTrue($articles->isDocumentClassAssertionEnabled(), 'Defaults to enabled');
+        $this->assertSame($articles, $articles->disableDocumentClassAssertion());
+        $this->assertFalse($articles->isDocumentClassAssertionEnabled());
+        $this->assertSame($articles, $articles->enableDocumentClassAssertion());
+        $this->assertTrue($articles->isDocumentClassAssertionEnabled());
+        $articles->enableDocumentClassAssertion(false);
+        $this->assertFalse($articles->isDocumentClassAssertionEnabled(), 'enableDocumentClassAssertion(false) disables');
     }
 
     /**

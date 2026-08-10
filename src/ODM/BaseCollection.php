@@ -589,6 +589,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
+     * Returns a bare select query for this collection.
+     *
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery
+     */
+    public function subquery(): SelectQuery
+    {
+        return $this->queryFactory->select($this);
+    }
+
+    /**
      * Updates matching documents.
      *
      * This method does not fire beforeSave/afterSave events.
