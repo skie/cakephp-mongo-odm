@@ -1319,10 +1319,10 @@ class BaseCollectionTest extends TestCase
     public function testFindTypedParameters(): void
     {
         $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', 2)->first();
-        $this->assertSame(2, $author->id);
+        $this->assertSame(2, $author->getId());
 
         $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', id: 2)->first();
-        $this->assertSame(2, $author->id);
+        $this->assertSame(2, $author->getId());
     }
 
     /**
@@ -1532,7 +1532,7 @@ class BaseCollectionTest extends TestCase
             ->select(['id', 'parent_id', 'name'])
             ->toArray();
 
-        $this->assertSame(1, $results[0]->id);
+        $this->assertSame(1, $results[0]->getId());
         $expected = [
             '_id' => '000000000000000000000008',
             'parent_id' => '000000000000000000000002',
@@ -2090,7 +2090,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->id, self::$nextUserId);
+        $this->assertEquals($document->getId(), self::$nextUserId);
 
         $row = $table->find()->where(['id' => self::$nextUserId])->first();
         $this->assertEquals($document->toArray(), $row->toArray());
@@ -2187,7 +2187,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->id, self::$nextUserId);
+        $this->assertEquals($document->getId(), self::$nextUserId);
 
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
         $document->unset('crazyness');
@@ -2211,7 +2211,7 @@ class BaseCollectionTest extends TestCase
         };
         $table->getEventManager()->on('Collection.beforeSave', $listener);
         $this->assertSame($data, $table->save($data));
-        $this->assertEquals($data->id, self::$nextUserId);
+        $this->assertEquals($data->getId(), self::$nextUserId);
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
         $this->assertSame('foo', $row->get('password'));
     }
@@ -2237,7 +2237,7 @@ class BaseCollectionTest extends TestCase
         $table->getEventManager()->on('Collection.beforeSave', $listener1);
         $table->getEventManager()->on('Collection.beforeSave', $listener2);
         $this->assertSame($data, $table->save($data));
-        $this->assertEquals($data->id, self::$nextUserId);
+        $this->assertEquals($data->getId(), self::$nextUserId);
 
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
         $this->assertEquals($data->toArray(), $row->toArray());
@@ -2261,7 +2261,7 @@ class BaseCollectionTest extends TestCase
         };
         $table->getEventManager()->on('Collection.beforeSave', $listener);
         $this->assertSame($data, $table->save($data));
-        $this->assertNull($data->id);
+        $this->assertNull($data->getId());
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
         $this->assertNull($row);
     }
@@ -2362,7 +2362,7 @@ class BaseCollectionTest extends TestCase
         $table->getEventManager()->on('Model.afterSaveCommit', $listenerAfterCommit);
 
         $this->assertSame($data, $table->save($data, ['atomic' => false]));
-        $this->assertEquals($data->id, self::$nextUserId);
+        $this->assertEquals($data->getId(), self::$nextUserId);
         $this->assertTrue($called);
         $this->assertTrue($calledAfterCommit);
     }
@@ -2454,7 +2454,7 @@ class BaseCollectionTest extends TestCase
             $document->username = 'updateduser';
             $table->saveOrFail($document);
 
-            $row = $table->get($document->id);
+            $row = $table->get($document->getId());
             $this->assertSame('updateduser', $row->username);
         });
     }
@@ -2732,7 +2732,7 @@ class BaseCollectionTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->id, self::$nextUserId);
+        $this->assertEquals($document->getId(), self::$nextUserId);
 
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
         $document->set('password', null);
@@ -2940,7 +2940,7 @@ class BaseCollectionTest extends TestCase
         $result = $table->saveMany($documents);
 
         $this->assertSame($documents, $result);
-        $this->assertTrue(isset($result[0]->id));
+        $this->assertTrue(isset($result[0]->_id));
         foreach ($documents as $document) {
             $this->assertFalse($document->isNew());
         }
@@ -2963,7 +2963,7 @@ class BaseCollectionTest extends TestCase
         $documents->first()->articles[0]->title = 'First Article Edited';
 
         $listener = function (EventInterface $event, EntityInterface $document, $options): void {
-            if ($document->id === 1) {
+            if ($document->getId() === 1) {
                 $this->assertTrue($document->isDirty());
 
                 $this->assertSame('admad', $document->name);
@@ -3056,7 +3056,7 @@ class BaseCollectionTest extends TestCase
         $result = $table->saveManyOrFail($documents);
 
         $this->assertSame($documents, $result);
-        $this->assertTrue(isset($result[0]->id));
+        $this->assertTrue(isset($result[0]->_id));
         foreach ($documents as $document) {
             $this->assertFalse($document->isNew());
         }
@@ -3180,7 +3180,7 @@ class BaseCollectionTest extends TestCase
         $table->delete($document);
 
         $articles = $table->getAssociation('Articles')->getTarget();
-        $query = $articles->find('all', conditions: ['author_id' => $document->id]);
+        $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertNull($query->all()->first(), 'Should not find any rows.');
     }
 
@@ -3209,14 +3209,14 @@ class BaseCollectionTest extends TestCase
         $result = $table->delete($document);
         $this->assertTrue($result);
 
-        $query = $articles->find('all', conditions: ['author_id' => $document->id]);
+        $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertNull($query->all()->first(), 'Should not find any rows.');
 
         $document = $table->get('000000000000000000000003');
         $result = $table->delete($document);
         $this->assertFalse($result);
 
-        $query = $articles->find('all', conditions: ['author_id' => $document->id]);
+        $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertFalse($query->all()->isEmpty(), 'Should find some rows.');
 
         $table->associations()->get('Articles')->setCascadeCallbacks(false);
@@ -3240,7 +3240,7 @@ class BaseCollectionTest extends TestCase
         $table->delete($document);
 
         $articles = $table->getAssociation('Articles')->getTarget();
-        $query = $articles->find('all')->where(['author_id' => $document->id]);
+        $query = $articles->find('all')->where(['author_id' => $document->getId()]);
         $this->assertCount(2, $query->all(), 'Should find rows.');
     }
 
@@ -3796,7 +3796,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($document, $table->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->author->isNew());
-        $this->assertSame(5, $document->author->id);
+        $this->assertSame(5, $document->author->getId());
         $this->assertSame(5, $document->get('author_id'));
     }
 
@@ -3819,7 +3819,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($document, $table->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->article->isNew());
-        $this->assertSame(4, $document->article->id);
+        $this->assertSame(4, $document->article->getId());
         $this->assertSame(5, $document->article->get('author_id'));
         $this->assertFalse($document->article->isDirty('author_id'));
     }
@@ -3872,8 +3872,8 @@ class BaseCollectionTest extends TestCase
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->articles[0]->isNew());
         $this->assertFalse($document->articles[1]->isNew());
-        $this->assertSame(4, $document->articles[0]->id);
-        $this->assertSame(5, $document->articles[1]->id);
+        $this->assertSame(4, $document->articles[0]->getId());
+        $this->assertSame(5, $document->articles[1]->getId());
         $this->assertSame(5, $document->articles[0]->author_id);
         $this->assertSame(5, $document->articles[1]->author_id);
     }
@@ -3925,8 +3925,8 @@ class BaseCollectionTest extends TestCase
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->tags[0]->isNew());
         $this->assertFalse($document->tags[1]->isNew());
-        $this->assertSame(4, $document->tags[0]->id);
-        $this->assertSame(5, $document->tags[1]->id);
+        $this->assertSame(4, $document->tags[0]->getId());
+        $this->assertSame(5, $document->tags[1]->getId());
         $this->assertSame(4, $document->tags[0]->_joinData->article_id);
         $this->assertSame(4, $document->tags[1]->_joinData->article_id);
         $this->assertSame(4, $document->tags[0]->_joinData->tag_id);
@@ -4084,7 +4084,7 @@ class BaseCollectionTest extends TestCase
 
         $document = $table->get('000000000000000000000001', contain: 'Tags');
         $this->assertCount(1, $document->tags, 'Only one tag in the db.');
-        $this->assertEquals($tag->id, $document->tags[0]->id);
+        $this->assertEquals($tag->getId(), $document->tags[0]->getId());
     }
 
     /**
@@ -4132,7 +4132,7 @@ class BaseCollectionTest extends TestCase
         $tags = $article->tags;
         $this->assertCount(3, $tags);
         $this->assertFalse($tags[2]->isNew());
-        $this->assertSame(4, $tags[2]->id);
+        $this->assertSame(4, $tags[2]->getId());
         $this->assertSame(1, $tags[2]->_joinData->article_id);
         $this->assertSame(4, $tags[2]->_joinData->tag_id);
     }
@@ -4413,7 +4413,7 @@ class BaseCollectionTest extends TestCase
         }
 
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
-        $this->assertEquals($article->tags[2]->id, $tags[0]->id);
+        $this->assertEquals($article->tags[2]->getId(), $tags[0]->getId());
         $this->assertEqualsCanonicalizing($article->tags[3]->toArray(), $tags[1]->toArray());
     }
 
@@ -4445,7 +4445,7 @@ class BaseCollectionTest extends TestCase
 
         $this->assertTrue($authors->Articles->link($author, $newArticles));
 
-        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->getId()));
         $this->assertCount($sizeArticles, $author->articles);
         $this->assertFalse($author->isDirty('articles'));
     }
@@ -4492,7 +4492,7 @@ class BaseCollectionTest extends TestCase
 
         $sizeArticles++;
 
-        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->getId()));
         $this->assertCount($sizeArticles, $author->articles);
         $this->assertFalse($author->isDirty('articles'));
     }
@@ -4542,7 +4542,7 @@ class BaseCollectionTest extends TestCase
 
         $sizeArticles++;
 
-        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->getId()));
         $this->assertCount($sizeArticles, $author->articles);
         $this->assertFalse($author->isDirty('articles'));
     }
@@ -4585,7 +4585,7 @@ class BaseCollectionTest extends TestCase
 
         $authors->Articles->unlink($author, $articlesToUnlink);
 
-        $this->assertCount($sizeArticles - count($articlesToUnlink), $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles - count($articlesToUnlink), $authors->Articles->findAllByAuthorId($author->getId()));
         $this->assertCount($sizeArticles - count($articlesToUnlink), $author->articles);
         $this->assertFalse($author->isDirty('articles'));
     }
@@ -4628,7 +4628,7 @@ class BaseCollectionTest extends TestCase
 
         $authors->Articles->unlink($author, $articlesToUnlink, ['cleanProperty' => false]);
 
-        $this->assertCount($sizeArticles - count($articlesToUnlink), $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles - count($articlesToUnlink), $authors->Articles->findAllByAuthorId($author->getId()));
         $this->assertCount($sizeArticles, $author->articles);
         $this->assertFalse($author->isDirty('articles'));
     }
@@ -4711,7 +4711,7 @@ class BaseCollectionTest extends TestCase
         $sizeArticles = count($newArticles);
 
         $this->assertTrue($authors->Articles->link($author, $newArticles));
-        $this->assertEquals($authors->Articles->findAllByAuthorId($author->id)->count(), $sizeArticles);
+        $this->assertEquals($authors->Articles->findAllByAuthorId($author->getId())->count(), $sizeArticles);
         $this->assertCount($sizeArticles, $author->articles);
 
         $newArticles = array_merge(
@@ -4732,7 +4732,7 @@ class BaseCollectionTest extends TestCase
         unset($newArticles[0]);
 
         $this->assertFalse($authors->Articles->replace($author, $newArticles));
-        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->getId()));
     }
 
     /**
@@ -4766,13 +4766,13 @@ class BaseCollectionTest extends TestCase
         $sizeArticles = count($newArticles);
 
         $this->assertTrue($authors->Articles->link($author, $newArticles));
-        $this->assertEquals($authors->Articles->findAllByAuthorId($author->id)->count(), $sizeArticles);
+        $this->assertEquals($authors->Articles->findAllByAuthorId($author->getId())->count(), $sizeArticles);
         $this->assertCount($sizeArticles, $author->articles);
 
         $newArticles = [];
 
         $this->assertTrue($authors->Articles->replace($author, $newArticles));
-        $this->assertCount(0, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount(0, $authors->Articles->findAllByAuthorId($author->getId()));
     }
 
     /**
@@ -4809,10 +4809,10 @@ class BaseCollectionTest extends TestCase
         $sizeArticles = count($newArticles);
 
         $this->assertTrue($authors->Articles->link($author, $newArticles));
-        $this->assertEquals($authors->Articles->findAllByAuthorId($author->id)->count(), $sizeArticles);
+        $this->assertEquals($authors->Articles->findAllByAuthorId($author->getId())->count(), $sizeArticles);
         $this->assertCount($sizeArticles, $author->articles);
         $this->assertTrue($authors->Articles->replace($author, $newArticles));
-        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->id));
+        $this->assertCount($sizeArticles, $authors->Articles->findAllByAuthorId($author->getId()));
     }
 
     /**
@@ -4843,7 +4843,7 @@ class BaseCollectionTest extends TestCase
 
         $this->assertTrue($authors->Articles->link($author, $newArticles));
 
-        $this->assertEquals($authors->Articles->findAllByAuthorId($author->id)->count(), $sizeArticles);
+        $this->assertEquals($authors->Articles->findAllByAuthorId($author->getId())->count(), $sizeArticles);
         $this->assertCount($sizeArticles, $author->articles);
 
         $newArticles = array_merge(
@@ -4942,15 +4942,15 @@ class BaseCollectionTest extends TestCase
         $tags[] = new Tag(['name' => 'foo']);
 
         $table->getAssociation('Tags')->replaceLinks($article, $tags);
-        $this->assertSame(2, $article->tags[0]->id);
-        $this->assertSame(3, $article->tags[1]->id);
-        $this->assertSame(4, $article->tags[2]->id);
+        $this->assertSame(2, $article->tags[0]->getId());
+        $this->assertSame(3, $article->tags[1]->getId());
+        $this->assertSame(4, $article->tags[2]->getId());
 
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(3, $article->tags);
-        $this->assertSame(2, $article->tags[0]->id);
-        $this->assertSame(3, $article->tags[1]->id);
-        $this->assertSame(4, $article->tags[2]->id);
+        $this->assertSame(2, $article->tags[0]->getId());
+        $this->assertSame(3, $article->tags[1]->getId());
+        $this->assertSame(4, $article->tags[2]->getId());
         $this->assertSame('foo', $article->tags[2]->name);
     }
 
@@ -4994,8 +4994,8 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($tags, $article->tags);
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(2, $article->tags);
-        $this->assertSame(2, $article->tags[0]->id);
-        $this->assertSame(3, $article->tags[1]->id);
+        $this->assertSame(2, $article->tags[0]->getId());
+        $this->assertSame(3, $article->tags[1]->getId());
     }
 
     /**
@@ -5653,8 +5653,8 @@ class BaseCollectionTest extends TestCase
         $documents = $table->find()->limit(2)->toArray();
 
         $data = [
-            ['id' => $documents[0]->id, 'title' => 'new title'],
-            ['id' => $documents[1]->id, 'title' => 'new title2'],
+            ['id' => $documents[0]->getId(), 'title' => 'new title'],
+            ['id' => $documents[1]->getId(), 'title' => 'new title2'],
         ];
         $documents = $table->patchDocuments($documents, $data);
         foreach ($documents as $i => $document) {
@@ -5745,7 +5745,7 @@ class BaseCollectionTest extends TestCase
         });
         $this->assertTrue($callbackExecuted);
         $this->assertFalse($firstArticle->isNew());
-        $this->assertNotNull($firstArticle->id);
+        $this->assertNotNull($firstArticle->getId());
         $this->assertSame('Not there', $firstArticle->title);
         $this->assertSame('New body', $firstArticle->body);
 
@@ -5753,9 +5753,9 @@ class BaseCollectionTest extends TestCase
             $this->fail('Should not be called for existing entities.');
         });
         $this->assertFalse($secondArticle->isNew());
-        $this->assertNotNull($secondArticle->id);
+        $this->assertNotNull($secondArticle->getId());
         $this->assertSame('Not there', $secondArticle->title);
-        $this->assertEquals($firstArticle->id, $secondArticle->id);
+        $this->assertEquals($firstArticle->getId(), $secondArticle->getId());
     }
 
     /**
@@ -5769,7 +5769,7 @@ class BaseCollectionTest extends TestCase
             $this->fail('Should not be called for existing entities.');
         });
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('First Article', $article->title);
     }
 
@@ -5791,7 +5791,7 @@ class BaseCollectionTest extends TestCase
         );
         $this->assertTrue($callbackExecuted);
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('First Article', $article->title);
         $this->assertSame('New body', $article->body);
         $this->assertSame('N', $article->published);
@@ -5813,7 +5813,7 @@ class BaseCollectionTest extends TestCase
 
         $article = $articles->findOrCreate(['title' => 'Just Something New']);
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('Just Something New', $article->title);
     }
 
@@ -5838,7 +5838,7 @@ class BaseCollectionTest extends TestCase
         $this->assertTrue($calledOne);
         $this->assertTrue($calledTwo);
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('Set Defaults Here', $article->title);
     }
 
@@ -5854,7 +5854,7 @@ class BaseCollectionTest extends TestCase
             $article->title = 'A Different Title';
         }, ['defaults' => false]);
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('A Different Title', $article->title);
         $this->assertNull($article->published, 'Expected Null since defaults are disabled.');
     }
@@ -5879,7 +5879,7 @@ class BaseCollectionTest extends TestCase
             $this->assertTrue($this->connection->inTransaction());
         });
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('Success', $article->title);
         $this->assertTrue($article->afterSaveCommit);
     }
@@ -5901,7 +5901,7 @@ class BaseCollectionTest extends TestCase
             $article->title = 'Success';
         }, ['atomic' => false]);
         $this->assertFalse($article->isNew());
-        $this->assertNotNull($article->id);
+        $this->assertNotNull($article->getId());
         $this->assertSame('Success', $article->title);
     }
 
@@ -5971,15 +5971,15 @@ class BaseCollectionTest extends TestCase
 
         $firstArticle = $articles->findOrCreate(['title' => 'Some title'], ['body' => 'Some body']);
         $this->assertFalse($firstArticle->isNew());
-        $this->assertNotNull($firstArticle->id);
+        $this->assertNotNull($firstArticle->getId());
         $this->assertSame('Some title', $firstArticle->title);
         $this->assertSame('Some body', $firstArticle->body);
 
         $secondArticle = $articles->findOrCreate(['title' => 'Some title'], ['body' => 'Different body']);
         $this->assertFalse($secondArticle->isNew());
-        $this->assertNotNull($secondArticle->id);
+        $this->assertNotNull($secondArticle->getId());
         $this->assertSame('Some title', $secondArticle->title);
-        $this->assertEquals($firstArticle->id, $secondArticle->id);
+        $this->assertEquals($firstArticle->getId(), $secondArticle->getId());
         $this->assertSame('Some body', $secondArticle->body);
     }
 
@@ -6250,7 +6250,7 @@ class BaseCollectionTest extends TestCase
             $article->extract(['title', 'author_id']),
             $cloned->extract(['title', 'author_id']),
         );
-        $this->assertSame(4, $cloned->id);
+        $this->assertSame(4, $cloned->getId());
     }
 
     /**
@@ -6269,7 +6269,7 @@ class BaseCollectionTest extends TestCase
         $userCollection = $this->getCollectionLocator()->get('Users');
         $userCollection->hasMany('Comments');
         $savedUser = $userCollection->save($userCollection->newDocument($data, ['associated' => ['Comments']]));
-        $retrievedUser = $userCollection->find('all')->where(['id' => $savedUser->id])->contain(['Comments'])->first();
+        $retrievedUser = $userCollection->find('all')->where(['id' => $savedUser->getId()])->contain(['Comments'])->first();
         $this->assertEquals($savedUser->comments[0]->user_id, $retrievedUser->comments[0]->user_id);
         $this->assertEquals($savedUser->comments[1]->user_id, $retrievedUser->comments[1]->user_id);
     }
@@ -6357,7 +6357,7 @@ class BaseCollectionTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Users');
         $this->assertSame($document, $table->save($document));
-        $this->assertSame(self::$nextUserId, $document->id);
+        $this->assertSame(self::$nextUserId, $document->getId());
     }
 
     /**
