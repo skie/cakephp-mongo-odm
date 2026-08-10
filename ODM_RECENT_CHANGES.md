@@ -1,7 +1,39 @@
 # Crustum Mongo ODM — Changes & Future Plans
 
-Commit: `92ac4de` (branch `feature/select-query-test`) — document terminology + BaseCollectionTest port.
-Previous: `287ea3b` — formatters/matching/autoFields/distinct/exceptions.
+Commit: `a9ef460` (branch `feature/select-query-test`) — BaseCollectionTest adaptation, 154/274 passing.
+Previous: `92ac4de` — document terminology; `287ea3b` — formatters/matching/autoFields/distinct/exceptions.
+
+## BaseCollectionTest Port Progress (commits 6287d50 → a9ef460)
+
+Status: **154 / 274 tests passing** (started at 75; errors dropped 94 → 20).
+
+### BaseCollection / query API fixes made while adapting
+- `getDisplayField()`: cake60 string-column fallback (non-null string cols excluding pass/token/secret).
+- Constructor accepts array `schema` via `setSchemaFromArray()`.
+- `updateAll`/`deleteAll`/`exists` accept `ExpressionInterface`; delegate to mockable `updateQuery()`/`deleteQuery()` (cake-compatible).
+- `DeleteQuery`/`UpdateQuery`/`InsertQuery` constructors accept `BaseCollection` first (cake style) or `(connection, collection, repository)`.
+- `subquery()`: bare select query.
+- `Association::setJoinType()`/`getJoinType()` (cake compat; no real Mongo joins).
+- `Connection` constructor accepts a `DriverInterface` instance.
+- `dynamicFinder`: maps `id` field → `_id` in generated conditions.
+- `PersistenceFailedException`/`RolledbackTransactionException`: fixed `messageTemplate` → `$_messageTemplate` (CakeException uses underscore property; messages were empty).
+
+### Test adaptation strategies
+- `tools/fix-test-ids.php`: int PK → hex `_id`; `'id' => '<hex>'` → `'_id' => '<hex>'` for ODM result/input arrays.
+- `tools/port-test.php`: `EntityClassAssertion` → `DocumentClassAssertion`; exception imports; method renames.
+- `->id` property access → `->getId()` (decision: NO id→_id automapping in ODM).
+- Magic finder tests → ODM filter-array `where` (`$or`, `_id`, empty order).
+- subquery tests → Mongo semantics (explicit IN / count by FK) instead of SQL join/alias asserts.
+- displayField expectations → `_id` where schema has no display column.
+- `skipIfSqlServer()` no-op (no SQL driver checks in Mongo).
+
+### Remaining work (~120 tests)
+- `->id` int assertions (auto-increment, `nextUserId`) — SQL-specific, need manual rewrite.
+- `loadInto` returns null (LazyEagerLoader injection with multi-assoc contain).
+- belongsToMany `_joinData` not populated on loaded tags.
+- Atomic save mock tests (Cake Connection → Mongo Connection transactions).
+- Cache tests (`default` cache config missing), `getMaxAliasLength`, `SectionsMembers` registry conflicts.
+- Delete/unlink primary-key extraction edge cases.
 
 ## Document Terminology for Marshalling API (commit 92ac4de)
 
