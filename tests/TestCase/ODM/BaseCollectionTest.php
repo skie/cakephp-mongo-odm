@@ -613,14 +613,14 @@ class BaseCollectionTest extends TestCase
             ->toArray();
         $expected = [
             [
-                'id' => '000000000000000000000001',
+                '_id' => '000000000000000000000001',
                 'username' => 'mariano',
                 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO',
                 'created' => new DateTime('2007-03-17 01:16:23'),
                 'updated' => new DateTime('2007-03-17 01:18:31'),
             ],
             [
-                'id' => '000000000000000000000002',
+                '_id' => '000000000000000000000002',
                 'username' => 'nate',
                 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO',
                 'created' => new DateTime('2008-03-17 01:18:23'),
@@ -681,8 +681,8 @@ class BaseCollectionTest extends TestCase
             ->enableHydration(false)
             ->orderBy('id');
         $expected = [
-            ['id' => '000000000000000000000003', 'username' => 'larry'],
-            ['id' => '000000000000000000000004', 'username' => 'garrett'],
+            ['_id' => '000000000000000000000003', 'username' => 'larry'],
+            ['_id' => '000000000000000000000004', 'username' => 'garrett'],
         ];
         $this->assertSame($expected, $query->toArray());
 
@@ -695,9 +695,9 @@ class BaseCollectionTest extends TestCase
             ]])
             ->orderBy('id');
         $expected = [
-            ['id' => '000000000000000000000002', 'username' => 'nate'],
-            ['id' => '000000000000000000000003', 'username' => 'larry'],
-            ['id' => '000000000000000000000004', 'username' => 'garrett'],
+            ['_id' => '000000000000000000000002', 'username' => 'nate'],
+            ['_id' => '000000000000000000000003', 'username' => 'larry'],
+            ['_id' => '000000000000000000000004', 'username' => 'garrett'],
         ];
         $this->assertSame($expected, $query->toArray());
     }
@@ -890,22 +890,22 @@ class BaseCollectionTest extends TestCase
         $this->assertSame('Parent', $Categories->Parent->getTarget()->getAlias());
 
         $expected = [
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             'parent_id' => '000000000000000000000001',
             'name' => 'Category 1.1',
             'parent' => [
-                'id' => '000000000000000000000001',
+                '_id' => '000000000000000000000001',
                 'parent_id' => '000000000000000000000000',
                 'name' => 'Category 1',
             ],
             'children' => [
                 [
-                    'id' => '000000000000000000000007',
+                    '_id' => '000000000000000000000007',
                     'parent_id' => '000000000000000000000002',
                     'name' => 'Category 1.1.1',
                 ],
                 [
-                    'id' => '000000000000000000000008',
+                    '_id' => '000000000000000000000008',
                     'parent_id' => '000000000000000000000002',
                     'name' => 'Category 1.1.2',
                 ],
@@ -960,28 +960,28 @@ class BaseCollectionTest extends TestCase
         ]);
 
         $expected = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'title' => 'First Article',
             'unaproved_comments' => [
                 [
-                    'id' => '000000000000000000000004',
+                    '_id' => '000000000000000000000004',
                     'article_id' => '000000000000000000000001',
                     'comment' => 'Fourth Comment for First Article',
                 ],
             ],
             'comments' => [
                 [
-                    'id' => '000000000000000000000001',
+                    '_id' => '000000000000000000000001',
                     'article_id' => '000000000000000000000001',
                     'comment' => 'First Comment for First Article',
                 ],
                 [
-                    'id' => '000000000000000000000002',
+                    '_id' => '000000000000000000000002',
                     'article_id' => '000000000000000000000001',
                     'comment' => 'Second Comment for First Article',
                 ],
                 [
-                    'id' => '000000000000000000000003',
+                    '_id' => '000000000000000000000003',
                     'article_id' => '000000000000000000000001',
                     'comment' => 'Third Comment for First Article',
                 ],
@@ -993,7 +993,7 @@ class BaseCollectionTest extends TestCase
                 'Comments' => ['fields' => ['id', 'article_id', 'comment']],
                 'UnapprovedComments' => ['fields' => ['id', 'article_id', 'comment']],
             ])
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->first();
 
         $this->assertSame($expected, $result->toArray());
@@ -1124,7 +1124,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame(3, $result);
 
         $result = $table->find('all')
-            ->select(['username', '_id' => 0])
+            ->select(['username', '_id' => '000000000000000000000000'])
             ->orderBy(['_id' => 'asc'])
             ->enableHydration(false)
             ->toArray();
@@ -1147,7 +1147,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $table->save($document);
         $expression = new QueryExpression(['post_count = post_count + 1']);
-        $result = $table->updateAll([$expression], ['id' => '000000000000000000000001']);
+        $result = $table->updateAll([$expression], ['_id' => '000000000000000000000001']);
         $this->assertNotEmpty($result);
     }
 
@@ -1341,7 +1341,7 @@ class BaseCollectionTest extends TestCase
             ->find('withIdArgument', id: 2)
             ->find('custom', second: true);
 
-        $this->assertSame(['id' => '000000000000000000000002', 'second' => true], $query->getOptions());
+        $this->assertSame(['_id' => '000000000000000000000002', 'second' => true], $query->getOptions());
 
         $query = $this->getCollectionLocator()->get('Authors')
             ->find('withIdArgument', id: 2)
@@ -1429,23 +1429,23 @@ class BaseCollectionTest extends TestCase
         ]);
         $expected = [
             [
-                'id' => '000000000000000000000001',
+                '_id' => '000000000000000000000001',
                 'parent_id' => '000000000000000000000000',
                 'name' => 'Category 1',
                 'children' => [
                     [
-                        'id' => '000000000000000000000002',
+                        '_id' => '000000000000000000000002',
                         'parent_id' => '000000000000000000000001',
                         'name' => 'Category 1.1',
                         'children' => [
                             [
-                                'id' => '000000000000000000000007',
+                                '_id' => '000000000000000000000007',
                                 'parent_id' => '000000000000000000000002',
                                 'name' => 'Category 1.1.1',
                                 'children' => [],
                             ],
                             [
-                                'id' => '000000000000000000000008',
+                                '_id' => '000000000000000000000008',
                                 'parent_id' => '2',
                                 'name' => 'Category 1.1.2',
                                 'children' => [],
@@ -1453,7 +1453,7 @@ class BaseCollectionTest extends TestCase
                         ],
                     ],
                     [
-                        'id' => '000000000000000000000003',
+                        '_id' => '000000000000000000000003',
                         'parent_id' => '1',
                         'name' => 'Category 1.2',
                         'children' => [],
@@ -1461,13 +1461,13 @@ class BaseCollectionTest extends TestCase
                 ],
             ],
             [
-                'id' => '000000000000000000000004',
+                '_id' => '000000000000000000000004',
                 'parent_id' => '000000000000000000000000',
                 'name' => 'Category 2',
                 'children' => [],
             ],
             [
-                'id' => '000000000000000000000005',
+                '_id' => '000000000000000000000005',
                 'parent_id' => '000000000000000000000000',
                 'name' => 'Category 3',
                 'children' => [
@@ -1535,7 +1535,7 @@ class BaseCollectionTest extends TestCase
 
         $this->assertSame(1, $results[0]->id);
         $expected = [
-            'id' => '000000000000000000000008',
+            '_id' => '000000000000000000000008',
             'parent_id' => '000000000000000000000002',
             'name' => 'Category 1.1.2',
             'children' => [],
@@ -2144,7 +2144,7 @@ class BaseCollectionTest extends TestCase
                 'collection' => 'users',
             ]])
             ->getMock();
-        $document = $table->newDocument(['id' => '000000000000000000000020', 'username' => 'mark']);
+        $document = $table->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
         $this->assertTrue($document->isNew());
 
         $table->expects($this->once())->method('exists');
@@ -2166,7 +2166,7 @@ class BaseCollectionTest extends TestCase
                 'collection' => 'users',
             ]])
             ->getMock();
-        $document = $table->newDocument(['id' => '000000000000000000000020', 'username' => 'mark']);
+        $document = $table->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
         $this->assertTrue($document->isNew());
 
         $table->expects($this->never())->method('exists');
@@ -2782,14 +2782,14 @@ class BaseCollectionTest extends TestCase
     public function testSaveUpdateAuto(): void
     {
         $document = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ]);
         $table = $this->getCollectionLocator()->get('users');
-        $original = $table->find('all')->where(['id' => '000000000000000000000002'])->first();
+        $original = $table->find('all')->where(['_id' => '000000000000000000000002'])->first();
         $this->assertSame($document, $table->save($document));
 
-        $row = $table->find('all')->where(['id' => '000000000000000000000002'])->first();
+        $row = $table->find('all')->where(['_id' => '000000000000000000000002'])->first();
         $this->assertSame('baggins', $row->username);
         $this->assertEquals($original->password, $row->password);
         $this->assertEquals($original->created, $row->created);
@@ -2805,7 +2805,7 @@ class BaseCollectionTest extends TestCase
     public function testBeforeSaveGetsCorrectPersistance(): void
     {
         $document = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ]);
         $table = $this->getCollectionLocator()->get('users');
@@ -2831,7 +2831,7 @@ class BaseCollectionTest extends TestCase
             ->setConstructorArgs([['collection' => 'users', 'connection' => ConnectionManager::get('test_mongo')]])
             ->getMock();
         $document = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ], ['markNew' => false]);
         $this->assertFalse($document->isNew());
@@ -2862,7 +2862,7 @@ class BaseCollectionTest extends TestCase
             ->willReturn($statement);
 
         $document = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ], ['markNew' => false]);
         $this->assertSame($document, $table->save($document));
@@ -2881,7 +2881,7 @@ class BaseCollectionTest extends TestCase
             ->getMock();
         $table->expects($this->never())->method('query');
         $document = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
         ], ['markNew' => false]);
         $this->assertSame($document, $table->save($document));
     }
@@ -3236,7 +3236,7 @@ class BaseCollectionTest extends TestCase
             'dependent' => false,
         ]);
 
-        $query = $table->find('all')->where(['id' => '000000000000000000000001']);
+        $query = $table->find('all')->where(['_id' => '000000000000000000000001']);
         $document = $query->first();
         $table->delete($document);
 
@@ -3255,7 +3255,7 @@ class BaseCollectionTest extends TestCase
             'foreignKey' => 'article_id',
             'joinCollection' => 'articles_tags',
         ]);
-        $query = $table->find('all')->where(['id' => '000000000000000000000001']);
+        $query = $table->find('all')->where(['_id' => '000000000000000000000001']);
         $document = $query->first();
         $table->delete($document);
 
@@ -3353,7 +3353,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteCallbacks(): void
     {
-        $document = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
         $options = new ArrayObject(['atomic' => true, 'checkRules' => false, '_primary' => true]);
 
         $mock = Mockery::mock(EventManager::class);
@@ -3455,7 +3455,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteBeforeDeleteAbort(): void
     {
-        $document = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
 
         $mock = $this->getMockBuilder(EventManager::class)->getMock();
         $mock->method('dispatch')
@@ -3476,7 +3476,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteBeforeDeleteReturnResult(): void
     {
-        $document = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
 
         $mock = $this->getMockBuilder(EventManager::class)->getMock();
         $mock->method('dispatch')
@@ -3498,7 +3498,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteIsNew(): void
     {
-        $document = new Document(['id' => '000000000000000000000001', 'name' => 'mark']);
+        $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
 
         /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
         $table = $this->getMockBuilder(BaseCollection::class)
@@ -3906,7 +3906,7 @@ class BaseCollectionTest extends TestCase
             'name' => 'big jose',
             'articles' => [
                 [
-                    'id' => '000000000000000000000002',
+                    '_id' => '000000000000000000000002',
                     'title' => 'New title',
                 ],
             ],
@@ -3983,8 +3983,8 @@ class BaseCollectionTest extends TestCase
         $article = $articles->get('000000000000000000000001', contain: ['Tags']);
         $data = [
             'tags' => [
-                ['id' => '000000000000000000000001', '_joinData' => ['highlighted' => 1]],
-                ['id' => '000000000000000000000003'],
+                ['_id' => '000000000000000000000001', '_joinData' => ['highlighted' => 1]],
+                ['_id' => '000000000000000000000003'],
             ],
         ];
         $article = $articles->patchDocument($article, $data);
@@ -4006,18 +4006,18 @@ class BaseCollectionTest extends TestCase
 
         $document = $articles->get('000000000000000000000001', contain: ['Tags']);
         $data = [
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
             'tags' => [
                 [
-                    'id' => '000000000000000000000001',
+                    '_id' => '000000000000000000000001',
                     '_joinData' => [
-                        'id' => '000000000000000000000002',
+                        '_id' => '000000000000000000000002',
                         'foreign_model' => 'Articles',
                         'position' => 2,
                     ],
                 ],
                 [
-                    'id' => '000000000000000000000002',
+                    '_id' => '000000000000000000000002',
                     '_joinData' => [
                         'foreign_model' => 'Articles',
                         'position' => 1,
@@ -4030,21 +4030,21 @@ class BaseCollectionTest extends TestCase
 
         $expected = [
             [
-                'id' => '000000000000000000000001',
+                '_id' => '000000000000000000000001',
                 'tag_id' => '000000000000000000000001',
                 'foreign_key' => 1,
                 'foreign_model' => 'Posts',
                 'position' => 1,
             ],
             [
-                'id' => '000000000000000000000002',
+                '_id' => '000000000000000000000002',
                 'tag_id' => '000000000000000000000001',
                 'foreign_key' => 1,
                 'foreign_model' => 'Articles',
                 'position' => 2,
             ],
             [
-                'id' => '000000000000000000000003',
+                '_id' => '000000000000000000000003',
                 'tag_id' => '000000000000000000000002',
                 'foreign_key' => 1,
                 'foreign_model' => 'Articles',
@@ -4090,7 +4090,7 @@ class BaseCollectionTest extends TestCase
         $this->assertCount(2, $document->tags, 'Fixture data did not change.');
 
         $tag = new Document([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
         ]);
         $document->tags = [$tag];
         $result = $table->save($document);
@@ -4139,7 +4139,7 @@ class BaseCollectionTest extends TestCase
     public function testBelongsToManyIntegration(): void
     {
         $table = $this->getCollectionLocator()->get('Articles');
-        $article = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $tags = $article->tags;
         $this->assertNotEmpty($tags);
         $tags[] = new Tag(['name' => 'Something New']);
@@ -4407,7 +4407,7 @@ class BaseCollectionTest extends TestCase
         $options = ['markNew' => false];
 
         $article = new Document([
-            'id' => '000000000000000000000001',
+            '_id' => '000000000000000000000001',
         ], $options);
 
         $newTag = new Tag([
@@ -4416,7 +4416,7 @@ class BaseCollectionTest extends TestCase
             'created' => null,
         ], $source);
         $tags[] = new Tag([
-            'id' => '000000000000000000000003',
+            '_id' => '000000000000000000000003',
         ], $options + $source);
         $tags[] = $newTag;
 
@@ -4428,7 +4428,7 @@ class BaseCollectionTest extends TestCase
             $this->assertFalse($tag->isNew());
         }
 
-        $article = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEquals($article->tags[2]->id, $tags[0]->id);
         $this->assertEqualsCanonicalizing($article->tags[3]->toArray(), $tags[1]->toArray());
     }
@@ -4895,7 +4895,7 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
 
         $article = $table->find('all')
-            ->where(['id' => '000000000000000000000001'])
+            ->where(['_id' => '000000000000000000000001'])
             ->contain(['Tags'])->first();
 
         $table->getAssociation('Tags')->unlink($article, [$article->tags[0]]);
@@ -4912,12 +4912,12 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
-        $article = new Document(['id' => '000000000000000000000001'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000001'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000002'], $options);
+        $article = new Document(['_id' => '000000000000000000000001'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000001'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000002'], $options);
 
         $table->getAssociation('Tags')->unlink($article, $tags);
-        $left = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $left = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($left->tags);
     }
 
@@ -4930,9 +4930,9 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
-        $article = new Document(['id' => '000000000000000000000001'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000001'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000002'], $options);
+        $article = new Document(['_id' => '000000000000000000000001'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000001'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000002'], $options);
 
         $tags[1]->_joinData = new Document([
             'article_id' => '000000000000000000000001',
@@ -4940,7 +4940,7 @@ class BaseCollectionTest extends TestCase
         ], $options);
 
         $table->getAssociation('Tags')->unlink($article, $tags);
-        $left = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $left = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($left->tags);
     }
 
@@ -4952,9 +4952,9 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
-        $article = new Document(['id' => '000000000000000000000001'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000002'], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000003'], $options);
+        $article = new Document(['_id' => '000000000000000000000001'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000002'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000003'], $options);
         $tags[] = new Tag(['name' => 'foo']);
 
         $table->getAssociation('Tags')->replaceLinks($article, $tags);
@@ -4962,7 +4962,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame(3, $article->tags[1]->id);
         $this->assertSame(4, $article->tags[2]->id);
 
-        $article = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(3, $article->tags);
         $this->assertSame(2, $article->tags[0]->id);
         $this->assertSame(3, $article->tags[1]->id);
@@ -4978,12 +4978,12 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
-        $article = new Document(['id' => '000000000000000000000001'], $options);
+        $article = new Document(['_id' => '000000000000000000000001'], $options);
         $tags = [];
 
         $table->getAssociation('Tags')->replaceLinks($article, $tags);
         $this->assertSame($tags, $article->tags);
-        $article = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($article->tags);
     }
 
@@ -4996,19 +4996,19 @@ class BaseCollectionTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
-        $article = new Document(['id' => '000000000000000000000001'], $options);
+        $article = new Document(['_id' => '000000000000000000000001'], $options);
         $tags[] = new Tag([
-            'id' => '000000000000000000000002',
+            '_id' => '000000000000000000000002',
             '_joinData' => new Document([
                 'article_id' => '000000000000000000000001',
                 'tag_id' => '000000000000000000000002',
             ]),
         ], $options);
-        $tags[] = new Tag(['id' => '000000000000000000000003'], $options);
+        $tags[] = new Tag(['_id' => '000000000000000000000003'], $options);
 
         $table->getAssociation('Tags')->replaceLinks($article, $tags);
         $this->assertSame($tags, $article->tags);
-        $article = $table->find('all')->where(['id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(2, $article->tags);
         $this->assertSame(2, $article->tags[0]->id);
         $this->assertSame(3, $article->tags[1]->id);
@@ -6065,10 +6065,10 @@ class BaseCollectionTest extends TestCase
         $data = ['username' => 'jose'];
         $this->assertEmpty($validator->validate($data));
 
-        $data = ['username' => 'larry', 'id' => '000000000000000000000003'];
+        $data = ['username' => 'larry', '_id' => '000000000000000000000003'];
         $this->assertEmpty($validator->validate($data, false));
 
-        $data = ['username' => 'larry', 'id' => '000000000000000000000003'];
+        $data = ['username' => 'larry', '_id' => '000000000000000000000003'];
         $this->assertNotEmpty($validator->validate($data));
 
         $data = ['username' => 'larry'];
@@ -6087,10 +6087,10 @@ class BaseCollectionTest extends TestCase
             'rule' => ['validateUnique', ['derp' => 'erp', 'scope' => 'id']],
             'provider' => 'table',
         ]);
-        $data = ['username' => 'larry', 'id' => '000000000000000000000003'];
+        $data = ['username' => 'larry', '_id' => '000000000000000000000003'];
         $this->assertNotEmpty($validator->validate($data));
 
-        $data = ['username' => 'larry', 'id' => '000000000000000000000001'];
+        $data = ['username' => 'larry', '_id' => '000000000000000000000001'];
         $this->assertEmpty($validator->validate($data));
 
         $data = ['username' => 'jose'];
@@ -6103,7 +6103,7 @@ class BaseCollectionTest extends TestCase
     public function testValidateUniqueMultipleNulls(): void
     {
         $document = new Document([
-            'id' => '000000000000000000000009',
+            '_id' => '000000000000000000000009',
             'site_id' => '000000000000000000000001',
             'author_id' => null,
             'title' => 'Null title',
@@ -6635,7 +6635,7 @@ class BaseCollectionTest extends TestCase
         $this->expectException(PersistenceFailedException::class);
         $this->expectExceptionMessage('Document delete failure.');
         $document = new Document([
-            'id' => '000000000000000000000999',
+            '_id' => '000000000000000000000999',
         ]);
         $table = $this->getCollectionLocator()->get('users');
 
@@ -6648,7 +6648,7 @@ class BaseCollectionTest extends TestCase
     public function testDeleteOrFailGetDocument(): void
     {
         $document = new Document([
-            'id' => '000000000000000000000999',
+            '_id' => '000000000000000000000999',
         ]);
         $table = $this->getCollectionLocator()->get('users');
 
@@ -6666,7 +6666,7 @@ class BaseCollectionTest extends TestCase
     public function testDeleteRejectsDocumentFromOtherCollection(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->expectException(InvalidArgumentException::class);
@@ -6693,12 +6693,12 @@ class BaseCollectionTest extends TestCase
 
     /**
      * Tests that the generic Document class is accepted as an escape hatch,
-     * allowing ad-hoc operations such as ``$table->delete(new Document(['id' => '000000000000000000000001']))``.
+     * allowing ad-hoc operations such as ``$table->delete(new Document(['_id' => '000000000000000000000001']))``.
      */
     public function testDeleteAcceptsGenericDocument(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
-        $document = new Document(['id' => '000000000000000000000001']);
+        $document = new Document(['_id' => '000000000000000000000001']);
         $document->setNew(false);
 
         $this->assertTrue($articles->delete($document));
@@ -6713,7 +6713,7 @@ class BaseCollectionTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->setDocumentClass(Document::class);
 
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->assertTrue($articles->delete($tag));
@@ -6726,7 +6726,7 @@ class BaseCollectionTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $article = $articles->get('000000000000000000000001');
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->expectException(InvalidArgumentException::class);
@@ -6752,7 +6752,7 @@ class BaseCollectionTest extends TestCase
     public function testPatchDocumentRejectsEntityFromOtherCollection(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
-        $tag = new Tag(['id' => '000000000000000000000001', 'name' => 'foo']);
+        $tag = new Tag(['_id' => '000000000000000000000001', 'name' => 'foo']);
 
         $this->expectException(InvalidArgumentException::class);
         $articles->patchDocument($tag, ['title' => 'updated']);
@@ -6764,7 +6764,7 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoRejectsDocumentFromOtherCollection(): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->expectException(InvalidArgumentException::class);
@@ -6780,7 +6780,7 @@ class BaseCollectionTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('Articles');
 
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
         $tag->setSource('Articles');
 
@@ -6796,7 +6796,7 @@ class BaseCollectionTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->disableDocumentClassAssertion();
 
-        $tag = new Tag(['id' => '000000000000000000000001']);
+        $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->assertTrue($articles->delete($tag));
