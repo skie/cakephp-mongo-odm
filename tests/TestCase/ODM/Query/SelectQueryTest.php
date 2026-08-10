@@ -1157,20 +1157,23 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $query->select(['a' => 'id'])->limit(2)->orderBy(['id' => 'ASC']);
+        $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
         $query->mapReduce(function ($v, $k, $mr): void {
-            $mr->emit($v['a']);
+            $mr->emit($v['_id']);
         });
         $query->mapReduce(
             function ($v, $k, $mr): void {
                 $mr->emitIntermediate($v, $k);
             },
             function ($v, $k, $mr): void {
-                $mr->emit($v[0] + 1);
+                $mr->emit($v[0]);
             },
         );
 
-        $this->assertEquals([2, 3], iterator_to_array($query->all()));
+        $this->assertEquals(
+            ['000000000000000000000001', '000000000000000000000002'],
+            iterator_to_array($query->all()),
+        );
     }
 
     /**
@@ -1222,15 +1225,15 @@ class SelectQueryTest extends TestCase
     public function testFirstMapReduce(): void
     {
         $map = function ($row, $key, $mapReduce): void {
-            $mapReduce->emitIntermediate($row['id'], 'id');
+            $mapReduce->emitIntermediate($row['_id'], 'id');
         };
         $reduce = function ($values, $key, $mapReduce): void {
-            $mapReduce->emit(array_sum($values));
+            $mapReduce->emit(count($values));
         };
 
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $query->select(['id'])
+        $query->select(['_id'])
             ->hydrate(false)
             ->mapReduce($map, $reduce);
 

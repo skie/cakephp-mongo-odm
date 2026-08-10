@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Query;
 
 use Cake\Database\ExpressionInterface;
+use Cake\Collection\Iterator\MapReduce;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
@@ -51,6 +52,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      * @var array<int, callable>
      */
     protected array $formatters = [];
+
+    /**
+     * Registered MapReduce routines applied to the raw results.
+     *
+     * @var list<array{mapper: \Closure, reducer: \Closure|null}>
+     */
+    protected array $mapReduce = [];
 
     /**
      * Optional DTO class for result projection.
@@ -490,6 +498,44 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Registers a MapReduce routine to run on top of the raw results.
+     *
+     * The routine is executed once the query runs, before result formatters.
+     *
+     * @param \Closure|null $mapper The mapper callback.
+     * @param \Closure|null $reducer The reducer callback.
+     * @param bool $overwrite Whether to replace previously registered routines.
+     * @return $this
+     * @throws \InvalidArgumentException When `$mapper` is null and `$overwrite` is false.
+     */
+    public function mapReduce(?Closure $mapper = null, ?Closure $reducer = null, bool $overwrite = false): static
+    {
+        if ($overwrite) {
+            $this->mapReduce = [];
+        }
+        if ($mapper === null) {
+            if (!$overwrite) {
+                throw new InvalidArgumentException('$mapper can be null only when $overwrite is true.');
+            }
+
+            return $this;
+        }
+        $this->mapReduce[] = compact('mapper', 'reducer');
+
+        return $this;
+    }
+
+    /**
+     * Returns the list of previously registered map reduce routines.
+     *
+     * @return list<array{mapper: \Closure, reducer: \Closure|null}>
+     */
+    public function getMapReducers(): array
+    {
+        return $this->mapReduce;
+    }
+
+    /**
      * Adds a result formatter.
      *
      * @param callable|null $formatter Formatter receiving an iterable result.
@@ -611,6 +657,14 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             if (!$loaded instanceof ResultSet) {
                 $resultSet = new ResultSet($loaded, $this);
             }
+        }
+
+        if ($this->mapReduce !== []) {
+            $decorated = $resultSet;
+            foreach ($this->mapReduce as $functions) {
+                $decorated = new MapReduce($decorated, $functions['mapper'], $functions['reducer']);
+            }
+            $resultSet = new ResultSet($decorated, $this);
         }
 
         foreach ($this->formatters as $formatter) {
