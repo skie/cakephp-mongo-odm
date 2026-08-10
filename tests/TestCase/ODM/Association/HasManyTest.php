@@ -653,7 +653,7 @@ class HasManyTest extends TestCase
         ];
         $association = new HasMany('Articles', $this->author, $config);
         $articles = $association->getTarget();
-        $articles->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
+        $articles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
             $rules->addDelete(function () {
                 return false;
             });

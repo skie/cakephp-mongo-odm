@@ -408,7 +408,7 @@ class HasOneTest extends TestCase
         ];
         $association = new HasOne('Profiles', $this->user, $config);
         $profiles = $association->getTarget();
-        $profiles->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
+        $profiles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
             $rules->addDelete(function () {
                 return false;
             });

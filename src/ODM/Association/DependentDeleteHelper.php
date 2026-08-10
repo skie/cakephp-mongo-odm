@@ -1,0 +1,67 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\ODM\Association;
+
+use Cake\Datasource\EntityInterface;
+use Crustum\Mongo\ODM\Association;
+
+/**
+ * Helper class for cascading deletes in associations.
+ *
+ * Applies the association finder and conditions when building the delete /
+ * nullify filter, and honors `cascadeCallbacks` by deleting each related
+ * document through the collection (firing events) instead of a bulk delete.
+ *
+ * @internal
+ * @see cake60/src/ORM/Association/DependentDeleteHelper.php
+ */
+class DependentDeleteHelper
+{
+    /**
+     * Cascade a delete to remove dependent records.
+     *
+     * This method does nothing if the association is not dependent.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The association callbacks are being cascaded on.
+     * @param \Cake\Datasource\EntityInterface $entity The entity that started the cascaded delete.
+     * @param array<string, mixed> $options The options for the original delete.
+     * @return bool Success.
+     */
+    public function cascadeDelete(Association $association, EntityInterface $entity, array $options = []): bool
+    {
+        if (!$association->getDependent()) {
+            return true;
+        }
+
+        $table = $association->getTarget();
+
+        $foreignKey = array_map(
+            fn(string $key): string => $table->aliasField($key),
+            array_values(array_filter((array)$association->getForeignKey(), 'is_string')),
+        );
+        $bindingKey = (array)$association->getBindingKey();
+        $bindingValue = $entity->extract($bindingKey);
+        if (in_array(null, $bindingValue, true)) {
+            return true;
+        }
+
+        $conditions = array_combine($foreignKey, $bindingValue);
+
+        if ($association->getCascadeCallbacks()) {
+            foreach ($association->find()->where($conditions)->toArray() as $related) {
+                $success = $table->delete($related, $options);
+                if (!$success) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        $deleteConditions = $association->find()->where($conditions)->clause('where');
+        $association->deleteAll($deleteConditions);
+
+        return true;
+    }
+}

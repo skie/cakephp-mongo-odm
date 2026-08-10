@@ -490,7 +490,7 @@ class BelongsToManyTest extends TestCase
         $association->junction($articleTag);
         $this->article->getAssociation($articleTag->getAlias());
 
-        $articleTag->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
+        $articleTag->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
             $rules->addDelete(function () {
                 return false;
             });
@@ -1021,7 +1021,7 @@ class BelongsToManyTest extends TestCase
         $this->markTestSkipped('ODM has no SQL joins; testReplaceLinkFailingDomainRules is SQL-only (F25).');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $this->getCollectionLocator()->get('Tags');
-        $tags->getEventManager()->on('Model.buildRules', function (EventInterface $event, RulesChecker $rules): void {
+        $tags->getEventManager()->on('Collection.buildRules', function (EventInterface $event, RulesChecker $rules): void {
             $rules->add(function () {
                 return false;
             }, 'rule', ['errorField' => 'name', 'message' => 'Bad data']);

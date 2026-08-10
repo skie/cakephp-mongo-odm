@@ -129,6 +129,18 @@ class BelongsTo extends Association
     }
 
     /**
+     * BelongsTo associations are never cleared in a cascading delete scenario.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The entity that started the cascaded delete.
+     * @param array<string, mixed> $options The options for the original delete.
+     * @return bool Success.
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        return true;
+    }
+
+    /**
      * Builds a lookup pipeline for the association.
      *
      * @param array<string, mixed> $options Pipeline options.

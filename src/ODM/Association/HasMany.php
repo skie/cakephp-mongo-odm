@@ -482,4 +482,12 @@ class HasMany extends Association
 
         return $builder->getPipeline();
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        return (new DependentDeleteHelper())->cascadeDelete($this, $entity, $options);
+    }
 }
