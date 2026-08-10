@@ -1961,20 +1961,19 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($table);
         $query
             ->select()
-            ->disableBufferedResults()
             ->contain([
                 'articles' => function ($q) {
-                    return $q->where(['articles.id' => 1]);
+                    return $q->where(['articles._id' => '000000000000000000000001']);
                 },
             ]);
 
         $ids = [];
         foreach ($query as $entity) {
             foreach ((array)$entity->articles as $article) {
-                $ids[] = $article->id;
+                $ids[] = $article->getId();
             }
         }
-        $this->assertEquals([1], array_unique($ids));
+        $this->assertEquals(['000000000000000000000001'], array_unique($ids));
     }
 
     /**

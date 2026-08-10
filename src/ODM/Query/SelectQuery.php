@@ -429,6 +429,18 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Clears all configured containments.
+     *
+     * @return $this
+     */
+    public function clearContain(): static
+    {
+        $this->eagerLoader->clearContain();
+
+        return $this;
+    }
+
+    /**
      * Adds a matching association.
      *
      * @param string $association Association alias.
@@ -455,6 +467,26 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function getEagerLoader(): EagerLoader
     {
         return $this->eagerLoader;
+    }
+
+    /**
+     * Gets the configured containments.
+     *
+     * @return array<int|string, mixed>
+     */
+    public function getContain(): array
+    {
+        return $this->eagerLoader->getContain();
+    }
+
+    /**
+     * Gets the registered result formatters.
+     *
+     * @return list<callable>
+     */
+    public function getResultFormatters(): array
+    {
+        return $this->formatters;
     }
 
     /**
