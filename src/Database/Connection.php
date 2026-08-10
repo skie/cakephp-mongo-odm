@@ -132,12 +132,14 @@ class Connection implements ConnectionInterface
         $this->config = $config;
 
         $driverClass = $config['driver'] ?? MongoDriver::class;
-        if (is_string($driverClass) && is_subclass_of($driverClass, DriverInterface::class)) {
+        if ($driverClass instanceof DriverInterface) {
+            $this->driver = $driverClass;
+        } elseif (is_string($driverClass) && is_subclass_of($driverClass, DriverInterface::class)) {
             $this->driver = new $driverClass($config);
         } else {
             throw new CakeException(sprintf(
                 'Driver class `%s` must implement %s.',
-                (string)$driverClass,
+                is_object($driverClass) ? $driverClass::class : (string)$driverClass,
                 DriverInterface::class,
             ));
         }

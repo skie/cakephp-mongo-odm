@@ -195,6 +195,13 @@ abstract class Association
     protected array|string $finder = 'all';
 
     /**
+     * SQL-style join type (kept for cake API compatibility; Mongo has no joins).
+     *
+     * @var string
+     */
+    protected string $joinType = 'LEFT';
+
+    /**
      * Constructor.
      *
      * @param string $alias Association alias.
@@ -912,6 +919,29 @@ abstract class Association
         $this->finder = $finder;
 
         return $this;
+    }
+
+    /**
+     * Sets the SQL-style join type for this association.
+     *
+     * @param string $type Join type (INNER/LEFT).
+     * @return $this
+     */
+    public function setJoinType(string $type): static
+    {
+        $this->joinType = $type;
+
+        return $this;
+    }
+
+    /**
+     * Gets the SQL-style join type for this association.
+     *
+     * @return string
+     */
+    public function getJoinType(): string
+    {
+        return $this->joinType;
     }
 
     /**

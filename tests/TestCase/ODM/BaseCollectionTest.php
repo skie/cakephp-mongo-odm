@@ -8,8 +8,7 @@ use AssertionError;
 use BadMethodCallException;
 use Cake\Collection\Collection;
 use Cake\Core\Exception\CakeException;
-use Cake\Database\Connection;
-use Cake\Database\Driver\Sqlserver;
+use Crustum\Mongo\Database\Connection;
 use Cake\Database\Exception\DatabaseException;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Cake\Database\Expression\QueryExpression;
@@ -6809,9 +6808,5 @@ class BaseCollectionTest extends TestCase
      */
     public function skipIfSqlServer(): void
     {
-        $this->skipIf(
-            $this->connection->getDriver() instanceof Sqlserver,
-            'SQLServer does not support the requirements of this test.',
-        );
     }
 }
