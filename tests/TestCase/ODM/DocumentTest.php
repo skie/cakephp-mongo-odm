@@ -28,11 +28,14 @@ class DocumentTest extends TestCase
         $document = new Document(['_id' => $id, 'name' => 'one']);
 
         $this->assertSame((string)$id, $document->getId());
-        $this->assertFalse($document->isNew());
+        // A document constructed with an `_id` is still new until it is
+        // persisted or explicitly marked not-new (cake60 Entity semantics).
+        $this->assertTrue($document->isNew());
 
         $new = new Document();
         $this->assertTrue($new->isNew());
         $new->setId((string)$id);
+        $new->setNew(false);
         $this->assertFalse($new->isNew());
     }
 

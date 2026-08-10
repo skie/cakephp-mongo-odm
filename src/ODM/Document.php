@@ -67,10 +67,6 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
                 'guard' => $options['guard'],
                 'setter' => $options['useSetters'],
             ]);
-
-            if ($options['markNew'] === null && array_key_exists('_id', $data)) {
-                $this->setNew(false);
-            }
         }
 
         if ($options['markClean']) {
