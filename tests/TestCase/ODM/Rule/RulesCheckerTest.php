@@ -63,9 +63,10 @@ final class RulesCheckerTest extends TestCase
     public function testExistsInAndNullable(): void
     {
         $repository = $this->createMock(RepositoryInterface::class);
+        $repository->method('aliasField')->willReturnCallback(fn(string $field): string => $field);
         $repository->expects($this->once())
             ->method('exists')
-            ->with(['_id' => '507f1f77bcf86cd799439011'])
+            ->with(['_id IS' => '507f1f77bcf86cd799439011'])
             ->willReturn(true);
 
         $checker = new RulesChecker();

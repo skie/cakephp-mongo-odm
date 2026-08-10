@@ -25,7 +25,7 @@ return [
     ],
     'articles' => [
         'fields' => [
-            'author_id' => ['bsonType' => 'objectId'],
+            'author_id' => ['bsonType' => ['objectId', 'null']],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],

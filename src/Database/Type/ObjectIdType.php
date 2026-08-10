@@ -36,8 +36,16 @@ class ObjectIdType extends BaseType
             return new ObjectId($value);
         }
 
-        // Non-hex values (e.g. integer or string foreign keys) pass through so
-        // existence lookups simply match nothing instead of failing to encode.
+        // Non-hex string foreign keys would fail to encode, so reject them.
+        // Integer and float values pass through so existence lookups on
+        // non-ObjectId foreign keys (e.g. author_id = 500) simply match
+        // nothing instead of failing to encode.
+        if (is_string($value)) {
+            throw new InvalidArgumentException(
+                sprintf('Value is not a valid MongoDB ObjectId: %s', (string)$value),
+            );
+        }
+
         return $value;
     }
 

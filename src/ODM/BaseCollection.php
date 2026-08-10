@@ -51,6 +51,7 @@ use Crustum\Mongo\ODM\Query\UpdateQuery;
 use Exception;
 use InvalidArgumentException;
 use LogicException;
+use Throwable;
 use Psr\SimpleCache\CacheInterface;
 use ReflectionFunction;
 use function Cake\Core\namespaceSplit;
@@ -1230,6 +1231,30 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     public function getSchema(): SchemaInterface
     {
         return $this->schema ??= new CollectionSchema($this->getCollection());
+    }
+
+    /**
+     * Returns an introspected schema for this collection.
+     *
+     * Unlike `getSchema()`, this describes the collection from the database
+     * (validators, indexes) so rules such as `existsIn` can inspect nullable
+     * fields. When no connection is available or introspection fails, the
+     * schema is returned as-is.
+     *
+     * @return \Cake\Datasource\SchemaInterface
+     */
+    public function describeSchema(): SchemaInterface
+    {
+        $connection = $this->getConnection();
+        if (!$connection instanceof Connection) {
+            return $this->getSchema();
+        }
+
+        try {
+            return $connection->getSchemaCollection()->describe($this->getCollection());
+        } catch (Throwable) {
+            return $this->getSchema();
+        }
     }
 
     /**

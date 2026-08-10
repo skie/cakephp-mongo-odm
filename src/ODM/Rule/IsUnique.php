@@ -53,23 +53,31 @@ final class IsUnique
      */
     public function __invoke(EntityInterface $entity, array $options): bool
     {
-        $values = $entity->extract($this->fields);
         if (!$entity->extract($this->fields, true)) {
             return true;
         }
 
-        if ($this->options['allowMultipleNulls'] && array_any($values, static fn(mixed $value): bool => $value === null)) {
+        $fields = $entity->extract($this->fields);
+        if ($this->options['allowMultipleNulls'] && array_any($fields, static fn(mixed $value): bool => $value === null)) {
             return true;
-        }
-
-        $conditions = $values;
-        if (!$entity->isNew() && $entity->get('_id') !== null) {
-            $conditions['_id'] = ['$ne' => $entity->get('_id')];
         }
 
         $repository = $options['repository'] ?? null;
         if (!$repository instanceof RepositoryInterface) {
             throw new InvalidArgumentException('The `repository` option must be a repository instance.');
+        }
+
+        $conditions = $fields;
+        if (!$entity->isNew()) {
+            if (method_exists($repository, 'getPrimaryKey')) {
+                $keys = (array)$repository->getPrimaryKey();
+                $keys = $entity->extract($keys);
+            } else {
+                $keys = $entity->extract(['_id']);
+            }
+            if (array_filter($keys, static fn(mixed $value): bool => $value !== null)) {
+                $conditions['_id'] = ['$ne' => $keys['_id'] ?? null];
+            }
         }
 
         return !$repository->exists($conditions);

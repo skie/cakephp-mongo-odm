@@ -217,6 +217,8 @@ class HasMany extends Association
             $entity->extract((array)$this->getBindingKey()),
         );
 
+        $options['_sourceTable'] = $this->getSource();
+
         if (
             $this->saveStrategy === self::SAVE_REPLACE
             && !$this->unlinkAssociated($foreignKeyReference, $targetEntities, $options)
@@ -259,8 +261,12 @@ class HasMany extends Association
                 break;
             }
 
+            if (!empty($options['atomic'])) {
+                $entity = clone $entity;
+            }
+
             if ($foreignKeyReference !== $entity->extract($foreignKey)) {
-                $entity->set($foreignKeyReference);
+                $entity->patch($foreignKeyReference, ['guard' => false]);
             }
 
             $saved = $table->save($entity, $options);

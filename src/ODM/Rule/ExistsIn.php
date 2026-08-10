@@ -3,9 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Rule;
 
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\RepositoryInterface;
-use InvalidArgumentException;
+use Crustum\Mongo\ODM\Association;
 
 /**
  * Checks that referenced MongoDB documents exist.
@@ -15,21 +16,21 @@ use InvalidArgumentException;
 class ExistsIn
 {
     /**
-     * Local fields whose values must exist in the target repository.
+     * The list of fields to check.
      *
      * @var array<string>
      */
     protected array $fields;
 
     /**
-     * The target repository or alias.
+     * The repository or association where the field will be looked for.
      *
-     * @var \Cake\Datasource\RepositoryInterface|string
+     * @var \Cake\Datasource\RepositoryInterface|\Crustum\Mongo\ODM\Association|string
      */
-    protected RepositoryInterface|string $repository;
+    protected RepositoryInterface|Association|string $repository;
 
     /**
-     * Existence rule options.
+     * Options for the rule.
      *
      * @var array<string, mixed>
      */
@@ -42,62 +43,103 @@ class ExistsIn
      * Set to true to accept composite foreign keys where one or more nullable columns are null.
      *
      * @param array<string>|string $fields The local fields to check.
-     * @param \Cake\Datasource\RepositoryInterface|string $repository The target repository or alias.
-     * @param array<string, mixed> $options Rule options.
+     * @param \Cake\Datasource\RepositoryInterface|\Crustum\Mongo\ODM\Association|string $repository The target repository,
+     *   association, or alias.
+     * @param array<string, mixed> $options The options that modify the rule's behavior.
      *     Options 'allowNullableNulls' will make the rule pass if given foreign keys are set to `null`.
+     *     Notice: allowNullableNulls cannot pass by database columns set to `NOT NULL`.
      */
-    public function __construct(array|string $fields, RepositoryInterface|string $repository, array $options = [])
-    {
+    public function __construct(
+        array|string $fields,
+        RepositoryInterface|Association|string $repository,
+        array $options = [],
+    ) {
+        $this->options = $options + ['allowNullableNulls' => false];
         $this->fields = (array)$fields;
         $this->repository = $repository;
-        $this->options = $options + ['allowNullableNulls' => false];
     }
 
     /**
      * Performs the existence check.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document being checked.
-     * @param array<string, mixed> $options Options passed by the rules checker.
+     * @param \Cake\Datasource\EntityInterface $entity The document from where to extract the fields.
+     * @param array<string, mixed> $options Options passed to the check, where the `repository` key is required.
      * @return bool
-     * @throws \InvalidArgumentException If the repository cannot be resolved.
+     * @throws \Cake\Database\Exception\DatabaseException When the rule refers to an undefined association.
      */
     public function __invoke(EntityInterface $entity, array $options): bool
     {
-        if (!$entity->extract($this->fields, true)) {
-            return true;
+        if (is_string($this->repository)) {
+            /** @var \Crustum\Mongo\ODM\BaseCollection $source */
+            $source = $options['repository'];
+
+            if (!$source->hasAssociation($this->repository)) {
+                throw new DatabaseException(sprintf(
+                    'ExistsIn rule for `%s` is invalid. `%s` is not associated with `%s`.',
+                    implode(', ', $this->fields),
+                    $this->repository,
+                    $options['repository']::class,
+                ));
+            }
+
+            $this->repository = $source->getAssociation($this->repository);
         }
 
         $fields = $this->fields;
-        $source = $this->repository;
-        if (is_string($source)) {
-            $source = $options['repository'] ?? null;
+        $target = $this->repository;
+        if ($target instanceof Association) {
+            $bindingKey = (array)$target->getBindingKey();
+            $realTarget = $target->getTarget();
+        } else {
+            $bindingKey = method_exists($target, 'getPrimaryKey')
+                ? (array)$target->getPrimaryKey()
+                : array_fill(0, count($fields), '_id');
+            $realTarget = $target;
         }
 
-        if (!$source instanceof RepositoryInterface) {
-            throw new InvalidArgumentException('The `repository` option must resolve to a repository instance.');
+        if (!empty($options['_sourceTable']) && $realTarget === $options['_sourceTable']) {
+            return true;
         }
 
-        $targetFields = $this->options['targetFields'] ?? array_fill(0, count($this->fields), '_id');
+        if (!empty($options['repository'])) {
+            /** @var \Crustum\Mongo\ODM\BaseCollection $source */
+            $source = $options['repository'];
+        } else {
+            $source = $this->repository;
+        }
+        if ($source instanceof Association) {
+            $source = $source->getSource();
+        }
+
+        if (!$entity->extract($this->fields, true)) {
+            return true;
+        }
 
         if ($this->fieldsAreNull($entity, $source)) {
             return true;
         }
 
-        if ($this->options['allowNullableNulls'] && method_exists($source, 'getSchema')) {
-            $schema = $source->getSchema();
+        if ($this->options['allowNullableNulls'] && method_exists($source, 'describeSchema')) {
+            $schema = $source->describeSchema();
             foreach ($fields as $i => $field) {
                 if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
-                    unset($targetFields[$i], $fields[$i]);
+                    unset($bindingKey[$i], $fields[$i]);
                 }
             }
         }
 
-        $conditions = [];
-        foreach (array_values($fields) as $index => $field) {
-            $conditions[$targetFields[$index] ?? '_id'] = $entity->get($field);
-        }
+        $primary = array_map(
+            fn(string $key): string => method_exists($target, 'aliasField')
+                ? $target->aliasField($key) . ' IS'
+                : $key . ' IS',
+            $bindingKey,
+        );
+        $conditions = array_combine(
+            $primary,
+            $entity->extract($fields),
+        );
 
-        return $source->exists($conditions);
+        return $target->exists($conditions);
     }
 
     /**
@@ -109,12 +151,12 @@ class ExistsIn
      */
     protected function fieldsAreNull(EntityInterface $entity, RepositoryInterface $source): bool
     {
-        if (!method_exists($source, 'getSchema')) {
+        if (!method_exists($source, 'describeSchema')) {
             return false;
         }
 
         $nulls = 0;
-        $schema = $source->getSchema();
+        $schema = $source->describeSchema();
         foreach ($this->fields as $field) {
             if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
                 $nulls++;

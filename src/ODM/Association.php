@@ -1034,7 +1034,12 @@ abstract class Association
      */
     public function exists(array|Closure|string|null $conditions): bool
     {
-        return $this->getTarget()->exists($conditions);
+        $query = $this->find();
+        if ($conditions !== null) {
+            $query->where($conditions);
+        }
+
+        return $query->limit(1)->first() !== null;
     }
 
     /**

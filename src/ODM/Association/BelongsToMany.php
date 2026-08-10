@@ -314,24 +314,59 @@ class BelongsToMany extends Association
         iterable $entities,
         array $options = [],
     ): EntityInterface|false {
+        $joinAssociations = false;
+        if (isset($options['associated']) && is_array($options['associated'])) {
+            if (!empty($options['associated'][$this->junctionProperty]['associated'])) {
+                $joinAssociations = $options['associated'][$this->junctionProperty]['associated'];
+            }
+            unset($options['associated'][$this->junctionProperty]);
+        }
+
         $targetEntities = is_array($entities) ? $entities : iterator_to_array($entities);
 
-        $saved = [];
         $table = $this->getTarget();
-        foreach ($targetEntities as $entity) {
+        $original = $targetEntities;
+        $persisted = [];
+
+        foreach ($targetEntities as $k => $entity) {
             if (!$entity instanceof EntityInterface) {
+                break;
+            }
+
+            if (!empty($options['atomic'])) {
+                $entity = clone $entity;
+            }
+
+            $saved = $table->save($entity, $options);
+            if ($saved instanceof EntityInterface) {
+                $targetEntities[$k] = $entity;
+                $persisted[] = $entity;
                 continue;
             }
 
-            $result = $table->save($entity, $options);
-            if ($result instanceof EntityInterface) {
-                $saved[] = $result;
-            } else {
-                return false;
+            // Saving the new linked entity failed, copy errors back into the
+            // original entity if applicable and abort.
+            if (!empty($options['atomic'])) {
+                $originalEntity = $original[$k] ?? null;
+                if ($originalEntity instanceof EntityInterface) {
+                    $originalEntity->setErrors($entity->getErrors());
+                }
             }
+
+            return false;
         }
 
-        return $this->link($parentEntity, $saved, $options) ? $parentEntity : false;
+        $options['associated'] = $joinAssociations;
+        $success = $this->saveLinks($parentEntity, $persisted, $options);
+        if (!$success && !empty($options['atomic'])) {
+            $parentEntity->set($this->getProperty(), $original);
+
+            return false;
+        }
+
+        $parentEntity->set($this->getProperty(), $targetEntities);
+
+        return $parentEntity;
     }
 
     /**
@@ -1213,6 +1248,33 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Prefixes matching conditions with the loaded property path.
+     *
+     * After `$unwind` the matched row lives under the association property, so
+     * bare field conditions must point at that path.
+     *
+     * @param array<int|string, mixed> $conditions The conditions.
+     * @param string $property The association property.
+     * @return array<int|string, mixed>
+     */
+    protected function prefixMatchConditions(array $conditions, string $property): array
+    {
+        $prefixed = [];
+        foreach ($conditions as $field => $value) {
+            if (in_array(strtoupper((string)$field), ['$OR', '$AND', 'OR', 'AND'], true) && is_array($value)) {
+                $prefixed[$field] = array_map(
+                    fn(mixed $item): mixed => is_array($item) ? $this->prefixMatchConditions($item, $property) : $item,
+                    $value,
+                );
+                continue;
+            }
+            $prefixed[$property . '.' . $field] = $value;
+        }
+
+        return $prefixed;
+    }
+
+    /**
      * Recursively replaces a junction alias prefix inside condition groups.
      *
      * @param array<int|string, mixed> $conditions The condition group.
@@ -1353,7 +1415,17 @@ class BelongsToMany extends Association
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField($targetBindingKey)
             ->alias($this->getProperty());
+        if (!empty($options['matching'])) {
+            $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => false]);
+        }
         $pipelineOptions = $options + $this->associationPipelineOptions();
+        if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
+            $property = $this->getProperty();
+            $pipelineOptions['conditions'] = $this->prefixMatchConditions(
+                $pipelineOptions['conditions'],
+                $property,
+            );
+        }
         $pipelineFields = $pipelineOptions['fields'] ?? null;
         unset($pipelineOptions['fields']);
         $this->applyPipelineOptions($builder, $pipelineOptions);

@@ -45,13 +45,16 @@ class BelongsTo extends Association
     }
 
     /**
-     * The source document owns the foreign key.
+     * The target document is the owning side of a belongs-to association.
+     *
+     * Matches cake60, where `BelongsTo::isOwningSide($source)` is `false`, so
+     * the default binding key resolves to the target's primary key.
      *
      * @return bool
      */
     public function isOwningSide(): bool
     {
-        return true;
+        return false;
     }
 
     /**

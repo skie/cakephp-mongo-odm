@@ -69,7 +69,7 @@ class LinkConstraint
             $association = $collection->getAssociation($association);
         }
 
-        $count = $this->countLinks($association, $entity, $collection);
+        $count = $this->countLinks($association, $entity);
 
         if (
             (
@@ -90,31 +90,45 @@ class LinkConstraint
     /**
      * Count links.
      *
+     * The number of related target documents is counted on the owning side of
+     * the relationship:
+     *
+     * - `belongsTo`: targets whose binding key equals the source document's
+     *   foreign key values.
+     * - `hasOne`/`hasMany`: targets whose foreign key equals the source
+     *   document's binding key values.
+     * - `belongsToMany`: junction links resolved through the join collection.
+     *
      * @param \Crustum\Mongo\ODM\Association $association The association for which to count links.
      * @param \Cake\Datasource\EntityInterface $entity The entity involved in the operation.
-     * @param \Crustum\Mongo\ODM\BaseCollection $collection The source collection.
      * @return int The number of links.
      */
-    protected function countLinks(Association $association, EntityInterface $entity, BaseCollection $collection): int
+    protected function countLinks(Association $association, EntityInterface $entity): int
     {
         if ($association instanceof BelongsToMany) {
             return $this->countBelongsToManyLinks($association, $entity);
         }
 
-        $source = $association->getSource();
         $target = $association->getTarget();
 
-        $foreignKey = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
-        $bindingKey = (array)$association->getBindingKey();
-
-        if (!$entity->has($bindingKey)) {
-            throw new InvalidArgumentException(sprintf(
-                'LinkConstraint rule on `%s` requires all primary key values for building the counting conditions.',
-                $source->getAlias(),
-            ));
+        if ($association instanceof BelongsTo) {
+            // The source document holds the foreign key (e.g. comment.article_id);
+            // match it against the target binding key (e.g. article._id).
+            $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
+            $targetKeys = (array)$association->getBindingKey();
+        } else {
+            // The target document holds the foreign key; match it against the
+            // source binding key (e.g. author._id).
+            $sourceKeys = (array)$association->getBindingKey();
+            $targetKeys = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
         }
 
-        $conditions = array_combine($foreignKey, $entity->extract($bindingKey));
+        $sourceValues = $entity->extract($sourceKeys);
+        if (count(array_filter($sourceValues, static fn(mixed $value): bool => $value !== null)) !== count($sourceKeys)) {
+            return 0;
+        }
+
+        $conditions = array_combine($targetKeys, $sourceValues);
 
         return $target->find()->where($conditions)->count();
     }

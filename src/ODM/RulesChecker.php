@@ -24,6 +24,24 @@ use Crustum\Mongo\ODM\Rule\ValidCount;
 final class RulesChecker extends BaseRulesChecker
 {
     /**
+     * Whether default error messages should be translated.
+     *
+     * @var bool
+     */
+    protected bool $useI18n = false;
+
+    /**
+     * Constructor.
+     *
+     * @param array<string, mixed> $options Rules checker options.
+     */
+    public function __construct(array $options = [])
+    {
+        parent::__construct($options);
+        $this->useI18n = function_exists('\Cake\I18n\__d');
+    }
+
+    /**
      * Returns a rule for checking field uniqueness.
      *
      * @param array<string> $fields The fields to check.
@@ -206,10 +224,16 @@ final class RulesChecker extends BaseRulesChecker
             }
         }
 
-        $message ??= sprintf(
-            'Cannot modify row: a constraint for the `%s` association fails.',
-            $associationAlias,
-        );
+        $message ??= $this->useI18n
+            ? __d(
+                'cake',
+                'Cannot modify row: a constraint for the `{0}` association fails.',
+                $associationAlias,
+            )
+            : sprintf(
+                'Cannot modify row: a constraint for the `%s` association fails.',
+                $associationAlias,
+            );
 
         $rule = new LinkConstraint(
             $association,

@@ -667,10 +667,11 @@ class QueryCompiler
             }
 
             $field = is_string($key) && str_contains($key, ' ') ? explode(' ', $key)[0] : $key;
+            $bareField = is_string($field) ? $this->resolveField($field) : $field;
             if (is_string($field) && isset($types[$field])) {
                 $conditions[$key] = $this->castValue($value, $types[$field]);
-            } elseif (is_string($field) && isset($this->typeMap[$field])) {
-                $conditions[$key] = $this->castValue($value, $this->typeMap[$field]);
+            } elseif (is_string($bareField) && isset($this->typeMap[$bareField])) {
+                $conditions[$key] = $this->castValue($value, $this->typeMap[$bareField]);
             } elseif (is_array($value)) {
                 $conditions[$key] = $this->castConditions($value, $types);
             }
@@ -703,6 +704,14 @@ class QueryCompiler
         if (is_array($value)) {
             if (array_is_list($value)) {
                 return array_map(fn(mixed $item): mixed => $this->castValue($item, $type), $value);
+            }
+
+            // Mongo operator arrays (e.g. `$ne`, `$in`) carry scalar values
+            // that must be cast like their bare field value would be.
+            foreach ($value as $operator => $operand) {
+                if (is_string($operator) && str_starts_with($operator, '$')) {
+                    $value[$operator] = $this->castValue($operand, $type);
+                }
             }
 
             return $value;

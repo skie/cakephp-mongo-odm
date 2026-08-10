@@ -530,7 +530,7 @@ class QueryBuilder
             [, $operator] = $parts;
         }
 
-        if (is_array($value) && isset($value['$' . key($value)])) {
+        if (is_array($value) && is_string(key($value)) && str_starts_with((string)key($value), '$')) {
             return $value;
         }
 
@@ -539,6 +539,7 @@ class QueryBuilder
         switch ($operator) {
             case '=':
             case 'eq':
+                return $value;
             case 'is':
             default:
                 return $value ?? ['$exists' => false];

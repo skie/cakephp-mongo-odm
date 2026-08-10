@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM;
 use ArrayAccess;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\EntityTrait;
+use Cake\Datasource\InvalidPropertyInterface;
 use DateTimeZone;
 use MongoDB\BSON\Decimal128;
 use MongoDB\BSON\ObjectId;
@@ -24,7 +25,7 @@ use MongoDB\Model\BSONDocument;
  * @see cake60/src/Datasource/EntityTrait.php
  * @implements \ArrayAccess<string, mixed>
  */
-class Document implements EntityInterface, ArrayAccess
+class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
 {
     use EntityTrait {
         toArray as protected entityToArray;

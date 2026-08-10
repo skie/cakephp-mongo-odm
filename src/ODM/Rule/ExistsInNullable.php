@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Rule;
 
 use Cake\Datasource\RepositoryInterface;
+use Crustum\Mongo\ODM\Association;
 
 /**
  * ExistsIn rule with nullable foreign keys enabled by default.
@@ -16,11 +17,15 @@ final class ExistsInNullable extends ExistsIn
      * Constructor.
      *
      * @param array<string>|string $fields The local fields to check.
-     * @param \Cake\Datasource\RepositoryInterface|string $repository The target repository or alias.
+     * @param \Cake\Datasource\RepositoryInterface|\Crustum\Mongo\ODM\Association|string $repository The target
+     *   repository, association, or alias.
      * @param array<string, mixed> $options Rule options.
      */
-    public function __construct(array|string $fields, RepositoryInterface|string $repository, array $options = [])
-    {
+    public function __construct(
+        array|string $fields,
+        RepositoryInterface|Association|string $repository,
+        array $options = [],
+    ) {
         parent::__construct($fields, $repository, $options + ['allowNullableNulls' => true]);
     }
 }

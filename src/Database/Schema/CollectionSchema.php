@@ -250,7 +250,7 @@ class CollectionSchema implements SchemaInterface
 
         $property = $this->resolvePropertyPath($name);
         if ($property !== null && isset($property['bsonType'])) {
-            return $this->normalizeBsonType((string)$property['bsonType']);
+            return $this->resolveBsonType($property['bsonType']);
         }
 
         return $this->inferFieldType($name);
@@ -455,7 +455,13 @@ class CollectionSchema implements SchemaInterface
      */
     public function hasField(string $name): bool
     {
-        return isset($this->fields[$name]);
+        if (isset($this->fields[$name])) {
+            return true;
+        }
+
+        $property = $this->resolvePropertyPath($name);
+
+        return $property !== null;
     }
 
     /**
@@ -692,7 +698,18 @@ class CollectionSchema implements SchemaInterface
      */
     public function isNullable(string $name): bool
     {
-        return (bool)($this->fields[$name]['null'] ?? false);
+        if (!empty($this->fields[$name]['null'])) {
+            return true;
+        }
+
+        $property = $this->resolvePropertyPath($name);
+        if ($property !== null && isset($property['bsonType'])) {
+            $types = is_array($property['bsonType']) ? $property['bsonType'] : [$property['bsonType']];
+
+            return in_array('null', $types, true);
+        }
+
+        return false;
     }
 
     /**

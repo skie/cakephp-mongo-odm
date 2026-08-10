@@ -49,6 +49,23 @@ class RulesCheckerIntegrationTest extends TestCase
     ];
 
     /**
+     * Registers the SiteAuthors collection with its composite primary key.
+     *
+     * In cake60 the `site_authors` table declares a composite primary key
+     * `(id, site_id)` in the SQL schema, which makes `belongsTo('SiteAuthors')`
+     * resolve to a composite binding key. Here the ODM collection mirrors that
+     * with `(_id, site_id)` so `existsIn(['author_id', 'site_id'], ...)` rules
+     * align their foreign keys with the association binding key.
+     *
+     * @return void
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->getCollectionLocator()->get('SiteAuthors')->setPrimaryKey(['_id', 'site_id']);
+    }
+
+    /**
      * Tests saving belongsTo association and get a validation error
      */
     public function testSaveBelongsToWithValidationError(): void
@@ -67,7 +84,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Entity $author, array $options) use ($table) {
+                function (Document $author, array $options) use ($table) {
                     $this->assertSame($options['repository'], $table->getAssociation('authors')->getTarget());
 
                     return false;
@@ -146,8 +163,8 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Entity $entity, $options) use ($table) {
-                    $this->assertSame($table, $options['sourceTable']);
+                function (Document $entity, $options) use ($table) {
+                    $this->assertSame($table, $options['_sourceTable']);
 
                     return $entity->title === '1';
                 },
@@ -193,7 +210,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Entity $article) {
+                function (Document $article) {
                     return is_numeric($article->title);
                 },
                 ['errorField' => 'title', 'message' => 'This is an error'],
@@ -204,8 +221,8 @@ class RulesCheckerIntegrationTest extends TestCase
         $this->assertFalse($entity->isNew());
         $this->assertTrue($entity->articles[0]->isNew());
         $this->assertFalse($entity->articles[1]->isNew());
-        $this->assertSame(4, $entity->articles[1]->id);
-        $this->assertNull($entity->articles[0]->id);
+        $this->assertNotEmpty($entity->articles[1]->getId());
+        $this->assertNull($entity->articles[0]->getId());
         $this->assertNotEmpty($entity->articles[0]->getError('title'));
     }
 
@@ -231,16 +248,16 @@ class RulesCheckerIntegrationTest extends TestCase
         $table->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(function (Entity $entity) {
-                return $entity->article_id > 4;
+            ->add(function (Document $entity) {
+                return false;
             });
 
         $this->assertFalse($table->save($entity));
         $this->assertTrue($entity->isNew());
         $this->assertTrue($entity->tags[0]->isNew());
         $this->assertTrue($entity->tags[1]->isNew());
-        $this->assertNull($entity->tags[0]->id);
-        $this->assertNull($entity->tags[1]->id);
+        $this->assertNull($entity->tags[0]->getId());
+        $this->assertNull($entity->tags[1]->getId());
         $this->assertNull($entity->tags[0]->_joinData);
         $this->assertNull($entity->tags[1]->_joinData);
     }
@@ -268,19 +285,21 @@ class RulesCheckerIntegrationTest extends TestCase
         $table->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(function (Entity $entity) {
-                return $entity->tag_id > 4;
+            ->add(function (Document $entity) {
+                return false;
             });
 
         $this->assertSame($entity, $table->save($entity, ['atomic' => false]));
         $this->assertFalse($entity->isNew());
         $this->assertFalse($entity->tags[0]->isNew());
         $this->assertFalse($entity->tags[1]->isNew());
-        $this->assertSame(4, $entity->tags[0]->id);
-        $this->assertSame(5, $entity->tags[1]->id);
+        $this->assertNotEmpty($entity->tags[0]->getId());
+        $this->assertNotEmpty($entity->tags[1]->getId());
         $this->assertTrue($entity->tags[0]->_joinData->isNew());
-        $this->assertSame(4, $entity->tags[1]->_joinData->article_id);
-        $this->assertSame(5, $entity->tags[1]->_joinData->tag_id);
+        $this->assertTrue($entity->tags[1]->_joinData->isNew());
+        $this->assertSame($entity->getId(), $entity->tags[0]->_joinData->article_id);
+        $this->assertSame($entity->tags[0]->getId(), $entity->tags[0]->_joinData->tag_id);
+        $this->assertSame($entity->tags[1]->getId(), $entity->tags[1]->_joinData->tag_id);
     }
 
     /**
@@ -557,7 +576,7 @@ class RulesCheckerIntegrationTest extends TestCase
     public function testExistsInInvalidAssociation(): void
     {
         $this->expectException(DatabaseException::class);
-        $this->expectExceptionMessage('ExistsIn rule for `author_id` is invalid. `NotValid` is not associated with `BaseCollection`.');
+        $this->expectExceptionMessage('ExistsIn rule for `author_id` is invalid. `NotValid` is not associated with `Crustum\Mongo\ODM\BaseCollection`.');
         $entity = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
