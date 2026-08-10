@@ -18,7 +18,7 @@ class PersistenceFailedException extends CakeException
     /**
      * @inheritDoc
      */
-    protected string $messageTemplate = 'Document %s failure.';
+    protected string $_messageTemplate = 'Document %s failure.';
 
     /**
      * Constructor.
@@ -42,7 +42,7 @@ class PersistenceFailedException extends CakeException
             }
             if ($errors) {
                 $message[] = implode(', ', $errors);
-                $this->messageTemplate = 'Document %s failure. Found the following errors (%s).';
+                $this->_messageTemplate = 'Document %s failure. Found the following errors (%s).';
             }
         }
         parent::__construct($message, $code, $previous);

@@ -19,15 +19,23 @@ class DeleteQuery extends DatabaseDeleteQuery
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\Database\Connection|null $connection Connection.
+     * Accepts either a `BaseCollection` (cake-compatible: `new DeleteQuery($table)`)
+     * or the low-level `(connection, collection, repository)` signature.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\Database\Connection|null $connection Repository or connection.
      * @param string $collection BaseCollection name.
      * @param \Crustum\Mongo\ODM\BaseCollection|null $repository Repository.
      */
     public function __construct(
-        ?Connection $connection = null,
+        BaseCollection|Connection|null $connection = null,
         string $collection = '',
         ?BaseCollection $repository = null,
     ) {
+        if ($connection instanceof BaseCollection) {
+            $repository = $connection;
+            $connection = $repository->getConnection();
+            $collection = $repository->getCollection();
+        }
         parent::__construct($connection, $collection);
         if ($repository instanceof BaseCollection) {
             $this->setRepository($repository);

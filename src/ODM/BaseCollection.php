@@ -9,6 +9,7 @@ use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
 use Cake\Database\Exception\DatabaseException;
+use Cake\Database\ExpressionInterface;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
@@ -225,8 +226,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $this->setConnection($options['connection']);
         }
 
-        if (isset($options['schema']) && $options['schema'] instanceof SchemaInterface) {
-            $this->setSchema($options['schema']);
+        if (isset($options['schema'])) {
+            if ($options['schema'] instanceof SchemaInterface) {
+                $this->setSchema($options['schema']);
+            } elseif (is_array($options['schema'])) {
+                $this->setSchemaFromArray($options['schema']);
+            }
         }
 
         if (isset($options['documentClass'])) {
@@ -592,9 +597,11 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
      * @return int The number of modified documents.
      */
-    public function updateAll(Closure|array|string $fields, Closure|array|string|null $conditions): int
-    {
-        $query = $this->queryFactory->update($this);
+    public function updateAll(
+        ExpressionInterface|Closure|array|string $fields,
+        ExpressionInterface|Closure|array|string|null $conditions,
+    ): int {
+        $query = $this->updateQuery();
         if ($fields instanceof Closure) {
             $fields = $fields();
         }
@@ -612,12 +619,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * This method does not fire beforeDelete/afterDelete events.
      *
-     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Filter conditions.
      * @return int The number of deleted documents.
      */
-    public function deleteAll(Closure|array|string|null $conditions): int
+    public function deleteAll(ExpressionInterface|Closure|array|string|null $conditions): int
     {
-        $query = $this->queryFactory->delete($this);
+        $query = $this->deleteQuery();
         if ($conditions !== null) {
             $query->where($conditions);
         }
@@ -628,10 +635,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Whether any document matches the conditions.
      *
-     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Filter conditions.
      * @return bool
      */
-    public function exists(Closure|array|string|null $conditions): bool
+    public function exists(ExpressionInterface|Closure|array|string|null $conditions): bool
     {
         $query = $this->queryFactory->unhydratedSelect($this);
         if ($conditions !== null) {
@@ -2604,6 +2611,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         foreach (['title', 'name', 'label'] as $field) {
             if ($schema->hasColumn($field)) {
                 return $this->displayField = $field;
+            }
+        }
+
+        foreach ($schema->columns() as $column) {
+            $columnSchema = $schema->getColumn($column);
+            if (
+                $columnSchema &&
+                ($columnSchema['null'] ?? false) !== true &&
+                ($columnSchema['type'] ?? null) === 'string' &&
+                !preg_match('/pass|token|secret/i', $column)
+            ) {
+                return $this->displayField = $column;
             }
         }
 
