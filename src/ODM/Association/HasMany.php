@@ -333,12 +333,12 @@ class HasMany extends Association
                 return true;
             }
 
-            $target->deleteAll($conditions);
+            $this->deleteAll($conditions);
 
             return true;
         }
 
-        $target->updateAll(array_fill_keys($foreignKey, null), $conditions);
+        $this->updateAll(array_fill_keys($foreignKey, null), $conditions);
 
         return true;
     }
@@ -352,9 +352,9 @@ class HasMany extends Association
      */
     protected function foreignKeyAcceptsNull(BaseCollection $target, array $foreignKey): bool
     {
-        $schema = $target->getSchema();
+        $schema = $target->describeSchema();
         foreach ($foreignKey as $field) {
-            if (method_exists($schema, 'isNullable') && !$schema->isNullable($field)) {
+            if (!$schema->isNullable($field)) {
                 return false;
             }
         }

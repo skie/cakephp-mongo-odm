@@ -1581,7 +1581,7 @@ class HasManyTest extends TestCase
         );
 
         $others = $articles->find('all')
-            ->where(['Articles.author_id' => 1, 'published' => 'N'])
+            ->where(['Articles.author_id' => '000000000000000000000001', 'published' => 'N'])
             ->orderByAsc('title')
             ->toArray();
         $this->assertCount(

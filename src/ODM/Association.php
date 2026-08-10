@@ -1051,7 +1051,17 @@ abstract class Association
      */
     public function updateAll(array|Closure|string $fields, array|Closure|string|null $conditions): int
     {
-        return $this->getTarget()->updateAll($fields, $conditions);
+        $query = $this->find();
+        if ($conditions !== null) {
+            $query->where($conditions);
+        }
+
+        $filter = [];
+        if ($query instanceof SelectQuery) {
+            $filter = $query->compile()['filter'] ?? [];
+        }
+
+        return $this->getTarget()->updateAll($fields, $filter);
     }
 
     /**
