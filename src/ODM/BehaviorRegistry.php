@@ -9,7 +9,7 @@ use Cake\Core\ObjectRegistry;
 use Cake\Event\EventDispatcherInterface;
 use Cake\Event\EventDispatcherTrait;
 use Closure;
-use Crustum\Mongo\Exception\MissingBehaviorException;
+use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
 use InvalidArgumentException;
 use LogicException;
 

@@ -31,7 +31,6 @@ use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Database\Type\TypeFactory;
-use Crustum\Mongo\Exception\MissingDocumentException;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\DBRef;
@@ -40,6 +39,7 @@ use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
+use Crustum\Mongo\ODM\Exception\MissingDocumentException;
 use Crustum\Mongo\ODM\Mapping\DocumentSchemaReader;
 use Crustum\Mongo\ODM\Mapping\DtoSchemaReader;
 use Crustum\Mongo\ODM\Query\DeleteQuery;
@@ -1601,7 +1601,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * @param string $name The name of the class to use.
      * @return $this
-     * @throws \Crustum\Mongo\Exception\MissingDocumentException When the class cannot be found.
+     * @throws \Crustum\Mongo\ODM\Exception\MissingDocumentException When the class cannot be found.
      */
     public function setDocumentClass(string $name): static
     {

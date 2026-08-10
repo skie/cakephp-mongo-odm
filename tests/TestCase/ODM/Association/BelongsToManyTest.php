@@ -17,7 +17,7 @@ use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Document;
-use Cake\ORM\Exception\MissingTableClassException;
+use Cake\ORM\Exception\MissingTableClassException; // @todo collection exception
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\RulesChecker;

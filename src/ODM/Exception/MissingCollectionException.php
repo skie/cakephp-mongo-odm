@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Exception;
+namespace Crustum\Mongo\ODM\Exception;
 
 use Cake\Core\Exception\CakeException;
 

@@ -7,8 +7,8 @@ use Cake\Core\App;
 use Cake\Datasource\Locator\AbstractLocator;
 use Cake\Datasource\Locator\LocatorInterface;
 use Cake\Datasource\RepositoryInterface;
-use Crustum\Mongo\Exception\MissingCollectionException;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Exception\MissingCollectionException;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -39,7 +39,7 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
      * @param string $alias The registry alias.
      * @param array<string, mixed> $options Construction options.
      * @return \Cake\Datasource\RepositoryInterface
-     * @throws \Crustum\Mongo\Exception\MissingCollectionException If no valid class can be resolved.
+     * @throws \Crustum\Mongo\ODM\Exception\MissingCollectionException If no valid class can be resolved.
      */
     protected function createInstance(string $alias, array $options): RepositoryInterface
     {

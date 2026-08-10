@@ -5,9 +5,9 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use BadMethodCallException;
 use Cake\Core\Exception\CakeException;
-use Crustum\Mongo\Exception\MissingBehaviorException;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\BehaviorRegistry;
+use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use LogicException;
 use TestApp\Model\Behavior\DuplicateBehavior;
