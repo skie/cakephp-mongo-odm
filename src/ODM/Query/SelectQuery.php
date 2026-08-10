@@ -82,6 +82,19 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     protected ?QueryCacher $cacher = null;
 
     /**
+     * Whether to automatically append repository fields to the projection.
+     *
+     * `null` means unset; `true`/`false` mirror `enableAutoFields()` /
+     * `disableAutoFields()`. Unlike SQL, this never builds a `SELECT *` — Mongo
+     * already returns full documents when the projection is empty. Setting it
+     * to `true` re-expands a limited projection with the schema columns so
+     * computed `select()` fields do not silently hide document fields.
+     *
+     * @var bool|null
+     */
+    protected ?bool $autoFields = null;
+
+    /**
      * Constructor.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection|null $repository Repository to bind.
@@ -120,6 +133,41 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function isHydrationEnabled(): bool
     {
         return $this->hydrate;
+    }
+
+    /**
+     * Enables automatically appending repository fields to the projection.
+     *
+     * @param bool $value Set true to enable, false to disable.
+     * @return $this
+     */
+    public function enableAutoFields(bool $value = true): static
+    {
+        $this->autoFields = $value;
+
+        return $this;
+    }
+
+    /**
+     * Disables automatically appending repository fields to the projection.
+     *
+     * @return $this
+     */
+    public function disableAutoFields(): static
+    {
+        $this->autoFields = false;
+
+        return $this;
+    }
+
+    /**
+     * Gets whether repository fields are automatically appended to the projection.
+     *
+     * @return bool|null The current value. Returns null if neither enabled nor disabled yet.
+     */
+    public function isAutoFieldsEnabled(): ?bool
+    {
+        return $this->autoFields;
     }
 
     /**
@@ -457,12 +505,67 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function matching(string $association, ?callable $builder = null): static
     {
-        $options = ['matching' => true];
-        if ($builder !== null) {
-            $options['queryBuilder'] = $builder;
-        }
+        $this->getEagerLoader()->setMatching($association, $builder);
+        $this->dirty();
 
-        $this->eagerLoader->contain([$association => $options]);
+        return $this;
+    }
+
+    /**
+     * Adds filtering conditions to this query to only bring rows that have no
+     * match to another from an associated collection, based on conditions in
+     * the associated collection.
+     *
+     * @param string $association Association alias or dot separated path.
+     * @param callable|null $builder Optional association query builder.
+     * @return $this
+     */
+    public function notMatching(string $association, ?callable $builder = null): static
+    {
+        $this->getEagerLoader()->setMatching($association, $builder, [
+            'fields' => false,
+            'negateMatch' => true,
+        ]);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Creates an inner matching filter with the passed association, preserving
+     * the key matching and custom conditions. Selects no fields from the
+     * association.
+     *
+     * @param string $association Association alias or dot separated path.
+     * @param callable|null $builder Optional association query builder.
+     * @return $this
+     */
+    public function innerJoinWith(string $association, ?callable $builder = null): static
+    {
+        $this->getEagerLoader()->setMatching($association, $builder, [
+            'fields' => false,
+        ]);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Creates a left matching filter with the passed association, preserving
+     * the key matching and custom conditions. Selects no fields from the
+     * association.
+     *
+     * @param string $association Association alias or dot separated path.
+     * @param callable|null $builder Optional association query builder.
+     * @return $this
+     */
+    public function leftJoinWith(string $association, ?callable $builder = null): static
+    {
+        $this->getEagerLoader()->setMatching($association, $builder, [
+            'fields' => false,
+            'joinType' => 'LEFT',
+        ]);
+        $this->dirty();
 
         return $this;
     }
@@ -619,6 +722,8 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
+        $this->addDefaultFields();
+
         if ($this->repository instanceof BaseCollection) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
         }
@@ -640,6 +745,31 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         }
 
         return $resultSet;
+    }
+
+    /**
+     * Appends repository schema fields to the projection when auto-fields are
+     * enabled and a limited projection is in effect.
+     *
+     * @return void
+     */
+    protected function addDefaultFields(): void
+    {
+        if ($this->autoFields !== true || $this->repository === null) {
+            return;
+        }
+
+        $projection = $this->clause('select');
+        if ($projection === []) {
+            return;
+        }
+
+        foreach ($this->collectionFields($this->repository->getCollection()) as $field) {
+            if (isset($projection[$field]) || isset($projection[$this->repository->getAlias() . '.' . $field])) {
+                continue;
+            }
+            $this->select([$field]);
+        }
     }
 
     /**

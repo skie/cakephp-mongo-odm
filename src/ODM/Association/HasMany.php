@@ -509,7 +509,27 @@ class HasMany extends Association
             ->localField($this->fieldName($this->getBindingKey()))
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
-        $this->applyPipelineOptions($builder, $options);
+
+        if (!empty($options['matching'])) {
+            $builder->unwind('$' . $this->getProperty(), [
+                'preserveNullAndEmptyArrays' => !empty($options['negateMatch']),
+            ]);
+        }
+
+        $pipelineOptions = $options;
+        if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
+            $property = $this->getProperty();
+            $pipelineOptions['conditions'] = $this->prefixMatchConditions(
+                $pipelineOptions['conditions'],
+                $property,
+            );
+        }
+        unset($pipelineOptions['fields']);
+        $this->applyPipelineOptions($builder, $pipelineOptions);
+
+        if (!empty($options['negateMatch'])) {
+            $builder->match([$this->getProperty() => null]);
+        }
 
         return $builder->getPipeline();
     }

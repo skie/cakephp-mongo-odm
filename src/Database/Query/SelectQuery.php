@@ -317,12 +317,40 @@ class SelectQuery extends Query implements IteratorAggregate
     }
 
     /**
+     * Deduplicates result documents by the given fields.
+     *
+     * Mirrors SQL `DISTINCT`: results are grouped by the given fields and the
+     * first document of each group is emitted. Pass an empty array to disable.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int $fields Fields to deduplicate by.
+     * @param bool                                                                             $overwrite Whether to replace previously configured fields.
+     * @return $this
+     */
+    public function distinct(
+        ExpressionInterface|Closure|array|string|float|int $fields = [],
+        bool $overwrite = false,
+    ): static {
+        if ($fields instanceof Closure) {
+            $fields = $fields($this);
+        }
+
+        if (is_float($fields) || is_int($fields)) {
+            $fields = (string)$fields;
+        }
+
+        $this->builder->distinct($fields === '' || $fields === [] ? [] : (array)$fields, $overwrite);
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
      * Returns the distinct values for a field.
      *
      * @param string $field The field name.
      * @return list<mixed>
      */
-    public function distinct(string $field): array
+    public function distinctValues(string $field): array
     {
         $connection = $this->getConnection();
         if (!$connection instanceof Connection) {

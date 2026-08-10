@@ -1218,7 +1218,7 @@ class SelectQueryTest extends TestCase
         ]);
 
         $query = new SelectQuery($this->connection, 'select_distinct_test');
-        $values = $query->distinct('author_id');
+        $values = $query->distinctValues('author_id');
 
         $this->assertSame([1, 2], $values);
         $collection->deleteMany([]);
@@ -1242,7 +1242,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->connection, 'select_distinct_filter_test');
         $query->where(['published' => true]);
 
-        $this->assertSame([1, 2], $query->distinct('author_id'));
+        $this->assertSame([1, 2], $query->distinctValues('author_id'));
         $collection->deleteMany([]);
     }
 
@@ -1256,7 +1256,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery();
         $query->from('articles');
 
-        $this->assertSame([], $query->distinct('author_id'));
+        $this->assertSame([], $query->distinctValues('author_id'));
     }
 
     /**

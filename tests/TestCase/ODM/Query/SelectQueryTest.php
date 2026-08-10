@@ -2862,7 +2862,7 @@ class SelectQueryTest extends TestCase
             ->first();
 
         $this->assertArrayHasKey('myField', $result);
-        $this->assertArrayHasKey('id', $result);
+        $this->assertArrayHasKey('_id', $result);
         $this->assertArrayHasKey('title', $result);
     }
 

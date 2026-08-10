@@ -1496,7 +1496,7 @@ class BelongsToMany extends Association
      */
     protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void
     {
-        if ($fields === null || $fields === []) {
+        if ($fields === null || $fields === [] || $fields === false) {
             return;
         }
 

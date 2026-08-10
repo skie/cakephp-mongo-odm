@@ -17,10 +17,14 @@ return Architecture::define()
     ->layerPattern('Database', '/^Crustum\\\\Mongo\\\\Database\\\\.*$/')
     ->layerPattern('ODM', '/^Crustum\\\\Mongo\\\\ODM\\\\.*$/')
     ->ruleset([
-        // 'Database' => ['+Cache', 'Datasource', 'I18n'],
-        // 'Datasource' => ['Cache', 'Collection', 'Database', '+Event', 'Utility'],
+        'Database' => ['+Cache', 'Datasource', 'I18n'],
+        'Datasource' => ['Cache', 'Collection', 'Database', '+Event', 'Utility'],
         // 'ODM' => ['Collection', 'Database', 'Datasource', 'Event', '+Utility', 'Validation'],
         'Database' => ['+Cache', 'Datasource', 'CakeDatasource', 'CakeDatabase', 'I18n', 'Collection', 'Utility'],
         'Datasource' => ['Cache', 'Collection', 'CakeDatasource', 'Database', '+Event', 'Utility'],
-        // 'ODM' => ['Collection', 'Database', 'Datasource', 'Event', '+Utility', 'Validation'],
-    ]);
+        'ODM' => ['Collection', 'Database', 'CakeDatabase', 'Datasource', 'CakeDatasource', 'Event', '+Utility', 'Validation'],
+    ])
+    ->skipClassViolation(
+        'Crustum\\Mongo\\ODM\\ResultSetFactory',
+        'Cake\\ORM\\DtoMapper',
+    );

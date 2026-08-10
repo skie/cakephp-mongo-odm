@@ -20,10 +20,10 @@ use Cake\Event\EventDispatcherTrait;
 use Cake\Event\EventListenerInterface;
 use Cake\Event\EventManager;
 use Cake\Event\EventManagerInterface;
-use Cake\ORM\Exception\PersistenceFailedException;
-use Cake\ORM\Exception\RolledbackTransactionException;
 use Cake\Utility\Inflector;
 use Cake\Validation\ValidatorAwareInterface;
+use Crustum\Mongo\ODM\Exception\PersistenceFailedException;
+use Crustum\Mongo\ODM\Exception\RolledbackTransactionException;
 use Cake\Validation\ValidatorAwareTrait;
 use Crustum\Mongo\ODM\Rule\IsUnique as CrustumIsUnique;
 use Crustum\Mongo\ODM\RulesChecker as CrustumRulesChecker;
@@ -669,7 +669,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *   is persisted.
      * @param array<string, mixed> $options The options to use when saving.
      * @return \Cake\Datasource\EntityInterface A document.
-     * @throws \Cake\ORM\Exception\PersistenceFailedException When the entity couldn't be saved
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException When the entity couldn't be saved
      */
     public function findOrCreate(
         SelectQuery|callable|array $search,
@@ -703,7 +703,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *   is persisted.
      * @param array<string, mixed> $options The options to use when saving.
      * @return \Cake\Datasource\EntityInterface|array<string, mixed> A document.
-     * @throws \Cake\ORM\Exception\PersistenceFailedException When the entity couldn't be saved
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException When the entity couldn't be saved
      * @throws \InvalidArgumentException
      */
     protected function processFindOrCreate(
@@ -819,7 +819,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param \Cake\Datasource\EntityInterface $entity The document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface
-     * @throws \Cake\ORM\Exception\PersistenceFailedException When the document could not be saved.
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException When the document could not be saved.
      */
     public function saveOrFail(EntityInterface $entity, array $options = []): EntityInterface
     {
@@ -866,7 +866,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param array<string, mixed> $options Options used when calling save() for each document.
      * @return iterable<TSavedDocument> Documents list.
      * @throws \Exception
-     * @throws \Cake\ORM\Exception\PersistenceFailedException If a document couldn't be saved.
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException If a document couldn't be saved.
      */
     public function saveManyOrFail(iterable $entities, array $options = []): iterable
     {
@@ -877,7 +877,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @template TSavedDocument of \Cake\Datasource\EntityInterface
      * @param iterable<TSavedDocument> $entities Documents to save.
      * @param array<string, mixed> $options Options used when calling save() for each document.
-     * @throws \Cake\ORM\Exception\PersistenceFailedException If a document couldn't be saved.
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException If a document couldn't be saved.
      * @throws \Exception If a document couldn't be saved.
      * @return iterable<TSavedDocument> Documents list.
      */
@@ -1026,7 +1026,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param iterable<\Cake\Datasource\EntityInterface> $entities Documents to delete.
      * @param array<string, mixed> $options Options used when calling delete() for each document.
      * @return void
-     * @throws \Cake\ORM\Exception\PersistenceFailedException
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException
      * @see \Crustum\Mongo\ODM\BaseCollection::delete() for options and events related to this method.
      */
     public function deleteManyOrFail(iterable $entities, array $options = []): void
@@ -1080,7 +1080,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param \Cake\Datasource\EntityInterface $entity The document to remove.
      * @param array<string, mixed> $options The options for the delete.
      * @return void
-     * @throws \Cake\ORM\Exception\PersistenceFailedException
+     * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException
      * @see \Crustum\Mongo\ODM\BaseCollection::delete()
      */
     public function deleteOrFail(EntityInterface $entity, array $options = []): void
@@ -2171,7 +2171,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param \Cake\Datasource\EntityInterface $entity the document to be saved
      * @param \ArrayObject<string, mixed> $options the options to use for the save operation
      * @return bool True on success
-     * @throws \Cake\ORM\Exception\RolledbackTransactionException If the transaction
+     * @throws \Crustum\Mongo\ODM\Exception\RolledbackTransactionException If the transaction
      *   is aborted in the afterSave event.
      */
     protected function onSaveSuccess(EntityInterface $entity, ArrayObject $options): bool

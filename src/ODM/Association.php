@@ -1108,6 +1108,33 @@ abstract class Association
     }
 
     /**
+     * Prefixes matching conditions with the loaded property path.
+     *
+     * After `$unwind` the matched row lives under the association property, so
+     * bare field conditions must point at that path.
+     *
+     * @param array<int|string, mixed> $conditions The conditions.
+     * @param string $property The association property.
+     * @return array<int|string, mixed>
+     */
+    protected function prefixMatchConditions(array $conditions, string $property): array
+    {
+        $prefixed = [];
+        foreach ($conditions as $field => $value) {
+            if (in_array(strtoupper((string)$field), ['$OR', '$AND', 'OR', 'AND'], true) && is_array($value)) {
+                $prefixed[$field] = array_map(
+                    fn(mixed $item): mixed => is_array($item) ? $this->prefixMatchConditions($item, $property) : $item,
+                    $value,
+                );
+                continue;
+            }
+            $prefixed[$property . '.' . $field] = $value;
+        }
+
+        return $prefixed;
+    }
+
+    /**
      * Gets the relationship type.
      *
      * @return string

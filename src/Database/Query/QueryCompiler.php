@@ -85,6 +85,13 @@ class QueryCompiler
     protected array $group = [];
 
     /**
+     * Distinct fields, deduplicating results (compiled to `$group` + `$replaceRoot`).
+     *
+     * @var list<string>
+     */
+    protected array $distinct = [];
+
+    /**
      * Post-`$group` filter conditions (compiled to a `$match` stage).
      *
      * @var array<string, mixed>
@@ -379,6 +386,45 @@ class QueryCompiler
     }
 
     /**
+     * Set distinct fields, deduplicating result documents by them.
+     *
+     * When set, results are grouped by the given fields and the first document
+     * of each group is emitted, mirroring SQL `DISTINCT`. An empty array
+     * disables deduplication.
+     *
+     * @param list<string>|string $fields Fields to deduplicate by.
+     * @param bool $overwrite Whether to replace previously configured fields.
+     * @return $this
+     */
+    public function distinct(array|string $fields = [], bool $overwrite = false)
+    {
+        if ($overwrite) {
+            $this->distinct = [];
+        }
+
+        if (is_string($fields)) {
+            $fields = [$fields];
+        }
+
+        $this->distinct = array_merge($this->distinct, array_values(array_map(
+            fn(string $field): string => $this->resolveField($field),
+            array_map(strval(...), $fields),
+        )));
+
+        return $this;
+    }
+
+    /**
+     * Get the distinct fields.
+     *
+     * @return list<string>
+     */
+    public function getDistinct(): array
+    {
+        return $this->distinct;
+    }
+
+    /**
      * Add post-`$group` filter conditions (compiled to a `$match` stage).
      *
      * Behaves like `where()`, but targets the having clause.
@@ -532,7 +578,7 @@ class QueryCompiler
      */
     public function compile(): array
     {
-        if ($this->pipeline !== [] || $this->group !== [] || $this->having !== []) {
+        if ($this->pipeline !== [] || $this->group !== [] || $this->having !== [] || $this->distinct !== []) {
             return $this->compileAggregate();
         }
 
@@ -606,6 +652,11 @@ class QueryCompiler
             $pipeline[] = $stage;
         }
 
+        if ($this->distinct !== []) {
+            $pipeline[] = ['$group' => $this->buildDistinctStage()];
+            $pipeline[] = ['$replaceRoot' => ['newRoot' => '$_doc']];
+        }
+
         if ($this->sort !== []) {
             $pipeline[] = ['$sort' => $this->sort];
         }
@@ -646,6 +697,28 @@ class QueryCompiler
         }
 
         return ['_id' => $id];
+    }
+
+    /**
+     * Builds the `$group` stage body for distinct deduplication.
+     *
+     * Groups by the distinct fields and keeps the first full document per
+     * group under `_doc` so the following `$replaceRoot` can restore it.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildDistinctStage(): array
+    {
+        if (count($this->distinct) === 1) {
+            $id = '$' . ltrim($this->distinct[0], '$');
+        } else {
+            $id = [];
+            foreach ($this->distinct as $field) {
+                $id[$field] = '$' . ltrim($field, '$');
+            }
+        }
+
+        return ['_id' => $id, '_doc' => ['$first' => '$$ROOT']];
     }
 
     /**
@@ -865,6 +938,7 @@ class QueryCompiler
         $this->pipeline = [];
         $this->options = [];
         $this->group = [];
+        $this->distinct = [];
         $this->having = [];
 
         return $this;

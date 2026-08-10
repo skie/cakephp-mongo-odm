@@ -106,6 +106,13 @@ class SelectLoader implements LoaderInterface
             if (!empty($options['skip'])) {
                 $query->skip($options['skip']);
             }
+            if (!empty($options['queryBuilder'])) {
+                $builder = $options['queryBuilder'];
+                $built = $builder($query);
+                if (is_object($built) && is_callable([$built, 'all'])) {
+                    $query = $built;
+                }
+            }
             $rows = $query->all();
             $map = [];
             foreach ($rows as $row) {

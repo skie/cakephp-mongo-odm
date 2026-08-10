@@ -49,6 +49,8 @@ final class EagerLoader
         'conditions' => true,
         'sort' => true,
         'matching' => true,
+        'negateMatch' => true,
+        'joinType' => true,
         'queryBuilder' => true,
         'foreignKey' => true,
         'limit' => true,
@@ -87,6 +89,75 @@ final class EagerLoader
     public function getContain(): array
     {
         return $this->containments;
+    }
+
+    /**
+     * Adds a new association to the list that will be used to filter the results
+     * of any given query based on the results of finding records for that
+     * association. A dot separated path of associations can be passed, which
+     * translates to setting all those associations with the `matching` option.
+     *
+     * ### Options
+     *
+     * - `negateMatch`: Whether to add conditions negating a match on the target association.
+     * - `fields`: Fields to contain.
+     *
+     * @param string $associationPath Dot separated association path, e.g. `Name1.Name2.Name3`.
+     * @param callable|null $builder Callback used to set extra options on the filtering query.
+     * @param array<string, mixed> $options Extra options for the association matching.
+     * @return $this
+     */
+    public function setMatching(string $associationPath, ?callable $builder = null, array $options = []): static
+    {
+        $sharedOptions = ['negateMatch' => false, 'matching' => true] + $options;
+
+        $contains = [];
+        $nested = &$contains;
+        foreach (explode('.', $associationPath) as $association) {
+            $nested[$association] = $sharedOptions;
+            $nested = &$nested[$association];
+        }
+
+        $nested = ['matching' => true, 'queryBuilder' => $builder ?? fn($q) => $q] + $options;
+        $this->contain($contains);
+
+        return $this;
+    }
+
+    /**
+     * Returns the current tree of associations to be matched.
+     *
+     * @return array<int|string, mixed>
+     */
+    public function getMatching(): array
+    {
+        $matching = [];
+        foreach ($this->containments as $alias => $options) {
+            $this->collectMatching((string)$alias, $options, $matching);
+        }
+
+        return $matching;
+    }
+
+    /**
+     * Collects matching associations from the containment tree.
+     *
+     * @param string $alias The association alias.
+     * @param array<int|string, mixed> $options The association options.
+     * @param array<int|string, mixed> $output The output tree, filled by reference.
+     * @return void
+     */
+    private function collectMatching(string $alias, array $options, array &$output): void
+    {
+        if (($options['matching'] ?? false) === true) {
+            $output[$alias] = $options;
+        }
+
+        foreach ($options as $nestedAlias => $nestedOptions) {
+            if (is_string($nestedAlias) && is_array($nestedOptions)) {
+                $this->collectMatching($nestedAlias, $nestedOptions, $output);
+            }
+        }
     }
 
     /**
@@ -416,7 +487,6 @@ final class EagerLoader
 
         $query = $target->query();
         ($config['queryBuilder'])($query);
-        unset($config['queryBuilder']);
         $compiled = $query->compile();
         $config['conditions'] ??= $compiled['filter'] ?? [];
         $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
@@ -440,7 +510,8 @@ final class EagerLoader
         }
 
         $strategy = $loadable->getConfig()['strategy'];
-        if ($strategy === 'select' || $strategy === 'reference') {
+        $matching = (bool)($loadable->getConfig()['matching'] ?? false);
+        if (!$matching && ($strategy === 'select' || $strategy === 'reference')) {
             $this->external[] = $loadable;
         } else {
             $stages = $association->buildPipeline($loadable->getConfig());
