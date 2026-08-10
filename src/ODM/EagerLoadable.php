@@ -12,7 +12,7 @@ namespace Crustum\Mongo\ODM;
  * @see cake60/src/ORM/EagerLoadable.php
  * @see src/ODM/EagerLoadable.php
  */
-final class EagerLoadable
+class EagerLoadable
 {
     /**
      * Child association nodes.

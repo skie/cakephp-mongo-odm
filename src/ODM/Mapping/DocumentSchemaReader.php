@@ -23,14 +23,14 @@ use ReflectionClass;
  * #[Document(collection: 'users')]
  * #[Field(name: '_id', type: 'objectId', primaryKey: true)]
  * #[Field(name: 'username', type: 'string', nullable: false)]
- * final class User extends Document
+ * class User extends Document
  * {
  * }
  * ```
  *
  * @see docs/reference/11-entity-type-sugar.md
  */
-final class DocumentSchemaReader
+class DocumentSchemaReader
 {
     /**
      * @var array<string, array<string, array<string, mixed>|string>>

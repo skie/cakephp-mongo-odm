@@ -15,7 +15,7 @@ use InvalidArgumentException;
  * @see cake60/src/ORM/Rule/IsUnique.php
  * @see src/ODM/Rule/IsUnique.php
  */
-final class IsUnique
+class IsUnique
 {
     /**
      * Fields participating in the uniqueness condition.

@@ -24,7 +24,7 @@ use MongoDB\Model\BSONDocument;
  * @see elastic-search/src/ResultSet.php (simpler sibling)
  * @template T of array|\Crustum\Mongo\ODM\Document
  */
-final class ResultSetFactory
+class ResultSetFactory
 {
     /**
      * The entity class used for hydrated rows.

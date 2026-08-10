@@ -14,6 +14,6 @@ use Cake\Datasource\ResultSetInterface;
  * @implements \Cake\Datasource\ResultSetInterface<TKey, TValue>
  * @extends \Cake\Collection\Collection<TKey, TValue>
  */
-final class ResultSet extends Collection implements ResultSetInterface
+class ResultSet extends Collection implements ResultSetInterface
 {
 }

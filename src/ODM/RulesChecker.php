@@ -21,7 +21,7 @@ use Crustum\Mongo\ODM\Rule\ValidCount;
  *
  * @see cake60/src/ORM/RulesChecker.php
  */
-final class RulesChecker extends BaseRulesChecker
+class RulesChecker extends BaseRulesChecker
 {
     /**
      * Whether default error messages should be translated.

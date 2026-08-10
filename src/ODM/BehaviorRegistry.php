@@ -22,7 +22,7 @@ use LogicException;
  * @extends \Cake\Core\ObjectRegistry<\Crustum\Mongo\ODM\Behavior>
  * @see cake60/src/ORM/BehaviorRegistry.php
  */
-final class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterface
+class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterface
 {
     use EventDispatcherTrait;
 

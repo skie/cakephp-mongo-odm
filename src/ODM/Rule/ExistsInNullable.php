@@ -11,7 +11,7 @@ use Crustum\Mongo\ODM\Association;
  *
  * @see cake60/src/ORM/Rule/ExistsInNullable.php
  */
-final class ExistsInNullable extends ExistsIn
+class ExistsInNullable extends ExistsIn
 {
     /**
      * Constructor.

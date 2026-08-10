@@ -23,7 +23,7 @@ use ReflectionParameter;
  * PHP type hint unless a `#[Field]` attribute overrides it.
  *
  * ```php
- * final readonly class UserDto
+ * readonly class UserDto
  * {
  *     public function __construct(
  *         #[Field(name: '_id', type: 'objectId')]
@@ -37,7 +37,7 @@ use ReflectionParameter;
  *
  * @see docs/reference/05-mongo-schema-loading-plan.md
  */
-final class DtoSchemaReader
+class DtoSchemaReader
 {
     /**
      * @var array<string, array<string, array<string, mixed>|string>>

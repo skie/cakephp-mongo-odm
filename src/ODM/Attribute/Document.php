@@ -16,7 +16,7 @@ use Attribute;
  * #[Document(collection: 'users', primaryKey: '_id')]
  * #[Field(name: '_id', type: 'objectId', primaryKey: true)]
  * #[Field(name: 'username', type: 'string')]
- * final class User extends Document
+ * class User extends Document
  * {
  * }
  * ```
@@ -24,7 +24,7 @@ use Attribute;
  * @see docs/reference/11-entity-type-sugar.md
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final class Document
+class Document
 {
     /**
      * @param string|null $collection    Collection name; defaults to tableized class basename

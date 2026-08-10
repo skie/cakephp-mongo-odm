@@ -15,7 +15,7 @@ use InvalidArgumentException;
  * @see cake60/src/ORM/EagerLoader.php
  * @see src/ODM/EagerLoader.php
  */
-final class EagerLoader
+class EagerLoader
 {
     /**
      * User-provided containment configuration.

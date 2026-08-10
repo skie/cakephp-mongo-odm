@@ -10,7 +10,7 @@ use Crustum\Mongo\ODM\BaseCollection;
  *
  * @see cake60/src/ORM/Query/QueryFactory.php
  */
-final class QueryFactory
+class QueryFactory
 {
     /**
      * Creates a hydrated select query.

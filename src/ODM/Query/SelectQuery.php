@@ -126,6 +126,27 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Enables document hydration (cake-compatible alias of `hydrate()`).
+     *
+     * @param bool $enable Whether to hydrate rows.
+     * @return $this
+     */
+    public function enableHydration(bool $enable = true): static
+    {
+        return $this->hydrate($enable);
+    }
+
+    /**
+     * Disables document hydration (cake-compatible alias of `hydrate(false)`).
+     *
+     * @return $this
+     */
+    public function disableHydration(): static
+    {
+        return $this->hydrate(false);
+    }
+
+    /**
      * Returns whether document hydration is enabled.
      *
      * @return bool

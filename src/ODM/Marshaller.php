@@ -20,7 +20,7 @@ use Throwable;
  * @see cake60/src/ORM/Marshaller.php
  * @see src/ODM/Marshaller.php
  */
-final class Marshaller
+class Marshaller
 {
     /**
      * BaseCollection associated with this marshaller.

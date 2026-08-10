@@ -15,7 +15,7 @@ use Crustum\Mongo\Database\Aggregation\Stage\Stage;
  * Mirrors Doctrine's `Aggregation\Builder::$stages` list, extracted into its
  * own class so list ordering, per-stage config, and compilation stay separate.
  */
-final class Pipeline
+class Pipeline
 {
     /**
      * The ordered stages.

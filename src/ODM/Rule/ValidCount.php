@@ -12,7 +12,7 @@ use Countable;
  *
  * @see cake60/src/ORM/Rule/ValidCount.php
  */
-final class ValidCount
+class ValidCount
 {
     /**
      * Constructor.

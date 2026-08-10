@@ -15,7 +15,7 @@ use Attribute;
  * ```php
  * #[Field(name: '_id', type: 'objectId', primaryKey: true)]
  * #[Field(name: 'username', type: 'string', nullable: false)]
- * final class User extends Document
+ * class User extends Document
  * {
  * }
  * ```
@@ -24,7 +24,7 @@ use Attribute;
  * map the Mongo field name or override the inferred type:
  *
  * ```php
- * final readonly class UserDto
+ * readonly class UserDto
  * {
  *     public function __construct(
  *         #[Field(name: '_id', type: 'objectId')]
@@ -38,7 +38,7 @@ use Attribute;
  * @see docs/reference/11-entity-type-sugar.md
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY | Attribute::IS_REPEATABLE)]
-final class Field
+class Field
 {
     /**
      * @param string|null        $name       BSON field name; defaults to the property/parameter name
