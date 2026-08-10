@@ -562,11 +562,11 @@ class BelongsToManyTest extends TestCase
 
         $this->assertTrue($assoc->link($article, $tags));
         $this->assertCount(2, $article->tags, 'In-memory tags are incorrect');
-        $this->assertSame([2, 3], collection($article->tags)->extract('_id')->toList());
+        $this->assertSame(['000000000000000000000002', '000000000000000000000003'], collection($article->tags)->extract('_id')->toList());
 
         $article = $articles->get('000000000000000000000001', ...['contain' => ['Tags']]);
         $this->assertCount(3, $article->tags, 'Persisted tags are wrong');
-        $this->assertSame([1, 2, 3], collection($article->tags)->extract('_id')->toList());
+        $this->assertSame(['000000000000000000000001', '000000000000000000000002', '000000000000000000000003'], collection($article->tags)->extract('_id')->toList());
     }
 
     /**
@@ -1505,7 +1505,7 @@ class BelongsToManyTest extends TestCase
         $query = $table->Tags->find();
         $result = $query->toArray();
         $this->assertCount(1, $result);
-        $this->assertSame(1, $result[0]->getId());
+        $this->assertSame('000000000000000000000001', $result[0]->getId());
     }
 
     /**
@@ -1525,7 +1525,7 @@ class BelongsToManyTest extends TestCase
         $query = $table->Tags->find();
         $result = $query->toArray();
         $this->assertCount(1, $result);
-        $this->assertSame(1, $result[0]->getId());
+        $this->assertSame('000000000000000000000001', $result[0]->getId());
     }
 
     /**
@@ -1608,11 +1608,11 @@ class BelongsToManyTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertCount(2, $results[0]->special_tags);
 
-        $this->assertSame(2, $results[0]->special_tags[0]->getId());
-        $this->assertSame(1, $results[0]->special_tags[0]->tag_id);
+        $this->assertSame('000000000000000000000002', $results[0]->special_tags[0]->getId());
+        $this->assertSame('000000000000000000000001', $results[0]->special_tags[0]->tag_id);
 
-        $this->assertSame(1, $results[0]->special_tags[1]->getId());
-        $this->assertSame(3, $results[0]->special_tags[1]->tag_id);
+        $this->assertSame('000000000000000000000001', $results[0]->special_tags[1]->getId());
+        $this->assertSame('000000000000000000000003', $results[0]->special_tags[1]->tag_id);
     }
 
     /**

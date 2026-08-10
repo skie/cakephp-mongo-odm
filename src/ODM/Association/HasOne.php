@@ -134,7 +134,7 @@ class HasOne extends Association
     {
         $builder = $this->buildAggregation();
         $builder
-            ->lookup($this->getTarget()->getAlias())
+            ->lookup($this->getTarget()->getCollection())
             ->localField($this->fieldName($this->getBindingKey()))
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());

@@ -138,7 +138,7 @@ class BelongsTo extends Association
     {
         $builder = $this->buildAggregation();
         $builder
-            ->lookup($this->getTarget()->getAlias())
+            ->lookup($this->getTarget()->getCollection())
             ->localField($this->fieldName($this->getForeignKey()))
             ->foreignField($this->fieldName($this->getBindingKey()))
             ->alias($this->getProperty());

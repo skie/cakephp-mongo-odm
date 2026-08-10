@@ -116,7 +116,10 @@ class BindingKeyTest extends TestCase
             'strategy' => $strategy,
         ]);
 
-        $authors->updateAll(['name' => 'garrett'], ['_id >' => 2]);
+        $authors->updateAll(
+            ['name' => 'garrett'],
+            ['_id IN' => ['000000000000000000000003', '000000000000000000000004']],
+        );
         $result = $users->find()
             ->contain(['SiteAuthors'])
             ->where(['username' => 'garrett']);
