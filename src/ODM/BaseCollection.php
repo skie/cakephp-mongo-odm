@@ -1996,6 +1996,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 ));
             }
             foreach ($fields as $field) {
+                $field = $field === 'id' ? '_id' : $field;
                 $conditions[$this->aliasField($field)] = array_shift($args);
             }
 

@@ -3655,8 +3655,7 @@ class BaseCollectionTest extends TestCase
         $result = $table->findByUsername('garrett');
         $this->assertInstanceOf(SelectQuery::class, $result);
 
-        $expected = new QueryExpression(['Users.username' => 'garrett'], $this->usersTypeMap);
-        $this->assertEquals($expected, $result->clause('where'));
+        $this->assertEquals(['username' => 'garrett'], $result->clause('where'));
     }
 
     /**
@@ -3705,8 +3704,7 @@ class BaseCollectionTest extends TestCase
         $result = $table->findByUsernameAndId('garrett', 4);
         $this->assertInstanceOf(SelectQuery::class, $result);
 
-        $expected = new QueryExpression(['Users.username' => 'garrett', 'Users.id' => '000000000000000000000004'], $this->usersTypeMap);
-        $this->assertEquals($expected, $result->clause('where'));
+        $this->assertEquals(['username' => 'garrett', '_id' => 4], $result->clause('where'));
     }
 
     /**
@@ -3719,16 +3717,10 @@ class BaseCollectionTest extends TestCase
         $result = $table->findByUsernameOrId('garrett', 4);
         $this->assertInstanceOf(SelectQuery::class, $result);
 
-        $expected = new QueryExpression([], $this->usersTypeMap);
-        $expected->add(
-            [
-                'OR' => [
-                    'Users.username' => 'garrett',
-                    'Users.id' => '000000000000000000000004',
-                ],
-            ],
+        $this->assertEquals(
+            ['$or' => [['username' => 'garrett'], ['_id' => 4]]],
+            $result->clause('where'),
         );
-        $this->assertEquals($expected, $result->clause('where'));
     }
 
     /**
@@ -3742,8 +3734,7 @@ class BaseCollectionTest extends TestCase
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
 
-        $expected = new QueryExpression(['Articles.author_id' => '000000000000000000000001'], $this->articlesTypeMap);
-        $this->assertEquals($expected, $result->clause('where'));
+        $this->assertEquals(['author_id' => 1], $result->clause('where'));
     }
 
     /**
@@ -3756,11 +3747,7 @@ class BaseCollectionTest extends TestCase
         $result = $table->findAllByAuthorIdAndPublished(1, 'Y');
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
-        $expected = new QueryExpression(
-            ['Users.author_id' => '000000000000000000000001', 'Users.published' => 'Y'],
-            $this->usersTypeMap,
-        );
-        $this->assertEquals($expected, $result->clause('where'));
+        $this->assertEquals(['author_id' => 1, 'published' => 'Y'], $result->clause('where'));
     }
 
     /**
@@ -3773,13 +3760,11 @@ class BaseCollectionTest extends TestCase
         $result = $table->findAllByAuthorIdOrPublished(1, 'Y');
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
-        $expected = new QueryExpression();
-        $expected->getTypeMap()->setDefaults($this->usersTypeMap->toArray());
-        $expected->add(
-            ['or' => ['Users.author_id' => '000000000000000000000001', 'Users.published' => 'Y']],
+        $this->assertEquals(
+            ['$or' => [['author_id' => 1], ['published' => 'Y']]],
+            $result->clause('where'),
         );
-        $this->assertEquals($expected, $result->clause('where'));
-        $this->assertNull($result->clause('order'));
+        $this->assertSame([], $result->clause('order'));
     }
 
     /**
