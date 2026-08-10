@@ -17,7 +17,6 @@ use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Document;
-use Cake\ORM\Exception\MissingTableClassException; // @todo collection exception
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\RulesChecker;
@@ -1320,28 +1319,25 @@ class BelongsToManyTest extends TestCase
         $assoc = new BelongsToMany('Test', $this->article, [
             'target' => $this->tag,
         ]);
-        $assoc->setTableLocator(new TableLocator()->allowFallbackClass(false));
+        $assoc->setCollectionLocator(new CollectionLocator());
         $junction = $assoc->junction();
         $this->assertInstanceOf(BaseCollection::class, $junction);
     }
 
     /**
-     * Test that fallback class is used for join table even when fallback
-     * class usage is turned off for table locator.
+     * Test that a missing `through` collection falls back to BaseCollection
+     * (ODM junctions always fall back; there is no SQL table class lookup).
      */
     public function testNoFallbackClassForThrough(): void
     {
-        $this->expectException(MissingTableClassException::class);
-        $this->expectExceptionMessage('BaseCollection class for alias `ArticlesTags` could not be found.');
-
         $assoc = new BelongsToMany('Test', $this->article, [
             'target' => $this->tag,
-            'through' => 'ArticlesTags',
+            'through' => 'NonExistentThrough',
         ]);
-        $collectionLocator = new TableLocator();
-        $collectionLocator->allowFallbackClass(false);
-        $assoc->setTableLocator($collectionLocator);
-        $assoc->junction();
+        $collectionLocator = new CollectionLocator();
+        $assoc->setCollectionLocator($collectionLocator);
+        $junction = $assoc->junction();
+        $this->assertInstanceOf(BaseCollection::class, $junction);
     }
 
     /**
