@@ -377,14 +377,45 @@ class HasMany extends Association
         $property = $this->getProperty();
 
         $currentEntities = (array)$sourceEntity->get($property);
-        $currentEntities = $currentEntities === [] ? $targetEntities : array_merge($currentEntities, $targetEntities);
+        if ($currentEntities === []) {
+            $currentEntities = $targetEntities;
+        } else {
+            $pkFields = (array)$this->getTarget()->getPrimaryKey();
+            $targetEntities = array_values(array_filter(
+                $targetEntities,
+                function (mixed $entity) use ($currentEntities, $pkFields): bool {
+                    if (!$entity instanceof EntityInterface || $entity->isNew()) {
+                        return false;
+                    }
+
+                    return !array_any(
+                        $currentEntities,
+                        fn(mixed $cEntity): bool => $cEntity instanceof EntityInterface
+                            && $entity->extract($pkFields) === $cEntity->extract($pkFields),
+                    );
+                },
+            ));
+
+            $currentEntities = array_merge($currentEntities, $targetEntities);
+        }
 
         $sourceEntity->set($property, $currentEntities);
-        $saved = $this->saveAssociated($sourceEntity, $options);
+
+        $connection = $this->getSource()->getConnection();
+        assert($connection instanceof \Crustum\Mongo\Database\Connection);
+        $savedEntity = $connection->transactional(
+            fn(): EntityInterface|false => $this->saveAssociated($sourceEntity, $options),
+        );
+        $ok = $savedEntity instanceof EntityInterface;
 
         $this->setSaveStrategy($saveStrategy);
 
-        return $saved instanceof EntityInterface;
+        if ($ok) {
+            $sourceEntity->set($property, $savedEntity->get($property));
+            $sourceEntity->setDirty($property, false);
+        }
+
+        return $ok;
     }
 
     /**
