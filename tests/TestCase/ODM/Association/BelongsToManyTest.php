@@ -1575,7 +1575,7 @@ class BelongsToManyTest extends TestCase
             'through' => 'SpecialTags',
         ]);
         $query = $table->Tags->find()->matching('Articles', function (SelectQuery $query) {
-            return $query->where(['Articles._id' => 1]);
+            return $query->where(['Articles._id' => '000000000000000000000001']);
         });
         // The inner join on special_tags excludes the results.
         $this->assertSame(0, $query->count());

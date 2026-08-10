@@ -582,9 +582,9 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'My title',
             'body' => 'My content',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'tags' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
                 ['tag' => 'news'],
             ],
         ];
@@ -1202,7 +1202,7 @@ class MarshallerTest extends TestCase
             'title' => 'article',
             'body' => 'some content',
             'comments' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
                 ['comment' => 'first comment'],
             ],
         ];
