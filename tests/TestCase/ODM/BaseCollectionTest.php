@@ -19,6 +19,7 @@ use Cake\Database\StatementInterface;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
+use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Event\EventInterface;
@@ -5667,6 +5668,38 @@ class BaseCollectionTest extends TestCase
             $this->assertFalse($document->isNew(), 'entities should not be new.');
             $this->assertSame($data[$i]['title'], $document->title);
         }
+    }
+
+    /**
+     * Tests that the RepositoryInterface-compatible Entity-named methods
+     * delegate to their Document-named counterparts.
+     */
+    public function testInterfaceWrappersDelegateToDocumentMethods(): void
+    {
+        $table = $this->getCollectionLocator()->get('Articles');
+        $this->assertInstanceOf(RepositoryInterface::class, $table);
+
+        $document = $table->newEntity(['title' => 'wrapper title']);
+        $this->assertInstanceOf(Document::class, $document);
+        $this->assertSame('wrapper title', $document->title);
+
+        $documents = $table->newEntities([['title' => 'a'], ['title' => 'b']]);
+        $this->assertCount(2, $documents);
+        $this->assertInstanceOf(Document::class, $documents[0]);
+
+        $empty = $table->newEmptyEntity();
+        $this->assertInstanceOf(Document::class, $empty);
+        $this->assertTrue($empty->isNew());
+
+        $patched = $table->patchEntity($document, ['title' => 'patched']);
+        $this->assertSame('patched', $patched->title);
+
+        $patchedMany = $table->patchEntities($documents, [
+            ['id' => $documents[0]->getId(), 'title' => 'patched a'],
+            ['id' => $documents[1]->getId(), 'title' => 'patched b'],
+        ]);
+        $this->assertSame('patched a', $patchedMany[0]->title);
+        $this->assertSame('patched b', $patchedMany[1]->title);
     }
 
     /**
