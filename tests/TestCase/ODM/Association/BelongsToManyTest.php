@@ -1090,7 +1090,7 @@ class BelongsToManyTest extends TestCase
             'foreignKey' => ['author_id', 'created'],
         ]);
 
-        $article = $articles->newEntity([
+        $article = $articles->newDocument([
             'author_id' => '000000000000000000000001',
             'body' => 'First post',
             'created' => new DateTime(),
@@ -1110,7 +1110,7 @@ class BelongsToManyTest extends TestCase
         $this->assertEmpty($article->tags);
 
         // Create the first link
-        $article = $articles->patchEntity($article, ['tags' => ['_ids' => [$tag1->getId()]]]);
+        $article = $articles->patchDocument($article, ['tags' => ['_ids' => [$tag1->getId()]]]);
         $result = $articles->save($article, ['associated' => 'Tags']);
         $this->assertNotEmpty($result);
         $this->assertCount(1, $result->tags);
@@ -1119,7 +1119,7 @@ class BelongsToManyTest extends TestCase
         // Add second tag. Reload tag objects so created fields have different
         // instances.
         $article = $findArticle($article);
-        $article = $articles->patchEntity($article, ['tags' => ['_ids' => [$tag1->getId(), $tag2->getId()]]]);
+        $article = $articles->patchDocument($article, ['tags' => ['_ids' => [$tag1->getId(), $tag2->getId()]]]);
         $result = $articles->save($article, ['associated' => 'Tags']);
 
         // Check in memory entity.
@@ -1628,7 +1628,7 @@ class BelongsToManyTest extends TestCase
             'targetForeignKey' => 'tag_id',
         ]);
 
-        $specialTag = $table->SpecialTags->newEntity([
+        $specialTag = $table->SpecialTags->newDocument([
             'article_id' => '000000000000000000000002',
             'tag_id' => '000000000000000000000002',
         ]);

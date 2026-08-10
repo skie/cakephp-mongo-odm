@@ -5,8 +5,8 @@ namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
 use Cake\Datasource\EntityInterface;
-use Cake\Datasource\RulesChecker;
 use Cake\Event\EventDispatcherInterface;
+use Crustum\Mongo\ODM\RulesChecker;
 
 /**
  * Provides rules checking for ODM collections.
@@ -84,8 +84,8 @@ trait RulesAwareTrait
     /**
      * Returns a RulesChecker object after modifying the one that was supplied.
      *
-     * @param \Cake\Datasource\RulesChecker $rules The rules object to be modified.
-     * @return \Cake\Datasource\RulesChecker
+     * @param \Crustum\Mongo\ODM\RulesChecker $rules The rules object to be modified.
+     * @return \Crustum\Mongo\ODM\RulesChecker
      */
     public function buildRules(RulesChecker $rules): RulesChecker
     {

@@ -602,14 +602,14 @@ class RulesCheckerIntegrationTest extends TestCase
         $rules = $table->Comments->rulesChecker();
         $rules->add($rules->existsIn(['article_id'], $table));
 
-        $article = $table->newEntity([
+        $article = $table->newDocument([
             'title' => 'new article',
             'comments' => [
-                $table->Comments->newEntity([
+                $table->Comments->newDocument([
                     'user_id' => '000000000000000000000001',
                     'comment' => 'comment 1',
                 ]),
-                $table->Comments->newEntity([
+                $table->Comments->newDocument([
                     'user_id' => '000000000000000000000001',
                     'comment' => 'comment 2',
                 ]),
@@ -632,12 +632,12 @@ class RulesCheckerIntegrationTest extends TestCase
         $rules = $table->Comments->rulesChecker();
         $rules->add($rules->existsIn(['article_id'], 'Articles'));
 
-        $article = $table->newEntity([
+        $article = $table->newDocument([
             'title' => 'test',
         ]);
 
         $article->comments = [
-            $table->Comments->newEntity([
+            $table->Comments->newDocument([
                 'user_id' => '000000000000000000000001',
                 'comment' => 'test',
             ]),
@@ -1392,7 +1392,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1454,7 +1454,7 @@ class RulesCheckerIntegrationTest extends TestCase
                 $this->belongsTo('Articles');
             }
 
-            public function buildRules(\Cake\Datasource\RulesChecker $rules): \Cake\Datasource\RulesChecker
+            public function buildRules(\Crustum\Mongo\ODM\RulesChecker $rules): \Crustum\Mongo\ODM\RulesChecker
             {
                 return $rules->addUpdate(
                     $rules->isLinkedTo('Articles'),
@@ -1463,7 +1463,7 @@ class RulesCheckerIntegrationTest extends TestCase
             }
         };
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1494,7 +1494,7 @@ class RulesCheckerIntegrationTest extends TestCase
                 $this->hasMany('Comments');
             }
 
-            public function buildRules(\Cake\Datasource\RulesChecker $rules): \Cake\Datasource\RulesChecker
+            public function buildRules(\Crustum\Mongo\ODM\RulesChecker $rules): \Crustum\Mongo\ODM\RulesChecker
             {
                 return $rules->addDelete(
                     $rules->isNotLinkedTo('Comments'),
@@ -1522,7 +1522,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1578,7 +1578,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1634,7 +1634,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1699,7 +1699,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -1780,7 +1780,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $comment = $Comments->save($Comments->newEntity([
+        $comment = $Comments->save($Comments->newDocument([
             'article_id' => '507f1f77bcf86cd799439011',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',

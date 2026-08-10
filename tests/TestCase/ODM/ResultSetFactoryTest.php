@@ -120,13 +120,13 @@ class ResultSetFactoryTest extends TestCase
         $this->markTestSkipped('Association eager loading вЂ” Phase 4 (F17).');
         $authors = $this->getCollectionLocator()->get('Authors');
 
-        $author = $authors->newEntity(['name' => null]);
+        $author = $authors->newDocument(['name' => null]);
         $authors->save($author);
 
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsTo('Authors');
 
-        $article = $articles->newEntity([
+        $article = $articles->newDocument([
             'author_id' => $author->getId(),
             'title' => 'article with author with null name',
         ]);

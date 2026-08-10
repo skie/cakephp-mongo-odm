@@ -716,7 +716,7 @@ class HasManyTest extends TestCase
         $data = [
             'name' => 'corey',
         ];
-        $author = $authors->newEntity($data);
+        $author = $authors->newDocument($data);
         $this->assertEmpty($author->blogs, 'No blogs set');
         $this->assertTrue($author->hasErrors(), 'Should have validation errors');
         $this->assertArrayHasKey('blogs', $author->getErrors());
@@ -1138,7 +1138,7 @@ class HasManyTest extends TestCase
             'saveStrategy' => HasMany::SAVE_APPEND,
         ]);
 
-        $entity = $articles->newEmptyEntity();
+        $entity = $articles->newEmptyDocument();
         $entity->set('comments', 'oh noes');
 
         $association->saveAssociated($entity);
@@ -1176,7 +1176,7 @@ class HasManyTest extends TestCase
         $comments = $association->find();
         $this->assertNotEmpty($comments);
 
-        $entity = $articles->newEmptyEntity();
+        $entity = $articles->newEmptyDocument();
         $entity->set('comments', $value);
 
         $this->assertSame($entity, $association->saveAssociated($entity));
@@ -1231,7 +1231,7 @@ class HasManyTest extends TestCase
         $comments = $association->find();
         $this->assertNotEmpty($comments);
 
-        $entity = $articles->newEmptyEntity();
+        $entity = $articles->newEmptyDocument();
         $entity->set('comments', $value);
 
         $this->assertSame($entity, $association->saveAssociated($entity));
@@ -1281,7 +1281,7 @@ class HasManyTest extends TestCase
         $comments->belongsTo('Users');
         $rules = $comments->rulesChecker();
         $rules->add($rules->existsIn('user_id', 'Users'));
-        $article = $articles->newEntity([
+        $article = $articles->newDocument([
             'title' => 'Bakeries are sky rocketing',
             'body' => 'All because of cake',
             'comments' => [
@@ -1341,7 +1341,7 @@ class HasManyTest extends TestCase
         $authors = $this->getCollectionLocator()->get('Authors');
         $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE);
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
@@ -1377,7 +1377,7 @@ class HasManyTest extends TestCase
                 return ['published' => 'Y'];
             });
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'Not matching conditions', 'body' => '', 'published' => 'N'],
@@ -1413,7 +1413,7 @@ class HasManyTest extends TestCase
         $authors = $this->getCollectionLocator()->get('Authors');
         $authors->Articles->setSaveStrategy('replace');
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
@@ -1441,7 +1441,7 @@ class HasManyTest extends TestCase
         $authors = $this->getCollectionLocator()->get('Authors');
         $authors->Articles->setSaveStrategy('append');
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
@@ -1484,7 +1484,7 @@ class HasManyTest extends TestCase
         $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE)
             ->setDependent(true);
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
@@ -1517,7 +1517,7 @@ class HasManyTest extends TestCase
         $authors->Articles->setSaveStrategy(HasMany::SAVE_REPLACE)
             ->setDependent(true);
 
-        $entity = $authors->newEntity([
+        $entity = $authors->newDocument([
             'name' => 'mylux',
             'articles' => [
                 ['title' => 'One Random Post', 'body' => 'The cake is not a lie'],
@@ -1568,7 +1568,7 @@ class HasManyTest extends TestCase
                 ['title' => 'New First', 'body' => 'New First', 'published' => 'Y'],
             ],
         ];
-        $entity = $authors->patchEntity($entity, $data, ['associated' => ['Articles']]);
+        $entity = $authors->patchDocument($entity, $data, ['associated' => ['Articles']]);
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
 
         // Should only have one article left as we 'replaced' the others.
@@ -1600,7 +1600,7 @@ class HasManyTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->hasMany('Comments', ['saveStrategy' => HasMany::SAVE_REPLACE]);
 
-        $article = $articles->newEntity([
+        $article = $articles->newDocument([
             'title' => 'Bakeries are sky rocketing',
             'body' => 'All because of cake',
             'comments' => [
@@ -1638,7 +1638,7 @@ class HasManyTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->hasMany('Comments', ['saveStrategy' => HasMany::SAVE_REPLACE]);
 
-        $article = $articles->newEntity([
+        $article = $articles->newDocument([
             'title' => 'Bakeries are sky rocketing',
             'body' => 'All because of cake',
             'comments' => [
@@ -1662,7 +1662,7 @@ class HasManyTest extends TestCase
         $this->assertTrue($articles->Comments->exists(['_id' => $commentId]));
 
         unset($article->comments[0]);
-        $article->comments[] = $articles->Comments->newEntity([
+        $article->comments[] = $articles->Comments->newDocument([
             'user_id' => '000000000000000000000001',
             'comment' => 'new comment',
         ]);
@@ -1691,7 +1691,7 @@ class HasManyTest extends TestCase
             ],
         ]);
 
-        $article = $Articles->newEntity([
+        $article = $Articles->newDocument([
             'title' => 'Title',
             'body' => 'Body',
             'comments' => [
@@ -1710,7 +1710,7 @@ class HasManyTest extends TestCase
         $article = $Articles->save($article);
         $this->assertNotEmpty($article);
 
-        $comment3 = $Comments->getTarget()->newEntity([
+        $comment3 = $Comments->getTarget()->newDocument([
             'article_id' => $article->get('_id'),
             'user_id' => '000000000000000000000001',
             'comment' => 'Third comment',
@@ -1751,7 +1751,7 @@ class HasManyTest extends TestCase
             ],
         ]);
 
-        $author = $Authors->newEntity([
+        $author = $Authors->newDocument([
             'name' => 'Name',
             'articles' => [
                 [
@@ -1769,7 +1769,7 @@ class HasManyTest extends TestCase
         $author = $Authors->save($author);
         $this->assertNotEmpty($author);
 
-        $article3 = $Articles->getTarget()->newEntity([
+        $article3 = $Articles->getTarget()->newDocument([
             'author_id' => $author->get('_id'),
             'title' => 'Third article',
             'body' => 'Third article',

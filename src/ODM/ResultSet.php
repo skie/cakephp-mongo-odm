@@ -294,18 +294,18 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
         }
 
-        $entity = $repository->newEmptyEntity();
-        $entity->setSource($repository->getRegistryAlias());
-        $entity->patch($results + $row, ['guard' => false]);
+        $document = $repository->newEmptyDocument();
+        $document->setSource($repository->getRegistryAlias());
+        $document->patch($results + $row, ['guard' => false]);
 
         if ($matching !== []) {
-            $entity->set('_matchingData', $matching);
+            $document->set('_matchingData', $matching);
         }
 
-        $entity->clean();
-        $entity->setNew(false);
+        $document->clean();
+        $document->setNew(false);
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -319,7 +319,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     {
         $row = $this->convertRow($row);
 
-        return $repository->newEntity($row, [
+        return $repository->newDocument($row, [
             'source' => $repository->getRegistryAlias(),
             'markNew' => false,
             'markClean' => true,

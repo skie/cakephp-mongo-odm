@@ -1057,13 +1057,13 @@ class MarshallerTest extends TestCase
             ],
         ];
 
-        $article = $this->articles->newEntity($data, [
+        $article = $this->articles->newDocument($data, [
             'associated' => ['Tags'],
         ]);
         $this->assertEmpty($article->tags, 'No entity should be created');
 
         $data['tags'] = 1;
-        $article = $this->articles->newEntity($data, [
+        $article = $this->articles->newDocument($data, [
             'associated' => ['Tags'],
         ]);
         $this->assertEmpty($article->tags, 'No entity should be created');
@@ -3517,7 +3517,7 @@ class MarshallerTest extends TestCase
         ];
 
         $marshall = new Marshaller($this->articles);
-        $entity = $this->articles->newEmptyEntity();
+        $entity = $this->articles->newEmptyDocument();
         $result = $marshall->merge($entity, $data, []);
 
         $this->assertSame($entity, $result);
@@ -3730,7 +3730,7 @@ class MarshallerTest extends TestCase
         );
 
         //test when $options['fields'] is empty
-        $entity = $this->articles->newEmptyEntity();
+        $entity = $this->articles->newEmptyDocument();
         $marshall->merge($entity, $data, []);
 
         $this->assertSame('original title', $entity->title, '$data is immutable');
@@ -3741,7 +3741,7 @@ class MarshallerTest extends TestCase
         $this->assertSame('rob', $entity->user['username']);
 
         //test when $options['fields'] is set
-        $entity = $this->articles->newEmptyEntity();
+        $entity = $this->articles->newEmptyDocument();
         $marshall->merge($entity, $data, ['fields' => ['title', 'body']]);
 
         $this->assertSame('original title', $entity->title, '$data is immutable');

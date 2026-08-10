@@ -33,12 +33,12 @@ trait CollectionEventsTrait
     }
 
     /**
-     * The Collection.afterMarshal event is fired after request data is converted into entities.
-     * Event handlers will get the converted entities, original request data and the options provided
-     * to the patchEntity() or newEntity() call.
+     * The Collection.afterMarshal event is fired after request data is converted into documents.
+     * Event handlers will get the converted documents, original request data and the options provided
+     * to the patchDocument() or newDocument() call.
      *
-     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
+     * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Collection event.
+     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void

@@ -3052,7 +3052,7 @@ class SelectQueryTest extends TestCase
             ['className' => ArticlesTable::class],
         );
 
-        $newArticle = $table->newEntity([
+        $newArticle = $table->newDocument([
             'author_id' => 1,
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
@@ -3137,7 +3137,7 @@ class SelectQueryTest extends TestCase
             ['className' => ArticlesTable::class],
         );
 
-        $newArticle = $table->newEntity([
+        $newArticle = $table->newDocument([
             'author_id' => 1,
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
@@ -3272,7 +3272,7 @@ class SelectQueryTest extends TestCase
     {
         $big = '1234567890123456789.2';
         $table = $this->getCollectionLocator()->get('Datatypes');
-        $entity = $table->newEntity([]);
+        $entity = $table->newDocument([]);
         $entity->cost = $big;
         $entity->tiny = 1;
         $entity->small = 10;
@@ -3287,7 +3287,7 @@ class SelectQueryTest extends TestCase
         $this->assertSame($big, $out->cost);
 
         $small = '0.1234567890123456789';
-        $entity = $table->newEntity(['fraction' => $small]);
+        $entity = $table->newDocument(['fraction' => $small]);
 
         $table->save($entity);
         $out = $table->find()
@@ -3299,7 +3299,7 @@ class SelectQueryTest extends TestCase
         $this->assertMatchesRegularExpression('/^0?\.1234567890123456789$/', $out->fraction);
 
         $small = 0.1234567890123456789;
-        $entity = $table->newEntity(['fraction' => $small]);
+        $entity = $table->newDocument(['fraction' => $small]);
 
         $table->save($entity);
         $out = $table->find()
@@ -3485,7 +3485,7 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles', ['table' => 'articles']);
         $table->belongsTo('Authors');
-        $newArticle = $table->newEntity([
+        $newArticle = $table->newDocument([
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
             'published' => 'N',

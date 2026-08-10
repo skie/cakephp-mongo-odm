@@ -724,24 +724,24 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $callback = null;
         }
 
-        $entity = $this->newEmptyEntity();
+        $document = $this->newEmptyDocument();
         if ($options['defaults'] && is_array($data)) {
             $patchableFields = array_combine(array_keys($data), array_fill(0, count($data), true));
-            $entity = $this->patchEntity($entity, $data, ['patchableFields' => $patchableFields]);
+            $document = $this->patchDocument($document, $data, ['patchableFields' => $patchableFields]);
         }
         if ($callback !== null) {
-            /** @var \Cake\Datasource\EntityInterface $entity */
-            $entity = $callback($entity) ?: $entity;
+            /** @var \Cake\Datasource\EntityInterface $document */
+            $document = $callback($document) ?: $document;
         }
         unset($options['defaults']);
 
-        $result = $this->save($entity, $options);
+        $result = $this->save($document, $options);
 
         if ($result === false) {
-            throw new PersistenceFailedException($entity, ['findOrCreate']);
+            throw new PersistenceFailedException($document, ['findOrCreate']);
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -1096,7 +1096,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * @return \Cake\Datasource\EntityInterface
      */
-    public function newEmptyEntity(): EntityInterface
+    public function newEmptyDocument(): EntityInterface
     {
         $class = $this->getDocumentClass();
 
@@ -1110,7 +1110,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param array<string, mixed> $options Marshalling options.
      * @return \Cake\Datasource\EntityInterface
      */
-    public function newEntity(array $data, array $options = []): EntityInterface
+    public function newDocument(array $data, array $options = []): EntityInterface
     {
         $options['associated'] ??= $this->associations->keys();
 
@@ -1124,7 +1124,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * @param array<string, mixed> $options Marshalling options.
      * @return array<int, \Cake\Datasource\EntityInterface>
      */
-    public function newEntities(array $data, array $options = []): array
+    public function newDocuments(array $data, array $options = []): array
     {
         $options['associated'] ??= $this->associations->keys();
 
@@ -1134,6 +1134,80 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Merges input data into an existing document.
      *
+     * @param \Cake\Datasource\EntityInterface $document The document.
+     * @param array<string, mixed> $data Input data.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return \Cake\Datasource\EntityInterface
+     */
+    public function patchDocument(EntityInterface $document, array $data, array $options = []): EntityInterface
+    {
+        $this->assertDocumentClass($document);
+
+        if (!$document instanceof Document) {
+            throw new InvalidArgumentException('patchDocument() requires a Document.');
+        }
+
+        $options['associated'] ??= $this->associations->keys();
+
+        return $this->marshaller()->merge($document, $data, $options);
+    }
+
+    /**
+     * Merges input rows into matching documents.
+     *
+     * @param iterable<mixed> $documents Existing documents.
+     * @param array<int, mixed> $data Input rows.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return array<int, \Cake\Datasource\EntityInterface>
+     */
+    public function patchDocuments(iterable $documents, array $data, array $options = []): array
+    {
+        foreach ($documents as $document) {
+            $this->assertDocumentClass($document);
+        }
+
+        $options['associated'] ??= $this->associations->keys();
+
+        return $this->marshaller()->mergeMany($documents, $data, $options);
+    }
+
+    /**
+     * Interface-compat wrapper for {@see newEmptyDocument()}.
+     *
+     * @return \Cake\Datasource\EntityInterface
+     */
+    public function newEmptyEntity(): EntityInterface
+    {
+        return $this->newEmptyDocument();
+    }
+
+    /**
+     * Interface-compat wrapper for {@see newDocument()}.
+     *
+     * @param array<string, mixed> $data Input data.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return \Cake\Datasource\EntityInterface
+     */
+    public function newEntity(array $data, array $options = []): EntityInterface
+    {
+        return $this->newDocument($data, $options);
+    }
+
+    /**
+     * Interface-compat wrapper for {@see newDocuments()}.
+     *
+     * @param array<int, mixed> $data Input rows.
+     * @param array<string, mixed> $options Marshalling options.
+     * @return array<int, \Cake\Datasource\EntityInterface>
+     */
+    public function newEntities(array $data, array $options = []): array
+    {
+        return $this->newDocuments($data, $options);
+    }
+
+    /**
+     * Interface-compat wrapper for {@see patchDocument()}.
+     *
      * @param \Cake\Datasource\EntityInterface $entity The document.
      * @param array<string, mixed> $data Input data.
      * @param array<string, mixed> $options Marshalling options.
@@ -1141,19 +1215,11 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function patchEntity(EntityInterface $entity, array $data, array $options = []): EntityInterface
     {
-        $this->assertDocumentClass($entity);
-
-        if (!$entity instanceof Document) {
-            throw new InvalidArgumentException('patchEntity() requires a Document.');
-        }
-
-        $options['associated'] ??= $this->associations->keys();
-
-        return $this->marshaller()->merge($entity, $data, $options);
+        return $this->patchDocument($entity, $data, $options);
     }
 
     /**
-     * Merges input rows into matching documents.
+     * Interface-compat wrapper for {@see patchDocuments()}.
      *
      * @param iterable<mixed> $entities Existing documents.
      * @param array<int, mixed> $data Input rows.
@@ -1162,13 +1228,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function patchEntities(iterable $entities, array $data, array $options = []): array
     {
-        foreach ($entities as $entity) {
-            $this->assertDocumentClass($entity);
-        }
-
-        $options['associated'] ??= $this->associations->keys();
-
-        return $this->marshaller()->mergeMany($entities, $data, $options);
+        return $this->patchDocuments($entities, $data, $options);
     }
 
     /**
