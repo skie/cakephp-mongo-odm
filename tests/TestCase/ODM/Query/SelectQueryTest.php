@@ -121,31 +121,37 @@ class SelectQueryTest extends TestCase
     /**
      * Data provider for the two types of strategies HasMany implements
      *
+     * ODM has no SQL subquery strategy; select/lookup are the Mongo strategies.
+     *
      * @return array
      */
     public static function strategiesProviderHasMany(): array
     {
-        return [['subquery'], ['select']];
+        return [['select'], ['lookup']];
     }
 
     /**
      * Data provider for the two types of strategies BelongsTo implements
      *
+     * ODM has no SQL join strategy; select/lookup are the Mongo strategies.
+     *
      * @return array
      */
     public static function strategiesProviderBelongsTo(): array
     {
-        return [['join'], ['select']];
+        return [['select'], ['lookup']];
     }
 
     /**
      * Data provider for the two types of strategies BelongsToMany implements
      *
+     * ODM has no SQL subquery strategy; select/lookup are the Mongo strategies.
+     *
      * @return array
      */
     public static function strategiesProviderBelongsToMany(): array
     {
-        return [['subquery'], ['select']];
+        return [['select'], ['lookup']];
     }
 
     /**
@@ -211,7 +217,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($table);
         $results = $query->select()
             ->contain('authors')
-            ->enableHydration(false)
+            ->hydrate(false)
             ->orderBy(['articles.id' => 'asc'])
             ->toArray();
         $expected = [
@@ -272,7 +278,7 @@ class SelectQueryTest extends TestCase
 
         $results = $query->select()
             ->contain('articles')
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -324,7 +330,7 @@ class SelectQueryTest extends TestCase
         $results = $query->setRepository($table)
             ->select()
             ->contain(['articles' => ['conditions' => ['articles.id' => 2]]])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected[0]['articles'] = [];
         $this->assertEquals($expected, $results);
@@ -352,11 +358,11 @@ class SelectQueryTest extends TestCase
 
         $expected = 4;
 
-        $results = $query->enableHydration(false)
+        $results = $query->hydrate(false)
             ->count();
         $this->assertEquals($expected, $results);
 
-        $results = $query->enableHydration(true)
+        $results = $query->hydrate(true)
             ->count();
         $this->assertEquals($expected, $results);
     }
@@ -379,7 +385,7 @@ class SelectQueryTest extends TestCase
                     'sort' => ['articles.id' => 'DESC'],
                 ],
             ])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -429,7 +435,7 @@ class SelectQueryTest extends TestCase
 
         $results = $query->select()
             ->contain(['articles' => ['authors']])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -504,7 +510,7 @@ class SelectQueryTest extends TestCase
         $results = $query->select()
             ->contain(['authors' => ['posts']])
             ->orderBy(['articles.id' => 'ASC'])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -781,7 +787,7 @@ class SelectQueryTest extends TestCase
             ->matching('Tags', function ($q) {
                 return $q->where(['Tags.id' => 3]);
             })
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -808,7 +814,7 @@ class SelectQueryTest extends TestCase
             ->matching('Tags', function ($q) {
                 return $q->where(['Tags.name' => 'tag2']);
             })
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             [
@@ -844,7 +850,7 @@ class SelectQueryTest extends TestCase
 
         $results = $query->setRepository($table)
             ->select()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->matching('articles.tags', function ($q) {
                 return $q->where(['tags.id' => 2]);
             })
@@ -1174,7 +1180,7 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $result = $query->select(['id'])->enableHydration(false)->first();
+        $result = $query->select(['id'])->hydrate(false)->first();
         $this->assertEquals(['id' => 1], $result);
         $this->assertEquals(1, $query->clause('limit'));
         $result = $query->select(['id'])->first();
@@ -1190,7 +1196,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($table);
         $query->select(['id'])->toArray();
 
-        $first = $query->enableHydration(false)->first();
+        $first = $query->hydrate(false)->first();
         $this->assertEquals(['id' => 1], $first);
         $this->assertEquals(1, $query->clause('limit'));
     }
@@ -1204,7 +1210,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($table);
         $query->select(['id'])->toArray();
 
-        $first = $query->enableHydration(false)->first();
+        $first = $query->hydrate(false)->first();
         $resultSet = $query->all();
         $this->assertEquals(['id' => 1], $first);
         $this->assertSame($resultSet, $query->all());
@@ -1225,7 +1231,7 @@ class SelectQueryTest extends TestCase
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
         $query->select(['id'])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->mapReduce($map, $reduce);
 
         $first = $query->first();
@@ -1241,7 +1247,7 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($table);
         $query->select(['id']);
 
-        $first = $query->enableHydration(false)->first();
+        $first = $query->hydrate(false)->first();
 
         $this->assertEquals(['id' => 1], $first);
     }
@@ -2648,7 +2654,7 @@ class SelectQueryTest extends TestCase
         $table->hasMany('articles');
         $query = $table->find()
             ->where(['id > ' => 1])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->matching('articles')
             ->applyOptions(['foo' => 'bar'])
             ->formatResults(function ($results) {
@@ -2779,7 +2785,7 @@ class SelectQueryTest extends TestCase
                 ],
             ])
             ->orderBy(['articles.id' => 'ASC'])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $expected = [
             ['title' => 'First Article', 'person' => ['name' => 'mariano']],
@@ -2803,7 +2809,7 @@ class SelectQueryTest extends TestCase
         $results = $table
             ->find()
             ->contain(['Articles', 'Tags.Articles'])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
         $this->assertNotEmpty($results[0]['tag']['articles']);
         $this->assertNotEmpty($results[0]['article']);
@@ -2822,7 +2828,7 @@ class SelectQueryTest extends TestCase
         $table = $this->getCollectionLocator()->get('Articles');
         $table->hasOne('ArticlesTags', ['strategy' => 'select']);
         $article = $table->find()->where(['id' => 3])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->contain('ArticlesTags')
             ->first();
 
@@ -2850,7 +2856,7 @@ class SelectQueryTest extends TestCase
         $result = $table->find('all')
             ->select(['myField' => '(SELECT 20)'])
             ->enableAutoFields()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->first();
 
         $this->assertArrayHasKey('myField', $result);
@@ -2869,7 +2875,7 @@ class SelectQueryTest extends TestCase
         $result = $table->find()
             ->select(['myField' => '(SELECT 2 + 2)'])
             ->enableAutoFields()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->contain('Authors')
             ->first();
 
@@ -2891,7 +2897,7 @@ class SelectQueryTest extends TestCase
         $result = $table->find()
             ->select(['myField' => '(SELECT 2 + 2)'])
             ->enableAutoFields()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->contain([
                 'Authors' => function ($q) {
                     return $q->select(['computed' => '(SELECT 2 + 20)'])
@@ -3576,7 +3582,7 @@ class SelectQueryTest extends TestCase
                 'name' => 'mariano',
             ],
         ];
-        $this->assertEquals($expected, $results->enableHydration(false)->toArray());
+        $this->assertEquals($expected, $results->hydrate(false)->toArray());
     }
 
     /**
@@ -3598,7 +3604,7 @@ class SelectQueryTest extends TestCase
                 'name' => 'larry',
             ],
         ];
-        $this->assertEquals($expected, $results->enableHydration(false)->toArray());
+        $this->assertEquals($expected, $results->hydrate(false)->toArray());
     }
 
     /**
@@ -3652,7 +3658,7 @@ class SelectQueryTest extends TestCase
         $table->hasMany('articles');
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->notMatching('articles')
             ->orderBy(['authors.id'])
             ->toArray();
@@ -3664,7 +3670,7 @@ class SelectQueryTest extends TestCase
         $this->assertEquals($expected, $results);
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->notMatching('articles', function ($q) {
                 return $q->where(['articles.author_id' => 1]);
             })
@@ -3687,7 +3693,7 @@ class SelectQueryTest extends TestCase
         $table->belongsToMany('tags');
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->notMatching('tags', function ($q) {
                 return $q->where(['tags.name' => 'tag2']);
             });
@@ -3723,7 +3729,7 @@ class SelectQueryTest extends TestCase
         $articles->belongsToMany('tags');
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->select('authors.id')
             ->notMatching('articles.tags', function ($q) {
                 return $q->where(['tags.name' => 'tag3']);
@@ -3733,7 +3739,7 @@ class SelectQueryTest extends TestCase
         $this->assertEquals([1, 2, 4], $results->all()->extract('id')->toList());
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->notMatching('articles.tags', function ($q) {
                 return $q->where(['tags.name' => 'tag3']);
             })
@@ -3754,7 +3760,7 @@ class SelectQueryTest extends TestCase
         $articles->belongsToMany('tags');
 
         $results = $table->find()
-            ->enableHydration(false)
+            ->hydrate(false)
             ->matching('articles', function (SelectQuery $q) {
                 return $q->notMatching('tags', function (SelectQuery $q) {
                     return $q->where(['tags.name' => 'tag3']);
@@ -3887,7 +3893,7 @@ class SelectQueryTest extends TestCase
             ])
             ->groupBy(['posts.author_id'])
             ->having([$query->expr()->gte('post_count', 2, 'integer')])
-            ->enableHydration(false)
+            ->hydrate(false)
             ->toArray();
 
         $expected = [
