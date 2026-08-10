@@ -256,7 +256,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testJunctionConnection(): void
     {
-        $config = ConnectionManager::getConfig('test');
+        $config = ConnectionManager::getConfig('test_mongo');
         ConnectionManager::setConfig('other_source', $config);
         $otherConnection = ConnectionManager::get('other_source');
         $this->article->setConnection($otherConnection);

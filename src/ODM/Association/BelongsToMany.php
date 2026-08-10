@@ -982,6 +982,11 @@ class BelongsToMany extends Association
             ));
         }
 
+        $sourceConnection = $this->getSource()->getConnection();
+        if ($sourceConnection instanceof Connection && $collection->getConnection() !== $sourceConnection) {
+            $collection->setConnection($sourceConnection);
+        }
+
         return $collection;
     }
 
