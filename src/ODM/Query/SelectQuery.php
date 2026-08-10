@@ -482,7 +482,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Gets the registered result formatters.
      *
-     * @return list<callable>
+     * @return array<int, callable>
      */
     public function getResultFormatters(): array
     {
