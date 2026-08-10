@@ -1183,11 +1183,11 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $result = $query->select(['id'])->hydrate(false)->first();
-        $this->assertEquals(['id' => 1], $result);
+        $result = $query->select(['_id'])->hydrate(false)->first();
+        $this->assertEquals(['_id' => '000000000000000000000001'], $result);
         $this->assertEquals(1, $query->clause('limit'));
-        $result = $query->select(['id'])->first();
-        $this->assertEquals(['id' => 1], $result);
+        $result = $query->select(['_id'])->first();
+        $this->assertEquals(['_id' => '000000000000000000000001'], $result);
     }
 
     /**
@@ -1197,10 +1197,10 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $query->select(['id'])->toArray();
+        $query->select(['_id'])->toArray();
 
         $first = $query->hydrate(false)->first();
-        $this->assertEquals(['id' => 1], $first);
+        $this->assertEquals(['_id' => '000000000000000000000001'], $first);
         $this->assertEquals(1, $query->clause('limit'));
     }
 
@@ -1211,11 +1211,11 @@ class SelectQueryTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($table);
-        $query->select(['id'])->toArray();
+        $query->select(['_id'])->toArray();
 
         $first = $query->hydrate(false)->first();
         $resultSet = $query->all();
-        $this->assertEquals(['id' => 1], $first);
+        $this->assertEquals(['_id' => '000000000000000000000001'], $first);
         $this->assertSame($resultSet, $query->all());
     }
 
