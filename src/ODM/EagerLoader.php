@@ -284,30 +284,13 @@ class EagerLoader
 
             // cake60: a non-nested association whose binding/foreign key is
             // missing from the selected source fields cannot be eager loaded.
-            // The key may be absent on individual documents (optional
-            // association) as long as at least one document provides it.
+            // In Mongo an absent field == NULL, so a missing value on an
+            // individual document is a classic optional belongsTo — the loader
+            // skips it and the property stays null. The equivalent of cake's
+            // "key not selected" check lives in ensureKeyFieldsSelected(),
+            // which appends the FK to a limited projection. No per-row guard
+            // is needed here.
             $aliasPath = $loadable->aliasPath();
-            if (!str_contains($aliasPath, '.') && $instance->requiresKeys($loadable->getConfig())) {
-                $source = $instance->getSource();
-                $keyField = $instance->type() === Association::MANY_TO_ONE
-                    ? $instance->getForeignKey()
-                    : $instance->getBindingKey();
-                $keyField = is_array($keyField) ? ($keyField[0] ?? null) : $keyField;
-                if ($keyField !== null && $keyField !== false) {
-                    $hasKey = false;
-                    foreach ($results as $result) {
-                        if ($result instanceof Document && $result->has($keyField) && $result->get($keyField) !== null) {
-                            $hasKey = true;
-                            break;
-                        }
-                    }
-
-                    if (!$hasKey) {
-                        $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$source->getAlias()}` is selected.";
-                        throw new InvalidArgumentException($message);
-                    }
-                }
-            }
 
             $callback = $instance->eagerLoader($loadable->getConfig() + [
                 'query' => $query,
