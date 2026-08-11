@@ -153,12 +153,12 @@ Register the datasource via `ConnectionManager` (e.g. `config/app.php` `Datasour
 
 ### Full example
 ```php
-use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Connection as MongoConnection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 
 // config/app.php -> 'Datasources' => [...]
 'mongo' => [
-    'className' => Connection::class,
+    'className' => MongoConnection::class,
     'driver' => MongoDriver::class,
     'host' => '127.0.0.1',
     'port' => 27017,
@@ -177,7 +177,7 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 ### Minimal
 ```php
 'mongo' => [
-    'className' => Connection::class,
+    'className' => MongoConnection::class,
     'driver' => MongoDriver::class,
     'database' => 'my_app',
 ],
@@ -206,4 +206,33 @@ $articles = $locator->get('Articles');          // default connection from alias
 ConnectionManager::alias('mongo', 'default');
 $users = $locator->get('Users');
 ```
+
+---
+
+## Plans (TODO — not implemented yet)
+
+### 1. `AppMongoController` (controller base for Mongo models)
+- `Controller::__get` resolves `$this->Articles` via `fetchTable()` → `FactoryLocator::get('Table')` (ORM TableLocator), which looks for `App\Model\Table\*`.
+- Plugin registers `CollectionLocator` under `'Collection'`/`'Mongo'`, but NOT under `'Table'`, so `$this->Articles` in a normal controller hits the ORM locator and fails.
+- Plan: provide an `AppMongoController extends AppController` (or a reusable trait) that overrides `fetchTable()`:
+  - try `App\Model\Collection\{Alias}Collection` via `FactoryLocator::get('Collection')`;
+  - fall back to `parent::fetchTable()` for SQL models (Posts, Users, …).
+  - This keeps ORM and ODM coexisting in one app.
+- Demo controllers (`MongoDemoController`, `ArticlesController`, `TagsController`, `AuthorsController`) currently use manual `FactoryLocator::get('Collection')` calls — to be replaced with `$this->Articles` etc. once the base controller exists.
+
+### 2. Bake tasks for the Mongo plugin
+All four bake layers need ODM-aware tasks in `plugins/Mongo/crustum/src/Command/Bake/`:
+
+| Bake task | Creates | Uses |
+|---|---|---|
+| `bake collection` | `src/Model/Collection/XCollection.php` | `CollectionLocator`, `BaseCollection` |
+| `bake document` | `src/Model/Document/X.php` with `#[Field]` attrs | `Document` + attributes |
+| `bake controller` | `src/Controller/XController.php` | CRUD on `newDocument`/`patchDocument`/`getId` |
+| `bake template` | `templates/X/*.php` | `CollectionLocator` (NOT SQL TableLocator), fields from `CollectionSchema` |
+
+- Each task must use the correct locator (CollectionLocator) instead of the SQL TableLocator.
+- Current status: `bake template Articles` fails with "Cannot describe tags. It has 0 columns" because bake uses SQL schema via TableLocator.
+
+### 3. Bake registration
+- Register the bake tasks in the plugin (`Plugin::bootstrap`/console), following the cake bake command registration pattern.
 
