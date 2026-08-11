@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM;
 use Cake\Datasource\ResultSetInterface;
 use Cake\ORM\DtoMapper;
 use Closure;
+use Crustum\Mongo\ODM\Mapping\DtoSchemaReader;
 use InvalidArgumentException;
 use MongoDB\Model\BSONDocument;
 
@@ -152,6 +153,34 @@ class ResultSetFactory
     }
 
     /**
+     * Remaps BSON field names to DTO constructor parameter names.
+     *
+     * `#[Field(name: '_id')]` on a `$id` parameter means the database row
+     * carries `_id` while the DTO constructor expects `id`. This maps every
+     * promoted parameter whose field attribute renames it, so DtoMapper can
+     * match the row to the constructor without knowing about attributes.
+     *
+     * @param array<string, mixed> $row The database row.
+     * @param class-string $dtoClass The DTO class.
+     * @return array<string, mixed>
+     */
+    protected function normalizeDtoRow(array $row, string $dtoClass): array
+    {
+        static $maps = [];
+        if (!isset($maps[$dtoClass])) {
+            $maps[$dtoClass] = DtoSchemaReader::paramNameMap($dtoClass);
+        }
+
+        foreach ($maps[$dtoClass] as $field => $param) {
+            if (array_key_exists($field, $row) && !array_key_exists($param, $row)) {
+                $row[$param] = $row[$field];
+            }
+        }
+
+        return $row;
+    }
+
+    /**
      * Get a cached hydrator closure for a DTO class.
      *
      * @param class-string $dtoClass DTO class name
@@ -164,7 +193,9 @@ class ResultSetFactory
                 self::$dtoHydrators[$dtoClass] = (static fn(array $row): object => $dtoClass::createFromArray($row, true));
             } else {
                 $mapper = $this->getDtoMapper();
-                self::$dtoHydrators[$dtoClass] = (static fn(array $row): object => $mapper->map($row, $dtoClass));
+                self::$dtoHydrators[$dtoClass] = (function (array $row) use ($mapper, $dtoClass): object {
+                    return $mapper->map($this->normalizeDtoRow($row, $dtoClass), $dtoClass);
+                });
             }
         }
 

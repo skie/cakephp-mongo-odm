@@ -45,6 +45,13 @@ class DtoSchemaReader
     protected static array $cache = [];
 
     /**
+     * Cached field → parameter name maps.
+     *
+     * @var array<string, array<string, string>>
+     */
+    protected static array $paramMapCache = [];
+
+    /**
      * Read a DTO class into a CollectionSchema.
      *
      * @param class-string $dtoClass The DTO class to read
@@ -81,6 +88,43 @@ class DtoSchemaReader
         }
 
         return self::$cache[$dtoClass] = $fields;
+    }
+
+    /**
+     * Returns a map of BSON field name → constructor parameter name for every
+     * parameter whose `#[Field(name: ...)]` differs from the parameter name.
+     *
+     * Used to remap database rows before DTO hydration.
+     *
+     * @param class-string $dtoClass The DTO class.
+     * @return array<string, string>
+     */
+    public static function paramNameMap(string $dtoClass): array
+    {
+        if (isset(self::$paramMapCache[$dtoClass])) {
+            return self::$paramMapCache[$dtoClass];
+        }
+
+        $map = [];
+        $reflection = new ReflectionClass($dtoClass);
+        $constructor = $reflection->getConstructor();
+
+        if ($constructor !== null) {
+            foreach ($constructor->getParameters() as $param) {
+                $fieldName = null;
+                foreach ($param->getAttributes(Field::class) as $attr) {
+                    /** @var \Crustum\Mongo\ODM\Attribute\Field $fieldAttr */
+                    $fieldAttr = $attr->newInstance();
+                    $fieldName = $fieldAttr->name();
+                }
+
+                if ($fieldName !== null && $fieldName !== $param->getName()) {
+                    $map[$fieldName] = $param->getName();
+                }
+            }
+        }
+
+        return self::$paramMapCache[$dtoClass] = $map;
     }
 
     /**
