@@ -236,3 +236,90 @@ All four bake layers need ODM-aware tasks in `plugins/Mongo/crustum/src/Command/
 ### 3. Bake registration
 - Register the bake tasks in the plugin (`Plugin::bootstrap`/console), following the cake bake command registration pattern.
 
+
+---
+
+## Plans: Mongo Schema & Migrations (future work)
+
+Design thinking only — not implemented. Key decision: **no per-row versioning / optimistic locking**. "Versionable rows" was considered and dropped — Mongo DDL is not transactional and per-row versions add runtime complexity with little value for this ODM.
+
+### Mongo schema reality
+- Mongo is schemaless: documents are not required to match a schema.
+- `$jsonSchema` validator applies to **new** inserts/updates only — existing ("slow old") documents are untouched.
+- `validationLevel: moderate` skips untouched fields on existing docs → best for coexisting with old data.
+- `validationAction: warn` logs instead of blocking → never breaks old records.
+- `required: [...]` in a validator is dangerous for old data (any update to a doc missing the field is rejected). Avoid `required` for fields that may be absent in legacy documents, or use `warn`/backfill first.
+
+### Layers
+```
+src/Database/Schema/
+  Field.php        — like cake60 Column: name, bsonType, nullable, default, enum
+  Index.php        — like cake60 Index: name, key(field=>dir), type(unique/text/geo/vector), options
+  Validator.php    — $jsonSchema: required[], properties{field=>{bsonType,...}}
+  CollectionSchema — already exists; add rich value objects instead of flat arrays
+```
+
+### Versioned migration files (phinx-style, NOT row versioning)
+```
+config/Migrations/
+  Mongo/20260811000000_CreateArticles.php
+  Mongo/20260811000001_AddTagsIndex.php
+```
+```php
+class CreateArticles extends \Crustum\Mongo\Migrations\Migration
+{
+    public function up(): void
+    {
+        $this->createCollection('articles', ['validator' => $this->schema('Article')]);
+        $this->index('articles', ['author_id' => 1]);
+        $this->uniqueIndex('articles', ['slug']);
+    }
+    public function down(): void { $this->dropCollection('articles'); }
+}
+```
+Version log in a `_migrations` collection (version, name, applied, batch).
+
+### Schema persistence
+- Source of truth: `#[Field]`/`#[Document]` attributes (dev) → introspect database → `config/schema_mongo.php` (file dump like ORM schema.php).
+- **dev**: live introspection. **prod**: read persisted file / PSR-6 cache (no DB round-trip).
+- `CachedSchemaCollection` already exists — extend to file-backed.
+
+### Migration ↔ schema sync
+- `createIndex`/`dropIndex`/`setValidator` via existing `SchemaManager`.
+- `SchemaDiff`: diff desired (documents/file) vs actual (collection) → generate migration.
+
+### bake-documents (reverse workflow)
+After a migration changes the database:
+```
+migration (DDL) → database (validator + indexes)
+  → introspect → config/schema_mongo.php
+  → bake document → src/Model/Document/X.php with updated #[Field] attrs
+```
+So the user writes a migration, bakes documents, then runs a command to **update the `#[Field]` attributes** from the real schema — documents always match the database.
+
+### Commands
+```
+bin/cake migrations migrate -p Mongo
+bin/cake migrations rollback -p Mongo
+bin/cake migrations status -p Mongo
+bin/cake migrations diff -p Mongo         # generate migration from doc/file diff
+bin/cake schema_cache build -p Mongo      # write config/schema_mongo.php
+bin/cake bake documents -p Mongo          # update #[Field] from DB schema
+```
+
+### Migration plugin architecture (mirrors cakephp/migrations)
+```
+src/Migration/
+  Migration.php          — base (up/down, schema helpers)
+  MigrationDispatcher    — migrate/rollback/status/diff commands
+  MigrationCollection    — read files, parse versions
+  MigrationLog           — read/write _migrations
+  CakeMongoAdapter       — execute DDL via SchemaManager
+  SchemaDiff             — desired vs actual
+```
+
+### Workflow with old data
+1. `migrations up` — create collection/indexes/validator (old docs untouched)
+2. `validationLevel: moderate` — don't break existing docs
+3. Optional backfill migration — fill defaults to bring legacy docs to new schema
+
