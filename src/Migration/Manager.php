@@ -675,6 +675,15 @@ class Manager
             if (in_array($migration->getVersion(), $executedVersionCreationTimes, true)) {
                 $executedArray = $executedVersions[$migration->getVersion()];
 
+                if (
+                    !$targetMustMatchVersion
+                    && ($this->getConfig()->isVersionOrderCreationTime()
+                        ? (int)$executedArray['version'] <= $target
+                        : (string)$executedArray['start_time'] <= $target)
+                ) {
+                    break;
+                }
+
                 if ((int)$executedArray['breakpoint'] !== 0 && !$force) {
                     $io->out('<error>Breakpoint reached. Further rollbacks inhibited.</error>');
                     break;

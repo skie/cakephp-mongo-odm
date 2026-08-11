@@ -80,11 +80,11 @@ class Collection
     protected bool $drop = false;
 
     /**
-     * Whether the collection already exists (update mode).
+     * Whether the collection is being updated (existing collection).
      *
      * @var bool
      */
-    protected bool $update = false;
+    protected bool $updating = false;
 
     /**
      * Constructor.
@@ -184,19 +184,24 @@ class Collection
     }
 
     /**
-     * Marks the collection for update (existing collection).
+     * Updates the collection with all pending actions.
      *
-     * @return $this
+     * Applies the pending changes (fields, validator, indexes) to an existing
+     * collection, merging new fields into the current validator.
+     *
+     * @return void
      */
-    public function update(): static
+    public function update(): void
     {
-        $this->update = true;
-
-        return $this;
+        $this->updating = true;
+        $this->executeActions();
+        $this->reset();
     }
 
     /**
      * Adds a field definition.
+     *
+     * Alias of `addColumn()` for SQL-style migrations.
      *
      * Type is a canonical Mongo type name (string, objectid, integer, boolean,
      * date, decimal128, hash, collection, …).
@@ -225,6 +230,22 @@ class Collection
         }
 
         return $this;
+    }
+
+    /**
+     * Adds a field definition.
+     *
+     * SQL-style alias of `addField()` so migrations written like
+     * `->addColumn('username', 'string')` work unchanged.
+     *
+     * @param string $name Field name
+     * @param string|null $type Field type
+     * @param array<string, mixed> $options Field options (null, default, length, …)
+     * @return $this
+     */
+    public function addColumn(string $name, ?string $type = null, array $options = []): static
+    {
+        return $this->addField($name, $type, $options);
     }
 
     /**
@@ -321,7 +342,7 @@ class Collection
     public function reset(): void
     {
         $this->drop = false;
-        $this->update = false;
+        $this->updating = false;
         $this->fields = [];
         $this->indexes = [];
         $this->validator = null;
@@ -342,7 +363,7 @@ class Collection
             return;
         }
 
-        if (!$this->exists() && !$this->update) {
+        if (!$this->exists() && !$this->updating) {
             $options = $this->options;
             $validator = $this->buildValidator();
             if ($validator !== null) {
@@ -379,6 +400,13 @@ class Collection
         }
 
         $properties = [];
+        if ($this->updating) {
+            $existing = $this->getExistingValidator();
+            if (isset($existing['$jsonSchema']['properties'])) {
+                $properties = $existing['$jsonSchema']['properties'];
+            }
+        }
+
         foreach ($this->fields as $name => $field) {
             $properties[$name] = ['bsonType' => $this->bsonType($field['type'])];
         }
@@ -390,6 +418,21 @@ class Collection
                 'additionalProperties' => true,
             ],
         ];
+    }
+
+    /**
+     * Reads the current validator of the collection from the database.
+     *
+     * Used when updating an existing collection so new fields are merged into
+     * the existing validator instead of replacing it.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getExistingValidator(): array
+    {
+        $validator = $this->getAdapter()->getSchemaManager()->getValidator($this->getName());
+
+        return is_array($validator) ? $validator : [];
     }
 
     /**

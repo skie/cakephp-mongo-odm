@@ -45,7 +45,8 @@ class SchemaDumper
     }
 
     /**
-     * Returns the dumped schema for all collections (system collections excluded).
+     * Returns the dumped schema for all collections (system and journal
+     * collections excluded).
      *
      * @return array<string, array<string, mixed>>
      */
@@ -57,6 +58,9 @@ class SchemaDumper
 
         foreach ($names as $name) {
             if (str_starts_with($name, 'system.')) {
+                continue;
+            }
+            if (in_array($name, ['_migrations', '_seeds'], true)) {
                 continue;
             }
 

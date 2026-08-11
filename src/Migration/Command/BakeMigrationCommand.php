@@ -163,10 +163,7 @@ class BakeMigrationCommand extends Command
      */
     protected function buildFile(string $className, array $fields, array $indexes): string
     {
-        $collectionName = 'collection_name';
-        if (preg_match('/^Create(.+)$/', $className, $matches)) {
-            $collectionName = Inflector::underscore($matches[1]);
-        }
+        $collectionName = $this->collectionName($className);
 
         $body = [];
 
@@ -185,7 +182,7 @@ class BakeMigrationCommand extends Command
                     $options['default'] = $definition['default'];
                 }
                 $optionsStr = $options !== [] ? ', ' . $printer->print($options, 3) : '';
-                $lines[] = sprintf("            ->addField('%s', '%s'%s)", $fieldName, $type, $optionsStr);
+                $lines[] = sprintf("            ->addColumn('%s', '%s'%s)", $fieldName, $type, $optionsStr);
             }
 
             foreach ($indexes as $index) {
@@ -197,7 +194,8 @@ class BakeMigrationCommand extends Command
                 );
             }
 
-            $lines[] = '            ->create();';
+            $terminator = str_starts_with($className, 'Create') ? 'create' : 'update';
+            $lines[] = '            ->' . $terminator . '();';
 
             $body[] = implode("\n", $lines);
         } else {
@@ -225,6 +223,34 @@ class {$className} extends BaseMigration
 }
 
 PHP;
+    }
+
+    /**
+     * Infers the collection name from the migration class name.
+     *
+     * Handles the cake naming conventions:
+     * - `CreateArticles` → `articles`
+     * - `AddPriceToProducts` → `products`
+     * - `RemoveFieldsFromUsers` → `users`
+     *
+     * @param string $className Migration class name
+     * @return string The collection name
+     */
+    protected function collectionName(string $className): string
+    {
+        if (preg_match('/^Create(.+)$/', $className, $matches)) {
+            return Inflector::underscore($matches[1]);
+        }
+
+        if (preg_match('/^(?:Add|Remove|Alter).+?To(.*)$/', $className, $matches)) {
+            return Inflector::underscore($matches[1]);
+        }
+
+        if (preg_match('/^(?:Add|Remove|Alter)(?:Field|Fields|Column|Columns)?(?:From)?(.*)$/', $className, $matches)) {
+            return Inflector::underscore($matches[1]);
+        }
+
+        return Inflector::underscore($className);
     }
 
     /**

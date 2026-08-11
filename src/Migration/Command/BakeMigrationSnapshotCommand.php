@@ -150,29 +150,25 @@ class BakeMigrationSnapshotCommand extends Command
         $printer = new PhpArrayPrinter();
         $lines = [];
         foreach ($schema as $name => $definition) {
-            $collection = var_export($name, true);
+            $lines[] = sprintf("        \$this->collection('%s')", $name);
 
-            $options = $definition['options'] ?? [];
-            if (isset($definition['validator'])) {
-                $options['validator'] = $definition['validator'];
+            $validator = $definition['validator'] ?? null;
+            if ($validator !== null) {
+                $lines[] = '            ->setValidator(' . $printer->print($validator, 2) . ')';
             }
-            $lines[] = sprintf(
-                '        $this->createCollection(%s, %s);',
-                $collection,
-                $printer->print($options, 1),
-            );
 
             foreach ($definition['indexes'] ?? [] as $indexName => $indexDef) {
                 $key = $indexDef['key'] ?? [];
                 $options = $indexDef['options'] ?? [];
                 $options['name'] ??= $indexName;
                 $lines[] = sprintf(
-                    '        $this->index(%s, %s, %s);',
-                    $collection,
-                    $printer->print($key, 1),
-                    $printer->print($options, 1),
+                    '            ->addIndex(%s, %s)',
+                    $printer->print($key, 2),
+                    $printer->print($options, 2),
                 );
             }
+
+            $lines[] = '            ->create();';
         }
 
         $body = $lines !== [] ? implode("\n", $lines) : '        // No collections to create.';

@@ -21,7 +21,7 @@ interface ConfigInterface extends ArrayAccess
 {
     public const DEFAULT_MIGRATION_FOLDER = 'MongoMigrations';
 
-    public const DEFAULT_SEED_FOLDER = 'Seeds';
+    public const DEFAULT_SEED_FOLDER = 'MongoSeeds';
 
     /**
      * Returns the configuration for the current environment.
