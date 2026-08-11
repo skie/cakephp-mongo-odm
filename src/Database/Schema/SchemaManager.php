@@ -98,22 +98,16 @@ class SchemaManager
     /**
      * Drops a collection.
      *
+     * The underlying driver returns void; the drop is idempotent in MongoDB.
+     *
      * @param string $name The collection name
-     * @return bool true when the collection existed and was dropped
+     * @return bool true on success
      */
     public function dropCollection(string $name): bool
     {
-        $result = $this->database()->dropCollection($name);
+        $this->database()->dropCollection($name);
 
-        // `dropCollection` returns null on success; a result document only
-        // arrives on failure (or from the raw command wrapper).
-        if ($result === null) {
-            return true;
-        }
-
-        $result = (array)$result;
-
-        return ($result['ok'] ?? 0) == 1;
+        return true;
     }
 
     /**
@@ -180,6 +174,29 @@ class SchemaManager
     }
 
     /**
+     * Sets the validator of a collection from a `Validator` value object.
+     *
+     * @param string $name The collection name
+     * @param \Crustum\Mongo\Database\Schema\Validator $validator The validator value object
+     * @param string|null $validationLevel The validation level (off/ strict/ moderate)
+     * @param string|null $validationAction The validation action (error/warn)
+     * @return bool true on success
+     */
+    public function setValidatorObject(
+        string $name,
+        Validator $validator,
+        ?string $validationLevel = null,
+        ?string $validationAction = null,
+    ): bool {
+        return $this->setValidator(
+            $name,
+            $validator->toArray(),
+            $validationLevel,
+            $validationAction,
+        );
+    }
+
+    /**
      * Returns the validator (if any) of a collection.
      *
      * @param string $name The collection name
@@ -212,7 +229,24 @@ class SchemaManager
     }
 
     /**
+     * Creates an index on a collection from an `Index` value object.
+     *
+     * @param string $name The collection name
+     * @param \Crustum\Mongo\Database\Schema\Index $index The index value object
+     * @return string The index name
+     */
+    public function createIndexObject(string $name, Index $index): string
+    {
+        return $this->collection($name)->createIndex(
+            $index->getKey(),
+            $index->createIndexOptions(),
+        );
+    }
+
+    /**
      * Drops an index from a collection.
+     *
+     * The underlying driver returns void; the drop is idempotent in MongoDB.
      *
      * @param string $name The collection name
      * @param string $indexName The index name
@@ -220,9 +254,9 @@ class SchemaManager
      */
     public function dropIndex(string $name, string $indexName): bool
     {
-        $result = (array)$this->collection($name)->dropIndex($indexName);
+        $this->collection($name)->dropIndex($indexName);
 
-        return ($result['ok'] ?? 0) === 1.0;
+        return true;
     }
 
     /**

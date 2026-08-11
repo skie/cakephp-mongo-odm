@@ -6,7 +6,9 @@ namespace Crustum\Mongo\TestSuite\Fixture;
 use Cake\Core\Exception\CakeException;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Schema\Index;
 use Crustum\Mongo\Database\Schema\SchemaManager;
+use Crustum\Mongo\Database\Schema\Validator;
 use MongoDB\Driver\Exception\RuntimeException as DriverRuntimeException;
 use RuntimeException;
 
@@ -196,8 +198,13 @@ class SchemaGenerator
                 'validationAction' => $options['validationAction'] ?? 'error',
             ];
         } elseif (isset($definition['fields'])) {
+            $validator = new Validator();
+            foreach ($definition['fields'] as $fieldName => $attrs) {
+                $validator->field($fieldName, (array)$attrs);
+            }
+
             $options += [
-                'validator' => $this->compileValidator($definition['fields']),
+                'validator' => $validator->toArray(),
                 'validationLevel' => $options['validationLevel'] ?? 'strict',
                 'validationAction' => $options['validationAction'] ?? 'error',
             ];
@@ -216,10 +223,8 @@ class SchemaGenerator
                 continue;
             }
 
-            $options = $index['options'] ?? [];
-            $options['name'] = $indexName;
-
-            $manager->createIndex($name, $index['key'], $options);
+            $index['name'] = $indexName;
+            $manager->createIndexObject($name, Index::fromAttributes($indexName, $index));
         }
     }
 

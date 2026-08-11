@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Schema;
 
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\SchemaInterface;
 use Exception;
 use MongoDB\Collection;
@@ -11,69 +12,50 @@ use MongoDB\Model\IndexInfo;
 
 /**
  * Object interface for MongoDB collection schema information.
- * Handles validation rules, indexes, and programmatic field definition.
  *
- * Implements `Cake\Datasource\SchemaInterface` so the Datasource
- * `SchemaCollectionInterface::describe()` contract is satisfied.
+ * Composes the `Field` / `Index` / `Validator` value objects (ported from
+ * `Cake\Database\Schema\Column` / `Index` / constraints) instead of keeping
+ * flat arrays. Handles validation rules, indexes, and programmatic field
+ * definition, and satisfies `Cake\Datasource\SchemaInterface`.
+ *
+ * @see docs/reference/24-schema-migrations-design.md
  */
 class CollectionSchema implements SchemaInterface
 {
     /**
-     * The raw validation schema from MongoDB
+     * The collection indexes, keyed by index name.
      *
-     * @var array<string, mixed>
-     */
-    protected array $validationRules = [];
-
-    /**
-     * Collection indexes
-     *
-     * @var array<string, array<string, mixed>>
+     * @var array<string, \Crustum\Mongo\Database\Schema\Index>
      */
     protected array $indexes = [];
 
     /**
-     * The name of the collection
+     * The name of the collection.
      *
      * @var string
      */
     protected string $name;
 
     /**
-     * Programmatically defined fields
+     * Programmatically defined fields, keyed by field name.
      *
-     * @var array<string, array<string, mixed>>
+     * @var array<string, \Crustum\Mongo\Database\Schema\Field>
      */
     protected array $fields = [];
 
     /**
-     * Type map for fields
+     * The `$jsonSchema` validator.
+     *
+     * @var \Crustum\Mongo\Database\Schema\Validator
+     */
+    protected Validator $validator;
+
+    /**
+     * Type map for fields.
      *
      * @var array<string, string>
      */
     protected array $typeMap = [];
-
-    /**
-     * Valid field keys
-     *
-     * @var array<string, mixed>
-     */
-    protected static array $fieldKeys = [
-        'type' => null,
-        'null' => null,
-        'default' => null,
-        'comment' => null,
-    ];
-
-    /**
-     * Type-specific extras
-     *
-     * @var array<string, array<string, mixed>>
-     */
-    protected static array $fieldExtras = [
-        'string' => ['length' => null],
-        'decimal128' => ['precision' => null],
-    ];
 
     /**
      * BSON type aliases mapped to canonical plugin type names.
@@ -118,6 +100,7 @@ class CollectionSchema implements SchemaInterface
     public function __construct(string $name, ?Collection $collection = null, ?Database $database = null)
     {
         $this->name = $name;
+        $this->validator = new Validator();
 
         if ($collection instanceof Collection && $database instanceof Database) {
             try {
@@ -130,12 +113,10 @@ class CollectionSchema implements SchemaInterface
 
                 if ($collectionInfo !== null) {
                     $options = $collectionInfo->getOptions();
-                    $this->validationRules = $options['validator'] ?? [];
-                } else {
-                    $this->validationRules = [];
+                    $this->validator = new Validator($options['validator'] ?? null);
                 }
             } catch (Exception) {
-                $this->validationRules = [];
+                $this->validator = new Validator();
             }
 
             foreach ($collection->listIndexes() as $index) {
@@ -172,18 +153,37 @@ class CollectionSchema implements SchemaInterface
      */
     protected function processIndex(IndexInfo $index): void
     {
+        $key = $index->getKey();
+        $unique = $index->isUnique();
         $expireAfterSeconds = null;
         if (method_exists($index, 'getExpireAfterSeconds')) {
             $expireAfterSeconds = $index->getExpireAfterSeconds();
         }
 
-        $this->indexes[$index->getName()] = [
-            'key' => $index->getKey(),
-            'unique' => $index->isUnique(),
-            'sparse' => $index->isSparse(),
-            'background' => $index->getVersion() > 0,
-            'expireAfterSeconds' => $expireAfterSeconds,
-        ];
+        $type = Index::INDEX;
+        foreach ($key as $direction) {
+            if ($direction === 'text') {
+                $type = Index::TEXT;
+            } elseif ($direction === '2d') {
+                $type = Index::GEO_2D;
+            } elseif ($direction === '2dsphere') {
+                $type = Index::GEO_2DSPHERE;
+            } elseif ($direction === 'hashed') {
+                $type = Index::HASHED;
+            }
+        }
+        if ($type === Index::INDEX && $unique) {
+            $type = Index::UNIQUE;
+        }
+
+        $this->indexes[$index->getName()] = new Index(
+            $index->getName(),
+            $key,
+            $type,
+            $unique,
+            $index->isSparse(),
+            $expireAfterSeconds,
+        );
     }
 
     /**
@@ -210,7 +210,7 @@ class CollectionSchema implements SchemaInterface
         $info = [];
 
         if (isset($this->fields[$name])) {
-            $info = $this->fields[$name];
+            $info = $this->fields[$name]->toArray();
         }
 
         $property = $this->resolvePropertyPath($name);
@@ -219,12 +219,12 @@ class CollectionSchema implements SchemaInterface
         }
 
         foreach ($this->indexes as $indexName => $index) {
-            if (isset($index['key'][$name])) {
+            if (isset($index->getKey()[$name])) {
                 $info['index'] = [
                     'name' => $indexName,
-                    'type' => $this->getIndexType($index['key'][$name]),
-                    'unique' => $index['unique'] ?? false,
-                    'sparse' => $index['sparse'] ?? false,
+                    'type' => $this->getIndexType($index->getKey()[$name]),
+                    'unique' => $index->getUnique(),
+                    'sparse' => $index->getSparse(),
                 ];
             }
         }
@@ -244,8 +244,11 @@ class CollectionSchema implements SchemaInterface
      */
     public function fieldType(string $name): ?string
     {
-        if (isset($this->fields[$name]['type'])) {
-            return $this->fields[$name]['type'];
+        if (isset($this->fields[$name])) {
+            $type = $this->fields[$name]->getType();
+            if ($type !== null) {
+                return $type;
+            }
         }
 
         $property = $this->resolvePropertyPath($name);
@@ -281,8 +284,8 @@ class CollectionSchema implements SchemaInterface
      */
     protected function resolvePropertyPath(string $path): ?array
     {
-        $properties = $this->validationRules['$jsonSchema']['properties'] ?? null;
-        if (!is_array($properties)) {
+        $properties = $this->validator->getProperties();
+        if ($properties === []) {
             return null;
         }
 
@@ -362,29 +365,90 @@ class CollectionSchema implements SchemaInterface
      */
     public function fields(): array
     {
-        $fields = [];
-
-        $fields = array_merge($fields, array_keys($this->fields));
-
-        if (isset($this->validationRules['$jsonSchema']['properties'])) {
-            $fields = array_merge($fields, array_keys($this->validationRules['$jsonSchema']['properties']));
-        }
+        $fields = array_keys($this->fields);
+        $fields = array_merge($fields, array_keys($this->validator->getProperties()));
 
         foreach ($this->indexes as $index) {
-            $fields = array_merge($fields, array_keys($index['key']));
+            $fields = array_merge($fields, array_keys($index->getKey()));
         }
 
         return array_values(array_map(strval(...), array_unique($fields)));
     }
 
     /**
-     * Get all indexes
+     * Get all indexes.
      *
-     * @return array<string, array<string, mixed>>
+     * Returns the `Index` value objects keyed by index name.
+     *
+     * @return array<string, \Crustum\Mongo\Database\Schema\Index>
      */
     public function indexes(): array
     {
         return $this->indexes;
+    }
+
+    /**
+     * Get an index value object by name.
+     *
+     * @param string $name Index name
+     * @return \Crustum\Mongo\Database\Schema\Index|null The index or null
+     */
+    public function getIndex(string $name): ?Index
+    {
+        return $this->indexes[$name] ?? null;
+    }
+
+    /**
+     * Get an index value object by name.
+     *
+     * Will raise an exception if no index can be found.
+     *
+     * @param string $name The index name
+     * @throws \Cake\Database\Exception\DatabaseException
+     * @return \Crustum\Mongo\Database\Schema\Index
+     */
+    public function index(string $name): Index
+    {
+        $index = $this->indexes[$name] ?? null;
+        if ($index === null) {
+            throw new DatabaseException(sprintf(
+                'Collection `%s` does not contain an index named `%s`.',
+                $this->name,
+                $name,
+            ));
+        }
+
+        return $index;
+    }
+
+    /**
+     * Add an index to the schema.
+     *
+     * Accepts either the Mongo shape (`key` map, options) or the Cake shape
+     * (`columns` list). `Index::fromAttributes()` normalizes and validates.
+     *
+     * @param string $name The index name
+     * @param array<string, mixed> $attrs The index attributes
+     * @return $this
+     */
+    public function addIndex(string $name, array $attrs): static
+    {
+        $this->indexes[$name] = Index::fromAttributes($name, $attrs);
+
+        return $this;
+    }
+
+    /**
+     * Remove an index from the schema.
+     *
+     * @param string $name Index name
+     * @return $this
+     */
+    public function removeIndex(string $name): static
+    {
+        unset($this->indexes[$name]);
+
+        return $this;
     }
 
     /**
@@ -394,7 +458,31 @@ class CollectionSchema implements SchemaInterface
      */
     public function validationRules(): array
     {
-        return $this->validationRules;
+        return $this->validator->toArray();
+    }
+
+    /**
+     * Returns the validator value object.
+     *
+     * @return \Crustum\Mongo\Database\Schema\Validator
+     */
+    public function validator(): Validator
+    {
+        return $this->validator;
+    }
+
+    /**
+     * Sets the validator for this collection.
+     *
+     * @param \Crustum\Mongo\Database\Schema\Validator $validator The validator
+     * @return $this
+     */
+    public function setValidator(Validator $validator): static
+    {
+        $this->validator = $validator;
+        $this->updateTypeMap();
+
+        return $this;
     }
 
     /**
@@ -406,51 +494,55 @@ class CollectionSchema implements SchemaInterface
      */
     public function addField(string $name, array|string $attrs): static
     {
-        if (is_string($attrs)) {
-            $attrs = ['type' => $attrs];
-        }
-
-        $field = [];
-        foreach (static::$fieldKeys as $key => $default) {
-            if (isset($attrs[$key])) {
-                $field[$key] = $attrs[$key];
-            } elseif ($default !== null) {
-                $field[$key] = $default;
-            }
-        }
-
-        $type = $field['type'] ?? null;
-        if ($type && isset(static::$fieldExtras[$type])) {
-            foreach (static::$fieldExtras[$type] as $extraKey => $extraDefault) {
-                if (isset($attrs[$extraKey])) {
-                    $field[$extraKey] = $attrs[$extraKey];
-                } elseif ($extraDefault !== null) {
-                    $field[$extraKey] = $extraDefault;
-                }
-            }
-        }
-
-        $this->fields[$name] = $field;
+        $this->fields[$name] = Field::fromAttributes($name, $attrs);
         $this->updateTypeMap();
 
         return $this;
     }
 
     /**
-     * Get field definition
+     * Get field definition as an attribute array.
      *
      * @param string $name Field name
      * @return array<string, mixed>|null Field definition or null
      */
     public function getField(string $name): ?array
     {
-        return $this->fields[$name] ?? null;
+        $field = $this->fields[$name] ?? null;
+        if ($field === null) {
+            return null;
+        }
+
+        return $field->toArray();
+    }
+
+    /**
+     * Get the Field value object for a field.
+     *
+     * Will raise an exception if the field does not exist.
+     *
+     * @param string $name Field name
+     * @throws \Cake\Database\Exception\DatabaseException
+     * @return \Crustum\Mongo\Database\Schema\Field
+     */
+    public function fieldObject(string $name): Field
+    {
+        $field = $this->fields[$name] ?? null;
+        if ($field === null) {
+            throw new DatabaseException(sprintf(
+                'Collection `%s` does not contain a field named `%s`.',
+                $this->name,
+                $name,
+            ));
+        }
+
+        return $field;
     }
 
     /**
      * Check if field exists
      *
-     * @param string $name Field name
+     * @param string $name Field name (may be a dotted path)
      * @return bool
      */
     public function hasField(string $name): bool
@@ -459,9 +551,7 @@ class CollectionSchema implements SchemaInterface
             return true;
         }
 
-        $property = $this->resolvePropertyPath($name);
-
-        return $property !== null;
+        return $this->resolvePropertyPath($name) !== null;
     }
 
     /**
@@ -492,6 +582,8 @@ class CollectionSchema implements SchemaInterface
     /**
      * Set field type
      *
+     * Creates the field when it does not exist.
+     *
      * @param string $name Field name
      * @param string $type Field type
      * @return $this
@@ -499,10 +591,10 @@ class CollectionSchema implements SchemaInterface
     public function setFieldType(string $name, string $type): static
     {
         if (!isset($this->fields[$name])) {
-            $this->fields[$name] = [];
+            $this->fields[$name] = Field::fromAttributes($name, 'string');
         }
 
-        $this->fields[$name]['type'] = $type;
+        $this->fields[$name]->setType($type);
         $this->updateTypeMap();
 
         return $this;
@@ -532,17 +624,14 @@ class CollectionSchema implements SchemaInterface
         $this->typeMap = [];
 
         foreach ($this->fields as $name => $field) {
-            if (isset($field['type'])) {
-                $this->typeMap[$name] = $field['type'];
+            $type = $field->getType();
+            if ($type !== null) {
+                $this->typeMap[$name] = $type;
             }
         }
 
-        foreach ($this->validationRules['$jsonSchema']['properties'] ?? [] as $name => $property) {
+        foreach ($this->validator->getProperties() as $name => $property) {
             if (isset($this->typeMap[$name])) {
-                continue;
-            }
-
-            if (!is_array($property)) {
                 continue;
             }
 
@@ -698,8 +787,10 @@ class CollectionSchema implements SchemaInterface
      */
     public function isNullable(string $name): bool
     {
-        if (!empty($this->fields[$name]['null'])) {
-            return true;
+        if (isset($this->fields[$name])) {
+            $null = $this->fields[$name]->getNull();
+
+            return $null === true;
         }
 
         $property = $this->resolvePropertyPath($name);
@@ -719,8 +810,8 @@ class CollectionSchema implements SchemaInterface
     {
         $defaults = [];
         foreach ($this->fields as $name => $field) {
-            if (array_key_exists('default', $field)) {
-                $defaults[$name] = $field['default'];
+            if ($field->getDefault() !== null) {
+                $defaults[$name] = $field->getDefault();
             }
         }
 
@@ -756,7 +847,7 @@ class CollectionSchema implements SchemaInterface
      */
     public function setValidationRules(array $validationRules): static
     {
-        $this->validationRules = $validationRules;
+        $this->validator = new Validator($validationRules);
         $this->updateTypeMap();
 
         return $this;
@@ -772,8 +863,15 @@ class CollectionSchema implements SchemaInterface
     {
         return [
             'collection' => $this->name(),
-            'fields' => $this->fields,
-            'indexes' => $this->indexes,
+            'fields' => array_map(
+                static fn(Field $field): array => $field->toArray(),
+                $this->fields,
+            ),
+            'indexes' => array_map(
+                static fn(Index $index): array => $index->toArray(),
+                $this->indexes,
+            ),
+            'validator' => $this->validator->toArray(),
             'typeMap' => $this->typeMap,
             'options' => $this->options,
         ];
