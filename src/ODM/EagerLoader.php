@@ -284,13 +284,37 @@ class EagerLoader
 
             // cake60: a non-nested association whose binding/foreign key is
             // missing from the selected source fields cannot be eager loaded.
-            // In Mongo an absent field == NULL, so a missing value on an
-            // individual document is a classic optional belongsTo — the loader
-            // skips it and the property stays null. The equivalent of cake's
-            // "key not selected" check lives in ensureKeyFieldsSelected(),
-            // which appends the FK to a limited projection. No per-row guard
-            // is needed here.
+            // belongsTo reads its FK from the source document; an absent or
+            // null value there is a classic optional association → skip it and
+            // leave the property null. HasMany/HasOne read the source binding
+            // key (`_id`) which cake requires to be selected → throw.
             $aliasPath = $loadable->aliasPath();
+            if (!str_contains($aliasPath, '.') && $instance->requiresKeys($loadable->getConfig())) {
+                $source = $instance->getSource();
+                $isManyToOne = $instance->type() === Association::MANY_TO_ONE;
+                $keyField = $isManyToOne
+                    ? $instance->getForeignKey()
+                    : $instance->getBindingKey();
+                $keyField = is_array($keyField) ? ($keyField[0] ?? null) : $keyField;
+                if ($keyField !== null && $keyField !== false) {
+                    if ($isManyToOne) {
+                        continue;
+                    }
+
+                    $found = false;
+                    foreach ($results as $result) {
+                        if ($result instanceof Document && $result->has($keyField)) {
+                            $found = true;
+                            break;
+                        }
+                    }
+
+                    if (!$found) {
+                        $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$source->getAlias()}` is selected.";
+                        throw new InvalidArgumentException($message);
+                    }
+                }
+            }
 
             $callback = $instance->eagerLoader($loadable->getConfig() + [
                 'query' => $query,
