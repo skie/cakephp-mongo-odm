@@ -1,0 +1,50 @@
+{#
+/**
+ * Crustum Mongo ODM — Collection bake template.
+ */
+#}
+{{ element('Bake.file_header', {
+    namespace: "#{namespace}\\Model\\Collection",
+    classImports: ['Crustum\\Mongo\\ODM\\BaseCollection'],
+}) }}
+
+{{ DocBlock.classDescription(name ~ 'Collection', 'Model', [])|raw }}
+class {{ name }}Collection extends BaseCollection
+{
+{% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
+{% if userConstants %}
+    {{~ Bake.concat('\n\n', userConstants) }}
+
+{% endif %}
+{% set userProperties = fileBuilder.classBuilder.userProperties([]) %}
+{% if userProperties %}
+    {{~ Bake.concat('\n\n', userProperties) }}
+
+{% endif %}
+    /**
+     * Initialize method
+     *
+     * @param array<string, mixed> $config The configuration for the Collection.
+     * @return void
+     */
+    public function initialize(array $config): void
+    {
+        parent::initialize($config);
+    }
+{% if connection is not same as('mongo') and connection %}
+    /**
+     * Returns the database connection name to use by default.
+     *
+     * @return string
+     */
+    public static function defaultConnectionName(): string
+    {
+        return '{{ connection }}';
+    }
+{% endif %}
+{% set userFunctions = fileBuilder.classBuilder.userFunctions(['initialize']) %}
+{% if userFunctions %}
+
+    {{~ Bake.concat('\n\n', userFunctions) }}
+{% endif %}
+}

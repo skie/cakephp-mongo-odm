@@ -1,0 +1,29 @@
+{#
+/**
+ * Crustum Mongo ODM — Document bake template.
+ */
+#}
+{{ element('Bake.file_header', {
+    namespace: "#{namespace}\\Model\\Document",
+    classImports: ['Crustum\\Mongo\\ODM\\Document'],
+}) }}
+
+{{ DocBlock.classDescription(name, 'Model', [])|raw }}
+class {{ name }} extends Document
+{
+{% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
+{% if userConstants %}
+    {{~ Bake.concat('\n\n', userConstants) }}
+
+{% endif %}
+{% set userProperties = fileBuilder.classBuilder.userProperties([]) %}
+{% if userProperties %}
+    {{~ Bake.concat('\n\n', userProperties) }}
+
+{% endif %}
+{% set userFunctions = fileBuilder.classBuilder.userFunctions(['jsonSerialize']) %}
+{% if userFunctions %}
+
+    {{~ Bake.concat('\n\n', userFunctions) }}
+{% endif %}
+}
