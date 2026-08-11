@@ -284,6 +284,8 @@ class EagerLoader
 
             // cake60: a non-nested association whose binding/foreign key is
             // missing from the selected source fields cannot be eager loaded.
+            // The key may be absent on individual documents (optional
+            // association) as long as at least one document provides it.
             $aliasPath = $loadable->aliasPath();
             if (!str_contains($aliasPath, '.') && $instance->requiresKeys($loadable->getConfig())) {
                 $source = $instance->getSource();
@@ -292,11 +294,17 @@ class EagerLoader
                     : $instance->getBindingKey();
                 $keyField = is_array($keyField) ? ($keyField[0] ?? null) : $keyField;
                 if ($keyField !== null && $keyField !== false) {
+                    $hasKey = false;
                     foreach ($results as $result) {
-                        if ($result instanceof Document && !$result->has($keyField)) {
-                            $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$source->getAlias()}` is selected.";
-                            throw new InvalidArgumentException($message);
+                        if ($result instanceof Document && $result->has($keyField) && $result->get($keyField) !== null) {
+                            $hasKey = true;
+                            break;
                         }
+                    }
+
+                    if (!$hasKey) {
+                        $message = "Unable to load `{$aliasPath}` association. Ensure foreign key in `{$source->getAlias()}` is selected.";
+                        throw new InvalidArgumentException($message);
                     }
                 }
             }
