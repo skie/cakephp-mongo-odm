@@ -144,3 +144,66 @@ Status: **154 / 274 tests passing** (started at 75; errors dropped 94 → 20).
 - Standalone debug scripts live in `C:\Users\yevge\AppData\Local\Temp\opencode\q_*.php` (outside repo).
 - `tools/` is gitignored — `port-test.php` is a local dev tool, not tracked.
 - `testInterfaceWrappersDelegateToDocumentMethods` is manually added to `BaseCollectionTest.php` (not in cake60 source); re-running `port-test.php` will overwrite it. Re-apply manually after a re-port.
+
+---
+
+## Mongo Connection Configuration
+
+Register the datasource via `ConnectionManager` (e.g. `config/app.php` `Datasources`).
+
+### Full example
+```php
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Driver\MongoDriver;
+
+// config/app.php -> 'Datasources' => [...]
+'mongo' => [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'host' => '127.0.0.1',
+    'port' => 27017,
+    'database' => 'my_app',
+    'username' => 'app_user',   // optional auth
+    'password' => 'secret',
+    'options' => [               // MongoDB\Client constructor options (optional)
+        'authSource' => 'admin',
+        'replicaSet' => 'rs0',
+        'ssl' => true,
+    ],
+    'log' => false,              // optional: true, false, or PSR-3 logger name
+],
+```
+
+### Minimal
+```php
+'mongo' => [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'database' => 'my_app',
+],
+```
+`host`/`port` default to `localhost:27017`.
+
+### Connection string alternative
+Instead of `host`/`port`/`username`/`password`, set `'url'`:
+```php
+'mongo' => [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'url' => 'mongodb://user:pass@127.0.0.1:27017/my_app?authSource=admin',
+],
+```
+
+### Using it
+```php
+use Cake\Datasource\ConnectionManager;
+use Cake\Datasource\FactoryLocator;
+
+$locator = FactoryLocator::get('Collection');   // Crustum locator
+$articles = $locator->get('Articles');          // default connection from alias
+
+// or explicit
+ConnectionManager::alias('mongo', 'default');
+$users = $locator->get('Users');
+```
+
