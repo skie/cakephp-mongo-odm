@@ -48,7 +48,7 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        ConnectionManager::alias('test_mongo', 'default');
+        ConnectionManager::alias('test_mongo', 'mongo');
         Router::reload();
     }
 

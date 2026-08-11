@@ -1745,6 +1745,39 @@ class MarshallerTest extends TestCase
     }
 
     /**
+     * Tests that merging a belongsToMany `_ids` list loads the referenced
+     * documents instead of creating bogus integer-keyed documents.
+     */
+    public function testMergeBelongsToManyIds(): void
+    {
+        $tags = $this->tags->find()->limit(2)->toArray();
+        $this->assertNotEmpty($tags);
+
+        $entity = new Document([
+            'title' => 'My Title',
+            'tags' => [],
+        ]);
+        $entity->setAccess('*', true);
+        $entity->clean();
+
+        $data = [
+            'tags' => [
+                '_ids' => [$tags[0]->getId(), $tags[1]->getId()],
+            ],
+        ];
+
+        $marshall = new Marshaller($this->articles);
+        $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+
+        $this->assertCount(2, $entity->tags, 'Ids should be resolved to documents.');
+        foreach ($entity->tags as $tag) {
+            $this->assertInstanceOf(Document::class, $tag, 'Tag should be a Document, not raw id.');
+            $this->assertNotNull($tag->getId());
+        }
+        $this->assertSame($tags[0]->getId(), $entity->tags[0]->getId());
+    }
+
+    /**
      * Tests that new associated entities can be created when merging data into
      * a parent entity
      */

@@ -436,6 +436,11 @@ class Marshaller
         $marshaller = $target->marshaller();
 
         if ($many) {
+            $hasIds = array_key_exists('_ids', $value) && is_array($value['_ids']);
+            if ($hasIds) {
+                return $this->loadAssociatedByIds($association, $value['_ids']);
+            }
+
             return $marshaller->mergeMany(is_array($existing) ? $existing : [], $value, $options);
         }
 

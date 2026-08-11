@@ -136,7 +136,7 @@ ConnectionManager::setConfig('test_mongo', [
     'port' => 27017,
     'database' => 'test_mongo_db',
 ]);
-ConnectionManager::alias('test', 'default');
+ConnectionManager::alias('test_mongo', 'mongo');
 
 Plugin::getCollection()->add(new MongoPlugin([
     'path' => dirname(__DIR__) . DS,

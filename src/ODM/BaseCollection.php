@@ -1249,7 +1249,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Get the default connection name.
+     * Gets the default connection name.
      *
      * This method is used to get the fallback connection name if an
      * instance is created through the CollectionLocator without a connection.
@@ -1259,7 +1259,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public static function defaultConnectionName(): string
     {
-        return 'default';
+        return 'mongo';
     }
 
     /**
@@ -2285,6 +2285,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $primaryKey = (array)$this->getPrimaryKey();
         $data = $entity->toArray();
 
+        // Referenced associations are persisted through their own queries /
+        // junction collections, never embedded into the document.
+        foreach ($this->associationProperties() as $property) {
+            unset($data[$property]);
+        }
+
         // Generate the primary key up front (like cake _newId) so a new
         // document always has an `_id` on the entity after the insert.
         if (!$entity->has($primaryKey)) {
@@ -2354,8 +2360,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         $set = [];
         $unset = [];
+        $associationProperties = $this->associationProperties();
         foreach ($entity->getDirty() as $field) {
             if (in_array($field, $primaryKey, true)) {
+                continue;
+            }
+
+            if (in_array($field, $associationProperties, true)) {
                 continue;
             }
 
@@ -2383,6 +2394,30 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $count = $query->execute();
 
         return is_int($count) ? $entity : false;
+    }
+
+    /**
+     * Returns the document properties owned by non-embedded associations.
+     *
+     * Referenced associations (BelongsTo, HasOne, HasMany, BelongsToMany) are
+     * persisted through their own queries or junction collections, so their
+     * properties must never be written into the parent document. Embedded
+     * associations live inside the document and are excluded here.
+     *
+     * @return list<string>
+     */
+    protected function associationProperties(): array
+    {
+        $properties = [];
+        foreach ($this->associations as $association) {
+            if ($association instanceof Embedded) {
+                continue;
+            }
+
+            $properties[] = $association->getProperty();
+        }
+
+        return array_values(array_unique($properties));
     }
 
     /**

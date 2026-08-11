@@ -16,6 +16,7 @@ class TypeFactory
      */
     protected static array $defaultTypes = [
         'objectid' => ObjectIdType::class,
+        'objectId' => ObjectIdType::class,
         'object_id' => ObjectIdType::class,
         'id' => IdType::class,
         'date' => DateType::class,
