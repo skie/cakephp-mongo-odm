@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Datasource\Locator;
+namespace Crustum\Mongo\ODM\Locator;
 
 use Cake\Core\App;
 use Cake\Datasource\FactoryLocator;
