@@ -9,9 +9,14 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\App;
 use Cake\Core\Configure;
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\FactoryLocator;
+use Cake\Event\Event;
+use Cake\Event\EventManager;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\View\Helper\MongoBakeHelper;
+use InvalidArgumentException;
 use Override;
 
 /**
@@ -52,6 +57,7 @@ class MongoTemplateCommand extends BakeCommand
             $this->abort();
         }
 
+        $this->registerMongoBakeHelper();
         $this->controller($args, $name, (string)$args->getOption('controller'));
         $this->model($name);
 
@@ -64,6 +70,21 @@ class MongoTemplateCommand extends BakeCommand
         }
 
         return static::CODE_SUCCESS;
+    }
+
+    /**
+     * Registers the MongoBake helper on the bake view.
+     *
+     * @return void
+     */
+    protected function registerMongoBakeHelper(): void
+    {
+        EventManager::instance()->on('Bake.initialize', function (Event $event): void {
+            $view = $event->getSubject();
+            if (method_exists($view, 'loadHelper')) {
+                $view->loadHelper('Crustum/Mongo.MongoBake', ['className' => MongoBakeHelper::class]);
+            }
+        });
     }
 
     /**
@@ -135,7 +156,7 @@ class MongoTemplateCommand extends BakeCommand
         $pluralHumanName = $this->_pluralHumanName($this->controllerName);
         $schema = $modelObject->getSchema();
         $fields = $schema->columns();
-        $hidden = ['token', 'password', 'passwd'];
+        $hidden = $modelObject->newEmptyDocument()->getHidden() ?: ['token', 'password', 'passwd'];
         $modelClass = $this->modelName;
 
         if ($singularVar === $pluralVar) {
@@ -144,10 +165,17 @@ class MongoTemplateCommand extends BakeCommand
 
         $documentClass = sprintf('%s\Model\Document\%s', $namespace, $singularHumanName);
         if (!class_exists($documentClass)) {
-            $documentClass = \Cake\Datasource\EntityInterface::class;
+            $documentClass = EntityInterface::class;
         }
 
-        $associations = $this->extractAssociations($modelObject);
+        $filter = new MongoAssociationFilter();
+        $associations = $filter->filterAssociations($modelObject);
+        $keyFields = [];
+        foreach (['BelongsToMany', 'BelongsTo'] as $type) {
+            foreach ($associations[$type] ?? [] as $assoc) {
+                $keyFields[$assoc['foreignKey']] = $assoc['variable'];
+            }
+        }
 
         return compact(
             'modelObject',
@@ -163,40 +191,9 @@ class MongoTemplateCommand extends BakeCommand
             'fields',
             'hidden',
             'associations',
+            'keyFields',
             'namespace',
         );
-    }
-
-    /**
-     * Groups association aliases by relation type.
-     *
-     * @param \Crustum\Mongo\ODM\BaseCollection $model The collection.
-     * @return array<string, list<string>>
-     */
-    protected function extractAssociations(BaseCollection $model): array
-    {
-        $result = [
-            'belongsTo' => [],
-            'hasOne' => [],
-            'hasMany' => [],
-            'belongsToMany' => [],
-        ];
-
-        foreach ($model->associations() as $association) {
-            $alias = $association->getName();
-            $map = match ($association->type()) {
-                'manyToOne' => 'belongsTo',
-                'oneToOne' => 'hasOne',
-                'oneToMany' => 'hasMany',
-                'manyToMany' => 'belongsToMany',
-                default => null,
-            };
-            if ($map !== null) {
-                $result[$map][] = $alias;
-            }
-        }
-
-        return $result;
     }
 
     /**
@@ -220,12 +217,18 @@ class MongoTemplateCommand extends BakeCommand
      */
     public function getContent(Arguments $args, ConsoleIo $io, string $method, array $vars): string
     {
-        $themeOption = $args->getOption('theme');
-        $theme = is_string($themeOption) ? $themeOption : null;
+        $entityClass = $vars['documentClass'] ?? EntityInterface::class;
+        $useDomain = (bool)$this->plugin;
+        $indexColumns = 0;
 
-        return $this->createTemplateRenderer()
-            ->set($vars)
-            ->generate(sprintf('Crustum/Mongo.Template/%s', $method));
+        $renderer = $this->createTemplateRenderer();
+        $renderer->set($vars);
+        $renderer->set('entityClass', $entityClass);
+        $renderer->set('useDomain', $useDomain);
+        $renderer->set('indexColumns', $indexColumns);
+        $renderer->set('action', $method);
+
+        return $renderer->generate(sprintf('Crustum/Mongo.Template/%s', $method));
     }
 
     /**
@@ -253,7 +256,7 @@ class MongoTemplateCommand extends BakeCommand
     {
         $paths = (array)Configure::read('App.paths.templates');
         if (empty($paths)) {
-            throw new \InvalidArgumentException('Could not read template paths.');
+            throw new InvalidArgumentException('Could not read template paths.');
         }
         $path = $paths[0];
         if ($this->plugin) {
