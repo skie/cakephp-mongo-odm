@@ -21,6 +21,7 @@ use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\SchemaDumper;
 use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
 
 /**
@@ -146,6 +147,7 @@ class BakeMigrationSnapshotCommand extends Command
      */
     protected function buildSnapshot(string $className, array $schema): string
     {
+        $printer = new PhpArrayPrinter();
         $lines = [];
         foreach ($schema as $name => $definition) {
             $collection = var_export($name, true);
@@ -154,7 +156,11 @@ class BakeMigrationSnapshotCommand extends Command
             if (isset($definition['validator'])) {
                 $options['validator'] = $definition['validator'];
             }
-            $lines[] = sprintf('        $this->createCollection(%s, %s);', $collection, var_export($options, true));
+            $lines[] = sprintf(
+                '        $this->createCollection(%s, %s);',
+                $collection,
+                $printer->print($options, 1),
+            );
 
             foreach ($definition['indexes'] ?? [] as $indexName => $indexDef) {
                 $key = $indexDef['key'] ?? [];
@@ -163,8 +169,8 @@ class BakeMigrationSnapshotCommand extends Command
                 $lines[] = sprintf(
                     '        $this->index(%s, %s, %s);',
                     $collection,
-                    var_export($key, true),
-                    var_export($options, true),
+                    $printer->print($key, 1),
+                    $printer->print($options, 1),
                 );
             }
         }

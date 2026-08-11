@@ -18,15 +18,21 @@ use Cake\Utility\Inflector;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Util\ColumnParser;
+use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
 
 /**
- * Bakes an empty Mongo migration class into the migrations folder.
+ * Bakes a Mongo migration class into the migrations folder.
+ *
+ * The migration name drives the generated action:
+ * - `CreateArticles name:string age:int` → create collection + validator
+ * - `AddTagsIndex` → empty migration
  *
  * Usage:
  * ```
  * bin/cake bake mongo_migration CreateArticles
- * bin/cake bake mongo_migration AddTagsIndex
+ * bin/cake bake mongo_migration CreateArticles name:string age:int? email:string:unique
  * ```
  */
 class BakeMigrationCommand extends Command
@@ -61,9 +67,9 @@ class BakeMigrationCommand extends Command
             'Bake a Mongo migration class',
             '',
             '<info>bin/cake bake mongo_migration CreateArticles</info>',
-        ])->addArgument('name', [
-            'help' => 'The migration class name in CamelCase',
-            'required' => true,
+            '<info>bin/cake bake mongo_migration CreateArticles name:string age:int? email:string:unique</info>',
+            '',
+            'Column grammar: name:type[length]?[:unique] — e.g. name:string[100], age:int?, email:string:unique',
         ])->addOption('plugin', [
             'short' => 'p',
             'help' => 'The plugin to run migrations for',
@@ -93,8 +99,9 @@ class BakeMigrationCommand extends Command
      */
     public function execute(Arguments $args, ConsoleIo $io): ?int
     {
-        $name = $args->getArgument('name');
-        if (!is_string($name) || $name === '') {
+        $all = $args->getArguments();
+        $name = isset($all[0]) && is_string($all[0]) ? $all[0] : null;
+        if ($name === null || $name === '') {
             $io->err('You must provide a migration name in CamelCase.');
             $this->abort();
         }
@@ -127,7 +134,15 @@ class BakeMigrationCommand extends Command
             }
         }
 
-        $content = $this->buildFile($className);
+        $parser = new ColumnParser();
+        $columnArgs = array_values(array_filter(
+            $all,
+            fn($arg): bool => is_string($arg) && $arg !== $name,
+        ));
+        $fields = $parser->parseFields($columnArgs);
+        $indexes = $parser->parseIndexes($columnArgs);
+
+        $content = $this->buildFile($className, $fields, $indexes);
 
         if (file_put_contents($file, $content) === false) {
             throw new RuntimeException(sprintf('Could not write migration file `%s`.', $file));
@@ -142,10 +157,55 @@ class BakeMigrationCommand extends Command
      * Builds the migration file content.
      *
      * @param string $className Migration class name
+     * @param array<string, array<string, mixed>> $fields Parsed fields
+     * @param array<string, array{key: array<string, int>, unique: bool}> $indexes Parsed indexes
      * @return string PHP file content
      */
-    protected function buildFile(string $className): string
+    protected function buildFile(string $className, array $fields, array $indexes): string
     {
+        $collectionName = 'collection_name';
+        if (preg_match('/^Create(.+)$/', $className, $matches)) {
+            $collectionName = Inflector::underscore($matches[1]);
+        }
+
+        $body = [];
+
+        if ($fields !== [] || $indexes !== []) {
+            $printer = new PhpArrayPrinter();
+            $lines = [];
+            $lines[] = sprintf("        \$this->collection('%s')", $collectionName);
+
+            foreach ($fields as $fieldName => $definition) {
+                $type = $definition['type'];
+                $options = [];
+                if ($definition['null'] ?? false) {
+                    $options['null'] = true;
+                }
+                if (isset($definition['default'])) {
+                    $options['default'] = $definition['default'];
+                }
+                $optionsStr = $options !== [] ? ', ' . $printer->print($options, 3) : '';
+                $lines[] = sprintf("            ->addField('%s', '%s'%s)", $fieldName, $type, $optionsStr);
+            }
+
+            foreach ($indexes as $index) {
+                $options = ['unique' => $index['unique']];
+                $lines[] = sprintf(
+                    '            ->addIndex(%s, %s)',
+                    $printer->print($index['key'], 3),
+                    $printer->print($options, 3),
+                );
+            }
+
+            $lines[] = '            ->create();';
+
+            $body[] = implode("\n", $lines);
+        } else {
+            $body[] = '        // Write your migration logic here.';
+        }
+
+        $upBody = implode("\n", $body);
+
         return <<<PHP
 <?php
 declare(strict_types=1);
@@ -158,6 +218,7 @@ class {$className} extends BaseMigration
 {
     public function up(): void
     {
+{$upBody}
     }
 
     public function down(): void

@@ -13,6 +13,7 @@ namespace Crustum\Mongo\Migration;
 use Cake\Console\ConsoleIo;
 use Crustum\Mongo\Migration\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\Db\Collection;
 use ReflectionClass;
 use RuntimeException;
 
@@ -190,6 +191,14 @@ class BaseMigration implements MigrationInterface
     public function hasCollection(string $collectionName): bool
     {
         return $this->getAdapter()->hasCollection($collectionName);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function collection(string $collectionName, array $options = []): Collection
+    {
+        return new Collection($collectionName, $options, $this->getAdapter());
     }
 
     /**

@@ -13,6 +13,7 @@ namespace Crustum\Mongo\Migration;
 use Cake\Console\ConsoleIo;
 use Crustum\Mongo\Migration\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\Db\Collection;
 
 /**
  * Migration interface.
@@ -136,6 +137,15 @@ interface MigrationInterface
      * @return bool
      */
     public function useTransactions(): bool;
+
+    /**
+     * Returns a fluent collection builder for creating or altering collections.
+     *
+     * @param string $collectionName Collection name
+     * @param array<string, mixed> $options Collection creation options
+     * @return \Crustum\Mongo\Migration\Db\Collection
+     */
+    public function collection(string $collectionName, array $options = []): Collection;
 
     /**
      * Checks whether a collection exists.

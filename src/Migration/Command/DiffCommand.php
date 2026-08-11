@@ -14,6 +14,7 @@ use Crustum\Mongo\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\SchemaDiff;
 use Crustum\Mongo\Migration\SchemaDumper;
 use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
 
 /**
@@ -134,24 +135,25 @@ class DiffCommand extends Command
      */
     protected function buildMigrationFile(string $className, array $operations): string
     {
+        $printer = new PhpArrayPrinter();
         $lines = [];
         foreach ($operations as $op) {
             $collection = var_export($op['collection'], true);
             switch ($op['type']) {
                 case 'createCollection':
-                    $lines[] = sprintf('        $this->createCollection(%s, %s);', $collection, var_export($op['options'] ?? [], true));
+                    $lines[] = sprintf('        $this->createCollection(%s, %s);', $collection, $printer->print($op['options'] ?? [], 1));
                     break;
                 case 'dropCollection':
                     $lines[] = sprintf('        $this->dropCollection(%s);', $collection);
                     break;
                 case 'createIndex':
-                    $lines[] = sprintf('        $this->index(%s, %s, %s);', $collection, var_export($op['key'] ?? [], true), var_export($op['options'] ?? [], true));
+                    $lines[] = sprintf('        $this->index(%s, %s, %s);', $collection, $printer->print($op['key'] ?? [], 1), $printer->print($op['options'] ?? [], 1));
                     break;
                 case 'dropIndex':
                     $lines[] = sprintf('        $this->dropIndex(%s, %s);', $collection, var_export($op['name'] ?? '', true));
                     break;
                 case 'setValidator':
-                    $lines[] = sprintf('        $this->setValidator(%s, %s);', $collection, var_export($op['validator'] ?? null, true));
+                    $lines[] = sprintf('        $this->setValidator(%s, %s);', $collection, $printer->print($op['validator'] ?? null, 1));
                     break;
             }
         }

@@ -9,6 +9,12 @@
 }) }}
 
 {{ DocBlock.classDescription(name, 'Model', [])|raw }}
+{% if fields is defined and fields|length > 0 %}
+#[Document(collection: '{{ collection is defined ? collection : name|underscore }}')]
+{% for field in fields %}
+#[Field(name: '{{ field.name }}', type: '{{ field.type }}'{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
+{% endfor %}
+{% endif %}
 class {{ name }} extends Document
 {
 {% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
