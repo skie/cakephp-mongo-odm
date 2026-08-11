@@ -65,7 +65,7 @@ class RollbackCommand extends Command
         ])->addOption('connection', [
             'short' => 'c',
             'help' => 'The datasource connection to use',
-            'default' => 'default',
+            'default' => 'mongo',
         ])->addOption('source', [
             'short' => 's',
             'default' => ConfigInterface::DEFAULT_MIGRATION_FOLDER,

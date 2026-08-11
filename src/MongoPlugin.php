@@ -97,6 +97,7 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
     #[Override]
     public function console(CommandCollection $commands): CommandCollection
     {
+        // Primary names.
         $commands->add('mongo migrations migrate', MigrateCommand::class);
         $commands->add('mongo migrations rollback', RollbackCommand::class);
         $commands->add('mongo migrations status', StatusCommand::class);
@@ -105,6 +106,16 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
         $commands->add('mongo migrations seed', SeedCommand::class);
         $commands->add('mongo migrations diff', DiffCommand::class);
         $commands->add('mongo schema dump', DumpCommand::class);
+
+        // Short aliases.
+        $commands->add('mongo migrate', MigrateCommand::class);
+        $commands->add('mongo rollback', RollbackCommand::class);
+        $commands->add('mongo status', StatusCommand::class);
+        $commands->add('mongo mark_migrated', MarkMigratedCommand::class);
+        $commands->add('mongo reset', ResetCommand::class);
+        $commands->add('mongo seed', SeedCommand::class);
+        $commands->add('mongo diff', DiffCommand::class);
+        $commands->add('mongo dump', DumpCommand::class);
 
         return parent::console($commands);
     }

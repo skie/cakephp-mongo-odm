@@ -54,7 +54,7 @@ class DumpCommand extends Command
         ])->addOption('connection', [
             'short' => 'c',
             'help' => 'The datasource connection to use',
-            'default' => 'default',
+            'default' => 'mongo',
         ])->addOption('path', [
             'help' => 'The output file path (default: config/schema_mongo.php)',
         ]);

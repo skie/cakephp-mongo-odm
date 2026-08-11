@@ -75,7 +75,7 @@ class ManagerFactory
             $dir = Plugin::path($plugin) . 'config' . DS . $folder;
         }
 
-        $connectionName = (string)$this->getOption('connection') ?: 'default';
+        $connectionName = (string)$this->getOption('connection') ?: 'mongo';
 
         $configData = [
             'paths' => [

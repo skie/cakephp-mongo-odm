@@ -153,7 +153,7 @@ class BuiltinBackend implements BackendInterface
         $factory = new ManagerFactory([
             'plugin' => $options['plugin'] ?? null,
             'source' => $options['source'] ?? ConfigInterface::DEFAULT_MIGRATION_FOLDER,
-            'connection' => $options['connection'] ?? 'default',
+            'connection' => $options['connection'] ?? 'mongo',
         ]);
         $io = new ConsoleIo(
             new StubConsoleOutput(),

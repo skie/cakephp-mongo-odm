@@ -59,7 +59,7 @@ class DiffCommand extends Command
         ])->addOption('connection', [
             'short' => 'c',
             'help' => 'The datasource connection to use',
-            'default' => 'default',
+            'default' => 'mongo',
         ])->addOption('source', [
             'short' => 's',
             'help' => 'The folder where your migrations are',
