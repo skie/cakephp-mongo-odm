@@ -323,3 +323,10 @@ src/Migration/
 2. `validationLevel: moderate` — don't break existing docs
 3. Optional backfill migration — fill defaults to bring legacy docs to new schema
 
+
+## Main docs location
+The authoritative reference docs live in plugins/Mongo/docs/reference/ (NOT crustum):
+- 24-schema-migrations-design.md - Mongo schema & versioned migrations (phinx-style, legacy-safe, file persistence)
+- 25-bake-documents-workflow.md - bake documents: regenerate #[Field] from live schema
+- 00-index.md - updated map (24, 25 added)
+This file (ODM_RECENT_CHANGES.md) is a scratchpad; deep plans go in docs/reference/.
