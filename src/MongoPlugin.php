@@ -13,6 +13,8 @@ use Cake\Datasource\FactoryLocator;
 use Cake\Event\EventManager;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\RouteBuilder;
+use Crustum\Mongo\Migration\Command\DiffCommand;
+use Crustum\Mongo\Migration\Command\DumpCommand;
 use Crustum\Mongo\Migration\Command\MarkMigratedCommand;
 use Crustum\Mongo\Migration\Command\MigrateCommand;
 use Crustum\Mongo\Migration\Command\ResetCommand;
@@ -101,6 +103,8 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
         $commands->add('migrations mark_migrated', MarkMigratedCommand::class);
         $commands->add('migrations reset', ResetCommand::class);
         $commands->add('migrations seed', SeedCommand::class);
+        $commands->add('migrations diff', DiffCommand::class);
+        $commands->add('schema dump', DumpCommand::class);
 
         return parent::console($commands);
     }

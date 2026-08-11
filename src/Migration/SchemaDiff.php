@@ -1,0 +1,128 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Migration;
+
+/**
+ * Compares a desired schema (from documents or a dumped file) against the
+ * live database and emits the deltas as migration operations.
+ *
+ * Operations are the same primitives the adapter executes, so `diff` output
+ * can be baked directly into a migration.
+ */
+class SchemaDiff
+{
+    /**
+     * Returns the operations needed to turn the live database into the
+     * desired schema.
+     *
+     * The desired schema is a map of collection name → definition:
+     * ```
+     * [
+     *   'articles' => [
+     *     'fields' => [...],
+     *     'indexes' => ['articles_author' => ['key' => ['author_id' => 1], 'options' => []]],
+     *     'validator' => ['$jsonSchema' => [...]],
+     *   ],
+     * ]
+     * ```
+     *
+     * @param array<string, array<string, mixed>> $desired The desired schema map
+     * @param array<string, array<string, mixed>> $actual The actual schema map (from introspection)
+     * @return list<array{type: string, collection: string, index?: string, name?: string, key?: array<string, mixed>, options?: array<string, mixed>, validator?: array<string, mixed>|null}>
+     */
+    public function diff(array $desired, array $actual): array
+    {
+        $operations = [];
+
+        foreach ($desired as $name => $definition) {
+            if (!isset($actual[$name])) {
+                $operations[] = $this->createCollectionOp($name, $definition);
+
+                continue;
+            }
+
+            $actualDef = $actual[$name];
+
+            // Validator
+            $desiredValidator = $definition['validator'] ?? null;
+            $actualValidator = $actualDef['validator'] ?? null;
+            if ($desiredValidator !== $actualValidator) {
+                $operations[] = [
+                    'type' => 'setValidator',
+                    'collection' => $name,
+                    'validator' => $desiredValidator,
+                ];
+            }
+
+            // Indexes
+            $desiredIndexes = $definition['indexes'] ?? [];
+            $actualIndexes = $actualDef['indexes'] ?? [];
+
+            foreach ($desiredIndexes as $indexName => $indexDef) {
+                if (!isset($actualIndexes[$indexName])) {
+                    $operations[] = [
+                        'type' => 'createIndex',
+                        'collection' => $name,
+                        'name' => $indexName,
+                        'key' => $indexDef['key'] ?? [],
+                        'options' => $indexDef['options'] ?? [],
+                    ];
+                }
+            }
+
+            foreach ($actualIndexes as $indexName => $indexDef) {
+                if (!isset($desiredIndexes[$indexName])) {
+                    $operations[] = [
+                        'type' => 'dropIndex',
+                        'collection' => $name,
+                        'name' => $indexName,
+                    ];
+                }
+            }
+        }
+
+        foreach ($actual as $name => $definition) {
+            if (!isset($desired[$name])) {
+                $operations[] = [
+                    'type' => 'dropCollection',
+                    'collection' => $name,
+                ];
+            }
+        }
+
+        return $operations;
+    }
+
+    /**
+     * Builds the "create collection" operation with validator and indexes.
+     *
+     * @param string $name Collection name
+     * @param array<string, mixed> $definition Collection definition
+     * @return array{type: string, collection: string, options: array<string, mixed>}
+     */
+    protected function createCollectionOp(string $name, array $definition): array
+    {
+        $options = $definition['options'] ?? [];
+        if (isset($definition['validator'])) {
+            $options['validator'] = $definition['validator'];
+        }
+
+        return [
+            'type' => 'createCollection',
+            'collection' => $name,
+            'options' => $options,
+        ];
+    }
+
+    /**
+     * Returns the desired index map keyed by index name.
+     *
+     * @param array<string, mixed> $definition Collection definition
+     * @return array<string, array<string, mixed>>
+     */
+    protected function desiredIndexes(array $definition): array
+    {
+        return $definition['indexes'] ?? [];
+    }
+}
