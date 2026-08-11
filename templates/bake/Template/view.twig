@@ -1,0 +1,37 @@
+{#
+/**
+ * Crustum Mongo ODM — Template view.
+ */
+#}
+<?php
+/**
+ * @var \App\View\AppView $this
+ * @var \Cake\Datasource\EntityInterface ${{ singularVar }}
+ */
+?>
+<div class="{{ pluralVar }} view content">
+    <h3><?= h(${{ singularVar }}->{{ displayField }}) ?></h3>
+    <div class="table-responsive">
+        <table class="table">
+{% for field in fields %}
+            <tr>
+                <th><?= __('{{ field }}') ?></th>
+                <td><?= h(${{ singularVar }}->{{ field }}) ?></td>
+            </tr>
+{% endfor %}
+        </table>
+    </div>
+    <div class="related">
+<?php
+{% if associations.hasMany %}
+    foreach (${{ associations.hasMany|join(', ') }} as $assoc) {
+        // related {{ pluralHumanName }} association.
+    }
+{% endif %}
+?>
+    </div>
+    <div class="related">
+        <?= $this->Html->link(__('Edit'), ['action' => 'edit', ${{ singularVar }}->getId()]) ?>
+        <?= $this->Form->postLink(__('Delete'), ['action' => 'delete', ${{ singularVar }}->getId()], ['confirm' => __('Are you sure you want to delete # {0}?', ${{ singularVar }}->getId())]) ?>
+    </div>
+</div>

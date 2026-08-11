@@ -1,0 +1,30 @@
+{#
+/**
+ * Crustum Mongo ODM — Template edit.
+ */
+#}
+<?php
+/**
+ * @var \App\View\AppView $this
+ * @var \Cake\Datasource\EntityInterface ${{ singularVar }}
+ */
+?>
+<div class="row">
+    <div class="column">
+        <div class="{{ pluralVar }} form content">
+            <?= $this->Form->create(${{ singularVar }}) ?>
+            <fieldset>
+                <legend><?= __('Edit {{ singularHumanName }}') ?></legend>
+<?php
+{% for field in fields %}
+    {%~ if field not in primaryKey %}
+                echo $this->Form->control('{{ field }}');
+    {%~ endif %}
+{% endfor %}
+?>
+            </fieldset>
+            <?= $this->Form->button(__('Submit')) ?>
+            <?= $this->Form->end() ?>
+        </div>
+    </div>
+</div>

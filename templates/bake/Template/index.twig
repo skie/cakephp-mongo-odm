@@ -1,0 +1,41 @@
+{#
+/**
+ * Crustum Mongo ODM — Template index.
+ */
+#}
+<?php
+/**
+ * @var \App\View\AppView $this
+ * @var iterable<\Cake\Datasource\EntityInterface> ${{ pluralVar }}
+ */
+?>
+<div class="{{ pluralVar }} index content">
+    <?= $this->Html->link(__('New {{ singularHumanName }}'), ['action' => 'add'], ['class' => 'button float-right']) ?>
+    <h3><?= __('{{ pluralHumanName }}') ?></h3>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+{% for field in fields %}
+                    <th><?= __('{{ field }}') ?></th>
+{% endfor %}
+                    <th class="actions"><?= __('Actions') ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (${{ pluralVar }} as ${{ singularVar }}): ?>
+                <tr>
+{% for field in fields %}
+                    <td><?= h(${{ singularVar }}->{{ field }}) ?></td>
+{% endfor %}
+                    <td class="actions">
+                        <?= $this->Html->link(__('View'), ['action' => 'view', ${{ singularVar }}->getId()]) ?>
+                        <?= $this->Html->link(__('Edit'), ['action' => 'edit', ${{ singularVar }}->getId()]) ?>
+                        <?= $this->Form->postLink(__('Delete'), ['action' => 'delete', ${{ singularVar }}->getId()], ['confirm' => __('Are you sure you want to delete # {0}?', ${{ singularVar }}->getId())]) ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
