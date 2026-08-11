@@ -13,6 +13,10 @@ use Cake\Datasource\FactoryLocator;
 use Cake\Event\EventManager;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\RouteBuilder;
+use Crustum\Mongo\Migration\Command\BakeMigrationCommand;
+use Crustum\Mongo\Migration\Command\BakeMigrationDiffCommand;
+use Crustum\Mongo\Migration\Command\BakeMigrationSnapshotCommand;
+use Crustum\Mongo\Migration\Command\BakeSeedCommand;
 use Crustum\Mongo\Migration\Command\DiffCommand;
 use Crustum\Mongo\Migration\Command\DumpCommand;
 use Crustum\Mongo\Migration\Command\MarkMigratedCommand;
@@ -106,6 +110,10 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
         $commands->add('mongo migrations seed', SeedCommand::class);
         $commands->add('mongo migrations diff', DiffCommand::class);
         $commands->add('mongo schema dump', DumpCommand::class);
+        $commands->add('bake mongo_migration', BakeMigrationCommand::class);
+        $commands->add('bake mongo_migration_diff', BakeMigrationDiffCommand::class);
+        $commands->add('bake mongo_migration_snapshot', BakeMigrationSnapshotCommand::class);
+        $commands->add('bake mongo_seed', BakeSeedCommand::class);
 
         // Short aliases.
         $commands->add('mongo migrate', MigrateCommand::class);

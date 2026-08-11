@@ -9,6 +9,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\SchemaDiff;
 use Crustum\Mongo\Migration\SchemaDumper;
@@ -16,7 +17,7 @@ use Crustum\Mongo\Migration\Util;
 use RuntimeException;
 
 /**
- * Diff command compares the desired schema (config/schema_mongo.php) against
+ * Diff command compares the desired schema (schema-dump-mongo.lock) against
  * the live database and bakes a migration for the deltas.
  */
 class DiffCommand extends Command
@@ -26,7 +27,7 @@ class DiffCommand extends Command
      */
     public static function getDescription(): string
     {
-        return 'Generate a migration from the schema diff (file vs live).';
+        return 'Generate a migration from the schema diff (lock file vs live).';
     }
 
     /**
@@ -48,23 +49,27 @@ class DiffCommand extends Command
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([
-            'Compare config/schema_mongo.php against the live Mongo schema and ' .
+            'Compare the schema dump lock file against the live Mongo schema and ' .
             'bake a migration for the deltas',
             '',
-            '<info>migrations diff</info>',
-            '<info>migrations diff --connection mongo</info>',
+            '<info>mongo migrations diff</info>',
+            '<info>mongo migrations diff --connection mongo</info>',
         ])->addArgument('name', [
             'help' => 'The migration name (default: SchemaDiff)',
             'required' => false,
+        ])->addOption('plugin', [
+            'short' => 'p',
+            'help' => 'The plugin to run migrations for',
         ])->addOption('connection', [
             'short' => 'c',
             'help' => 'The datasource connection to use',
             'default' => 'mongo',
         ])->addOption('source', [
             'short' => 's',
+            'default' => ConfigInterface::DEFAULT_MIGRATION_FOLDER,
             'help' => 'The folder where your migrations are',
         ])->addOption('schema-file', [
-            'help' => 'The desired schema file (default: config/schema_mongo.php)',
+            'help' => 'The desired schema lock file (default: <migrations folder>/schema-dump-mongo.lock)',
         ]);
 
         return $parser;
@@ -89,14 +94,14 @@ class DiffCommand extends Command
             ));
         }
 
-        $schemaFile = $args->getOption('schema-file');
-        $file = is_string($schemaFile) ? $schemaFile : CONFIG . 'schema_mongo.php';
+        $file = $this->dumpPath($args);
         if (!file_exists($file)) {
-            throw new RuntimeException(sprintf('Schema file `%s` does not exist. Run `schema dump` first.', $file));
+            throw new RuntimeException(sprintf('Schema dump `%s` does not exist. Run `mongo schema dump` first.', $file));
         }
-        $desired = include $file;
+        $contents = file_get_contents($file);
+        $desired = $contents !== false ? unserialize($contents) : false;
         if (!is_array($desired)) {
-            throw new RuntimeException(sprintf('Schema file `%s` must return an array.', $file));
+            throw new RuntimeException(sprintf('Schema dump `%s` is not a valid serialized schema.', $file));
         }
 
         $dumper = new SchemaDumper($connection);
@@ -177,6 +182,29 @@ PHP;
     }
 
     /**
+     * Resolves the schema dump lock file path.
+     *
+     * @param \Cake\Console\Arguments $args The command arguments
+     * @return string The dump file path
+     */
+    protected function dumpPath(Arguments $args): string
+    {
+        $explicit = $args->getOption('schema-file');
+        if (is_string($explicit)) {
+            return $explicit;
+        }
+
+        $factory = new ManagerFactory([
+            'plugin' => $args->getOption('plugin'),
+            'source' => $args->getOption('source'),
+            'connection' => (string)$args->getOption('connection'),
+        ]);
+        $config = $factory->createConfig();
+
+        return $config->getMigrationPath() . DIRECTORY_SEPARATOR . DumpCommand::DUMP_FILE;
+    }
+
+    /**
      * Writes the migration file to the migrations folder.
      *
      * @param \Cake\Console\Arguments $args The command arguments
@@ -190,7 +218,7 @@ PHP;
     {
         $factory = new ManagerFactory([
             'plugin' => $args->getOption('plugin'),
-            'source' => $args->getOption('source') ?: 'MongoMigrations',
+            'source' => $args->getOption('source') ?: ConfigInterface::DEFAULT_MIGRATION_FOLDER,
             'connection' => (string)$args->getOption('connection'),
         ]);
         $config = $factory->createConfig();
