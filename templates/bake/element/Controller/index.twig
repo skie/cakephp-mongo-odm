@@ -16,7 +16,7 @@
 {% else %}
         $query = $this->{{ currentModelName }}->find();
 {% endif %}
-        ${{ pluralName }} = $query->toArray();
+        ${{ pluralName }} = $this->paginate($query);
 
         $this->set(compact('{{ pluralName }}'));
     }

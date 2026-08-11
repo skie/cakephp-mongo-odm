@@ -1,0 +1,39 @@
+{#
+/**
+ * Crustum Mongo ODM — Fixture bake template.
+ */
+#}
+<?php
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use Crustum\Mongo\TestSuite\TestFixture;
+
+/**
+ * {{ name }} fixture for the Mongo ODM test harness.
+ */
+class {{ name }}Fixture extends TestFixture
+{
+    /**
+     * The connection name.
+     *
+     * @var string
+     */
+    public string $connection = 'test_mongo';
+
+    /**
+     * The collection name.
+     *
+     * @var string
+     */
+    public string $table = '{{ table }}';
+
+    /**
+     * Documents to insert.
+     *
+     * @var list<array<string, mixed>>
+     */
+    public array $records = [
+    ];
+}

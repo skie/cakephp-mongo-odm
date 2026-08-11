@@ -6,7 +6,7 @@
 <?php
 /**
  * @var \App\View\AppView $this
- * @var iterable<\Cake\Datasource\EntityInterface> ${{ pluralVar }}
+ * @var \Cake\Datasource\Paging\PaginatedInterface<\Cake\Datasource\EntityInterface> ${{ pluralVar }}
  */
 ?>
 <div class="{{ pluralVar }} index content">
@@ -17,7 +17,11 @@
             <thead>
                 <tr>
 {% for field in fields %}
-                    <th><?= __('{{ field }}') ?></th>
+    {%~ if field in primaryKey %}
+                    <th><?= $this->Paginator->sort('{{ field }}') ?></th>
+    {%~ else %}
+                    <th><?= $this->Paginator->sort('{{ field }}') ?></th>
+    {%~ endif %}
 {% endfor %}
                     <th class="actions"><?= __('Actions') ?></th>
                 </tr>
@@ -37,5 +41,15 @@
                 <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+    <div class="paginator">
+        <ul class="pagination">
+            <?= $this->Paginator->first('<< ' . __('first')) ?>
+            <?= $this->Paginator->prev('< ' . __('previous')) ?>
+            <?= $this->Paginator->numbers() ?>
+            <?= $this->Paginator->next(__('next') . ' >') ?>
+            <?= $this->Paginator->last(__('last') . ' >>') ?>
+        </ul>
+        <p><?= $this->Paginator->counter(__('Page {{ '{{' }}page{{ '}}' }} of {{ '{{' }}pages{{ '}}' }}, showing {{ '{{' }}current{{ '}}' }} record(s) out of {{ '{{' }}count{{ '}}' }} total')) ?></p>
     </div>
 </div>

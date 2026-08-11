@@ -23,6 +23,17 @@
  */
 class {{ name }}Controller extends AppController
 {
+{% if 'index' in actions %}
+    /**
+     * Pagination settings.
+     *
+     * @var array<string, mixed>
+     */
+    public array $paginate = [
+        'className' => \Crustum\Mongo\Datasource\Paging\MongoPaginator::class,
+    ];
+
+{% endif %}
 {% if include_initialize %}
     /**
      * Initialize controller
