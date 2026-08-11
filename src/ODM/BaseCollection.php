@@ -410,7 +410,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function hasField(string $field): bool
     {
-        return false;
+        return $this->getSchema()->hasColumn($field);
     }
 
     /**

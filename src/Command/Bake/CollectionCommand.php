@@ -72,6 +72,7 @@ class CollectionCommand extends BakeCommand
             ->set('name', $name)
             ->set('namespace', $namespace)
             ->set('plugin', $this->plugin)
+            ->set('documentClass', $this->documentClassFor($name, $namespace))
             ->generate('Crustum/Mongo.Collection/collection');
 
         $io->createFile($filename, $contents, $this->force);
@@ -93,6 +94,25 @@ class CollectionCommand extends BakeCommand
             ]);
 
         return $parser;
+    }
+
+    /**
+     * Resolves the singular Document class for a collection, if it exists.
+     *
+     * @param string $name Collection class name (e.g. `Authors`).
+     * @param string $namespace App namespace.
+     * @return string|null The document FQCN or null when no Document class exists.
+     */
+    protected function documentClassFor(string $name, string $namespace): ?string
+    {
+        $singular = Inflector::singularize($name);
+        $class = sprintf('%s\Model\Document\%s', $namespace, $singular);
+        if (class_exists($class)) {
+            return $class;
+        }
+
+        // fall back to the singularized class name without suffix
+        return null;
     }
 
     /**

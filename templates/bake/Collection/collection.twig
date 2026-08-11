@@ -30,6 +30,10 @@ class {{ name }}Collection extends BaseCollection
     public function initialize(array $config): void
     {
         parent::initialize($config);
+{% if documentClass %}
+        $this->setDocumentClass({{ '\\' ~ documentClass }}::class);
+        $this->setSchemaFromDocument({{ '\\' ~ documentClass }}::class);
+{% endif %}
     }
 {% if connection is not same as('mongo') and connection %}
     /**
