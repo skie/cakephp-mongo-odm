@@ -1,0 +1,24 @@
+{#
+/**
+ * Crustum Mongo ODM — Controller index action.
+ */
+#}
+    /**
+     * Index method
+     *
+     * @return \Cake\Http\Response|null|void Renders view
+     */
+    public function index()
+    {
+{% if associations.belongsTo %}
+        $query = $this->{{ currentModelName }}->find()
+            ->contain({{ Bake.exportArray(associations.belongsTo)|raw }});
+{% else %}
+        $query = $this->{{ currentModelName }}->find();
+{% endif %}
+        ${{ pluralName }} = $query->toArray();
+
+        $this->set(compact('{{ pluralName }}'));
+    }
+
+

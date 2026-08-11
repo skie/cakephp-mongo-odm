@@ -1,0 +1,35 @@
+{#
+/**
+ * Crustum Mongo ODM — Controller add action.
+ */
+#}
+    /**
+     * Add method
+     *
+     * @return \Cake\Http\Response|null|void Redirects on successful add, renders view otherwise.
+     */
+    public function add()
+    {
+{% set compact = ["'#{singularName}'"] %}
+        ${{ singularName }} = $this->{{ currentModelName }}->newEmptyDocument();
+        if ($this->request->is('post')) {
+            ${{ singularName }} = $this->{{ currentModelName }}->patchDocument(${{ singularName }}, $this->request->getData());
+            if ($this->{{ currentModelName }}->save(${{ singularName }})) {
+                $this->Flash->success({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} has been saved.'));
+
+                return $this->redirect(['action' => 'view', ${{ singularName }}->getId()]);
+            }
+            $this->Flash->error({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} could not be saved. Please, try again.'));
+        }
+{% set associations = associations.belongsTo|merge(associations.belongsToMany) %}
+
+{%- for assoc in associations %}
+    {%~ set otherPlural = assoc|variable %}
+    {%~ if otherPlural == singularName %}
+        {%~ set otherPlural = otherPlural ~ 'List' %}
+    {%~ endif %}
+        ${{ otherPlural }} = $this->{{ currentModelName }}->{{ assoc }}->find()->all();
+    {%~ set compact = compact|merge(["'#{otherPlural}'"]) %}
+{% endfor %}
+        $this->set(compact({{ compact|join(', ')|raw }}));
+    }
