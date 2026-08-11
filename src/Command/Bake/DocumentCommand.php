@@ -78,12 +78,18 @@ class DocumentCommand extends BakeCommand
             $collection = Inflector::tableize($name);
         }
 
+        $useConstants = array_any(
+            $fields,
+            fn(array $field): bool => $field['constant'] !== null,
+        );
+
         $contents = $this->createTemplateRenderer()
             ->set('name', $name)
             ->set('namespace', $namespace)
             ->set('plugin', $this->plugin)
             ->set('fields', $fields)
             ->set('collection', $collection)
+            ->set('useConstants', $useConstants)
             ->generate('Crustum/Mongo.Document/document');
 
         $io->createFile($filename, $contents, $this->force);
@@ -100,7 +106,7 @@ class DocumentCommand extends BakeCommand
      * @param string $name Document class name
      * @param \Cake\Console\Arguments $args CLI arguments
      * @param \Cake\Console\ConsoleIo $io Console io
-     * @return list<array{name: string, type: string, nullable: bool, primaryKey: bool}>
+     * @return list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool}>
      */
     protected function schemaFields(string $name, Arguments $args, ConsoleIo $io): array
     {
@@ -131,9 +137,11 @@ class DocumentCommand extends BakeCommand
 
         $result = [];
         foreach ($fields as $fieldName => $definition) {
+            $type = SchemaFields::typeName($definition['bsonType']);
             $result[] = [
                 'name' => $fieldName,
-                'type' => SchemaFields::typeName($definition['bsonType']),
+                'type' => $type,
+                'constant' => SchemaFields::typeConstant($type),
                 'nullable' => false,
                 'primaryKey' => $fieldName === '_id',
             ];

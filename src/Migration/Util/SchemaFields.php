@@ -99,4 +99,49 @@ class SchemaFields
             default => 'string',
         };
     }
+
+    /**
+     * Returns the `CollectionSchemaInterface::TYPE_*` constant name for a
+     * canonical type, or null when no constant exists.
+     *
+     * @param string $type Canonical TypeFactory type name
+     * @return string|null The constant name (e.g. `TYPE_STRING`), or null
+     */
+    public static function typeConstant(string $type): ?string
+    {
+        $map = [
+            'objectid' => 'TYPE_OBJECTID',
+            'id' => 'TYPE_ID',
+            'date' => 'TYPE_DATE',
+            'datetime' => 'TYPE_DATETIME',
+            'timestamp' => 'TYPE_TIMESTAMP',
+            'date_immutable' => 'TYPE_DATE_IMMUTABLE',
+            'decimal128' => 'TYPE_DECIMAL',
+            'binary' => 'TYPE_BINARY',
+            'bin_uuid' => 'TYPE_BINARY_UUID',
+            'bin_uuid_rfc4122' => 'TYPE_BINARY_UUID_RFC4122',
+            'bin_md5' => 'TYPE_BINARY_MD5',
+            'bin_func' => 'TYPE_BINARY_FUNC',
+            'bin_bytearray' => 'TYPE_BINARY_BYTEARRAY',
+            'bin_custom' => 'TYPE_BINARY_CUSTOM',
+            'string' => 'TYPE_STRING',
+            'uuid' => 'TYPE_UUID',
+            'time' => 'TYPE_TIME',
+            'json' => 'TYPE_JSON',
+            'integer' => 'TYPE_INTEGER',
+            'int64' => 'TYPE_INT64',
+            'float' => 'TYPE_FLOAT',
+            'boolean' => 'TYPE_BOOLEAN',
+            'array' => 'TYPE_ARRAY',
+            'hash' => 'TYPE_HASH',
+            'collection' => 'TYPE_COLLECTION',
+            'raw' => 'TYPE_RAW',
+            'key' => 'TYPE_KEY',
+            'vector_float32' => 'TYPE_VECTOR_FLOAT32',
+            'vector_int8' => 'TYPE_VECTOR_INT8',
+            'vector_packed_bit' => 'TYPE_VECTOR_PACKED_BIT',
+        ];
+
+        return $map[$type] ?? null;
+    }
 }

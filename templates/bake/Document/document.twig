@@ -3,6 +3,9 @@
 {%- if fields is defined and fields|length > 0 -%}
     {%- set imports = imports|merge(['Crustum\\Mongo\\ODM\\Attribute\\Document', 'Crustum\\Mongo\\ODM\\Attribute\\Field']) -%}
 {%- endif -%}
+{%- if useConstants is defined and useConstants -%}
+    {%- set imports = imports|merge(['Crustum\\Mongo\\Database\\Schema\\CollectionSchemaInterface']) -%}
+{%- endif -%}
 {{- element('Bake.file_header', {
     namespace: "#{namespace}\\Model\\Document",
     classImports: imports,
@@ -12,7 +15,7 @@
 {% if fields is defined and fields|length > 0 %}
 #[Document(collection: '{{ collection is defined ? collection : name|underscore }}')]
 {% for field in fields %}
-#[Field(name: '{{ field.name }}', type: '{{ field.type }}'{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
+#[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
 {% endfor %}
 {% endif %}
 class {{ name }} extends Document
