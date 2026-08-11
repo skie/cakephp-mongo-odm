@@ -1,8 +1,19 @@
 {#
 /**
- * Crustum Mongo ODM — Controller add action.
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
  */
 #}
+{% set compact = ["'#{singularName}'"] %}
     /**
      * Add method
      *
@@ -10,25 +21,29 @@
      */
     public function add()
     {
-{% set compact = ["'#{singularName}'"] %}
         ${{ singularName }} = $this->{{ currentModelName }}->newEmptyDocument();
+{% if Bake.hasPlugin('Authorization') %}
+        $this->Authorization->authorize(${{ singularName }});
+{% endif %}
         if ($this->request->is('post')) {
             ${{ singularName }} = $this->{{ currentModelName }}->patchDocument(${{ singularName }}, $this->request->getData());
             if ($this->{{ currentModelName }}->save(${{ singularName }})) {
                 $this->Flash->success({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} has been saved.'));
 
-                return $this->redirect(['action' => 'view', ${{ singularName }}->getId()]);
+                return $this->redirect(['action' => 'index']);
             }
             $this->Flash->error({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} could not be saved. Please, try again.'));
         }
-{% set associations = associations.belongsTo|merge(associations.belongsToMany) %}
+{% set associations = MongoBake.aliasExtractor(modelObj, 'BelongsTo') %}
+{% set associations = associations|merge(MongoBake.aliasExtractor(modelObj, 'BelongsToMany')) %}
 
 {%- for assoc in associations %}
-    {%~ set otherPlural = assoc|variable %}
+    {%~ set otherName = MongoBake.getAssociatedTableAlias(modelObj, assoc) %}
+    {%~ set otherPlural = otherName|variable %}
     {%~ if otherPlural == singularName %}
         {%~ set otherPlural = otherPlural ~ 'List' %}
     {%~ endif %}
-        ${{ otherPlural }} = $this->{{ currentModelName }}->{{ assoc }}->find()->all();
+        ${{ otherPlural }} = $this->{{ currentModelName }}->{{ otherName }}->find('list', limit: 200)->all();
     {%~ set compact = compact|merge(["'#{otherPlural}'"]) %}
 {% endfor %}
         $this->set(compact({{ compact|join(', ')|raw }}));

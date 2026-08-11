@@ -9,8 +9,10 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\FactoryLocator;
+use Cake\Event\Event;
+use Cake\Event\EventManager;
 use Cake\Utility\Inflector;
-use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use Override;
 
 /**
@@ -64,6 +66,8 @@ class MongoControllerCommand extends BakeCommand
     {
         $io->quiet(sprintf('Baking controller class for %s...', $controllerName));
 
+        $this->registerMongoBakeHelper();
+
         $actions = [];
         if (!$args->getOption('no-actions') && !$args->getOption('actions')) {
             $actions = ['index', 'view', 'add', 'edit', 'delete'];
@@ -73,14 +77,21 @@ class MongoControllerCommand extends BakeCommand
             $actions = array_filter($actions);
         }
 
+        $helpers = [];
+        $components = [];
+
         $prefix = $this->getPrefix($args);
         if ($prefix) {
             $prefix = '\\' . str_replace('/', '\\', $prefix);
         }
 
-        $namespace = Configure::read('App.namespace');
+        // Controllers default to importing AppController from `App`.
+        $baseNamespace = $namespace = Configure::read('App.namespace');
         if ($this->plugin) {
             $namespace = $this->_pluginNamespace($this->plugin);
+        }
+        if ($this->plugin && class_exists("{$namespace}\Controller\AppController")) {
+            $baseNamespace = $namespace;
         }
 
         $currentModelName = $controllerName;
@@ -106,13 +117,18 @@ class MongoControllerCommand extends BakeCommand
         if (!class_exists($defaultModel)) {
             $defaultModel = null;
         }
+        $entityClassName = $this->_entityName($modelObj->getAlias());
 
         $data = compact(
             'actions',
+            'components',
             'currentModelName',
             'defaultModel',
+            'entityClassName',
+            'helpers',
             'modelObj',
             'namespace',
+            'baseNamespace',
             'plugin',
             'pluralHumanName',
             'pluralName',
@@ -121,7 +137,6 @@ class MongoControllerCommand extends BakeCommand
             'singularName',
         );
         $data['name'] = $controllerName;
-        $data['associations'] = $this->extractAssociations($modelObj);
 
         $contents = $this->createTemplateRenderer()
             ->set($data)
@@ -133,6 +148,21 @@ class MongoControllerCommand extends BakeCommand
 
         $emptyFile = $path . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Registers the MongoBake helper on the bake view.
+     *
+     * @return void
+     */
+    protected function registerMongoBakeHelper(): void
+    {
+        EventManager::instance()->on('Bake.initialize', function (Event $event): void {
+            $view = $event->getSubject();
+            if (method_exists($view, 'loadHelper')) {
+                $view->loadHelper('Crustum/Mongo.MongoBake', ['className' => MongoBakeHelper::class]);
+            }
+        });
     }
 
     /**
@@ -160,44 +190,14 @@ class MongoControllerCommand extends BakeCommand
     }
 
     /**
-     * Groups association aliases by relation type.
-     *
-     * @param \Crustum\Mongo\ODM\BaseCollection $model The collection.
-     * @return array<string, list<string>>
-     */
-    protected function extractAssociations(BaseCollection $model): array
-    {
-        $result = [
-            'belongsTo' => [],
-            'hasOne' => [],
-            'hasMany' => [],
-            'belongsToMany' => [],
-        ];
-
-        foreach ($model->associations() as $association) {
-            $alias = $association->getName();
-            $map = match ($association->type()) {
-                'manyToOne' => 'belongsTo',
-                'oneToOne' => 'hasOne',
-                'oneToMany' => 'hasMany',
-                'manyToMany' => 'belongsToMany',
-                default => null,
-            };
-            if ($map !== null) {
-                $result[$map][] = $alias;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * @inheritDoc
      */
     public static function defaultName(): string
     {
         return 'bake mongocontroller';
-    }    /**
+    }
+
+    /**
      * @inheritDoc
      */
     #[Override]

@@ -12,13 +12,15 @@ namespace Crustum\Mongo\View\Helper;
 
 use Bake\View\Helper\BakeHelper;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\ODM\BaseCollection;
 
 /**
  * Mongo-aware bake helper.
  *
- * Extends the cake `BakeHelper` so templates can call `MongoBake.columnData()`
- * and `MongoBake.enumSupportsLabel()` with a `CollectionSchema` instead of a
- * SQL `TableSchema`. Field types are Mongo canonical names.
+ * Extends the cake `BakeHelper` so templates can call `MongoBake.columnData()`,
+ * `MongoBake.enumSupportsLabel()` and `MongoBake.aliasExtractor()` with a
+ * `CollectionSchema` / `BaseCollection` instead of a SQL `TableSchema`.
+ * Field types are Mongo canonical names.
  */
 class MongoBakeHelper extends BakeHelper
 {
@@ -49,5 +51,37 @@ class MongoBakeHelper extends BakeHelper
         $type = $schema->getColumnType($field);
 
         return $type === 'enum';
+    }
+
+    /**
+     * Returns the aliases of a collection's associations of the given type.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
+     * @param string $type Association type (BelongsTo, HasMany, …).
+     * @return array<int, string>
+     */
+    public function aliasExtractor(BaseCollection $collection, string $type): array
+    {
+        return array_map(
+            fn($association): string => $association->getTarget()->getAlias(),
+            $collection->associations()->getByType($type),
+        );
+    }
+
+    /**
+     * Get alias of associated collection.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
+     * @param string $assoc Association name.
+     * @return string
+     */
+    public function getAssociatedTableAlias(BaseCollection $collection, string $assoc): string
+    {
+        $association = $collection->getAssociation($assoc);
+        if ($association === null) {
+            return $assoc;
+        }
+
+        return $association->getTarget()->getAlias();
     }
 }
