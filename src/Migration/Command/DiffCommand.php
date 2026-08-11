@@ -36,7 +36,7 @@ class DiffCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations diff';
+        return 'mongo migrations diff';
     }
 
     /**

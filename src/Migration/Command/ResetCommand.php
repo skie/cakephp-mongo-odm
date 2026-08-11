@@ -37,7 +37,7 @@ class ResetCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations reset';
+        return 'mongo migrations reset';
     }
 
     /**

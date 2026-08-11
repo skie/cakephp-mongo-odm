@@ -37,7 +37,7 @@ class SeedCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations seed';
+        return 'mongo migrations seed';
     }
 
     /**

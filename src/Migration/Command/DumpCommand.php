@@ -35,7 +35,7 @@ class DumpCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'schema dump';
+        return 'mongo schema dump';
     }
 
     /**

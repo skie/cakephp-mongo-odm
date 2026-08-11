@@ -37,7 +37,7 @@ class StatusCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations status';
+        return 'mongo migrations status';
     }
 
     /**

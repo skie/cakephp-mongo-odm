@@ -43,7 +43,7 @@ class MigrateCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations migrate';
+        return 'mongo migrations migrate';
     }
 
     /**

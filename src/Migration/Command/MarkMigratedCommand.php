@@ -37,7 +37,7 @@ class MarkMigratedCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations mark_migrated';
+        return 'mongo migrations mark_migrated';
     }
 
     /**

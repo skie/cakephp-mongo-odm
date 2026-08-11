@@ -40,7 +40,7 @@ class RollbackCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'migrations rollback';
+        return 'mongo migrations rollback';
     }
 
     /**
