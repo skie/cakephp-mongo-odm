@@ -210,8 +210,6 @@ class BakeMigrationCommand extends Command
 <?php
 declare(strict_types=1);
 
-namespace App\Migration;
-
 use Crustum\Mongo\Migration\BaseMigration;
 
 class {$className} extends BaseMigration

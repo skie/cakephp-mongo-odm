@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Schema;
 
 use Cake\Database\Exception\DatabaseException;
-use Cake\Datasource\SchemaInterface;
 use Exception;
 use MongoDB\Collection;
 use MongoDB\Database;
@@ -16,11 +15,12 @@ use MongoDB\Model\IndexInfo;
  * Composes the `Field` / `Index` / `Validator` value objects (ported from
  * `Cake\Database\Schema\Column` / `Index` / constraints) instead of keeping
  * flat arrays. Handles validation rules, indexes, and programmatic field
- * definition, and satisfies `Cake\Datasource\SchemaInterface`.
+ * definition, and satisfies `CollectionSchemaInterface` (which extends
+ * `Cake\Datasource\SchemaInterface`).
  *
  * @see docs/reference/24-schema-migrations-design.md
  */
-class CollectionSchema implements SchemaInterface
+class CollectionSchema implements CollectionSchemaInterface
 {
     /**
      * The collection indexes, keyed by index name.

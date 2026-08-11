@@ -133,7 +133,7 @@ class DocumentCommand extends BakeCommand
         foreach ($fields as $fieldName => $definition) {
             $result[] = [
                 'name' => $fieldName,
-                'type' => SchemaFields::typeName((string)($definition['bsonType'] ?? 'string')),
+                'type' => SchemaFields::typeName($definition['bsonType']),
                 'nullable' => false,
                 'primaryKey' => $fieldName === '_id',
             ];
@@ -186,4 +186,3 @@ class DocumentCommand extends BakeCommand
         return 'document';
     }
 }
-

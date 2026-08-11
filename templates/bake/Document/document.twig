@@ -1,11 +1,11 @@
-{#
-/**
- * Crustum Mongo ODM — Document bake template.
- */
-#}
-{{ element('Bake.file_header', {
+{# Crustum Mongo ODM — Document bake template. #}
+{%- set imports = ['Crustum\\Mongo\\ODM\\Document'] -%}
+{%- if fields is defined and fields|length > 0 -%}
+    {%- set imports = imports|merge(['Crustum\\Mongo\\ODM\\Attribute\\Document', 'Crustum\\Mongo\\ODM\\Attribute\\Field']) -%}
+{%- endif -%}
+{{- element('Bake.file_header', {
     namespace: "#{namespace}\\Model\\Document",
-    classImports: ['Crustum\\Mongo\\ODM\\Document'],
+    classImports: imports,
 }) }}
 
 {{ DocBlock.classDescription(name, 'Model', [])|raw }}
@@ -17,6 +17,22 @@
 {% endif %}
 class {{ name }} extends Document
 {
+{% if fields is defined and fields|length > 0 %}
+    /**
+     * Fields that can be mass assigned using newEntity() or patchEntity().
+     *
+     * Note that when '*' is set to true, this allows all unspecified fields to
+     * be mass assigned. For security purposes, it is advised to set '*' to false
+     * (or remove it), and explicitly make individual fields accessible as needed.
+     *
+     * @var array<string, bool>
+     */
+    protected array $_accessible = [
+{% for field in fields %}
+        '{{ field.name }}' => true,
+{% endfor %}
+    ];
+{% endif %}
 {% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
 {% if userConstants %}
     {{~ Bake.concat('\n\n', userConstants) }}

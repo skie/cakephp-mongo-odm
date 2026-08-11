@@ -254,23 +254,15 @@ class Manager
         $migrationFile = $migrationFile[0];
         $className = $this->getMigrationClassName($migrationFile);
 
-        $migrationInstance = null;
-        if (!class_exists($className)) {
-            $migrationInstance = require $migrationFile;
-        } else {
-            require_once $migrationFile;
-        }
+        require_once $migrationFile;
 
-        if ($migrationInstance instanceof MigrationInterface) {
-            $migration = $migrationInstance;
-            $migration->setVersion($version);
-        } elseif (class_exists($className)) {
-            $migration = new $className($version);
-        } else {
+        if (!class_exists($className)) {
             throw new RuntimeException(
-                sprintf('Could not find class `%s` in file `%s` and file did not return a migration instance', $className, $migrationFile),
+                sprintf('Could not find class `%s` in file `%s`.', $className, $migrationFile),
             );
         }
+
+        $migration = new $className($version);
 
         if (!$migration instanceof MigrationInterface) {
             throw new RuntimeException(
@@ -859,29 +851,20 @@ class Manager
                     $origDisplayErrors = ini_get('display_errors');
                     ini_set('display_errors', 'On');
 
-                    $migrationInstance = null;
-                    if (!class_exists($class)) {
-                        $migrationInstance = require $filePath;
-                    } else {
-                        require_once $filePath;
-                    }
+                    require_once $filePath;
 
                     ini_set('display_errors', $origDisplayErrors);
 
-                    if ($migrationInstance instanceof MigrationInterface) {
-                        $io->verbose(sprintf('Using anonymous class from <info>%s</info>.', $filePath));
-                        $migration = $migrationInstance;
-                        $migration->setVersion($version);
-                    } elseif (class_exists($class)) {
-                        $io->verbose(sprintf('Constructing <info>%s</info>.', $class));
-                        $migration = new $class($version);
-                    } else {
+                    if (!class_exists($class)) {
                         throw new InvalidArgumentException(sprintf(
-                            'Could not find class `%s` in file `%s` and file did not return a migration instance',
+                            'Could not find class `%s` in file `%s`.',
                             $class,
                             $filePath,
                         ));
                     }
+
+                    $io->verbose(sprintf('Constructing <info>%s</info>.', $class));
+                    $migration = new $class($version);
 
                     if (!$migration instanceof MigrationInterface) {
                         throw new InvalidArgumentException(sprintf(
