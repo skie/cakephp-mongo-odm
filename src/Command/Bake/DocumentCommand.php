@@ -90,6 +90,7 @@ class DocumentCommand extends BakeCommand
             $fields,
             fn(array $field): bool => $field['constant'] !== null,
         );
+        $enumTypes = $this->enumTypes($name, $fields);
 
         $parsedFile = null;
         if ($args->getOption('update')) {
@@ -107,6 +108,7 @@ class DocumentCommand extends BakeCommand
             'hidden' => $hidden,
             'collection' => $collection,
             'useConstants' => $useConstants,
+            'enumTypes' => $enumTypes,
             'fileBuilder' => new FileBuilder($io, "{$namespace}\Model\Document", $parsedFile),
         ];
 
@@ -129,7 +131,7 @@ class DocumentCommand extends BakeCommand
      * @param string $name Document class name
      * @param \Cake\Console\Arguments $args CLI arguments
      * @param \Cake\Console\ConsoleIo $io Console io
-     * @return list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool}>
+     * @return list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool, enum: list<mixed>|null}>
      */
     protected function schemaFields(string $name, Arguments $args, ConsoleIo $io): array
     {
@@ -161,12 +163,14 @@ class DocumentCommand extends BakeCommand
         $result = [];
         foreach ($fields as $fieldName => $definition) {
             $type = SchemaFields::typeName($definition['bsonType']);
+            $enumValues = $definition['enum'] ?? null;
             $result[] = [
                 'name' => $fieldName,
                 'type' => $type,
                 'constant' => SchemaFields::typeConstant($type),
                 'nullable' => (bool)($definition['nullable'] ?? false),
                 'primaryKey' => $fieldName === '_id',
+                'enum' => is_array($enumValues) && $enumValues !== [] ? $enumValues : null,
             ];
         }
 
@@ -176,7 +180,7 @@ class DocumentCommand extends BakeCommand
     /**
      * Builds the property schema map for the document template.
      *
-     * @param list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool}> $fields Schema fields.
+     * @param list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool, enum: list<mixed>|null}> $fields Schema fields.
      * @return array<string, array{kind: string, type: string, null: bool}>
      */
     protected function propertySchema(array $fields): array
@@ -218,6 +222,48 @@ class DocumentCommand extends BakeCommand
         ]);
 
         return $renderer;
+    }
+
+    /**
+     * Resolves the `App\Model\Enum\{Entity}{Field}` class for enum-typed fields.
+     *
+     * Only fields that have enum values in the schema AND a matching baked enum
+     * class are reported.
+     *
+     * @param string $name Document class name.
+     * @param list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool, enum: list<mixed>|null}> $fields Schema fields.
+     * @return array<string, class-string<\BackedEnum>>
+     */
+    protected function enumTypes(string $name, array $fields): array
+    {
+        $enumTypes = [];
+        foreach ($fields as $field) {
+            if (empty($field['enum'])) {
+                continue;
+            }
+
+            $className = sprintf('%s\Model\Enum\%s%s', $this->namespace(), $name, Inflector::camelize($field['name']));
+            if (enum_exists($className)) {
+                $enumTypes[$field['name']] = $className;
+            }
+        }
+
+        return $enumTypes;
+    }
+
+    /**
+     * Resolves the app/plugin namespace.
+     *
+     * @return string
+     */
+    protected function namespace(): string
+    {
+        $namespace = Configure::read('App.namespace');
+        if ($this->plugin) {
+            return $this->_pluginNamespace($this->plugin);
+        }
+
+        return $namespace;
     }
 
     /**

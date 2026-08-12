@@ -17,7 +17,7 @@ class SchemaFields
      *
      * @param string $file Path to `schema-dump-mongo.lock`
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
      */
     public static function fromLockFile(string $file, string $collection): array
     {
@@ -39,7 +39,7 @@ class SchemaFields
      *
      * @param \Crustum\Mongo\Database\Connection $connection The connection
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
      */
     public static function fromConnection(Connection $connection, string $collection): array
     {
@@ -54,7 +54,7 @@ class SchemaFields
      *
      * @param array<string, array<string, mixed>> $schema The dumped schema map
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string, nullable: bool}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
      */
     public static function fromSchema(array $schema, string $collection): array
     {
@@ -87,6 +87,9 @@ class SchemaFields
             $fields[$name] = [
                 'bsonType' => $primary,
                 'nullable' => $nullable,
+                'enum' => isset($definition['enum']) && is_array($definition['enum'])
+                    ? array_values($definition['enum'])
+                    : null,
             ];
         }
 
@@ -102,7 +105,7 @@ class SchemaFields
     public static function typeName(string $bsonType): string
     {
         return match ($bsonType) {
-            'objectId' => 'objectId',
+            'objectId' => 'objectid',
             'bool' => 'boolean',
             'int' => 'integer',
             'long' => 'int64',

@@ -33,7 +33,8 @@
 {% if fields is defined and fields|length > 0 %}
 #[DocumentAttribute(collection: '{{ collection is defined ? collection : name|underscore }}')]
 {% for field in fields %}
-#[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
+{%- set enumShort = enumTypes is defined and enumTypes[field.name] is defined ? enumTypes[field.name]|split('\\')|last : null %}
+#[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }}{{ enumShort ? ", enumType: '\\" ~ enumTypes[field.name] ~ "'" : '' }})]
 {% endfor %}
 {% endif %}
 class {{ name }} extends Document{{ fileBuilder.classBuilder.implements ? ' implements ' ~ fileBuilder.classBuilder.implements|join(', ') : '' }}
