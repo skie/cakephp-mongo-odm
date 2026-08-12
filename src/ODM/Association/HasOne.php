@@ -152,4 +152,3 @@ class HasOne extends Association
         return (new DependentDeleteHelper())->cascadeDelete($this, $entity, $options);
     }
 }
-

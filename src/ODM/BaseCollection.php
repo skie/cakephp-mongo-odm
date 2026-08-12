@@ -21,14 +21,10 @@ use Cake\Event\EventDispatcherTrait;
 use Cake\Event\EventListenerInterface;
 use Cake\Event\EventManager;
 use Cake\Event\EventManagerInterface;
+use Cake\ORM\Locator\LocatorAwareTrait as OrmLocatorAwareTrait;
 use Cake\Utility\Inflector;
 use Cake\Validation\ValidatorAwareInterface;
-use Crustum\Mongo\ODM\Exception\PersistenceFailedException;
-use Crustum\Mongo\ODM\Exception\RolledbackTransactionException;
 use Cake\Validation\ValidatorAwareTrait;
-use Crustum\Mongo\ODM\Rule\IsUnique as CrustumIsUnique;
-use Crustum\Mongo\ODM\RulesChecker as CrustumRulesChecker;
-use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Database\Type\TypeFactory;
@@ -41,6 +37,9 @@ use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\Exception\MissingDocumentException;
+use Crustum\Mongo\ODM\Exception\PersistenceFailedException;
+use Crustum\Mongo\ODM\Exception\RolledbackTransactionException;
+use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Mapping\DocumentSchemaReader;
 use Crustum\Mongo\ODM\Mapping\DtoSchemaReader;
 use Crustum\Mongo\ODM\Query\DeleteQuery;
@@ -49,12 +48,14 @@ use Crustum\Mongo\ODM\Query\QueryFactory;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\Query\UnhydratedSelectQuery;
 use Crustum\Mongo\ODM\Query\UpdateQuery;
+use Crustum\Mongo\ODM\Rule\IsUnique as CrustumIsUnique;
+use Crustum\Mongo\ODM\RulesChecker as CrustumRulesChecker;
 use Exception;
 use InvalidArgumentException;
 use LogicException;
-use Throwable;
 use Psr\SimpleCache\CacheInterface;
 use ReflectionFunction;
+use Throwable;
 use function Cake\Core\namespaceSplit;
 
 /**
@@ -73,6 +74,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 {
     use CollectionEventsTrait;
     use EventDispatcherTrait;
+    use LocatorAwareTrait;
+    use OrmLocatorAwareTrait;
     use RulesAwareTrait;
     use ValidatorAwareTrait;
 
@@ -516,9 +519,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function selectQuery(): SelectQuery
     {
-        $query = $this->queryFactory->select($this);
-
-        return $query;
+        return $this->queryFactory->select($this);
     }
 
     /**
@@ -678,7 +679,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *   transaction (default: true)
      * - defaults: Whether to use the search criteria as default values for the new entity (default: true)
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing
      *   documents by. Note that when you pass a query object you'll have to use
      *   the 2nd arg of the method to modify the entity data before saving.
      * @param callable|array<string, mixed>|null $callback An array of data key/value pairs or a callback that will
@@ -699,12 +700,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         ]);
 
         $entity = $this->executeTransaction(
-            fn() => $this->processFindOrCreate($search, $callback, $options->getArrayCopy()),
+            fn(): EntityInterface|array => $this->processFindOrCreate($search, $callback, $options->getArrayCopy()),
             (bool)$options['atomic'],
         );
 
         if ($entity && $this->transactionCommitted((bool)$options['atomic'], true)) {
-            $this->dispatchEvent('Collection.afterSaveCommit', compact('entity', 'options'));
+            $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
         }
 
         return $entity;
@@ -713,7 +714,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Performs the actual find and/or create of an entity based on the passed options.
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find an existing document by, or a callable that will
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find an existing document by, or a callable that will
      *   customize the find query.
      * @param callable|array<string, mixed>|null $callback Data or a callback that will be invoked for newly
      *   created entities. This callback will be called *before* the entity
@@ -746,10 +747,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $patchableFields = array_combine(array_keys($data), array_fill(0, count($data), true));
             $document = $this->patchDocument($document, $data, ['patchableFields' => $patchableFields]);
         }
+
         if ($callback !== null) {
             /** @var \Cake\Datasource\EntityInterface $document */
             $document = $callback($document) ?: $document;
         }
+
         unset($options['defaults']);
 
         $result = $this->save($document, $options);
@@ -764,8 +767,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Gets the query object for findOrCreate().
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
-     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>
      */
     protected function getFindOrCreateQuery(SelectQuery|callable|array $search): SelectQuery
     {
@@ -937,13 +940,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
                 return true;
             }, (bool)$options['atomic']);
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
             $cleanupOnFailure($entities);
 
-            throw $e;
+            throw $exception;
         }
 
-        if ($failed !== null) {
+        if ($failed instanceof EntityInterface) {
             $cleanupOnFailure($entities);
 
             throw new PersistenceFailedException($failed, ['saveMany']);
@@ -968,7 +971,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         if ($this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
             foreach ($entities as $entity) {
-                $this->dispatchEvent('Collection.afterSaveCommit', compact('entity', 'options'));
+                $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
                 if ($options['atomic'] || $options['_primary']) {
                     $cleanupOnSuccess($entity);
                 }
@@ -1025,7 +1028,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     {
         $failed = $this->doDeleteMany($entities, $options);
 
-        if ($failed !== null) {
+        if ($failed instanceof EntityInterface) {
             return false;
         }
 
@@ -1050,7 +1053,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     {
         $failed = $this->doDeleteMany($entities, $options);
 
-        if ($failed !== null) {
+        if ($failed instanceof EntityInterface) {
             throw new PersistenceFailedException($failed, ['deleteMany']);
         }
     }
@@ -1541,6 +1544,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                     $associated = $options;
                     $options = [];
                 }
+
                 $this->{$assocType}($associated, $options);
             }
         }
@@ -1967,7 +1971,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * @param string $method The method name that was fired.
      * @param array<int, mixed> $args List of arguments passed to the function.
-     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array>
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array>
      * @throws \BadMethodCallException when there are missing arguments, or when
      *  and & or are combined.
      */
@@ -1975,7 +1979,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     {
         $method = Inflector::underscore($method);
         preg_match('/^find_([\w]+)_by_/', $method, $matches);
-        if (!$matches) {
+        if ($matches === []) {
             // find_by_ is 8 characters.
             $fields = substr($method, 8);
             $findType = 'all';
@@ -1983,6 +1987,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $fields = substr($method, strlen($matches[0]));
             $findType = Inflector::variable($matches[1]);
         }
+
         $hasOr = str_contains($fields, '_or_');
         $hasAnd = str_contains($fields, '_and_');
 
@@ -1995,6 +2000,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                     count($fields),
                 ));
             }
+
             foreach ($fields as $field) {
                 $field = $field === 'id' ? '_id' : $field;
                 $conditions[$this->aliasField($field)] = array_shift($args);
@@ -2693,7 +2699,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $result = $this->associations->get($name);
         }
 
-        if ($result !== null && $next !== null) {
+        if ($result instanceof Association && $next !== null) {
             return $result->getTarget()->getAssociation($next);
         }
 
@@ -2739,6 +2745,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($context === null) {
             $context = $options;
         }
+
         $entity = new ($this->getDocumentClass())(
             $context['data'],
             [
@@ -2757,6 +2764,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 return false;
             }
         }
+
         $class = static::IS_UNIQUE_CLASS;
         $rule = new $class($fields, $options);
 

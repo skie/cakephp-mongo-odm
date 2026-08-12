@@ -786,6 +786,7 @@ abstract class Association
             if (array_is_list($fields)) {
                 $fields = array_fill_keys($fields, 1);
             }
+
             $builder->project($fields);
         }
 
@@ -861,7 +862,7 @@ abstract class Association
     {
         if (
             $this->target instanceof BaseCollection &&
-            get_class($this->target) !== App::className($className, 'Model/Collection', 'Collection')
+            $this->target::class !== App::className($className, 'Model/Collection', 'Collection')
         ) {
             throw new InvalidArgumentException(sprintf(
                 "The class name `%s` doesn't match the target table class name of `%s`.",
@@ -1158,6 +1159,7 @@ abstract class Association
                 );
                 continue;
             }
+
             $prefixed[$property . '.' . $field] = $value;
         }
 

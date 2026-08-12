@@ -44,7 +44,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      */
     public function __construct(?LocatorInterface $collectionLocator = null)
     {
-        if ($collectionLocator !== null) {
+        if ($collectionLocator instanceof LocatorInterface) {
             $this->collectionLocator = $collectionLocator;
         }
     }
@@ -219,7 +219,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      */
     public function removeAll(): void
     {
-        foreach ($this->items as $alias => $object) {
+        foreach (array_keys($this->items) as $alias) {
             $this->remove($alias);
         }
     }
@@ -239,7 +239,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      */
     public function saveParents(BaseCollection $table, EntityInterface $entity, array $associations, array $options = []): bool
     {
-        if (!$associations) {
+        if ($associations === []) {
             return true;
         }
 
@@ -261,7 +261,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      */
     public function saveChildren(BaseCollection $table, EntityInterface $entity, array $associations, array $options): bool
     {
-        if (!$associations) {
+        if ($associations === []) {
             return true;
         }
 
@@ -293,8 +293,9 @@ class AssociationCollection implements Countable, IteratorAggregate
                 $alias = $nested;
                 $nested = [];
             }
+
             $relation = $this->get($alias);
-            if (!$relation) {
+            if (!$relation instanceof Association) {
                 $msg = sprintf(
                     'Cannot save `%s`, it is not associated to `%s`.',
                     $alias,
@@ -334,7 +335,8 @@ class AssociationCollection implements Countable, IteratorAggregate
         if (!$entity->isDirty($association->getProperty())) {
             return true;
         }
-        if ($nested) {
+
+        if ($nested !== []) {
             $options = $nested + $options;
         }
 
@@ -357,6 +359,7 @@ class AssociationCollection implements Countable, IteratorAggregate
                 $noCascade[] = $assoc;
                 continue;
             }
+
             $success = $assoc->cascadeDelete($entity, $options);
             if (!$success) {
                 return false;

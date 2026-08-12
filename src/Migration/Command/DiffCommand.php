@@ -99,6 +99,7 @@ class DiffCommand extends Command
         if (!file_exists($file)) {
             throw new RuntimeException(sprintf('Schema dump `%s` does not exist. Run `mongo schema dump` first.', $file));
         }
+
         $contents = file_get_contents($file);
         $desired = $contents !== false ? unserialize($contents) : false;
         if (!is_array($desired)) {

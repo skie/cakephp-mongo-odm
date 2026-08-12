@@ -210,6 +210,7 @@ class ColumnParser
         if ($type !== null && isset($this->typeMap[$type])) {
             return $type;
         }
+
         if ($type !== null) {
             return $type;
         }
@@ -217,9 +218,11 @@ class ColumnParser
         if ($field === 'id' || str_ends_with($field, '_id')) {
             return 'objectid';
         }
+
         if (in_array($field, ['created', 'modified', 'updated'], true)) {
             return 'datetime';
         }
+
         if (in_array($field, ['latitude', 'longitude', 'lat', 'lng'], true)) {
             return 'decimal';
         }
@@ -275,21 +278,26 @@ class ColumnParser
         if ($lower === 'null') {
             return null;
         }
+
         if ($lower === 'true') {
             return true;
         }
+
         if ($lower === 'false') {
             return false;
         }
+
         if (
             (str_starts_with($value, "'") && str_ends_with($value, "'")) ||
             (str_starts_with($value, '"') && str_ends_with($value, '"'))
         ) {
             return substr($value, 1, -1);
         }
+
         if (preg_match('/^-?\d+$/', $value)) {
             return (int)$value;
         }
+
         if (preg_match('/^-?\d+\.\d+$/', $value)) {
             return (float)$value;
         }

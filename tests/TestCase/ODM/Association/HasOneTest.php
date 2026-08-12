@@ -10,9 +10,9 @@ use Cake\Database\Expression\QueryExpression;
 use Cake\Database\TypeMap;
 use Cake\Event\Event;
 use Crustum\Mongo\ODM\Association\HasOne;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
-use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Mockery;
 
@@ -300,9 +300,7 @@ class HasOneTest extends TestCase
         );
         $association = new HasOne('Profiles', $this->user, $config);
         $query = $this->user->find();
-        $association->attachTo($query, ['queryBuilder' => function ($q) {
-            return $q->applyOptions(['something' => 'more']);
-        }]);
+        $association->attachTo($query, ['queryBuilder' => fn($q) => $q->applyOptions(['something' => 'more'])]);
         $this->assertTrue($this->listenerCalled, 'Event not fired');
     }
 
@@ -409,9 +407,7 @@ class HasOneTest extends TestCase
         $association = new HasOne('Profiles', $this->user, $config);
         $profiles = $association->getTarget();
         $profiles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
-            $rules->addDelete(function () {
-                return false;
-            });
+            $rules->addDelete(fn(): false => false);
         });
 
         $user = new Document(['_id' => '000000000000000000000001']);

@@ -111,6 +111,7 @@ class MongoTemplateCommand extends BakeCommand
 
             return static::CODE_SUCCESS;
         }
+
         $template = $args->getArgument('template');
         $action = $args->getArgument('action');
 
@@ -120,6 +121,7 @@ class MongoTemplateCommand extends BakeCommand
         if ($template && $action === null) {
             $action = $template;
         }
+
         if ($template) {
             $this->bake($args, $io, $template, true, $action);
 
@@ -156,6 +158,7 @@ class MongoTemplateCommand extends BakeCommand
         if ($plugin) {
             $plugin .= '.';
         }
+
         $this->modelName = $plugin . $tableName;
     }
 
@@ -173,16 +176,19 @@ class MongoTemplateCommand extends BakeCommand
         if (empty($controller)) {
             $controller = $tableName;
         }
+
         $this->controllerName = $controller;
 
         $plugin = $this->plugin;
         if ($plugin) {
             $plugin .= '.';
         }
+
         $prefix = $this->getPrefix($args);
         if ($prefix) {
             $prefix .= '/';
         }
+
         $this->controllerClass = (string)App::className($plugin . $prefix . $controller, 'Controller', 'Controller');
     }
 
@@ -209,9 +215,14 @@ class MongoTemplateCommand extends BakeCommand
         }
 
         $namespace = Configure::read('App.namespace');
-
-        $primaryKey = $displayField = $singularVar = $singularHumanName = null;
-        $schema = $fields = $hidden = $modelClass = null;
+        $primaryKey = null;
+        $displayField = null;
+        $singularVar = null;
+        $singularHumanName = null;
+        $schema = null;
+        $fields = null;
+        $hidden = null;
+        $modelClass = null;
         try {
             $primaryKey = (array)$modelObject->getPrimaryKey();
             $displayField = $modelObject->getDisplayField();
@@ -257,23 +268,7 @@ class MongoTemplateCommand extends BakeCommand
             $singularVar .= 'Document';
         }
 
-        return compact(
-            'modelObject',
-            'modelClass',
-            'documentClass',
-            'schema',
-            'primaryKey',
-            'displayField',
-            'singularVar',
-            'pluralVar',
-            'singularHumanName',
-            'pluralHumanName',
-            'fields',
-            'hidden',
-            'associations',
-            'keyFields',
-            'namespace',
-        );
+        return ['modelObject' => $modelObject, 'modelClass' => $modelClass, 'documentClass' => $documentClass, 'schema' => $schema, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'singularVar' => $singularVar, 'pluralVar' => $pluralVar, 'singularHumanName' => $singularHumanName, 'pluralHumanName' => $pluralHumanName, 'fields' => $fields, 'hidden' => $hidden, 'associations' => $associations, 'keyFields' => $keyFields, 'namespace' => $namespace];
     }
 
     /**
@@ -289,18 +284,20 @@ class MongoTemplateCommand extends BakeCommand
         if (class_exists($this->controllerClass)) {
             $methods = array_diff(
                 array_map(
-                    'Cake\Utility\Inflector::underscore',
+                    Inflector::underscore(...),
                     get_class_methods($this->controllerClass),
                 ),
                 array_map(
-                    'Cake\Utility\Inflector::underscore',
+                    Inflector::underscore(...),
                     get_class_methods($base . '\Controller\AppController'),
                 ),
             );
         }
-        if (empty($methods)) {
+
+        if ($methods === []) {
             $methods = $this->scaffoldActions;
         }
+
         foreach ($methods as $i => $method) {
             if (isset($method[0]) && $method[0] === '_') {
                 unset($methods[$i]);
@@ -344,6 +341,7 @@ class MongoTemplateCommand extends BakeCommand
         if ($method === 'index' && $args->getOption('index-columns') !== null) {
             $indexColumns = $args->getOption('index-columns');
         }
+
         $renderer->set('indexColumns', $indexColumns);
 
         // Always use domain translations when in plugin context.
@@ -373,14 +371,17 @@ class MongoTemplateCommand extends BakeCommand
         if ($outputFile === null) {
             $outputFile = $template;
         }
+
         if ($content === true) {
             $content = $this->getContent($args, $io, $template);
         }
+
         if (empty($content)) {
             $io->warning("No generated content for '{$template}.{$this->ext}', not generating template.");
 
             return;
         }
+
         $path = $this->getTemplatePath($args);
         $filename = $path . Inflector::underscore($outputFile) . '.' . $this->ext;
 
@@ -409,20 +410,24 @@ class MongoTemplateCommand extends BakeCommand
     public function getTemplatePath(Arguments $args, ?string $container = null): string
     {
         $paths = (array)Configure::read('App.paths.templates');
-        if (empty($paths)) {
+        if ($paths === []) {
             throw new InvalidArgumentException('Could not read template paths.');
         }
+
         $path = $paths[0];
         if ($this->plugin) {
             $path = $this->_pluginPath($this->plugin) . 'templates' . DIRECTORY_SEPARATOR;
         }
+
         if ($container) {
             $path .= $container . DIRECTORY_SEPARATOR;
         }
+
         $prefix = $this->getPrefix($args);
         if ($prefix) {
             $path .= $prefix . DIRECTORY_SEPARATOR;
         }
+
         $path .= Inflector::camelize($this->controllerName) . DIRECTORY_SEPARATOR;
 
         return str_replace('/', DIRECTORY_SEPARATOR, $path);

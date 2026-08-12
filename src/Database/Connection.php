@@ -617,6 +617,7 @@ class Connection implements ConnectionInterface
         if (isset($config['read'])) {
             $config['read'] = array_intersect_key($secrets, $config['read']) + $config['read'];
         }
+
         if (isset($config['write'])) {
             $config['write'] = array_intersect_key($secrets, $config['write']) + $config['write'];
         }
@@ -628,5 +629,4 @@ class Connection implements ConnectionInterface
             'inTransaction' => $this->inTransaction(),
         ];
     }
-
 }

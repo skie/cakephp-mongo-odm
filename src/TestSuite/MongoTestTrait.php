@@ -143,7 +143,7 @@ trait MongoTestTrait
         } else {
             [$type, $pathName] = explode('.', $fixtureName, 2);
             $path = explode('/', $pathName);
-            $name = (string)array_pop($path);
+            $name = array_pop($path);
             $additionalPath = implode('\\', $path);
 
             if ($type === 'core') {

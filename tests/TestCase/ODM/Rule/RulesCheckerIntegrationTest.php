@@ -84,7 +84,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Document $author, array $options) use ($table) {
+                function (Document $author, array $options) use ($table): false {
                     $this->assertSame($options['repository'], $table->getAssociation('authors')->getTarget());
 
                     return false;
@@ -120,9 +120,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (EntityInterface $entity) {
-                    return false;
-                },
+                fn(EntityInterface $entity): false => false,
                 ['errorField' => 'title', 'message' => 'This is an error'],
             );
 
@@ -163,7 +161,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Document $entity, $options) use ($table) {
+                function (Document $entity, array $options) use ($table): bool {
                     $this->assertSame($table, $options['_sourceTable']);
 
                     return $entity->title === '1';
@@ -210,9 +208,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Document $article) {
-                    return is_numeric($article->title);
-                },
+                fn(Document $article): bool => is_numeric($article->title),
                 ['errorField' => 'title', 'message' => 'This is an error'],
             );
 
@@ -248,9 +244,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $table->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(function (Document $entity) {
-                return false;
-            });
+            ->add(fn(Document $entity): false => false);
 
         $this->assertFalse($table->save($entity));
         $this->assertTrue($entity->isNew());
@@ -285,9 +279,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $table->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(function (Document $entity) {
-                return false;
-            });
+            ->add(fn(Document $entity): false => false);
 
         $this->assertSame($entity, $table->save($entity, ['atomic' => false]));
         $this->assertFalse($entity->isNew());
@@ -314,9 +306,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $table = $this->getCollectionLocator()->get('Authors');
         $rules = $table->rulesChecker();
         $rules->add(
-            function () {
-                return false;
-            },
+            fn(): false => false,
             'ruleName',
             ['errorField' => 'name'],
         );
@@ -455,6 +445,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
@@ -474,6 +465,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'), 'existsIn', ['errorField' => 'other']);
         $this->assertFalse($table->save($entity));
@@ -516,6 +508,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
@@ -584,6 +577,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'NotValid'));
 
@@ -787,6 +781,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->isUnique(['author_id']));
 
@@ -805,6 +800,7 @@ class RulesCheckerIntegrationTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
@@ -827,6 +823,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
@@ -850,6 +847,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsTo('Authors');
+
         $rules = $table->rulesChecker();
         $rules->add($rules->existsIn(['author_id'], 'Authors'));
 
@@ -870,6 +868,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -891,6 +890,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -912,6 +912,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors'));
@@ -931,6 +932,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -954,6 +956,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', ['allowNullableNulls' => true]));
@@ -973,6 +976,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', ['allowNullableNulls' => false]));
@@ -992,6 +996,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -1013,6 +1018,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -1036,6 +1042,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -1059,6 +1066,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -1089,6 +1097,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ];
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
@@ -1117,6 +1126,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
@@ -1136,6 +1146,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
@@ -1155,6 +1166,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
@@ -1175,6 +1187,7 @@ class RulesCheckerIntegrationTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('SiteArticles');
         $table->belongsTo('SiteAuthors');
+
         $rules = $table->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors', 'Custom nullable message'));
@@ -1189,9 +1202,7 @@ class RulesCheckerIntegrationTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles');
         $rules = $table->rulesChecker();
-        $rules->addDelete(function ($entity) {
-            return false;
-        });
+        $rules->addDelete(fn($entity): false => false);
 
         $entity = $table->get('000000000000000000000001');
         $this->assertFalse($table->delete($entity));
@@ -1208,7 +1219,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Authors');
         $rules = $table->rulesChecker();
-        $rules->add(function ($entity, $options) {
+        $rules->add(function ($entity, array $options): false {
             $this->assertSame('bar', $options['foo']);
             $this->assertSame('option', $options['another']);
 
@@ -1225,7 +1236,7 @@ class RulesCheckerIntegrationTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles');
         $rules = $table->rulesChecker();
-        $rules->addDelete(function ($entity, $options) {
+        $rules->addDelete(function ($entity, array $options): false {
             $this->assertSame('bar', $options['foo']);
             $this->assertSame('option', $options['another']);
 
@@ -1247,9 +1258,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Authors');
         $rules = $table->rulesChecker();
-        $rules->add(function () {
-            return 'So much nope';
-        }, ['errorField' => 'name']);
+        $rules->add(fn(): string => 'So much nope', ['errorField' => 'name']);
 
         $this->assertFalse($table->save($entity));
         $this->assertEquals(['So much nope'], $entity->getError('name'));
@@ -1266,9 +1275,7 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('Authors');
         $rules = $table->rulesChecker();
-        $rules->add(function () {
-            return 'So much nope';
-        });
+        $rules->add(fn(): string => 'So much nope');
 
         $this->assertFalse($table->save($entity));
         $this->assertNotEmpty($entity->getErrors());
@@ -1299,7 +1306,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $table->hasMany('articles');
         $table->getAssociation('articles')->belongsTo('authors');
         $checker = $table->getAssociation('articles')->getTarget()->rulesChecker();
-        $checker->add(function ($entity, $options) use ($checker) {
+        $checker->add(function ($entity, $options) use ($checker): true {
             $rule = $checker->existsIn('author_id', 'authors');
             $id = $entity->author_id;
             $entity->author_id = '507f1f77bcf86cd799439011';
@@ -1398,7 +1405,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
         $rulesChecker->addUpdate(
             $rulesChecker->isLinkedTo('Articles'),
@@ -1423,7 +1430,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Articles->rulesChecker();
         $rulesChecker->addDelete(
             $rulesChecker->isNotLinkedTo('Comments'),
@@ -1454,7 +1461,7 @@ class RulesCheckerIntegrationTest extends TestCase
                 $this->belongsTo('Articles');
             }
 
-            public function buildRules(\Crustum\Mongo\ODM\RulesChecker $rules): \Crustum\Mongo\ODM\RulesChecker
+            public function buildRules(RulesChecker $rules): RulesChecker
             {
                 return $rules->addUpdate(
                     $rules->isLinkedTo('Articles'),
@@ -1494,7 +1501,7 @@ class RulesCheckerIntegrationTest extends TestCase
                 $this->hasMany('Comments');
             }
 
-            public function buildRules(\Crustum\Mongo\ODM\RulesChecker $rules): \Crustum\Mongo\ODM\RulesChecker
+            public function buildRules(RulesChecker $rules): RulesChecker
             {
                 return $rules->addDelete(
                     $rules->isNotLinkedTo('Comments'),
@@ -1528,7 +1535,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
         $rulesChecker->addUpdate(
             $rulesChecker->isLinkedTo($Comments->getAssociation('Articles')),
@@ -1553,7 +1560,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Articles->rulesChecker();
         $rulesChecker->addDelete(
             $rulesChecker->isNotLinkedTo($Articles->getAssociation('Comments')),
@@ -1584,7 +1591,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
         $rulesChecker->addUpdate(
             $rulesChecker->isLinkedTo('Articles', 'custom'),
@@ -1609,7 +1616,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Articles->rulesChecker();
         $rulesChecker->addDelete(
             $rulesChecker->isNotLinkedTo('Comments', 'custom'),
@@ -1640,7 +1647,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
         $rulesChecker->addUpdate(
             $rulesChecker->isLinkedTo('Articles', 'article', 'custom'),
@@ -1665,7 +1672,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Articles->rulesChecker();
         $rulesChecker->addDelete(
             $rulesChecker->isNotLinkedTo('Comments', 'comments', 'custom'),
@@ -1705,7 +1712,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
 
         $rulesChecker->addUpdate(
@@ -1742,7 +1749,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
 
         $rulesChecker->addUpdate(
@@ -1786,7 +1793,7 @@ class RulesCheckerIntegrationTest extends TestCase
             'comment' => 'Orphaned Comment',
         ]));
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
 
         Closure::bind(
@@ -1831,7 +1838,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
 
         Closure::bind(
@@ -1868,7 +1875,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Comments->rulesChecker();
         $rulesChecker->addUpdate(
             $rulesChecker->isLinkedTo('Articles', 'articles'),
@@ -1887,7 +1894,7 @@ class RulesCheckerIntegrationTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments');
 
-        /** @var \\Crustum\\Mongo\\ODM\\RulesChecker $rulesChecker */
+        /** @var \Crustum\Mongo\ODM\RulesChecker $rulesChecker */
         $rulesChecker = $Articles->rulesChecker();
         $rulesChecker->addDelete(
             $rulesChecker->isNotLinkedTo('Comments', 'comments'),

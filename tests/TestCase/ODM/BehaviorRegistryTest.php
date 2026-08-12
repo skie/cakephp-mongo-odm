@@ -8,11 +8,8 @@ use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\BehaviorRegistry;
 use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use LogicException;
-use TestApp\Model\Behavior\DuplicateBehavior;
 use TestApp\Model\Behavior\SluggableBehavior;
-use TestApp\Model\Behavior\TreeBehavior;
 use TestPlugin\Model\Behavior\PersisterOneBehavior;
 
 /**
@@ -46,7 +43,6 @@ class BehaviorRegistryTest extends TestCase
 
     public function testClassName(): void
     {
-        $expected = \Crustum\Mongo\ODM\Behavior\SluggableBehavior::class ?? SluggableBehavior::class;
         $result = BehaviorRegistry::className('Sluggable');
         $this->assertSame(SluggableBehavior::class, $result);
 

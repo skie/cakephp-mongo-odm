@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\ODM\BaseCollection;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Mockery;
 use TestApp\Model\Behavior\Test2Behavior;
 use TestApp\Model\Behavior\Test3Behavior;

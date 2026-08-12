@@ -37,8 +37,8 @@ class DependentDeleteHelper
         $table = $association->getTarget();
 
         $foreignKey = array_map(
-            fn(string $key): string => $table->aliasField($key),
-            array_values(array_filter((array)$association->getForeignKey(), 'is_string')),
+            $table->aliasField(...),
+            array_values(array_filter((array)$association->getForeignKey(), is_string(...))),
         );
         $bindingKey = (array)$association->getBindingKey();
         $bindingValue = $entity->extract($bindingKey);

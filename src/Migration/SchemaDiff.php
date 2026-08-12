@@ -82,7 +82,7 @@ class SchemaDiff
             }
         }
 
-        foreach ($actual as $name => $definition) {
+        foreach (array_keys($actual) as $name) {
             if (!isset($desired[$name])) {
                 $operations[] = [
                     'type' => 'dropCollection',

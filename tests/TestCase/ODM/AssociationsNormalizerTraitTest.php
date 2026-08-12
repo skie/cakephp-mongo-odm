@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Crustum\Mongo\ODM\AssociationsNormalizerTrait;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**

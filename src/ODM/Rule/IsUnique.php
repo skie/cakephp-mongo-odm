@@ -75,6 +75,7 @@ class IsUnique
             } else {
                 $keys = $entity->extract(['_id']);
             }
+
             if (array_filter($keys, static fn(mixed $value): bool => $value !== null)) {
                 $conditions['_id'] = ['$ne' => $keys['_id'] ?? null];
             }

@@ -50,6 +50,7 @@ class Config implements ConfigInterface
         if (empty($this->values['environment'])) {
             return null;
         }
+
         $config = (array)$this->values['environment'];
         $config['version_order'] = $this->getVersionOrder();
 
@@ -64,6 +65,7 @@ class Config implements ConfigInterface
         if (!isset($this->values['paths']['migrations'])) {
             throw new UnexpectedValueException('Migrations path missing from config file');
         }
+
         if (is_array($this->values['paths']['migrations']) && isset($this->values['paths']['migrations'][0])) {
             return (string)$this->values['paths']['migrations'][0];
         }
@@ -79,6 +81,7 @@ class Config implements ConfigInterface
         if (!isset($this->values['paths']['seeds'])) {
             throw new UnexpectedValueException('Seeds path missing from config file');
         }
+
         if (is_array($this->values['paths']['seeds']) && isset($this->values['paths']['seeds'][0])) {
             return (string)$this->values['paths']['seeds'][0];
         }

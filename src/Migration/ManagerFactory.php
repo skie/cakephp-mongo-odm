@@ -70,6 +70,7 @@ class ManagerFactory
         if (defined('CONFIG')) {
             $dir = CONFIG . $folder;
         }
+
         $plugin = (string)$this->getOption('plugin') ?: null;
         if ($plugin) {
             $dir = Plugin::path($plugin) . 'config' . DS . $folder;

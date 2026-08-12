@@ -243,6 +243,7 @@ class BaseSeed implements SeedInterface
         if (!$io instanceof ConsoleIo) {
             throw new RuntimeException('ConsoleIo is required for calling other seeders.');
         }
+
         $manager = $factory->createManager($io);
         $manager->seed($seeder);
     }

@@ -57,6 +57,7 @@ class Util
         if ($offset) {
             $time = '+' . $offset . ' seconds';
         }
+
         $dt = new DateTime($time, new DateTimeZone('UTC'));
 
         return $dt->format(static::DATE_FORMAT);
@@ -81,7 +82,7 @@ class Util
         // Traditional format
         preg_match('/^\d+/', $baseName, $matches);
         $value = (int)($matches[0] ?? null);
-        if (!$value) {
+        if ($value === 0) {
             throw new RuntimeException(sprintf('Cannot get a valid version from filename `%s`', $fileName));
         }
 
@@ -97,9 +98,7 @@ class Util
      */
     public static function mapClassNameToFileName(string $className): string
     {
-        $snake = function ($matches): string {
-            return '_' . strtolower((string)$matches[0]);
-        };
+        $snake = fn($matches): string => '_' . strtolower((string)$matches[0]);
         $fileName = preg_replace_callback('/\d+|[A-Z]/', $snake, $className);
 
         return static::getCurrentTimestamp() . $fileName . '.php';
@@ -194,11 +193,8 @@ class Util
      */
     public static function getFiles(string|array $paths): array
     {
-        $files = static::globAll(array_map(function (string $path): string {
-            return $path . DIRECTORY_SEPARATOR . '*.php';
-        }, (array)$paths));
-        $files = array_unique($files);
+        $files = static::globAll(array_map(fn(string $path): string => $path . DIRECTORY_SEPARATOR . '*.php', (array)$paths));
 
-        return $files;
+        return array_unique($files);
     }
 }

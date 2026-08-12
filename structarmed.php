@@ -15,6 +15,7 @@ return Architecture::define()
     ->layerPattern('Validation', '/^Cake\\\\Validation\\\\.*$/')
     ->layerPattern('Datasource', '/^Crustum\\\\Mongo\\\\Datasource\\\\.*$/')
     ->layerPattern('Database', '/^Crustum\\\\Mongo\\\\Database\\\\.*$/')
+    ->layerPattern('Orm', '/^Crustum\\\\Mongo\\\\Orm\\\\.*$/')
     ->layerPattern('ODM', '/^Crustum\\\\Mongo\\\\ODM\\\\.*$/')
     ->ruleset([
         'Database' => ['+Cache', 'Datasource', 'I18n'],
@@ -23,6 +24,7 @@ return Architecture::define()
         'Database' => ['+Cache', 'Datasource', 'CakeDatasource', 'CakeDatabase', 'I18n', 'Collection', 'Utility'],
         'Datasource' => ['Cache', 'Collection', 'CakeDatasource', 'Database', '+Event', 'Utility'],
         'ODM' => ['Collection', 'Database', 'CakeDatabase', 'Datasource', 'CakeDatasource', 'Event', '+Utility', 'Validation'],
+        'Orm' => ['CakeORM', 'Datasource', 'Database', 'CakeDatasource', 'CakeDatabase', 'ODM', 'Collection', 'Event', '+Utility', 'Validation'],
     ])
     ->skipClassViolation(
         'Crustum\\Mongo\\ODM\\ResultSetFactory',

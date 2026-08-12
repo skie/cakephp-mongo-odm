@@ -26,7 +26,7 @@ class MongoCollectionContext
     {
         $described = $collection->describeSchema();
         $schema = $described instanceof CollectionSchema ? $described : null;
-        if ($schema === null) {
+        if (!$schema instanceof CollectionSchema) {
             $appSchema = $collection->getSchema();
             $schema = $appSchema instanceof CollectionSchema ? $appSchema : null;
         }
@@ -38,24 +38,13 @@ class MongoCollectionContext
         $primaryKey = (array)$collection->getPrimaryKey();
         $displayField = $this->displayField($collection, $schema);
         $fields = $this->fields($collection, $schema);
-        $validation = $schema !== null ? $this->validation($schema, $associations) : [];
-        $rulesChecker = $schema !== null ? $this->rules($schema, $associations) : [];
-        $behaviors = $schema !== null ? $this->behaviors($schema) : [];
+        $validation = $schema instanceof CollectionSchema ? $this->validation($schema, $associations) : [];
+        $rulesChecker = $schema instanceof CollectionSchema ? $this->rules($schema, $associations) : [];
+        $behaviors = $schema instanceof CollectionSchema ? $this->behaviors($schema) : [];
         $hidden = $this->hiddenFields($schema);
         $table = $collection->getCollection();
 
-        return compact(
-            'associations',
-            'associationInfo',
-            'primaryKey',
-            'displayField',
-            'table',
-            'fields',
-            'validation',
-            'rulesChecker',
-            'behaviors',
-            'hidden',
-        );
+        return ['associations' => $associations, 'associationInfo' => $associationInfo, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'table' => $table, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden];
     }
 
     /**
@@ -71,16 +60,17 @@ class MongoCollectionContext
     protected function displayField(BaseCollection $collection, ?CollectionSchema $schema): array|string|null
     {
         $displayField = $collection->getDisplayField();
-        $displayValue = is_array($displayField) ? $displayField : (string)$displayField;
-        if ($displayValue !== [] && $displayValue !== '' && $displayValue !== '_id') {
+        $displayValue = is_array($displayField) ? $displayField : $displayField;
+        if (!in_array($displayValue, [[], '', '_id'], true)) {
             return $displayField;
         }
 
-        if ($schema !== null) {
+        if ($schema instanceof CollectionSchema) {
             foreach ($schema->columns() as $field) {
                 if ($field === '_id') {
                     continue;
                 }
+
                 if ($schema->getColumnType($field) === 'string') {
                     return $field;
                 }
@@ -118,10 +108,11 @@ class MongoCollectionContext
      */
     protected function fields(BaseCollection $collection, ?CollectionSchema $schema): array
     {
-        $fields = $schema !== null ? $schema->columns() : [];
+        $fields = $schema instanceof CollectionSchema ? $schema->columns() : [];
         foreach ($collection->associations() as $assoc) {
             $fields[] = $assoc->getProperty();
         }
+
         $primaryKey = (array)$collection->getPrimaryKey();
 
         return array_values(array_diff($fields, $primaryKey));
@@ -137,7 +128,7 @@ class MongoCollectionContext
     protected function validation(CollectionSchema $schema, array $associations): array
     {
         $fields = $schema->columns();
-        if (!$fields) {
+        if ($fields === []) {
             return [];
         }
 
@@ -159,7 +150,7 @@ class MongoCollectionContext
             $isForeignKey = in_array($fieldName, $foreignKeys, true);
             $rules = $this->fieldValidation($fieldName, $type, $nullable, $isForeignKey, $field, $schema);
 
-            if ($rules) {
+            if ($rules !== []) {
                 $validate[$fieldName] = $rules;
             }
         }
@@ -202,7 +193,7 @@ class MongoCollectionContext
             $rules['decimal'] = ['rule' => 'decimal', 'args' => []];
         } elseif ($type === 'boolean') {
             $rules['boolean'] = ['rule' => 'boolean', 'args' => []];
-        } elseif ($type === 'date' || $type === 'datetime' || $type === 'timestamp') {
+        } elseif (in_array($type, ['date', 'datetime', 'timestamp'], true)) {
             $rules['dateTime'] = ['rule' => 'dateTime', 'args' => []];
         } elseif ($type === 'string') {
             $rules['scalar'] = ['rule' => 'scalar', 'args' => []];
@@ -217,6 +208,7 @@ class MongoCollectionContext
             if (($field['default'] ?? null) === null && !$isForeignKey) {
                 $rules['requirePresence'] = ['rule' => 'requirePresence', 'args' => ['create']];
             }
+
             $rules['notEmpty'] = ['rule' => $this->getEmptyMethod($fieldName, $type, 'not'), 'args' => []];
         }
 
@@ -225,6 +217,7 @@ class MongoCollectionContext
             if (!$index->getUnique()) {
                 continue;
             }
+
             $keyFields = array_keys($index->getKey());
             if ($keyFields === [$fieldName]) {
                 $rules['unique'] = ['rule' => 'validateUnique', 'provider' => 'table'];
@@ -273,7 +266,7 @@ class MongoCollectionContext
     protected function rules(CollectionSchema $schema, array $associations): array
     {
         $fields = $schema->columns();
-        if (!$fields) {
+        if ($fields === []) {
             return [];
         }
 
@@ -282,6 +275,7 @@ class MongoCollectionContext
             if (!$index->getUnique()) {
                 continue;
             }
+
             $rule = ['name' => 'isUnique', 'fields' => array_keys($index->getKey()), 'options' => []];
             if (count($rule['fields']) > 1) {
                 $rule['message'] = sprintf(
@@ -290,6 +284,7 @@ class MongoCollectionContext
                     end($rule['fields']),
                 );
             }
+
             $rules[] = $rule;
         }
 
@@ -315,9 +310,10 @@ class MongoCollectionContext
     {
         $behaviors = [];
         $fields = $schema->columns();
-        if (!$fields) {
+        if ($fields === []) {
             return [];
         }
+
         if (in_array('created', $fields, true) || in_array('modified', $fields, true)) {
             $behaviors['Timestamp'] = [];
         }
@@ -333,7 +329,7 @@ class MongoCollectionContext
      */
     protected function hiddenFields(?CollectionSchema $schema): array
     {
-        if ($schema === null) {
+        if (!$schema instanceof CollectionSchema) {
             return [];
         }
 

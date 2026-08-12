@@ -16,14 +16,14 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\Log\Log;
+use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\HasMany;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\ResultSet;
-use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use Closure;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -169,9 +169,7 @@ class HasManyTest extends TestCase
         $assoc->setSort(['_id' => 'ASC']);
         $this->assertSame(['_id' => 'ASC'], $assoc->getSort());
 
-        $closure = function () {
-            return ['_id' => 'ASC'];
-        };
+        $closure = (fn(): array => ['_id' => 'ASC']);
         $assoc->setSort($closure);
         $this->assertSame($closure, $assoc->getSort());
 
@@ -189,7 +187,6 @@ class HasManyTest extends TestCase
         $assoc = $authors->Articles;
 
         $field = 'Articles._id';
-        $driver = $authors->getConnection()->getDriver();
 
         $assoc->setSort("{$field} DESC");
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
@@ -199,9 +196,7 @@ class HasManyTest extends TestCase
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
         $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
 
-        $assoc->setSort(function () {
-            return ['Articles._id' => 'DESC'];
-        });
+        $assoc->setSort(fn(): array => ['Articles._id' => 'DESC']);
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
         $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
 
@@ -252,7 +247,7 @@ class HasManyTest extends TestCase
             ->andReturn($query);
         $keys = [1, 2, 3, 4];
 
-        $callable = $association->eagerLoader(compact('keys', 'query'));
+        $callable = $association->eagerLoader(['keys' => $keys, 'query' => $query]);
         $row = ['Authors__id' => 1];
 
         $result = $callable($row);
@@ -292,7 +287,7 @@ class HasManyTest extends TestCase
         $this->article->shouldReceive('find')
             ->andReturn($query);
 
-        $association->eagerLoader(compact('keys', 'query'));
+        $association->eagerLoader(['keys' => $keys, 'query' => $query]);
 
         $expected = new QueryExpression(
             ['Articles.published' => 'Y', 'Articles.author_id IN' => $keys],
@@ -443,10 +438,8 @@ class HasManyTest extends TestCase
             ->with('all')
             ->andReturn($query);
 
-        $queryBuilder = function ($query) {
-            return $query->select(['author_id'])->join('comments')->where(['comments._id' => 1]);
-        };
-        $association->eagerLoader(compact('keys', 'query', 'queryBuilder'));
+        $queryBuilder = (fn($query) => $query->select(['author_id'])->join('comments')->where(['comments._id' => 1]));
+        $association->eagerLoader(['keys' => $keys, 'query' => $query, 'queryBuilder' => $queryBuilder]);
 
         $expected = [
             'Articles__author_id' => 'Articles.author_id',
@@ -528,7 +521,7 @@ class HasManyTest extends TestCase
             ->with('all')
             ->andReturn($query);
 
-        $callable = $association->eagerLoader(compact('keys', 'query'));
+        $callable = $association->eagerLoader(['keys' => $keys, 'query' => $query]);
         $this->assertTrue($query->andWhereCalled);
         $row = ['Authors__id' => 2, 'Authors__site_id' => 10, 'username' => 'author 1'];
         $result = $callable($row);
@@ -654,9 +647,7 @@ class HasManyTest extends TestCase
         $association = new HasMany('Articles', $this->author, $config);
         $articles = $association->getTarget();
         $articles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
-            $rules->addDelete(function () {
-                return false;
-            });
+            $rules->addDelete(fn(): false => false);
         });
 
         $author = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
@@ -1166,7 +1157,7 @@ class HasManyTest extends TestCase
      * @param mixed $value Empty value.
      */
     #[DataProvider('emptySetDataProvider')]
-    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnCreate($value): void
+    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnCreate(string|bool|array|null $value): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $association = $articles->hasMany('Comments', [
@@ -1191,7 +1182,7 @@ class HasManyTest extends TestCase
      * @param mixed $value Empty value.
      */
     #[DataProvider('emptySetDataProvider')]
-    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnUpdate($value): void
+    public function testSaveAssociatedEmptySetWithAppendStrategyDoesNotAffectAssociatedRecordsOnUpdate(string|bool|array|null $value): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $association = $articles->hasMany('Comments', [
@@ -1221,7 +1212,7 @@ class HasManyTest extends TestCase
      * @param mixed $value Empty value.
      */
     #[DataProvider('emptySetDataProvider')]
-    public function testSaveAssociatedEmptySetWithReplaceStrategyDoesNotAffectAssociatedRecordsOnCreate($value): void
+    public function testSaveAssociatedEmptySetWithReplaceStrategyDoesNotAffectAssociatedRecordsOnCreate(string|bool|array|null $value): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $association = $articles->hasMany('Comments', [
@@ -1246,7 +1237,7 @@ class HasManyTest extends TestCase
      * @param mixed $value Empty value.
      */
     #[DataProvider('emptySetDataProvider')]
-    public function testSaveAssociatedEmptySetWithReplaceStrategyRemovesAssociatedRecordsOnUpdate($value): void
+    public function testSaveAssociatedEmptySetWithReplaceStrategyRemovesAssociatedRecordsOnUpdate(string|bool|array|null $value): void
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $association = $articles->hasMany('Comments', [
@@ -1373,9 +1364,7 @@ class HasManyTest extends TestCase
         $authors->Articles
             ->setDependent(true)
             ->setSaveStrategy('replace')
-            ->setConditions(function () {
-                return ['published' => 'Y'];
-            });
+            ->setConditions(fn(): array => ['published' => 'Y']);
 
         $entity = $authors->newDocument([
             'name' => 'mylux',

@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Log;
 
-use Crustum\Mongo\Database\Log\MongoLogger;
 use MongoDB\Driver\Monitoring\CommandFailedEvent;
 use MongoDB\Driver\Monitoring\CommandStartedEvent;
 use MongoDB\Driver\Monitoring\CommandSubscriber as CommandSubscriberInterface;

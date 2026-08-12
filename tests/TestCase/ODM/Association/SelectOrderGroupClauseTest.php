@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Database\Expression\OrderClauseExpression;
-use Crustum\Mongo\ODM\CollectionRegistry;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 
 /**
@@ -149,7 +148,7 @@ class SelectOrderGroupClauseTest extends TestCase
 
         $rows = $articles->find()
             ->select(['Articles._id', 'Articles.title'])
-            ->orderBy(fn() => ['Articles.title' => 'ASC'])
+            ->orderBy(fn(): array => ['Articles.title' => 'ASC'])
             ->all()
             ->toArray();
 
@@ -191,7 +190,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
 
         $result = $articles->find()
-            ->select(fn() => ['Articles._id', 'Articles.title'])
+            ->select(fn(): array => ['Articles._id', 'Articles.title'])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
 
@@ -205,7 +204,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->belongsTo('Authors');
 
         $result = $articles->find()
-            ->select(fn() => ['Articles._id', 'Articles.title'])
+            ->select(fn(): array => ['Articles._id', 'Articles.title'])
             ->contain(['Authors'])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
@@ -221,7 +220,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->hasMany('Comments');
 
         $result = $articles->find()
-            ->select(fn() => ['Articles._id', 'Articles.title'])
+            ->select(fn(): array => ['Articles._id', 'Articles.title'])
             ->contain(['Comments' => ['sort' => ['comment' => 'ASC']]])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
@@ -236,7 +235,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->hasMany('Comments');
 
         $result = $articles->find()
-            ->contain(['Comments' => ['sort' => fn() => ['comment' => 'DESC']]])
+            ->contain(['Comments' => ['sort' => fn(): array => ['comment' => 'DESC']]])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
 
@@ -253,7 +252,7 @@ class SelectOrderGroupClauseTest extends TestCase
 
         $rows = $articles->find()
             ->select(['Articles.published'])
-            ->groupBy(fn() => ['Articles.published'])
+            ->groupBy(fn(): array => ['Articles.published'])
             ->all()
             ->toArray();
 
@@ -266,7 +265,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->hasMany('Comments');
 
         $result = $articles->find()
-            ->contain(['Comments' => ['conditions' => fn() => ['published' => 'Y']]])
+            ->contain(['Comments' => ['conditions' => fn(): array => ['published' => 'Y']]])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
 
@@ -282,7 +281,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->hasMany('Comments');
 
         $result = $articles->find()
-            ->contain(['Comments' => ['fields' => fn() => ['comment']]])
+            ->contain(['Comments' => ['fields' => fn(): array => ['comment']]])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
 
@@ -315,7 +314,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $articles->hasMany('Comments');
 
         $result = $articles->find()
-            ->contain(['Comments' => ['sort' => fn() => ['comment' => 'DESC']]])
+            ->contain(['Comments' => ['sort' => fn(): array => ['comment' => 'DESC']]])
             ->where(['Articles._id' => '000000000000000000000001'])
             ->firstOrFail();
 
@@ -533,7 +532,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $users = $this->getCollectionLocator()->get('Users');
 
         $result = $users->find()
-            ->join('profiles', function ($q) {
+            ->join('profiles', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'profiles.first_name'));
             }, ['asArray' => true])
@@ -549,7 +548,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $users = $this->getCollectionLocator()->get('Users');
 
         $result = $users->find()
-            ->join('profiles', function ($q) {
+            ->join('profiles', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'profiles.first_name')
                     ->eq('profiles.is_active', false));
@@ -566,7 +565,7 @@ class SelectOrderGroupClauseTest extends TestCase
         $users = $this->getCollectionLocator()->get('Users');
 
         $result = $users->find()
-            ->join(['prof' => 'profiles'], function ($q) {
+            ->join(['prof' => 'profiles'], function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'prof.first_name'));
             }, ['asArray' => true])
@@ -584,7 +583,7 @@ class SelectOrderGroupClauseTest extends TestCase
         // leftJoin keeps source rows even when the joined collection has no
         // match (SQL LEFT JOIN semantics via $unwind preserveNull).
         $result = $users->find()
-            ->leftJoin('profiles', function ($q) {
+            ->leftJoin('profiles', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'profiles.first_name'));
             })
@@ -601,7 +600,7 @@ class SelectOrderGroupClauseTest extends TestCase
 
         // `join` is INNER: a username that matches no profile is dropped.
         $rows = $users->find()
-            ->join('profiles', function ($q) {
+            ->join('profiles', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'profiles.first_name'));
             })
@@ -619,7 +618,7 @@ class SelectOrderGroupClauseTest extends TestCase
 
         // `asArray` keeps the joined docs as a nested array (no $unwind).
         $result = $users->find()
-            ->leftJoin('profiles', function ($q) {
+            ->leftJoin('profiles', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users.username', 'profiles.first_name'));
             }, ['asArray' => true])
@@ -637,7 +636,7 @@ class SelectOrderGroupClauseTest extends TestCase
         // `foreign_key` does not end in `_id`; type resolution comes from the
         // schema type map (objectid), so `Users._id` matches `audits.foreign_key`.
         $result = $users->find()
-            ->join('audits', function ($q) {
+            ->join('audits', function ($q): void {
                 $q->where(fn($exp) => $exp
                     ->equalFields('Users._id', 'audits.foreign_key')
                     ->eq('audits.model', 'Users'));

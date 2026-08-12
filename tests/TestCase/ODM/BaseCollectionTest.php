@@ -8,27 +8,31 @@ use AssertionError;
 use BadMethodCallException;
 use Cake\Collection\Collection;
 use Cake\Core\Exception\CakeException;
-use Crustum\Mongo\Database\Connection;
 use Cake\Database\Exception\DatabaseException;
-use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Database\Schema\TableSchema;
 use Cake\Database\StatementInterface;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
-use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\Datasource\Exception\RecordNotFoundException;
+use Cake\Datasource\RepositoryInterface;
 use Cake\Event\EventInterface;
 use Cake\Event\EventManager;
 use Cake\I18n\DateTime;
+use Cake\Utility\Hash;
+use Cake\Validation\Validator;
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\AssociationCollection;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\BehaviorRegistry;
+use Crustum\Mongo\ODM\CollectionRegistry;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
 use Crustum\Mongo\ODM\Exception\MissingDocumentException;
@@ -40,11 +44,6 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\Query\UpdateQuery;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\RulesChecker;
-use Crustum\Mongo\ODM\BaseCollection;
-use Crustum\Mongo\ODM\CollectionRegistry;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use Cake\Utility\Hash;
-use Cake\Validation\Validator;
 use Exception;
 use InvalidArgumentException;
 use Mockery;
@@ -52,14 +51,14 @@ use PDOException;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use TestApp\Model\Collection\ArticlesCollection;
+use TestApp\Model\Collection\UsersCollection;
 use TestApp\Model\Document\Article;
 use TestApp\Model\Document\ArticlesTag;
 use TestApp\Model\Document\Author;
 use TestApp\Model\Document\ProtectedEntity;
 use TestApp\Model\Document\Tag;
 use TestApp\Model\Document\VirtualUser;
-use TestApp\Model\Collection\ArticlesCollection;
-use TestApp\Model\Collection\UsersCollection;
 use TestPlugin\Model\Collection\CommentsCollection;
 
 /**
@@ -578,6 +577,7 @@ class BaseCollectionTest extends TestCase
                 'identifier so they fit within the database alias limits.',
             );
         }
+
         $this->assertNotNull($table->setSchema($schema));
     }
 
@@ -741,9 +741,7 @@ class BaseCollectionTest extends TestCase
         );
 
         $query = $table->find('all')
-            ->formatResults(function (ResultSet $results) {
-                return $results;
-            });
+            ->formatResults(fn(ResultSet $results): ResultSet => $results);
         $query->limit(1);
         $this->assertEquals($expected, $query->all()->toArray());
     }
@@ -759,6 +757,7 @@ class BaseCollectionTest extends TestCase
 
         $sections->belongsToMany('Members');
         $sections->hasMany('SectionsMembers');
+
         $sectionsMembers->belongsTo('Members');
         $members->belongsToMany('Sections');
 
@@ -1009,6 +1008,7 @@ class BaseCollectionTest extends TestCase
         $table = new BaseCollection(['collection' => 'authors']);
 
         $table->hasMany('TestPlugin.Comments');
+
         $comments = $table->Comments->getTarget();
         $this->assertInstanceOf(CommentsCollection::class, $comments);
     }
@@ -1025,6 +1025,7 @@ class BaseCollectionTest extends TestCase
         $table = new BaseCollection(['collection' => 'authors']);
 
         $table->hasMany('Comments', ['className' => 'TestPlugin.Comments']);
+
         $comments = $table->Comments->getTarget();
         $this->assertInstanceOf(CommentsCollection::class, $comments);
     }
@@ -1378,6 +1379,7 @@ class BaseCollectionTest extends TestCase
             'connection' => $this->connection,
         ]);
         $table->setDisplayField('username');
+
         $query = $table->find('list')
             ->enableHydration(false)
             ->orderBy('id');
@@ -1552,6 +1554,7 @@ class BaseCollectionTest extends TestCase
             'connection' => $this->connection,
         ]);
         $table->setDisplayField('username');
+
         $query = $table
             ->find('list', fields: ['id', 'username'])
             ->orderBy('id');
@@ -1595,9 +1598,7 @@ class BaseCollectionTest extends TestCase
         $expected = ['id', 'username'];
         $this->assertSame($expected, $query->clause('select'));
 
-        $query = $table->find('list', valueField: function ($row) {
-            return $row->username;
-        });
+        $query = $table->find('list', valueField: fn($row) => $row->username);
         $this->assertEmpty($query->clause('select'));
 
         $expected = ['odd' => new QueryExpression('id % 2'), 'id', 'username'];
@@ -1676,6 +1677,7 @@ class BaseCollectionTest extends TestCase
         ]);
 
         $articles->belongsTo('Authors');
+
         $query = $articles->find('list', valueField: 'author.name')
             ->contain(['Authors'])
             ->orderBy('articles.id');
@@ -1954,8 +1956,8 @@ class BaseCollectionTest extends TestCase
         try {
             $table->addBehavior('Sluggable', ['thing' => 'thing']);
             $this->fail('No exception raised');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('The `Sluggable` alias has already been loaded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            $this->assertStringContainsString('The `Sluggable` alias has already been loaded', $runtimeException->getMessage());
         }
     }
 
@@ -2228,10 +2230,10 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $listener1 = function ($event, $document, $options): void {
+        $listener1 = function ($event, $document, array $options): void {
             $options['crazy'] = true;
         };
-        $listener2 = function ($event, $document, $options): void {
+        $listener2 = function ($event, $document, array $options): void {
             $this->assertTrue($options['crazy']);
         };
         $table->getEventManager()->on('Collection.beforeSave', $listener1);
@@ -2735,7 +2737,7 @@ class BaseCollectionTest extends TestCase
         $this->assertEquals($document->getId(), self::$nextUserId);
 
         $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
-        $document->set('password', null);
+        $document->set('password');
         $this->assertEquals($document->toArray(), $row->toArray());
     }
 
@@ -2944,6 +2946,7 @@ class BaseCollectionTest extends TestCase
         foreach ($documents as $document) {
             $this->assertFalse($document->isNew());
         }
+
         $this->assertSame(2, $timesCalled);
     }
 
@@ -3119,9 +3122,7 @@ class BaseCollectionTest extends TestCase
 
             public function buildRules(RulesChecker $rules): RulesChecker
             {
-                return $rules->add(function () {
-                    return 'Xyz';
-                });
+                return $rules->add(fn(): string => 'Xyz');
             }
         };
         CollectionRegistry::getCollectionLocator()->set('Comments', $Comments);
@@ -3196,13 +3197,7 @@ class BaseCollectionTest extends TestCase
 
         $articles = $table->getAssociation('Articles')->getTarget();
         $articles->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
-            $rules->addDelete(function ($document) {
-                if ($document->author_id === 3) {
-                    return false;
-                }
-
-                return true;
-            });
+            $rules->addDelete(fn($document): bool => $document->author_id !== 3);
         });
 
         $document = $table->get('000000000000000000000001');
@@ -3327,9 +3322,7 @@ class BaseCollectionTest extends TestCase
         $sections = $this->getCollectionLocator()->get('Sections');
         $sectionsMembers = $this->getCollectionLocator()->get('SectionsMembers');
         $sectionsMembers->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
-            $rules->addDelete(function () {
-                return false;
-            });
+            $rules->addDelete(fn(): false => false);
         });
 
         $sections->belongsToMany('Members', [
@@ -3364,7 +3357,7 @@ class BaseCollectionTest extends TestCase
             ->once();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options) {
+            ->withArgs(function (EventInterface $event) use ($document, $options): true {
                 $this->assertSame('Collection.beforeDelete', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
@@ -3373,7 +3366,7 @@ class BaseCollectionTest extends TestCase
             ->once();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options) {
+            ->withArgs(function (EventInterface $event) use ($document, $options): true {
                 $this->assertSame('Collection.afterDelete', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
@@ -3382,7 +3375,7 @@ class BaseCollectionTest extends TestCase
             ->once();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options) {
+            ->withArgs(function (EventInterface $event) use ($document, $options): true {
                 $this->assertSame('Model.afterDeleteCommit', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
@@ -3458,7 +3451,7 @@ class BaseCollectionTest extends TestCase
 
         $mock = $this->getMockBuilder(EventManager::class)->getMock();
         $mock->method('dispatch')
-            ->willReturnCallback(function (EventInterface $event) {
+            ->willReturnCallback(function (EventInterface $event): EventInterface {
                 $event->stopPropagation();
 
                 return $event;
@@ -3479,7 +3472,7 @@ class BaseCollectionTest extends TestCase
 
         $mock = $this->getMockBuilder(EventManager::class)->getMock();
         $mock->method('dispatch')
-            ->willReturnCallback(function (EventInterface $event) {
+            ->willReturnCallback(function (EventInterface $event): EventInterface {
                 $event->stopPropagation();
                 $event->setResult('got stopped');
 
@@ -3573,7 +3566,7 @@ class BaseCollectionTest extends TestCase
     public function testValidatorWithMissingMethod(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `Crustum\Mongo\ODM\BaseCollection::validationMissing()` validation method does not exist.');
+        $this->expectExceptionMessage('The `' . BaseCollection::class . '::validationMissing()` validation method does not exist.');
         $table = new BaseCollection();
         $table->getValidator('missing');
     }
@@ -4010,7 +4003,7 @@ class BaseCollectionTest extends TestCase
             ],
         ];
         $document = $articles->patchDocument($document, $data, ['associated' => ['Tags._joinData']]);
-        $document = $articles->save($document);
+        $articles->save($document);
 
         $expected = [
             [
@@ -4298,6 +4291,7 @@ class BaseCollectionTest extends TestCase
         } catch (BadMethodCallException) {
             $this->fail('Method chaining should be ok');
         }
+
         $this->assertSame('articles', $articles->getCollection());
     }
 
@@ -4323,6 +4317,7 @@ class BaseCollectionTest extends TestCase
         } catch (BadMethodCallException) {
             $this->fail('Method chaining should be ok');
         }
+
         $this->assertSame('authors', $authors->getCollection());
     }
 
@@ -4350,6 +4345,7 @@ class BaseCollectionTest extends TestCase
         } catch (BadMethodCallException) {
             $this->fail('Method chaining should be ok');
         }
+
         $this->assertSame('authors', $authors->getCollection());
     }
 
@@ -4377,6 +4373,7 @@ class BaseCollectionTest extends TestCase
         } catch (BadMethodCallException) {
             $this->fail('Method chaining should be ok');
         }
+
         $this->assertSame('authors', $authors->getCollection());
     }
 
@@ -5425,7 +5422,7 @@ class BaseCollectionTest extends TestCase
      * @param array $options
      */
     #[DataProvider('providerForTestGet')]
-    public function testGet($options): void
+    public function testGet(array $options): void
     {
         $table = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
@@ -5492,7 +5489,7 @@ class BaseCollectionTest extends TestCase
      * @param mixed $primaryKey
      */
     #[DataProvider('providerForTestGetWithCache')]
-    public function testGetWithCache($options, $cacheKey, $cacheConfig, $primaryKey): void
+    public function testGetWithCache(array $options, string $cacheKey, string $cacheConfig, int|string|DateTime $primaryKey): void
     {
         $table = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
@@ -5702,6 +5699,7 @@ class BaseCollectionTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('articles');
         $articles->addBehavior('Timestamp');
+
         $result = $articles->__debugInfo();
         $expected = [
             'registryAlias' => 'articles',
@@ -5920,6 +5918,7 @@ class BaseCollectionTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $validator = new Validator();
         $validator->notEmptyString('title');
+
         $articles->setValidator('default', $validator);
 
         $articles->findOrCreate(['title' => '']);
@@ -5932,8 +5931,10 @@ class BaseCollectionTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->setDocumentClass(ProtectedEntity::class);
+
         $validator = new Validator();
         $validator->notBlank('title');
+
         $articles->setValidator('default', $validator);
 
         $article = $articles->findOrCreate(['title' => 'test']);
@@ -5948,6 +5949,7 @@ class BaseCollectionTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->setDocumentClass(ProtectedEntity::class);
+
         $validator = new Validator();
         $validator->notBlank('title')->requirePresence('title', 'create');
         $validator->notBlank('body')->requirePresence('body', 'create');
@@ -6268,6 +6270,7 @@ class BaseCollectionTest extends TestCase
 
         $userCollection = $this->getCollectionLocator()->get('Users');
         $userCollection->hasMany('Comments');
+
         $savedUser = $userCollection->save($userCollection->newDocument($data, ['associated' => ['Comments']]));
         $retrievedUser = $userCollection->find('all')->where(['id' => $savedUser->getId()])->contain(['Comments'])->first();
         $this->assertEquals($savedUser->comments[0]->user_id, $retrievedUser->comments[0]->user_id);
@@ -6291,6 +6294,7 @@ class BaseCollectionTest extends TestCase
 
         $userCollection = $this->getCollectionLocator()->get('Users');
         $userCollection->hasMany('Comments');
+
         $savedUser = $userCollection->save($userCollection->newDocument($data, ['associated' => ['Comments']]));
 
         $counter = 0;
@@ -6415,9 +6419,7 @@ class BaseCollectionTest extends TestCase
         $document = $table->get('000000000000000000000001');
         $options = [
             'SiteArticles' => ['fields' => ['title', 'author_id']],
-            'Articles.Tags' => function ($q) {
-                return $q->where(['Tags.name' => 'tag2']);
-            },
+            'Articles.Tags' => fn($q) => $q->where(['Tags.name' => 'tag2']),
         ];
         $result = $table->loadInto($document, $options);
         $this->assertSame($document, $result);
@@ -6453,11 +6455,7 @@ class BaseCollectionTest extends TestCase
 
         $document = $table->get('000000000000000000000002');
         $result = $table->loadInto($document, [
-            'Articles' => function (SelectQuery $q) {
-                return $q->innerJoinWith('Authors', function ($q) {
-                    return $q->where(['Authors.name' => 'mariano']);
-                });
-            },
+            'Articles' => fn(SelectQuery $q): SelectQuery => $q->innerJoinWith('Authors', fn($q) => $q->where(['Authors.name' => 'mariano'])),
             'Articles.Authors',
         ]);
 
@@ -6567,6 +6565,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $document->setError('field', 'Some message');
         $document->setError('multiple', ['one' => 'One', 'two' => 'Two']);
+
         $table = $this->getCollectionLocator()->get('users');
 
         $table->saveOrFail($document);
@@ -6606,8 +6605,8 @@ class BaseCollectionTest extends TestCase
 
         try {
             $table->saveOrFail($document);
-        } catch (PersistenceFailedException $e) {
-            $this->assertSame($document, $e->getEntity());
+        } catch (PersistenceFailedException $persistenceFailedException) {
+            $this->assertSame($document, $persistenceFailedException->getEntity());
         }
     }
 
@@ -6638,8 +6637,8 @@ class BaseCollectionTest extends TestCase
 
         try {
             $table->deleteOrFail($document);
-        } catch (PersistenceFailedException $e) {
-            $this->assertSame($document, $e->getEntity());
+        } catch (PersistenceFailedException $persistenceFailedException) {
+            $this->assertSame($document, $persistenceFailedException->getEntity());
         }
     }
 

@@ -42,6 +42,7 @@ class InsertQuery extends DatabaseInsertQuery
             $connection = $repository->getConnection();
             $collection = $repository->getCollection();
         }
+
         parent::__construct($connection, $collection);
         if ($repository instanceof BaseCollection) {
             $this->setRepository($repository);

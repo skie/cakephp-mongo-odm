@@ -121,6 +121,7 @@ class Migrator
         if (!$conn instanceof Connection) {
             return;
         }
+
         foreach ($collections as $name) {
             $conn->getCollection($name)->deleteMany([]);
         }
@@ -143,26 +144,27 @@ class Migrator
                 $messages['missing'][] = 'Applied but missing Migration source=' .
                     $migration['name'] . ' id=' . $migration['id'];
             }
+
             if ($migration['status'] === 'down') {
                 $messages['down'][] = sprintf('Migration to reverse. source=%s id=%s', $migration['name'], $migration['id']);
             }
         }
 
         $output = [];
-        $itemize = function (string $item): string {
-            return '- ' . $item;
-        };
+        $itemize = fn(string $item): string => '- ' . $item;
         if ($messages['down'] !== []) {
             $output[] = 'Migrations needing to be reversed:';
             $output = array_merge($output, array_map($itemize, $messages['down']));
             $output[] = '';
         }
+
         if ($messages['missing'] !== []) {
             $output[] = 'Applied but missing migrations:';
             $output = array_merge($output, array_map($itemize, $messages['missing']));
             $output[] = '';
         }
-        if ($output) {
+
+        if ($output !== []) {
             $output = array_merge(
                 ['Your migration status has differences with the expected state.', ''],
                 $output,
@@ -193,6 +195,7 @@ class Migrator
         foreach ($drop as $name) {
             $manager->dropCollection($name);
         }
+
         foreach ($this->getJournalCollections($connection) as $name) {
             $conn->getCollection($name)->deleteMany([]);
         }

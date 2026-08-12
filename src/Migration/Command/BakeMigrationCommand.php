@@ -128,6 +128,7 @@ class BakeMigrationCommand extends Command
                 $className,
             ));
         }
+
         foreach ($existing as $oldFile) {
             if (file_exists($oldFile)) {
                 unlink($oldFile);
@@ -178,9 +179,11 @@ class BakeMigrationCommand extends Command
                 if ($definition['null'] ?? false) {
                     $options['null'] = true;
                 }
+
                 if (isset($definition['default'])) {
                     $options['default'] = $definition['default'];
                 }
+
                 $optionsStr = $options !== [] ? ', ' . $printer->print($options, 3) : '';
                 $lines[] = sprintf("            ->addColumn('%s', '%s'%s)", $fieldName, $type, $optionsStr);
             }

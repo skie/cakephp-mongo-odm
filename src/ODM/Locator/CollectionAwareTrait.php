@@ -5,7 +5,9 @@ namespace Crustum\Mongo\ODM\Locator;
 
 use Cake\Core\App;
 use Cake\Datasource\FactoryLocator;
+use Cake\ORM\Table;
 use Crustum\Mongo\ODM\BaseCollection;
+use UnexpectedValueException;
 
 /**
  * Collection-aware locator for controllers.
@@ -30,11 +32,11 @@ trait CollectionAwareTrait
      * @param array<string, mixed> $options Options for the locator.
      * @return \Crustum\Mongo\ODM\BaseCollection|\Cake\ORM\Table
      */
-    public function fetchCollection(?string $alias = null, array $options = [])
+    public function fetchCollection(?string $alias = null, array $options = []): BaseCollection|Table
     {
         $alias ??= $this->defaultTable;
         if (!$alias) {
-            throw new \UnexpectedValueException(
+            throw new UnexpectedValueException(
                 'You must provide an `$alias` or set the `$defaultTable` property to a non empty string.',
             );
         }

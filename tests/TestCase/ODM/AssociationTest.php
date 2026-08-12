@@ -5,10 +5,9 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Core\Configure;
 use Cake\Database\Exception\DatabaseException;
-use Crustum\Mongo\ODM\Association;
 use Cake\Datasource\Locator\LocatorInterface;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
 use TestApp\Model\Collection\AuthorsCollection;
@@ -258,6 +257,7 @@ class AssociationTest extends TestCase
     {
         $target = new BaseCollection();
         $target->setPrimaryKey(['foo', 'site_id']);
+
         $this->association->setTarget($target);
 
         $this->association

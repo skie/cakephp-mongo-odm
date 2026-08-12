@@ -55,7 +55,7 @@ class SelectLoader implements LoaderInterface
             $rawSourceKey = $sourceHoldsForeignKey
                 ? ($options['foreignKey'] ?? '_id')
                 : ($options['bindingKey'] ?? '_id');
-            if ($rawSourceKey === false || $rawSourceKey === null || $rawSourceKey === '') {
+            if (in_array($rawSourceKey, [false, null, ''], true)) {
                 return $entities;
             }
 
@@ -80,32 +80,39 @@ class SelectLoader implements LoaderInterface
                 ? ($options['bindingKey'] ?? '_id')
                 : ($options['foreignKey'] ?? '_id'));
             $conditions = $options['conditions'] ?? [];
-            if ($conditions instanceof \Closure) {
+            if ($conditions instanceof Closure) {
                 $conditions = $conditions($query);
             }
+
             $conditions = is_array($conditions) ? $conditions : [];
             $conditions[$targetKey . ' IN'] = array_values($keys);
             $query->where($conditions);
             if (!empty($options['fields'])) {
                 $fields = $options['fields'];
-                if ($fields instanceof \Closure) {
+                if ($fields instanceof Closure) {
                     $fields = $fields($query);
                 }
+
                 $fields = (array)$fields;
                 if (!in_array($targetKey, $fields, true)) {
                     $fields[] = $targetKey;
                 }
+
                 $query->select($fields);
             }
+
             if (!empty($options['sort'])) {
                 $query->orderBy($options['sort']);
             }
+
             if (!empty($options['limit'])) {
                 $query->limit($options['limit']);
             }
+
             if (!empty($options['skip'])) {
                 $query->skip($options['skip']);
             }
+
             if (!empty($options['queryBuilder'])) {
                 $builder = $options['queryBuilder'];
                 $built = $builder($query);
@@ -113,6 +120,7 @@ class SelectLoader implements LoaderInterface
                     $query = $built;
                 }
             }
+
             $rows = $query->all();
             $map = [];
             foreach ($rows as $row) {

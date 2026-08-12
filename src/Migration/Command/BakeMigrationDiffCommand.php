@@ -92,7 +92,7 @@ class BakeMigrationDiffCommand extends Command
         $optionNames = ['plugin', 'connection', 'source', 'schema-file'];
         foreach ($optionNames as $option) {
             $value = $args->getOption($option);
-            if ($value !== null && $value !== '' && $value !== false) {
+            if (!in_array($value, [null, '', false], true)) {
                 $argv[] = '--' . $option;
                 if (is_string($value)) {
                     $argv[] = $value;

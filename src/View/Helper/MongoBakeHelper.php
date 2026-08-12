@@ -13,6 +13,7 @@ namespace Crustum\Mongo\View\Helper;
 use Bake\View\Helper\BakeHelper;
 use Cake\Datasource\SchemaInterface;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use function Cake\Collection\collection;
 
@@ -92,14 +93,10 @@ class MongoBakeHelper extends BakeHelper
         array $filterTypes = ['binary'],
     ): array {
         $fields = collection($fields)
-            ->filter(function ($field) use ($schema, $filterTypes): bool {
-                return !in_array($schema->getColumnType($field), $filterTypes, true);
-            });
+            ->filter(fn(string $field): bool => !in_array($schema->getColumnType($field), $filterTypes, true));
 
         if (isset($modelObject) && $modelObject->hasBehavior('Tree')) {
-            $fields = $fields->reject(function ($field): bool {
-                return $field === 'lft' || $field === 'rght';
-            });
+            $fields = $fields->reject(fn($field): bool => $field === 'lft' || $field === 'rght');
         }
 
         if (!empty($takeFields)) {
@@ -119,7 +116,7 @@ class MongoBakeHelper extends BakeHelper
     public function mongoGetAssociatedTableAlias(BaseCollection $collection, string $assoc): string
     {
         $association = $collection->getAssociation($assoc);
-        if ($association === null) {
+        if (!$association instanceof Association) {
             return $assoc;
         }
 

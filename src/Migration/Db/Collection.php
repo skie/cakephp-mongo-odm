@@ -222,9 +222,11 @@ class Collection
         if (array_key_exists('default', $options)) {
             $this->fields[$name]['default'] = $options['default'];
         }
+
         if (isset($options['length'])) {
             $this->fields[$name]['length'] = $options['length'];
         }
+
         if (isset($options['precision'])) {
             $this->fields[$name]['precision'] = $options['precision'];
         }
@@ -284,6 +286,7 @@ class Collection
         if (is_string($key)) {
             $key = [$key];
         }
+
         if (array_is_list($key)) {
             $key = array_fill_keys($key, 1);
         }

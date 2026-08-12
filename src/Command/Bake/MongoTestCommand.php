@@ -14,13 +14,15 @@ use Bake\Command\BakeCommand;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Cake\Controller\ComponentRegistry;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Core\Exception\CakeException;
 use Cake\Datasource\FactoryLocator;
-use Cake\Datasource\RepositoryInterface;
 use Cake\Http\ServerRequest as Request;
 use Cake\Utility\Inflector;
+use Cake\View\View;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use ReflectionClass;
 use UnexpectedValueException;
@@ -113,6 +115,7 @@ class MongoTestCommand extends BakeCommand
 
             return null;
         }
+
         $type = $this->normalize((string)$args->getArgument('type'));
 
         if ($args->getOption('all')) {
@@ -120,11 +123,13 @@ class MongoTestCommand extends BakeCommand
 
             return null;
         }
+
         if (!$args->hasArgument('name')) {
             $this->outputClassChoices($type, $io);
 
             return null;
         }
+
         $name = (string)$args->getArgument('name');
         $name = $this->_getName($name);
 
@@ -132,6 +137,7 @@ class MongoTestCommand extends BakeCommand
         if ($result === static::CODE_ERROR) {
             return static::CODE_ERROR;
         }
+
         if ($result) {
             $io->success('Done');
         }
@@ -155,6 +161,7 @@ class MongoTestCommand extends BakeCommand
         foreach (array_keys($this->classTypes) as $option) {
             $io->out(++$i . '. ' . $option);
         }
+
         $io->out('');
         $io->out('Re-run your command as `cake bake <type> <classname>`');
     }
@@ -178,6 +185,7 @@ class MongoTestCommand extends BakeCommand
         foreach ($options as $option) {
             $io->out(++$i . '. ' . $option);
         }
+
         $io->out('');
         $io->out('Re-run your command as `cake bake ' . $typeName . ' <classname>`');
     }
@@ -232,8 +240,10 @@ class MongoTestCommand extends BakeCommand
             if ($fileName === 'AppController.php') {
                 continue;
             }
+
             $classes[] = substr($fileName, 0, -4) ?: '';
         }
+
         sort($classes);
 
         return $classes;
@@ -260,7 +270,7 @@ class MongoTestCommand extends BakeCommand
 
         if (!$args->getOption('no-fixture')) {
             if ($args->getOption('fixtures')) {
-                $fixtures = array_map('trim', explode(',', (string)$args->getOption('fixtures')));
+                $fixtures = array_map(trim(...), explode(',', (string)$args->getOption('fixtures')));
                 $this->_fixtures = array_filter($fixtures);
             } elseif ($this->typeCanDetectFixtures($type) && class_exists($fullClassName)) {
                 $io->out('Bake is detecting possible fixtures...');
@@ -275,6 +285,7 @@ class MongoTestCommand extends BakeCommand
         if (class_exists($fullClassName)) {
             $methods = $this->getTestableMethods($fullClassName);
         }
+
         $mock = $this->hasMockClass($type);
         [$preConstruct, $construction, $postConstruct] = $this->generateConstructor($type, $fullClassName);
         $uses = $this->generateUses($type, $fullClassName);
@@ -291,6 +302,7 @@ class MongoTestCommand extends BakeCommand
         if ($this->plugin) {
             $baseNamespace = $this->_pluginNamespace($this->plugin);
         }
+
         $subNamespace = substr($namespace, strlen((string)$baseNamespace) + 1);
 
         $properties = $this->generateProperties($type, $subject, $fullClassName);
@@ -301,22 +313,7 @@ class MongoTestCommand extends BakeCommand
             ->set('fixtures', $this->_fixtures)
             ->set('plugin', $this->plugin)
             ->set('hasFixtureFactories', false)
-            ->set(compact(
-                'subject',
-                'className',
-                'properties',
-                'methods',
-                'type',
-                'fullClassName',
-                'mock',
-                'preConstruct',
-                'postConstruct',
-                'construction',
-                'uses',
-                'baseNamespace',
-                'subNamespace',
-                'namespace',
-            ))
+            ->set(['subject' => $subject, 'className' => $className, 'properties' => $properties, 'methods' => $methods, 'type' => $type, 'fullClassName' => $fullClassName, 'mock' => $mock, 'preConstruct' => $preConstruct, 'postConstruct' => $postConstruct, 'construction' => $construction, 'uses' => $uses, 'baseNamespace' => $baseNamespace, 'subNamespace' => $subNamespace, 'namespace' => $namespace])
             ->generate('Crustum/Mongo.tests/test_case');
 
         $filename = $this->testCaseFileName($type, $fullClassName);
@@ -355,6 +352,7 @@ class MongoTestCommand extends BakeCommand
             if ($this->plugin) {
                 $name = $this->plugin . '.' . $name;
             }
+
             $locator = FactoryLocator::get('Collection');
             if ($locator->exists($name)) {
                 $instance = $locator->get($name);
@@ -400,6 +398,7 @@ class MongoTestCommand extends BakeCommand
         if ($suffix && !str_contains($class, $suffix)) {
             $class .= $suffix;
         }
+
         if (in_array($type, ['Controller', 'Cell'], true) && $prefix) {
             $subSpace .= '\\' . str_replace('/', '\\', $prefix);
         }
@@ -438,9 +437,15 @@ class MongoTestCommand extends BakeCommand
             if ($method->getDeclaringClass()->getName() !== $className) {
                 continue;
             }
-            if (!$method->isPublic() || in_array($method->getName(), $this->blacklistedMethods, true)) {
+
+            if (!$method->isPublic()) {
                 continue;
             }
+
+            if (in_array($method->getName(), $this->blacklistedMethods, true)) {
+                continue;
+            }
+
             $out[] = $method->getName();
         }
 
@@ -476,9 +481,10 @@ class MongoTestCommand extends BakeCommand
         $this->addFixture($subject->getAlias(), $subject->getCollection());
         foreach ($subject->associations()->keys() as $alias) {
             $assoc = $subject->getAssociation($alias);
-            if ($assoc === null) {
+            if (!$assoc instanceof Association) {
                 continue;
             }
+
             $target = $assoc->getTarget();
             $name = $target->getAlias();
             if (!isset($this->_fixtures[$name])) {
@@ -498,9 +504,7 @@ class MongoTestCommand extends BakeCommand
         $models = [];
         try {
             $repository = $subject->fetchTable();
-            if ($repository instanceof RepositoryInterface) {
-                $models[] = $repository->getAlias();
-            }
+            $models[] = $repository->getAlias();
         } catch (UnexpectedValueException) {
             return;
         }
@@ -569,28 +573,35 @@ class MongoTestCommand extends BakeCommand
     public function generateConstructor(string $type, string $fullClassName): array
     {
         [, $className] = namespaceSplit($fullClassName);
-        $pre = $construct = $post = '';
+        $pre = '';
+        $construct = '';
+        $post = '';
         if ($type === 'Collection') {
             $collectionName = str_replace('Collection', '', $className);
             $pre = "\$config = FactoryLocator::get('Collection')->exists('{$collectionName}') " .
                 "? [] : ['className' => {$className}::class];";
             $construct = "FactoryLocator::get('Collection')->get('{$collectionName}', \$config);";
         }
+
         if ($type === 'Behavior') {
             $pre = '$collection = new BaseCollection();';
             $construct = "new {$className}(\$collection);";
         }
+
         if ($type === 'Document' || $type === 'Form') {
             $construct = "new {$className}();";
         }
+
         if ($type === 'Helper') {
             $pre = '$view = new View();';
             $construct = "new {$className}(\$view);";
         }
+
         if ($type === 'Component') {
             $pre = '$registry = new ComponentRegistry();';
             $construct = "new {$className}(\$registry);";
         }
+
         if ($type === 'Class') {
             if (class_exists($fullClassName)) {
                 $reflection = new ReflectionClass($fullClassName);
@@ -641,17 +652,21 @@ class MongoTestCommand extends BakeCommand
     {
         $uses = [];
         if ($type === 'Component') {
-            $uses[] = 'Cake\Controller\ComponentRegistry';
+            $uses[] = ComponentRegistry::class;
         }
+
         if ($type === 'Helper') {
-            $uses[] = 'Cake\View\View';
+            $uses[] = View::class;
         }
+
         if ($type === 'Behavior') {
-            $uses[] = 'Crustum\Mongo\ODM\BaseCollection';
+            $uses[] = BaseCollection::class;
         }
+
         if ($type === 'Collection') {
-            $uses[] = 'Cake\Datasource\FactoryLocator';
+            $uses[] = FactoryLocator::class;
         }
+
         $uses[] = $fullClassName;
 
         return $uses;

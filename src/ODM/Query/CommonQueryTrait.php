@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
-use Cake\Database\ExpressionInterface;
 use Cake\Database\Expression\OrderClauseExpression;
+use Cake\Database\ExpressionInterface;
 use Cake\Database\ValueBinder;
 use Cake\Datasource\RepositoryInterface;
 use Closure;
@@ -49,6 +49,7 @@ trait CommonQueryTrait
         if ($connection instanceof Connection) {
             $this->setConnection($connection);
         }
+
         $this->configureFieldResolver();
 
         return $this;
@@ -74,8 +75,7 @@ trait CommonQueryTrait
         }
 
         $this->setFieldResolver(
-            static fn(string $field): string =>
-                str_starts_with($field, $alias . '.')
+            static fn(string $field): string => str_starts_with($field, $alias . '.')
                     ? substr($field, strlen($alias) + 1)
                     : $field,
         );

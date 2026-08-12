@@ -279,7 +279,7 @@ class Environment
         $versions = $this->getVersions();
         $version = 0;
         if ($versions !== []) {
-            $version = (int)end($versions);
+            $version = end($versions);
         }
 
         $this->setCurrentVersion($version);
@@ -308,11 +308,11 @@ class Environment
      */
     public function getAdapter(): AdapterInterface
     {
-        if ($this->adapter !== null) {
+        if ($this->adapter instanceof AdapterInterface) {
             return $this->adapter;
         }
 
-        if ($this->config === null) {
+        if (!$this->config instanceof ConfigInterface) {
             throw new RuntimeException('No config defined for the environment.');
         }
 

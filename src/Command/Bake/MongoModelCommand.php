@@ -167,20 +167,7 @@ class MongoModelCommand extends BakeCommand
         $rulesChecker = $args->getOption('no-rules') ? [] : $context['rulesChecker'];
         $behaviors = $args->getOption('no-associations') ? [] : $context['behaviors'];
 
-        return compact(
-            'associationInfo',
-            'primaryKey',
-            'displayField',
-            'collection',
-            'propertySchema',
-            'fields',
-            'validation',
-            'rulesChecker',
-            'behaviors',
-            'hidden',
-            'schema',
-            'associations',
-        );
+        return ['associationInfo' => $associationInfo, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'collection' => $collection, 'propertySchema' => $propertySchema, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden, 'schema' => $schema, 'associations' => $associations];
     }
 
     /**
@@ -225,6 +212,7 @@ class MongoModelCommand extends BakeCommand
         if ($args->getOption('no-associations')) {
             return [];
         }
+
         $io->out('One moment while associations are detected.');
 
         $associations = [
@@ -266,12 +254,14 @@ class MongoModelCommand extends BakeCommand
             if ($class === null) {
                 continue;
             }
+
             foreach ($assocs as $assoc) {
                 $alias = $assoc['alias'];
                 unset($assoc['alias']);
                 if ($model->hasAssociation($alias)) {
                     continue;
                 }
+
                 $model->associations()->load($class, $alias, $model, $assoc);
             }
         }
@@ -299,6 +289,7 @@ class MongoModelCommand extends BakeCommand
                 if ($plugin !== null) {
                     $namespace = $plugin;
                 }
+
                 $namespace = str_replace('/', '\\', trim((string)$namespace, '\\'));
                 $collectionClass = $namespace . '\Model\Collection\\' . $className . 'Collection';
             }
@@ -327,12 +318,17 @@ class MongoModelCommand extends BakeCommand
             if ($schema->getFieldType($fieldName) !== 'objectid') {
                 continue;
             }
+
             if ($fieldName === '_id') {
                 continue;
             }
 
             $targetCollection = $this->targetCollectionFor($fieldName);
-            if ($targetCollection === null || !in_array($targetCollection, $collections, true)) {
+            if ($targetCollection === null) {
+                continue;
+            }
+
+            if (!in_array($targetCollection, $collections, true)) {
                 continue;
             }
 
@@ -424,7 +420,7 @@ class MongoModelCommand extends BakeCommand
             }
 
             $otherSchema = $this->describeCollection($otherCollectionName);
-            if ($otherSchema === null) {
+            if (!$otherSchema instanceof CollectionSchema) {
                 continue;
             }
 
@@ -432,12 +428,15 @@ class MongoModelCommand extends BakeCommand
                 if ($fieldName === $primaryKey) {
                     continue;
                 }
+
                 if ($otherSchema->getFieldType($fieldName) !== 'objectid') {
                     continue;
                 }
+
                 if ($fieldName !== $foreignKey) {
                     continue;
                 }
+
                 if ($this->hasUniqueIndexFor($otherSchema, $fieldName) !== $uniqueOnly) {
                     continue;
                 }
@@ -463,9 +462,14 @@ class MongoModelCommand extends BakeCommand
     protected function hasUniqueIndexFor(CollectionSchema $schema, string $keyField): bool
     {
         foreach ($schema->indexes() as $index) {
-            if (!$index instanceof Index || !$index->getUnique()) {
+            if (!$index instanceof Index) {
                 continue;
             }
+
+            if (!$index->getUnique()) {
+                continue;
+            }
+
             if (array_keys($index->getKey()) === [$keyField]) {
                 return true;
             }
@@ -500,7 +504,12 @@ class MongoModelCommand extends BakeCommand
             } elseif ($otherOffset !== false) {
                 $assocTable = substr($otherCollectionName, 0, $otherOffset);
             }
-            if (!$assocTable || !in_array($assocTable, $tables, true)) {
+
+            if (!$assocTable) {
+                continue;
+            }
+
+            if (!in_array($assocTable, $tables, true)) {
                 continue;
             }
 
@@ -558,6 +567,7 @@ class MongoModelCommand extends BakeCommand
         if (is_array($displayField) && $displayField !== []) {
             return $displayField;
         }
+
         if (is_string($displayField) && $displayField !== '' && $displayField !== '_id') {
             return $displayField;
         }
@@ -566,6 +576,7 @@ class MongoModelCommand extends BakeCommand
             if ($field === '_id') {
                 continue;
             }
+
             if ($model->getSchema()->getFieldType($field) === 'string') {
                 return $field;
             }
@@ -586,7 +597,7 @@ class MongoModelCommand extends BakeCommand
         if ($args->getOption('primary-key')) {
             $fields = explode(',', (string)$args->getOption('primary-key'));
 
-            return array_values(array_filter(array_map('trim', $fields)));
+            return array_values(array_filter(array_map(trim(...), $fields)));
         }
 
         $pk = $model->getPrimaryKey();
@@ -670,10 +681,11 @@ class MongoModelCommand extends BakeCommand
         if ($args->getOption('no-fields')) {
             return false;
         }
+
         if ($args->getOption('fields')) {
             $fields = explode(',', (string)$args->getOption('fields'));
 
-            return array_values(array_filter(array_map('trim', $fields)));
+            return array_values(array_filter(array_map(trim(...), $fields)));
         }
 
         $schema = $collection->getSchema();
@@ -681,6 +693,7 @@ class MongoModelCommand extends BakeCommand
         foreach ($collection->associations() as $assoc) {
             $fields[] = $assoc->getProperty();
         }
+
         $primaryKey = (array)$collection->getPrimaryKey();
 
         return array_values(array_diff($fields, $primaryKey));
@@ -698,10 +711,11 @@ class MongoModelCommand extends BakeCommand
         if ($args->getOption('no-hidden')) {
             return [];
         }
+
         if ($args->getOption('hidden')) {
             $fields = explode(',', (string)$args->getOption('hidden'));
 
-            return array_values(array_filter(array_map('trim', $fields)));
+            return array_values(array_filter(array_map(trim(...), $fields)));
         }
 
         $columns = $model->getSchema()->columns();
@@ -726,7 +740,7 @@ class MongoModelCommand extends BakeCommand
 
         $schema = $model->getSchema();
         $fields = $schema->columns();
-        if (!$fields) {
+        if ($fields === []) {
             return false;
         }
 
@@ -745,7 +759,7 @@ class MongoModelCommand extends BakeCommand
             $field = $schema->getField($fieldName);
             $field['isForeignKey'] = in_array($fieldName, $foreignKeys, true);
             $validation = $this->fieldValidation($schema, $fieldName, $field, (array)$primaryKey);
-            if ($validation) {
+            if ($validation !== []) {
                 $validate[$fieldName] = $validation;
             }
         }
@@ -781,7 +795,7 @@ class MongoModelCommand extends BakeCommand
             $rules['decimal'] = [];
         } elseif ($type === 'boolean') {
             $rules['boolean'] = [];
-        } elseif ($type === 'date' || $type === 'datetime' || $type === 'timestamp') {
+        } elseif (in_array($type, ['date', 'datetime', 'timestamp'], true)) {
             $rules['dateTime'] = [];
         } elseif ($type === 'string') {
             $rules['scalar'] = [];
@@ -811,6 +825,7 @@ class MongoModelCommand extends BakeCommand
                     'args' => ['create'],
                 ];
             }
+
             $validation['notEmpty'] = [
                 'rule' => $this->getEmptyMethod($fieldName, $metaData, 'not'),
                 'args' => [],
@@ -867,7 +882,7 @@ class MongoModelCommand extends BakeCommand
 
         $schema = $model->getSchema();
         $schemaFields = $schema->columns();
-        if (empty($schemaFields)) {
+        if ($schemaFields === []) {
             return [];
         }
 
@@ -877,6 +892,7 @@ class MongoModelCommand extends BakeCommand
             if (!$index->getUnique()) {
                 continue;
             }
+
             $keyFields = array_keys($index->getKey());
             $uniqueColumns = [...$uniqueColumns, ...$keyFields];
 
@@ -888,6 +904,7 @@ class MongoModelCommand extends BakeCommand
                     end($keyFields),
                 );
             }
+
             $uniqueRules[] = $rule;
         }
 
@@ -935,9 +952,10 @@ class MongoModelCommand extends BakeCommand
         $behaviors = [];
         $schema = $model->getSchema();
         $fields = $schema->columns();
-        if (empty($fields)) {
+        if ($fields === []) {
             return [];
         }
+
         if (in_array('created', $fields, true) || in_array('modified', $fields, true)) {
             $behaviors['Timestamp'] = [];
         }
@@ -1033,6 +1051,7 @@ class MongoModelCommand extends BakeCommand
                 'primaryKey' => $fieldName === '_id',
             ];
         }
+
         $fieldNames = array_values(array_diff(array_column($fields, 'name'), ['_id']));
         $useConstants = array_any($fields, fn(array $field): bool => $field['constant'] !== null);
 
@@ -1130,7 +1149,7 @@ class MongoModelCommand extends BakeCommand
      */
     public function listAll(): array
     {
-        if (!empty($this->_collections)) {
+        if ($this->_collections !== []) {
             return $this->_collections;
         }
 
@@ -1251,6 +1270,7 @@ class MongoModelCommand extends BakeCommand
                 if (in_array($alias, $existing, true)) {
                     $alias = $this->_modelNameFromKey((string)$association['foreignKey']);
                 }
+
                 $existing[] = $alias;
                 $association['alias'] = $alias;
                 $associations[$type][$k] = $association;

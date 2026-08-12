@@ -7,7 +7,6 @@ use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\RuleInvoker;
 use Cake\Datasource\RulesChecker as BaseRulesChecker;
 use Cake\Utility\Inflector;
-use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Rule\ExistsIn;
 use Crustum\Mongo\ODM\Rule\ExistsInNullable;
 use Crustum\Mongo\ODM\Rule\IsUnique;
@@ -240,6 +239,6 @@ class RulesChecker extends BaseRulesChecker
             $linkStatus,
         );
 
-        return $this->_addError($rule, $ruleName, compact('errorField', 'message'));
+        return $this->_addError($rule, $ruleName, ['errorField' => $errorField, 'message' => $message]);
     }
 }

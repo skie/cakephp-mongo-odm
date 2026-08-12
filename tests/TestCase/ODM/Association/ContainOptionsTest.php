@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
-use Crustum\Mongo\ODM\CollectionRegistry;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 
 /**

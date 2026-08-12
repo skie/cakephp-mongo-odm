@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Database\Exception\DatabaseException;
 use Crustum\Mongo\ODM\BaseCollection;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Mockery;
 
 /**
@@ -74,6 +73,7 @@ class AssociationProxyTest extends TestCase
         $comments = $this->getCollectionLocator()->get('comments');
         $articles->hasMany('comments', ['conditions' => ['published' => 'Y']]);
         $articles->comments->updateAll(['comment' => 'changed'], ['article_id' => '000000000000000000000001']);
+
         $changed = $comments->find()->where(['comment' => 'changed'])->count();
         $this->assertSame(3, $changed);
     }
@@ -93,6 +93,7 @@ class AssociationProxyTest extends TestCase
 
         $authors->Articles->setFinder('published');
         $authors->Articles->updateAll(['published' => '?'], '1=1');
+
         $missed = $articles->find()->where(['published' => 'Y'])->count();
         $this->assertSame(0, $missed);
 
@@ -110,6 +111,7 @@ class AssociationProxyTest extends TestCase
         $comments = $this->getCollectionLocator()->get('comments');
         $articles->hasMany('comments', ['conditions' => ['published' => 'Y']]);
         $articles->comments->deleteAll(['article_id' => '000000000000000000000001']);
+
         $remaining = $comments->find()->where(['article_id' => '000000000000000000000001'])->count();
         $this->assertSame(1, $remaining);
     }
@@ -129,6 +131,7 @@ class AssociationProxyTest extends TestCase
 
         $authors->Articles->setFinder('published');
         $authors->Articles->deleteAll('1=1');
+
         $remaining = $articles->find()->all();
         $this->assertCount(1, $remaining);
         $this->assertSame(['N'], $remaining->extract('published')->toList());

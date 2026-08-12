@@ -24,7 +24,7 @@ class ComparisonExpression extends AbstractExpression
     /**
      * The field name, or an identifier reference for field-to-field comparisons.
      *
-     * @var string|\Crustum\Mongo\Database\Expression\IdentifierExpression
+     * @var \Crustum\Mongo\Database\Expression\IdentifierExpression|string
      */
     protected string|IdentifierExpression $field;
 
@@ -45,7 +45,7 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Constructor
      *
-     * @param string|\Crustum\Mongo\Database\Expression\IdentifierExpression $field Field name or identifier reference.
+     * @param \Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field name or identifier reference.
      * @param mixed $value Value to compare.
      * @param string $operator Comparison operator.
      */
@@ -59,7 +59,7 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Gets the compared field.
      *
-     * @return string|\Crustum\Mongo\Database\Expression\IdentifierExpression
+     * @return \Crustum\Mongo\Database\Expression\IdentifierExpression|string
      */
     public function getField(): string|IdentifierExpression
     {
@@ -69,7 +69,7 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Sets the compared field.
      *
-     * @param string|\Crustum\Mongo\Database\Expression\IdentifierExpression $field The field name or identifier reference.
+     * @param \Crustum\Mongo\Database\Expression\IdentifierExpression|string $field The field name or identifier reference.
      * @return $this
      */
     public function setField(string|IdentifierExpression $field): static
@@ -124,7 +124,7 @@ class ComparisonExpression extends AbstractExpression
             $valuePath = $this->exprPath($value->getIdentifier());
 
             return [
-                '$expr' => [$this->operator => ['$' . (string)$this->field, $valuePath]],
+                '$expr' => [$this->operator => ['$' . $this->field, $valuePath]],
             ];
         }
 

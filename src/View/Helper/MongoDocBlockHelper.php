@@ -12,7 +12,9 @@ namespace Crustum\Mongo\View\Helper;
 
 use Bake\View\Helper\DocBlockHelper;
 use Cake\Core\App;
+use Cake\I18n\DateTime;
 use Cake\Utility\Inflector;
+use MongoDB\BSON\ObjectId;
 
 /**
  * Mongo-aware DocBlock helper.
@@ -32,12 +34,12 @@ class MongoDocBlockHelper extends DocBlockHelper
     public function columnTypeToHintType(string $type): ?string
     {
         return match ($type) {
-            'objectid', 'id' => '\MongoDB\BSON\ObjectId',
+            'objectid', 'id' => ObjectId::class,
             'string', 'binary', 'uuid' => 'string',
             'integer', 'int', 'int64', 'float' => 'int|float',
             'decimal128' => 'string',
             'boolean', 'bool' => 'bool',
-            'date', 'datetime', 'timestamp' => '\Cake\I18n\DateTime',
+            'date', 'datetime', 'timestamp' => DateTime::class,
             'array', 'collection' => 'array',
             'hash', 'object' => 'array',
             'raw' => 'mixed',

@@ -40,11 +40,13 @@ class PersistenceFailedException extends CakeException
             foreach (Hash::flatten($this->entity->getErrors()) as $field => $error) {
                 $errors[] = $field . ': "' . $error . '"';
             }
-            if ($errors) {
+
+            if ($errors !== []) {
                 $message[] = implode(', ', $errors);
                 $this->_messageTemplate = 'Document %s failure. Found the following errors (%s).';
             }
         }
+
         parent::__construct($message, $code, $previous);
     }
 

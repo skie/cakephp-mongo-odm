@@ -160,4 +160,3 @@ class BelongsTo extends Association
         return $builder->getPipeline();
     }
 }
-

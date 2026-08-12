@@ -10,9 +10,9 @@ use Cake\Database\Expression\QueryExpression;
 use Cake\Database\TypeMap;
 use Cake\Event\Event;
 use Crustum\Mongo\ODM\Association\BelongsTo;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
-use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
@@ -365,15 +365,13 @@ class BelongsToTest extends TestCase
             'target' => $this->company,
         ];
         $called = false;
-        $this->company->getEventManager()->on('Collection.beforeFind', function ($event, $query, $options) use (&$called): void {
+        $this->company->getEventManager()->on('Collection.beforeFind', function ($event, $query, array $options) use (&$called): void {
             $this->assertSame('more', $options['something']);
             $called = true;
         });
         $association = new BelongsTo('Companies', $this->client, $config);
         $query = $this->client->selectQuery();
-        $association->attachTo($query, ['queryBuilder' => function ($q) {
-            return $q->applyOptions(['something' => 'more']);
-        }]);
+        $association->attachTo($query, ['queryBuilder' => fn($q) => $q->applyOptions(['something' => 'more'])]);
         $this->assertTrue($called, 'Listener should be called.');
     }
 

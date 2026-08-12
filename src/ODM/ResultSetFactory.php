@@ -193,9 +193,7 @@ class ResultSetFactory
                 self::$dtoHydrators[$dtoClass] = (static fn(array $row): object => $dtoClass::createFromArray($row, true));
             } else {
                 $mapper = $this->getDtoMapper();
-                self::$dtoHydrators[$dtoClass] = (function (array $row) use ($mapper, $dtoClass): object {
-                    return $mapper->map($this->normalizeDtoRow($row, $dtoClass), $dtoClass);
-                });
+                self::$dtoHydrators[$dtoClass] = (fn(array $row): object => $mapper->map($this->normalizeDtoRow($row, $dtoClass), $dtoClass));
             }
         }
 

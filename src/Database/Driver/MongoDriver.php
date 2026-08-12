@@ -151,7 +151,7 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
      */
     public function log(Stringable|string $message, array $context = []): bool
     {
-        if ($this->logger === null || !$this->logQueries) {
+        if (!$this->logger instanceof LoggerInterface || !$this->logQueries) {
             return false;
         }
 

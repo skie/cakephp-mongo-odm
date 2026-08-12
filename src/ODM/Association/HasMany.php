@@ -7,6 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -402,7 +403,7 @@ class HasMany extends Association
         $sourceEntity->set($property, $currentEntities);
 
         $connection = $this->getSource()->getConnection();
-        assert($connection instanceof \Crustum\Mongo\Database\Connection);
+        assert($connection instanceof Connection);
         $savedEntity = $connection->transactional(
             fn(): EntityInterface|false => $this->saveAssociated($sourceEntity, $options),
         );
@@ -524,6 +525,7 @@ class HasMany extends Association
                 $property,
             );
         }
+
         unset($pipelineOptions['fields']);
         $this->applyPipelineOptions($builder, $pipelineOptions);
 

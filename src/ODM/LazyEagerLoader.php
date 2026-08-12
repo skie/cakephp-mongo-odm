@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use Cake\Datasource\EntityInterface;
-use Crustum\Mongo\ODM\Query\SelectQuery;
 
 /**
  * Contains methods that are capable of injecting eagerly loaded associations into
@@ -38,11 +37,10 @@ class LazyEagerLoader
         }
 
         $associations = array_keys($contain);
-        $associations = array_values(array_filter($associations, 'is_string'));
+        $associations = array_values(array_filter($associations, is_string(...)));
 
         $entities = $this->injectResults($entities, $contain, $associations, $source);
 
-        /** @var \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> */
         return $returnSingle ? array_shift($entities) : $entities;
     }
 
@@ -115,6 +113,7 @@ class LazyEagerLoader
                 $object->set($property, $loaded->get($property), ['useSetters' => false]);
                 $object->setDirty($property, false);
             }
+
             $injected[$k] = $object;
         }
 

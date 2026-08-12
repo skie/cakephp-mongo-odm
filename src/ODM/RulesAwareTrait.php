@@ -6,7 +6,6 @@ namespace Crustum\Mongo\ODM;
 use ArrayObject;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventDispatcherInterface;
-use Crustum\Mongo\ODM\RulesChecker;
 
 /**
  * Provides rules checking for ODM collections.

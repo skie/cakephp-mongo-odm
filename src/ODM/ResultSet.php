@@ -224,25 +224,22 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             $projection,
             fn(mixed $v): bool => (int)$v === 0,
         );
-
         if ($exclude) {
-            $row = array_diff_key($row, array_flip(array_keys($projection)));
-        } else {
-            // Include-style projection: keep keys whose bare field matches a
-            // projection key, or whose mapped value is a string field name.
-            $keep = [];
-            foreach ($projection as $key => $value) {
-                if ((int)$value === 1) {
-                    $keep[] = (string)$key;
-                } elseif (is_string($value) && !str_starts_with($value, '$')) {
-                    $keep[] = $value;
-                }
-            }
-
-            $row = array_intersect_key($row, array_fill_keys($keep, true));
+            return array_diff_key($row, array_flip(array_keys($projection)));
         }
 
-        return $row;
+        // Include-style projection: keep keys whose bare field matches a
+        // projection key, or whose mapped value is a string field name.
+        $keep = [];
+        foreach ($projection as $key => $value) {
+            if ((int)$value === 1) {
+                $keep[] = (string)$key;
+            } elseif (is_string($value) && !str_starts_with($value, '$')) {
+                $keep[] = $value;
+            }
+        }
+
+        return array_intersect_key($row, array_fill_keys($keep, true));
     }
 
     /**

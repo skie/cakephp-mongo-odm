@@ -42,7 +42,7 @@ class ObjectIdType extends BaseType
         // nothing instead of failing to encode.
         if (is_string($value)) {
             throw new InvalidArgumentException(
-                sprintf('Value is not a valid MongoDB ObjectId: %s', (string)$value),
+                sprintf('Value is not a valid MongoDB ObjectId: %s', $value),
             );
         }
 

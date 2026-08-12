@@ -91,10 +91,12 @@ class MongoControllerCommand extends BakeCommand
         if (!$args->getOption('no-actions') && !$args->getOption('actions')) {
             $actions = ['index', 'view', 'add', 'edit', 'delete'];
         }
+
         if ($args->getOption('actions')) {
-            $actions = array_map('trim', explode(',', (string)$args->getOption('actions')));
+            $actions = array_map(trim(...), explode(',', (string)$args->getOption('actions')));
             $actions = array_filter($actions);
         }
+
         if (!$args->getOption('actions') && Plugin::isLoaded('Authentication') && $controllerName === 'Users') {
             $actions[] = 'login';
         }
@@ -108,10 +110,12 @@ class MongoControllerCommand extends BakeCommand
         }
 
         // Controllers default to importing AppController from `App`.
-        $baseNamespace = $namespace = Configure::read('App.namespace');
+        $baseNamespace = Configure::read('App.namespace');
+        $namespace = $baseNamespace;
         if ($this->plugin) {
             $namespace = $this->_pluginNamespace($this->plugin);
         }
+
         // If the plugin has an AppController other plugin controllers
         // should inherit from it.
         if ($this->plugin && class_exists("{$namespace}\Controller\AppController")) {
@@ -143,25 +147,10 @@ class MongoControllerCommand extends BakeCommand
         if (!class_exists($defaultModel)) {
             $defaultModel = null;
         }
+
         $entityClassName = $this->_entityName($modelObj->getAlias());
 
-        $data = compact(
-            'actions',
-            'components',
-            'currentModelName',
-            'defaultModel',
-            'entityClassName',
-            'helpers',
-            'modelObj',
-            'namespace',
-            'baseNamespace',
-            'plugin',
-            'pluralHumanName',
-            'pluralName',
-            'prefix',
-            'singularHumanName',
-            'singularName',
-        );
+        $data = ['actions' => $actions, 'components' => $components, 'currentModelName' => $currentModelName, 'defaultModel' => $defaultModel, 'entityClassName' => $entityClassName, 'helpers' => $helpers, 'modelObj' => $modelObj, 'namespace' => $namespace, 'baseNamespace' => $baseNamespace, 'plugin' => $plugin, 'pluralHumanName' => $pluralHumanName, 'pluralName' => $pluralName, 'prefix' => $prefix, 'singularHumanName' => $singularHumanName, 'singularName' => $singularName];
         $data['name'] = $controllerName;
 
         $this->bakeController($controllerName, $data, $args, $io);
@@ -237,7 +226,7 @@ class MongoControllerCommand extends BakeCommand
         $components = [];
         if ($args->getOption('components')) {
             $components = explode(',', (string)$args->getOption('components'));
-            $components = array_values(array_filter(array_map('trim', $components)));
+            $components = array_values(array_filter(array_map(trim(...), $components)));
         } elseif (Plugin::isLoaded('Authorization')) {
             $components[] = 'Authorization.Authorization';
         }
@@ -256,7 +245,7 @@ class MongoControllerCommand extends BakeCommand
         $helpers = [];
         if ($args->getOption('helpers')) {
             $helpers = explode(',', (string)$args->getOption('helpers'));
-            $helpers = array_values(array_filter(array_map('trim', $helpers)));
+            $helpers = array_values(array_filter(array_map(trim(...), $helpers)));
         }
 
         return $helpers;

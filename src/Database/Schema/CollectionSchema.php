@@ -172,6 +172,7 @@ class CollectionSchema implements CollectionSchemaInterface
                 $type = Index::HASHED;
             }
         }
+
         if ($type === Index::INDEX && $unique) {
             $type = Index::UNIQUE;
         }

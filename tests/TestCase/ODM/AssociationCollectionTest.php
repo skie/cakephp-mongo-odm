@@ -4,15 +4,14 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Cake\Core\Exception\CakeException;
+use Cake\Datasource\Locator\LocatorInterface;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\AssociationCollection;
-use Crustum\Mongo\ODM\Document;
-use Cake\Datasource\Locator\LocatorInterface;
 use Crustum\Mongo\ODM\BaseCollection;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use Crustum\Mongo\ODM\Document;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -176,7 +175,7 @@ class AssociationCollectionTest extends TestCase
      * @param string $belongsToManyStr
      */
     #[DataProvider('associationCollectionType')]
-    public function testGetByType($belongsToStr, $belongsToManyStr): void
+    public function testGetByType(string $belongsToStr, string $belongsToManyStr): void
     {
         $belongsTo = new BelongsTo('', new BaseCollection());
         $this->associations->add('Users', $belongsTo);

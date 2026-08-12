@@ -5,8 +5,8 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
-use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Mockery;
 
@@ -58,6 +58,7 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
         /** @var \Cake\Test\TestCase\ORM\Association\MockedCollection&\Mockery\MockInterface $table */
         $target = new MockedCollection(['collection' => 'tags', 'connection' => $connection]);
         $target->setPrimaryKey('_id');
+
         $table = Mockery::mock($target)->makePartial();
 
         $config = [
@@ -85,6 +86,8 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
 class MockedCollection extends BaseCollection
 {
     public function saveAssociated() {}
+
     public function schema() {}
 }
+
 // phpcs:enable

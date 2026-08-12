@@ -223,6 +223,7 @@ class CakeMongoAdapter implements AdapterInterface
     {
         $entry = $this->migrationLog()->findOne(['version' => $migration->getVersion()]);
         $entry = $entry !== null ? (array)$entry : [];
+
         $state = (int)($entry['breakpoint'] ?? 0) === 0 ? 1 : 0;
         $this->migrationLog()->updateOne(
             ['version' => $migration->getVersion()],

@@ -112,6 +112,7 @@ class MongoEnumCommand extends SimpleBakeCommand
             if ($case === '') {
                 continue;
             }
+
             if (str_contains($case, ':')) {
                 [$name, $value] = explode(':', $case, 2);
                 $cases[trim($name)] = $isInt ? (int)trim($value) : trim($value);
@@ -129,7 +130,7 @@ class MongoEnumCommand extends SimpleBakeCommand
      */
     protected function isOfTypeInt(array $definition): bool
     {
-        if (!$definition) {
+        if ($definition === []) {
             return false;
         }
 
@@ -154,6 +155,7 @@ class MongoEnumCommand extends SimpleBakeCommand
             if (is_string($value)) {
                 $value = "'" . $value . "'";
             }
+
             $formatted[] = 'case ' . $case . ' = ' . $value . ';';
         }
 
@@ -196,6 +198,7 @@ class MongoEnumCommand extends SimpleBakeCommand
             $io->error('You must provide a name to bake a ' . $this->name());
             $this->abort();
         }
+
         $name = $this->_getName($name);
         $name = Inflector::camelize($name);
         $this->bake($name, $args, $io);

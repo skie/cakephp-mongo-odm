@@ -193,7 +193,7 @@ abstract class Query implements Stringable
      * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
      * @return $this
      */
-    public function setFieldResolver(?\Closure $resolver): static
+    public function setFieldResolver(?Closure $resolver): static
     {
         $this->builder->setFieldResolver($resolver);
 
@@ -225,7 +225,7 @@ abstract class Query implements Stringable
      * with the target alias (or unqualified) is a target field and stays a
      * bare `$field`.
      *
-     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param array<string, string>|string $from The target collection, or `[alias => collection]`.
      * @param callable $builder Callable receiving a target query to configure.
      * @param array{inner?: bool, asArray?: bool} $options Join options.
      * @return $this
@@ -238,7 +238,7 @@ abstract class Query implements Stringable
     /**
      * Adds a LEFT-style `$lookup` join (keeps source rows with no match).
      *
-     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param array<string, string>|string $from The target collection, or `[alias => collection]`.
      * @param callable $builder Callable receiving a target query to configure.
      * @param array{inner?: bool, asArray?: bool} $options Join options.
      * @return $this
@@ -255,7 +255,7 @@ abstract class Query implements Stringable
      * LEFT (keeps them, `$unwind preserveNullAndEmptyArrays`). `asArray`
      * keeps the nested array without `$unwind`.
      *
-     * @param string|array<string, string> $from The target collection, or `[alias => collection]`.
+     * @param array<string, string>|string $from The target collection, or `[alias => collection]`.
      * @param callable $builder Callable receiving a target query to configure.
      * @param array{inner?: bool, asArray?: bool} $options Join options.
      * @param bool $left Whether this is a LEFT join.
@@ -282,6 +282,7 @@ abstract class Query implements Stringable
         if ($let !== []) {
             $lookup['let'] = $let;
         }
+
         if ($match !== []) {
             $lookup['pipeline'] = [['$match' => $match]];
         }
@@ -289,7 +290,7 @@ abstract class Query implements Stringable
         $this->builder->pipeline([['$lookup' => $lookup]]);
 
         // `join` is INNER (drop unmatched), `leftJoin` is LEFT (keep them).
-        $inner = $left ? false : true;
+        $inner = !$left;
         if ($inner) {
             $this->builder->pipeline([['$match' => [$join['as'] => ['$ne' => []]]]]);
         }
@@ -306,7 +307,7 @@ abstract class Query implements Stringable
     /**
      * Normalizes the join target argument.
      *
-     * @param string|array<string, string> $from The target collection or `[alias => collection]`.
+     * @param array<string, string>|string $from The target collection or `[alias => collection]`.
      * @return array{alias: string, as: string, collection: string}
      */
     protected function normalizeJoin(string|array $from): array

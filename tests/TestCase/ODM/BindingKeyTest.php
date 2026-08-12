@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -95,6 +94,7 @@ class BindingKeyTest extends TestCase
         ]);
 
         $users->updateAll(['username' => 'jose'], ['username' => 'garrett']);
+
         $result = $users->find()
             ->contain(['SiteAuthors'])
             ->where(['username' => 'jose'])

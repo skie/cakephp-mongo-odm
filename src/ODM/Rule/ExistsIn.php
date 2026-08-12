@@ -107,6 +107,7 @@ class ExistsIn
         } else {
             $source = $this->repository;
         }
+
         if ($source instanceof Association) {
             $source = $source->getSource();
         }

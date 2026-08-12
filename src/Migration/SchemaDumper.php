@@ -60,6 +60,7 @@ class SchemaDumper
             if (str_starts_with($name, 'system.')) {
                 continue;
             }
+
             if (in_array($name, ['_migrations', '_seeds'], true)) {
                 continue;
             }
@@ -106,6 +107,7 @@ class SchemaDumper
                 $indexes[$indexName]['options'] = $options;
             }
         }
+
         if ($indexes !== []) {
             $definition['indexes'] = $indexes;
         }

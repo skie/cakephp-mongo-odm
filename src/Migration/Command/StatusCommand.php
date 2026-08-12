@@ -110,6 +110,7 @@ class StatusCommand extends Command
             if ($missing) {
                 $name .= ' <error>(missing)</error>';
             }
+
             $io->out(sprintf(
                 ' %s %s %s',
                 str_pad((string)$entry['id'], 14, ' ', STR_PAD_LEFT),

@@ -7,8 +7,6 @@ use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
-use Crustum\Mongo\ODM\Association\HasMany;
-use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
 
@@ -20,6 +18,7 @@ use InvalidArgumentException;
 class LinkConstraint
 {
     public const string STATUS_LINKED = 'linked';
+
     public const string STATUS_NOT_LINKED = 'notLinked';
 
     /**
@@ -40,9 +39,10 @@ class LinkConstraint
     {
         if (!in_array($requiredLinkStatus, [static::STATUS_LINKED, static::STATUS_NOT_LINKED], true)) {
             throw new InvalidArgumentException(
-                'Argument 2 is expected to match one of the `\Crustum\Mongo\ODM\Rule\LinkConstraint::STATUS_*` constants.',
+                'Argument 2 is expected to match one of the `' . LinkConstraint::class . '::STATUS_*` constants.',
             );
         }
+
         $this->requiredLinkState = $requiredLinkStatus;
     }
 
@@ -114,13 +114,13 @@ class LinkConstraint
         if ($association instanceof BelongsTo) {
             // The source document holds the foreign key (e.g. comment.article_id);
             // match it against the target binding key (e.g. article._id).
-            $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
+            $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
             $targetKeys = (array)$association->getBindingKey();
         } else {
             // The target document holds the foreign key; match it against the
             // source binding key (e.g. author._id).
             $sourceKeys = (array)$association->getBindingKey();
-            $targetKeys = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
+            $targetKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
         }
 
         $sourceValues = $entity->extract($sourceKeys);
@@ -142,14 +142,12 @@ class LinkConstraint
      */
     protected function countBelongsToManyLinks(BelongsToMany $association, EntityInterface $entity): int
     {
-        $source = $association->getSource();
         $junction = $association->junction();
         $target = $association->getTarget();
 
-        $foreignKey = array_values(array_filter((array)$association->getForeignKey(), 'is_string'));
+        $foreignKey = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
         $bindingKey = (array)$association->getBindingKey();
         $targetForeignKey = (array)$association->getTargetForeignKey();
-        $targetBindingKey = (array)$association->getBindingKey();
 
         $sourceKeys = array_combine($foreignKey, $entity->extract($bindingKey));
 

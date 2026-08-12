@@ -1774,6 +1774,7 @@ class MarshallerTest extends TestCase
             $this->assertInstanceOf(Document::class, $tag, 'Tag should be a Document, not raw id.');
             $this->assertNotNull($tag->getId());
         }
+
         $this->assertSame($tags[0]->getId(), $entity->tags[0]->getId());
     }
 

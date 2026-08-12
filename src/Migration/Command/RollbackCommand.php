@@ -109,9 +109,11 @@ class RollbackCommand extends Command
         if ($count !== null && $count < 1) {
             throw new LogicException('Count must be > 0.');
         }
+
         if ($count && $date) {
             throw new LogicException('Can only use one of `--count` or `--date` options at a time.');
         }
+
         if ($version && $date) {
             throw new LogicException('Can only use one of `--version` or `--date` options at a time.');
         }
@@ -133,10 +135,11 @@ class RollbackCommand extends Command
             } else {
                 $manager->rollback($version, $force, true, $fake);
             }
+
             $end = microtime(true);
-        } catch (Throwable $e) {
-            $io->err('<error>' . $e->getMessage() . '</error>');
-            $io->verbose($e->getTraceAsString());
+        } catch (Throwable $throwable) {
+            $io->err('<error>' . $throwable->getMessage() . '</error>');
+            $io->verbose($throwable->getTraceAsString());
 
             return self::CODE_ERROR;
         }

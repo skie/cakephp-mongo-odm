@@ -222,7 +222,11 @@ class EagerLoader
         $alias = $repository->getAlias();
         foreach ($this->external as $loadable) {
             $instance = $loadable->instance();
-            if ($instance === null || $instance->type() !== Association::MANY_TO_ONE) {
+            if ($instance === null) {
+                continue;
+            }
+
+            if ($instance->type() !== Association::MANY_TO_ONE) {
                 continue;
             }
 
@@ -230,7 +234,16 @@ class EagerLoader
             if (is_array($key)) {
                 $key = $key[0] ?? null;
             }
-            if ($key === null || $key === false || array_key_exists($key, $projection)) {
+
+            if ($key === null) {
+                continue;
+            }
+
+            if ($key === false) {
+                continue;
+            }
+
+            if (array_key_exists($key, $projection)) {
                 continue;
             }
 

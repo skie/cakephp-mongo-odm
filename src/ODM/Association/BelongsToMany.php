@@ -13,7 +13,10 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
+use SplObjectStorage;
+use Throwable;
 
 /**
  * Represents a many-to-many relationship.
@@ -101,9 +104,11 @@ class BelongsToMany extends Association
         if (isset($options['saveStrategy'])) {
             $this->setSaveStrategy((string)$options['saveStrategy']);
         }
+
         if (isset($options['sort'])) {
             $this->setSort($options['sort']);
         }
+
         if (isset($options['joinCollection'])) {
             $this->junctionTableName((string)$options['joinCollection']);
         }
@@ -120,7 +125,7 @@ class BelongsToMany extends Association
         if ($name === null) {
             if ($this->junctionTableName === null) {
                 $names = array_map(
-                    static fn(string $c): string => Inflector::underscore($c),
+                    Inflector::underscore(...),
                     [$this->getSource()->getCollection(), $this->getTarget()->getCollection()],
                 );
                 sort($names);
@@ -234,6 +239,7 @@ class BelongsToMany extends Association
         if ($isEmpty && $entity->isNew()) {
             return $entity;
         }
+
         if ($isEmpty) {
             $targetEntity = [];
         }
@@ -319,6 +325,7 @@ class BelongsToMany extends Association
             if (!empty($options['associated'][$this->junctionProperty]['associated'])) {
                 $joinAssociations = $options['associated'][$this->junctionProperty]['associated'];
             }
+
             unset($options['associated'][$this->junctionProperty]);
         }
 
@@ -391,15 +398,14 @@ class BelongsToMany extends Association
         $property = $this->getProperty();
         $links = $sourceEntity->get($property) ?: [];
         $links = array_merge($links, $targetEntities);
+
         $sourceEntity->set($property, $links);
 
         $connection = $this->getSource()->getConnection();
         assert($connection instanceof Connection);
 
         return $connection->transactional(
-            function () use ($sourceEntity, $targetEntities, $options) {
-                return $this->saveLinks($sourceEntity, $targetEntities, $options);
-            },
+            fn(): bool => $this->saveLinks($sourceEntity, $targetEntities, $options),
         );
     }
 
@@ -452,7 +458,7 @@ class BelongsToMany extends Association
         }
 
         /** @var \SplObjectStorage<\Cake\Datasource\EntityInterface, null> $storage */
-        $storage = new \SplObjectStorage();
+        $storage = new SplObjectStorage();
         foreach ($targetEntities as $e) {
             $storage->offsetSet($e);
         }
@@ -505,15 +511,15 @@ class BelongsToMany extends Association
         assert($connection instanceof Connection);
 
         return $connection->transactional(
-            function () use ($sourceEntity, $targetEntities, $primaryValue, $options) {
+            function () use ($sourceEntity, $targetEntities, $primaryValue, $options): bool {
                 $junction = $this->junction();
                 $target = $this->getTarget();
 
                 /** @var array<string> $foreignKey */
-                $foreignKey = array_values(array_filter((array)$this->getForeignKey(), 'is_string'));
+                $foreignKey = array_values(array_filter((array)$this->getForeignKey(), is_string(...)));
                 $assocForeignKey = array_values(array_filter(
                     (array)$junction->getAssociation($target->getAlias())->getForeignKey(),
-                    'is_string',
+                    is_string(...),
                 ));
 
                 $existing = $this->findExistingLinks($junction, $foreignKey, $assocForeignKey, $primaryValue);
@@ -533,7 +539,7 @@ class BelongsToMany extends Association
                     $inserted = array_combine(
                         array_keys($inserts),
                         (array)$sourceEntity->get($property),
-                    ) ?: [];
+                    );
                     $targetEntities = $inserted + $targetEntities;
                 }
 
@@ -598,6 +604,7 @@ class BelongsToMany extends Association
             if (!($joint instanceof EntityInterface)) {
                 $joint = new $entityClass([], ['markNew' => true, 'source' => $junctionRegistryAlias]);
             }
+
             $sourceKeys = array_combine($foreignKey, $sourceEntity->extract($bindingKey));
             $targetKeys = array_combine($assocForeignKey, $e->extract($targetBindingKey));
 
@@ -609,6 +616,7 @@ class BelongsToMany extends Association
                 $joint->unset($junction->getPrimaryKey());
                 $joint->patch(array_merge($sourceKeys, $targetKeys), ['guard' => false]);
             }
+
             $saved = $junction->save($joint, $options);
 
             if (!$saved && !empty($options['atomic'])) {
@@ -647,6 +655,7 @@ class BelongsToMany extends Association
             if (!($entity instanceof EntityInterface)) {
                 continue;
             }
+
             $joint = $entity->get($jointProperty);
 
             if (!($joint instanceof EntityInterface)) {
@@ -657,7 +666,7 @@ class BelongsToMany extends Association
             $result[] = $joint;
         }
 
-        if (!$missing) {
+        if ($missing === []) {
             return $result;
         }
 
@@ -673,7 +682,7 @@ class BelongsToMany extends Association
         foreach ($missing as $key) {
             $conditions[] = array_combine(
                 $assocForeignKey,
-                array_values((array)$key),
+                array_values($key),
             );
         }
 
@@ -792,6 +801,7 @@ class BelongsToMany extends Association
                         break;
                     }
                 }
+
                 if ($matched) {
                     unset($unmatchedEntityKeys[$i]);
                     $found = true;
@@ -810,6 +820,7 @@ class BelongsToMany extends Association
             if (!($entity instanceof EntityInterface)) {
                 continue;
             }
+
             $key = array_values($entity->extract($primary));
             foreach ($present as $i => $data) {
                 if ($key === $data && !$entity->get($jointProperty)) {
@@ -940,13 +951,14 @@ class BelongsToMany extends Association
             if (is_string($sourceKey)) {
                 $fields[$sourceKey] = ['type' => 'objectid'];
             }
+
             $targetKey = $this->getTargetForeignKey();
             if (is_string($targetKey)) {
                 $fields[$targetKey] = ['type' => 'objectid'];
             }
 
             $junction->setSchemaFromArray($fields);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Junction may be a partial mock without schema support; skip.
         }
     }
@@ -1049,6 +1061,7 @@ class BelongsToMany extends Association
                 'strategy' => $this->getStrategy(),
             ]);
         }
+
         if (!$target->hasAssociation($sAlias)) {
             $target->belongsToMany($sAlias, [
                 'source' => $target,
@@ -1086,19 +1099,14 @@ class BelongsToMany extends Association
             ]);
         } else {
             $belongsTo = $junction->getAssociation($tAlias);
-            if ($belongsTo instanceof Association) {
-                if (
-                    $this->getTargetForeignKey() !== $belongsTo->getForeignKey() ||
-                    $target !== $belongsTo->getTarget()
-                ) {
-                    throw new InvalidArgumentException(sprintf(
-                        'The existing `%s` association on `%s` is incompatible with the `%s` association on `%s`.',
-                        $tAlias,
-                        $junction->getAlias(),
-                        $this->getName(),
-                        $source->getAlias(),
-                    ));
-                }
+            if ($belongsTo instanceof Association && ($this->getTargetForeignKey() !== $belongsTo->getForeignKey() || $target !== $belongsTo->getTarget())) {
+                throw new InvalidArgumentException(sprintf(
+                    'The existing `%s` association on `%s` is incompatible with the `%s` association on `%s`.',
+                    $tAlias,
+                    $junction->getAlias(),
+                    $this->getName(),
+                    $source->getAlias(),
+                ));
             }
         }
 
@@ -1231,11 +1239,11 @@ class BelongsToMany extends Association
 
         $alias = $this->junction()->getAlias() . '.';
         foreach ($conditions as $field => $value) {
-            $isString = is_string($field);
-            if ($isString && str_starts_with($field, $alias)) {
+            if (str_starts_with($field, $alias)) {
                 $matching[$field] = $value;
             }
-            if ($isString && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
+
+            if (in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
                 $operator = '$' . strtolower($field);
                 $matching[$operator] = in_array($operator, ['$or', '$and'], true) && is_array($value) && array_is_list($value) === false
                     ? [$value]
@@ -1255,7 +1263,7 @@ class BelongsToMany extends Association
      */
     protected function appendJunctionJoin(QueryInterface $query): void
     {
-        if (!$query instanceof \Crustum\Mongo\ODM\Query\SelectQuery) {
+        if (!$query instanceof SelectQuery) {
             return;
         }
 
@@ -1285,11 +1293,14 @@ class BelongsToMany extends Association
                 $match[$field] = $this->stripJunctionAlias($value, $junctionAlias, $join);
                 continue;
             }
+
             if (str_starts_with($field, $junctionAlias)) {
                 $field = $join . '.' . substr($field, strlen($junctionAlias));
             }
+
             $match[$field] = $value;
         }
+
         $builder->match($match);
 
         $query->pipeline($builder->getPipeline());
@@ -1316,6 +1327,7 @@ class BelongsToMany extends Association
                 );
                 continue;
             }
+
             $prefixed[$property . '.' . $field] = $value;
         }
 
@@ -1338,6 +1350,7 @@ class BelongsToMany extends Association
                 $stripped[$field] = $this->stripJunctionAlias($value, $junctionAlias, $join);
                 continue;
             }
+
             if (is_array($value) && array_is_list($value)) {
                 $stripped[$field] = array_map(
                     fn(mixed $item): mixed => is_array($item) ? $this->stripJunctionAlias($item, $junctionAlias, $join) : $item,
@@ -1345,15 +1358,18 @@ class BelongsToMany extends Association
                 );
                 continue;
             }
+
             $field = (string)$field;
             if (str_starts_with($field, $junctionAlias)) {
                 $field = $join . '.' . substr($field, strlen($junctionAlias));
             }
+
             $stripped[$field] = $value;
         }
 
         return $stripped;
     }
+
     /**
      * Gets the join collection source key.
      *
@@ -1466,6 +1482,7 @@ class BelongsToMany extends Association
         if (!empty($options['matching'])) {
             $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => false]);
         }
+
         $pipelineOptions = $options + $this->associationPipelineOptions();
         if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
             $property = $this->getProperty();
@@ -1474,6 +1491,7 @@ class BelongsToMany extends Association
                 $property,
             );
         }
+
         $pipelineFields = $pipelineOptions['fields'] ?? null;
         unset($pipelineOptions['fields']);
         $this->applyPipelineOptions($builder, $pipelineOptions);
@@ -1496,7 +1514,7 @@ class BelongsToMany extends Association
      */
     protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void
     {
-        if ($fields === null || $fields === [] || $fields === false) {
+        if (in_array($fields, [null, [], false], true)) {
             return;
         }
 
@@ -1507,10 +1525,11 @@ class BelongsToMany extends Association
 
         $alias = $this->getTarget()->getAlias();
         $projection = [];
-        foreach ($fields as $field => $value) {
+        foreach (array_keys($fields) as $field) {
             if (str_starts_with((string)$field, $alias . '.')) {
                 $field = substr((string)$field, strlen($alias) + 1);
             }
+
             $projection[(string)$field] = '$$item.' . $field;
         }
 
@@ -1541,6 +1560,7 @@ class BelongsToMany extends Association
         if (is_array($finder)) {
             [$finder, $opts] = $this->extractFinder($finder);
         }
+
         if (!$finder || $finder === 'all') {
             return;
         }
@@ -1582,6 +1602,7 @@ class BelongsToMany extends Association
                         $expr[] = $this->filterExpression($nested, $var);
                     }
                 }
+
                 continue;
             }
 
@@ -1625,6 +1646,7 @@ class BelongsToMany extends Association
             if (str_starts_with((string)$field, $alias . '.')) {
                 $field = substr((string)$field, strlen($alias) + 1);
             }
+
             $stripped[(string)$field] = $direction;
         }
 
@@ -1654,6 +1676,7 @@ class BelongsToMany extends Association
         if ($conditions !== []) {
             $options['conditions'] = $conditions;
         }
+
         $sort = $this->getSort();
         if ($sort !== null) {
             $options['sort'] = $sort;

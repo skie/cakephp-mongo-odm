@@ -106,9 +106,10 @@ class MongoAssociationFilter
         if ($pos !== false) {
             $className = substr($className, $pos + 1);
         }
+
         $className = (string)preg_replace('/(.*)Collection$/', '\1', $className);
         if ($className === '') {
-            $className = $alias;
+            return $alias;
         }
 
         return $className;

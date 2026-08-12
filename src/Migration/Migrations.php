@@ -34,7 +34,7 @@ class Migrations
      */
     public function __construct(array $default = [])
     {
-        if ($default) {
+        if ($default !== []) {
             $this->default = $default;
         }
     }

@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
-use Cake\Database\ExpressionInterface;
 use Cake\Collection\Iterator\MapReduce;
+use Cake\Database\ExpressionInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
@@ -494,6 +494,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         if ($override === true) {
             $this->eagerLoader->clearContain();
         }
+
         if ($override instanceof Closure) {
             $queryBuilder = $override;
         }
@@ -637,14 +638,16 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         if ($overwrite) {
             $this->mapReduce = [];
         }
-        if ($mapper === null) {
+
+        if (!$mapper instanceof Closure) {
             if (!$overwrite) {
                 throw new InvalidArgumentException('$mapper can be null only when $overwrite is true.');
             }
 
             return $this;
         }
-        $this->mapReduce[] = compact('mapper', 'reducer');
+
+        $this->mapReduce[] = ['mapper' => $mapper, 'reducer' => $reducer];
 
         return $this;
     }
@@ -776,7 +779,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     protected function addDefaultFields(): void
     {
-        if ($this->autoFields !== true || $this->repository === null) {
+        if ($this->autoFields !== true || !$this->repository instanceof BaseCollection) {
             return;
         }
 
@@ -786,9 +789,14 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         }
 
         foreach ($this->collectionFields($this->repository->getCollection()) as $field) {
-            if (isset($projection[$field]) || isset($projection[$this->repository->getAlias() . '.' . $field])) {
+            if (isset($projection[$field])) {
                 continue;
             }
+
+            if (isset($projection[$this->repository->getAlias() . '.' . $field])) {
+                continue;
+            }
+
             $this->select([$field]);
         }
     }
@@ -815,6 +823,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             foreach ($this->mapReduce as $functions) {
                 $decorated = new MapReduce($decorated, $functions['mapper'], $functions['reducer']);
             }
+
             $resultSet = new ResultSet($decorated, $this);
         }
 

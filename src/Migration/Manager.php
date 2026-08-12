@@ -102,6 +102,7 @@ class Manager
                 if ($format !== 'json') {
                     $migrationParams = ['missing' => true] + $migrationParams;
                 }
+
                 $migrations[(int)$missing['version']] = $migrationParams;
             }
         }
@@ -349,7 +350,7 @@ class Manager
         $adapter = $this->getEnvironment()->getAdapter();
         $out = [];
 
-        if (!$versions) {
+        if ($versions === []) {
             $out[] = '<info>No migrations were found. Nothing to mark as migrated.</info>';
 
             return $out;
@@ -377,6 +378,7 @@ class Manager
                 return $out;
             }
         }
+
         $adapter->commitTransaction();
 
         return $out;
@@ -403,7 +405,7 @@ class Manager
 
         if ($version === null) {
             $candidates = [...$versions, ...array_keys($migrations)];
-            $version = $candidates ? max($candidates) : 0;
+            $version = $candidates !== [] ? max($candidates) : 0;
         } elseif ($version !== 0 && !isset($migrations[$version])) {
             $this->getIo()->out(sprintf(
                 '<comment>warning</comment> %s is not a valid version',
@@ -597,7 +599,7 @@ class Manager
             $pos++;
         }
 
-        if ($executedVersions) {
+        if ($executedVersions !== []) {
             $last = end($executedVersions);
             $target = (int)$last['version'];
         } else {
@@ -623,7 +625,7 @@ class Manager
         $sortedMigrations = [];
         $io = $this->getIo();
 
-        foreach ($executedVersions as $versionCreationTime => &$executedVersion) {
+        foreach (array_keys($executedVersions) as &$versionCreationTime) {
             if (isset($migrations[$versionCreationTime])) {
                 array_unshift($sortedMigrations, $migrations[$versionCreationTime]);
             } else {
@@ -634,9 +636,7 @@ class Manager
         if ($target === 'all' || $target === '0') {
             $target = 0;
         } elseif (!is_numeric($target) && $target !== null) {
-            $migrationNames = array_map(function (array $item) {
-                return $item['migration_name'];
-            }, $executedVersions);
+            $migrationNames = array_map(fn(array $item): mixed => $item['migration_name'], $executedVersions);
             $found = array_search($target, $migrationNames, true);
             if ($found !== false) {
                 $target = (string)$found;
@@ -688,6 +688,7 @@ class Manager
                     $io->out('<error>Breakpoint reached. Further rollbacks inhibited.</error>');
                     break;
                 }
+
                 $this->executeMigration($migration, MigrationInterface::DOWN, $fake);
                 $rollbacked = true;
             }
@@ -822,9 +823,7 @@ class Manager
             $io = $this->getIo();
             $io->verbose('Migration file');
             $io->verbose(array_map(
-                function (string $phpFile): string {
-                    return sprintf('    <info>%s</info>', $phpFile);
-                },
+                fn(string $phpFile): string => sprintf('    <info>%s</info>', $phpFile),
                 $phpFiles,
             ));
 
@@ -1021,7 +1020,7 @@ class Manager
             $visiting[$name] = true;
 
             $dependencies = $this->getSeedDependenciesInstances($seed);
-            if ($dependencies) {
+            if ($dependencies !== []) {
                 $orderedSeeds = array_merge(
                     $this->orderSeedsByDependencies($dependencies, $visiting, $visited),
                     $orderedSeeds,
@@ -1069,7 +1068,7 @@ class Manager
                         $seed = $seedInstance;
                     } elseif (class_exists($class)) {
                         $io->verbose(sprintf('Instantiating <info>%s</info>.', $class));
-                        $seed = $this->container !== null ? $this->container->get($class) : new $class();
+                        $seed = $this->container instanceof ContainerInterface ? $this->container->get($class) : new $class();
                     } else {
                         throw new InvalidArgumentException(sprintf(
                             'Could not find class `%s` in file `%s` and file did not return a seed instance',
@@ -1096,6 +1095,7 @@ class Manager
             ksort($seeds);
             $this->setSeeds($seeds);
         }
+
         $this->seeds = $this->orderSeedsByDependencies((array)$this->seeds);
         if (!$this->seeds) {
             return [];
@@ -1188,18 +1188,20 @@ class Manager
                 if ((int)$versions[$version]['breakpoint'] === 0) {
                     $env->getAdapter()->setBreakpoint($migrations[$version]);
                 }
+
                 break;
             case self::BREAKPOINT_UNSET:
                 if ((int)$versions[$version]['breakpoint'] === 1) {
                     $env->getAdapter()->unsetBreakpoint($migrations[$version]);
                 }
+
                 break;
         }
 
         $versions = $env->getVersionLog();
 
         $io->out(
-            ' Breakpoint ' . ((int)$versions[$version]['breakpoint'] ? 'set' : 'cleared') .
+            ' Breakpoint ' . ((int)$versions[$version]['breakpoint'] !== 0 ? 'set' : 'cleared') .
             ' for <info>' . $version . '</info>' .
             ' <comment>' . $migrations[$version]->getName() . '</comment>',
         );

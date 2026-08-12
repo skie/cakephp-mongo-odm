@@ -133,7 +133,7 @@ class QueryCompiler
      * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
      * @return $this
      */
-    public function setFieldResolver(?\Closure $resolver): static
+    public function setFieldResolver(?Closure $resolver): static
     {
         $this->expressionBuilder->setFieldResolver($resolver);
 
@@ -294,7 +294,7 @@ class QueryCompiler
                 $resolvedValue = is_string($value) && !str_starts_with($value, '$')
                     ? $this->resolveField($value)
                     : $value;
-                $projection[$this->resolveField((string)$key)] = $resolvedValue;
+                $projection[$this->resolveField($key)] = $resolvedValue;
             }
         }
 
@@ -378,7 +378,7 @@ class QueryCompiler
         }
 
         $this->group = array_merge($this->group, array_values(array_map(
-            fn(string $field): string => $this->resolveField($field),
+            $this->resolveField(...),
             array_map(strval(...), $fields),
         )));
 
@@ -407,7 +407,7 @@ class QueryCompiler
         }
 
         $this->distinct = array_merge($this->distinct, array_values(array_map(
-            fn(string $field): string => $this->resolveField($field),
+            $this->resolveField(...),
             array_map(strval(...), $fields),
         )));
 

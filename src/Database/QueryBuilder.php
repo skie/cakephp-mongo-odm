@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database;
 
 use Cake\Database\ValueBinder;
+use Closure;
 use Crustum\Mongo\Database\Expression\ArrayExpression;
 use Crustum\Mongo\Database\Expression\BetweenExpression;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
@@ -36,7 +37,7 @@ class QueryBuilder
      *
      * @var \Closure|null
      */
-    protected ?\Closure $fieldResolver = null;
+    protected ?Closure $fieldResolver = null;
 
     /**
      * Sets the field resolver applied to condition field names.
@@ -44,7 +45,7 @@ class QueryBuilder
      * @param \Closure|null $resolver Callable receiving a field name and returning the Mongo field.
      * @return $this
      */
-    public function setFieldResolver(?\Closure $resolver): static
+    public function setFieldResolver(?Closure $resolver): static
     {
         $this->fieldResolver = $resolver;
 
@@ -59,7 +60,7 @@ class QueryBuilder
      */
     public function resolveField(string $field): string
     {
-        return $this->fieldResolver !== null
+        return $this->fieldResolver instanceof Closure
             ? ($this->fieldResolver)($field)
             : $field;
     }
@@ -401,7 +402,7 @@ class QueryBuilder
                                         $field = explode(' ', $nk)[0];
                                     }
 
-                            $nestedConditions[$this->resolveField($field)] = $this->parseCondition($nk, $nv);
+                                    $nestedConditions[$this->resolveField($field)] = $this->parseCondition($nk, $nv);
                                 }
                             }
 
@@ -530,7 +531,7 @@ class QueryBuilder
             [, $operator] = $parts;
         }
 
-        if (is_array($value) && is_string(key($value)) && str_starts_with((string)key($value), '$')) {
+        if (is_array($value) && is_string(key($value)) && str_starts_with(key($value), '$')) {
             return $value;
         }
 
