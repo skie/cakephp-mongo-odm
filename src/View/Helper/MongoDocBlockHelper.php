@@ -88,7 +88,7 @@ class MongoDocBlockHelper extends DocBlockHelper
                 $typeStr = Inflector::camelize($type);
                 if (isset($associationInfo[$assoc['alias']])) {
                     $tableFqn = $associationInfo[$assoc['alias']]['targetFqn'];
-                    $annotations[] = "@property {$tableFqn}&\Cake\ORM\Association\\{$typeStr} \${$assoc['alias']}";
+                    $annotations[] = "@property {$tableFqn}&\Crustum\Mongo\ODM\Association\\{$typeStr} \${$assoc['alias']}";
                 }
             }
         }

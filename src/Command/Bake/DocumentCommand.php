@@ -85,7 +85,7 @@ class DocumentCommand extends BakeCommand
         $propertySchema = $this->propertySchema($fields);
         $primaryKey = ['_id'];
         $hidden = $this->hiddenFields($fields);
-        $fieldNames = array_column($fields, 'name');
+        $fieldNames = array_values(array_diff(array_column($fields, 'name'), ['_id']));
         $useConstants = array_any(
             $fields,
             fn(array $field): bool => $field['constant'] !== null,

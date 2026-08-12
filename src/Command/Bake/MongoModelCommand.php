@@ -18,7 +18,6 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
-use Cake\Datasource\FactoryLocator;
 use Cake\Datasource\SchemaInterface;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Bake\MongoCollectionContext;
@@ -31,6 +30,7 @@ use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use Crustum\Mongo\View\Helper\MongoDocBlockHelper;
 use Override;
@@ -192,16 +192,23 @@ class MongoModelCommand extends BakeCommand
      */
     public function getCollectionObject(string $className, string $collection): BaseCollection
     {
-        $locator = FactoryLocator::get('Collection');
-        $pluginName = $this->plugin ? $this->plugin . '.' . $className : $className;
-        if ($locator->exists($pluginName)) {
-            return $locator->get($pluginName);
+        $connection = ConnectionManager::get($this->connection);
+        if (!$connection instanceof Connection) {
+            throw new RuntimeException(sprintf(
+                'Connection `%s` is not a %s instance.',
+                $this->connection,
+                Connection::class,
+            ));
         }
 
-        return $locator->get($pluginName, [
+        $collectionObject = new BaseCollection([
+            'alias' => $className,
             'table' => $collection,
             'connectionName' => $this->connection,
         ]);
+        $collectionObject->setConnection($connection);
+
+        return $collectionObject;
     }
 
     /**
@@ -607,7 +614,7 @@ class MongoModelCommand extends BakeCommand
 
         foreach ($model->associations() as $association) {
             $target = $association->getTarget();
-            $entityClass = '\\' . $target->getDocumentClass();
+            $entityClass = $this->targetDocumentClass($target);
 
             $properties[$association->getProperty()] = [
                 'kind' => 'association',
@@ -617,6 +624,36 @@ class MongoModelCommand extends BakeCommand
         }
 
         return $properties;
+    }
+
+    /**
+     * Resolves the target Document FQN for an associated collection.
+     *
+     * Falls back to the ODM base `Document` when the target is a generic
+     * collection with no concrete Document class.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @return string The fully qualified Document class name (with leading `\`).
+     */
+    protected function targetDocumentClass(BaseCollection $target): string
+    {
+        $documentClass = $target->getDocumentClass();
+        if ($documentClass !== Document::class) {
+            return '\\' . $documentClass;
+        }
+
+        $namespace = Configure::read('App.namespace');
+        if ($this->plugin) {
+            $namespace = $this->_pluginNamespace($this->plugin);
+        }
+
+        $alias = Inflector::singularize($target->getAlias());
+        $candidate = sprintf('%s\Model\Document\%s', $namespace, $alias);
+        if (class_exists($candidate)) {
+            return '\\' . $candidate;
+        }
+
+        return '\\' . Document::class;
     }
 
     /**
@@ -995,7 +1032,7 @@ class MongoModelCommand extends BakeCommand
                 'primaryKey' => $fieldName === '_id',
             ];
         }
-        $fieldNames = array_column($fields, 'name');
+        $fieldNames = array_values(array_diff(array_column($fields, 'name'), ['_id']));
         $useConstants = array_any($fields, fn(array $field): bool => $field['constant'] !== null);
 
         $data += [
