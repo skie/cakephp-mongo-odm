@@ -1,0 +1,24 @@
+{#
+/**
+ * Crustum Mongo ODM — Enum bake template.
+ *
+ * Ported from cakephp/bake `Model/enum.twig` for the Mongo ODM.
+ */
+#}
+{{ element('Bake.file_header', {
+    namespace: "#{namespace}\\Model\\Enum",
+    classImports: [
+        'Crustum\\Mongo\\ODM\\Enum\\EnumLabelInterface',
+        'Crustum\\Mongo\\ODM\\Enum\\EnumLabelTrait',
+    ],
+}) }}
+
+{{ DocBlock.classDescription(name, 'Enum', [])|raw }}
+enum {{ name }}: {{ backingType }} implements EnumLabelInterface
+{
+    use EnumLabelTrait;
+{% if cases %}
+
+    {{ Bake.concat('\n    ', cases) }}
+{% endif %}
+}
