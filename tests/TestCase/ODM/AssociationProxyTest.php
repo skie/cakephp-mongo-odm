@@ -130,7 +130,7 @@ class AssociationProxyTest extends TestCase
         $articles->updateAll(['published' => 'N'], ['_id' => '000000000000000000000001']);
 
         $authors->Articles->setFinder('published');
-        $authors->Articles->deleteAll('1=1');
+        $authors->Articles->deleteAll([]);
 
         $remaining = $articles->find()->all();
         $this->assertCount(1, $remaining);

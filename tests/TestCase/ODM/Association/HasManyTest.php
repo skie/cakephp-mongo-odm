@@ -955,6 +955,7 @@ class HasManyTest extends TestCase
                     $this->assertIsArray($childCategory->child_categories);
                     $nestedPropertyLoaded = true;
                 }
+
                 if (!empty($childCategory->child_categories)) {
                     $nestedPropertyLoaded = true;
                 }
@@ -1268,10 +1269,13 @@ class HasManyTest extends TestCase
     {
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->hasMany('Comments');
+
         $comments = $this->getCollectionLocator()->get('Comments');
         $comments->belongsTo('Users');
+
         $rules = $comments->rulesChecker();
         $rules->add($rules->existsIn('user_id', 'Users'));
+
         $article = $articles->newDocument([
             'title' => 'Bakeries are sky rocketing',
             'body' => 'All because of cake',
@@ -1342,6 +1346,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
         $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['_id']])->count());
 
@@ -1377,6 +1382,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
         // Should be one fewer because of conditions.
         $this->assertSame($sizeArticles - 1, $authors->Articles->find('all')->where(['author_id' => $entity['_id']])->count());
@@ -1412,6 +1418,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
         $this->assertCount($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['_id']]));
 
@@ -1440,6 +1447,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
 
         $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['_id']])->count());
@@ -1483,6 +1491,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->save($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
         $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['_id']])->count());
 
@@ -1516,6 +1525,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Articles']]);
 
         $entity = $authors->saveOrFail($entity, ['associated' => ['Articles']]);
+
         $sizeArticles = count($entity->articles);
         $this->assertSame($sizeArticles, $authors->Articles->find('all')->where(['author_id' => $entity['_id']])->count());
 
@@ -1605,6 +1615,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Comments']]);
 
         $article = $articles->save($article, ['associated' => ['Comments']]);
+
         $commentId = $article->comments[0]->getId();
         $sizeComments = count($article->comments);
 
@@ -1643,6 +1654,7 @@ class HasManyTest extends TestCase
         ], ['associated' => ['Comments']]);
 
         $article = $articles->save($article, ['associated' => ['Comments']]);
+
         $commentId = $article->comments[0]->getId();
         $sizeComments = count($article->comments);
         $articleId = $article->getId();
@@ -1787,6 +1799,7 @@ class HasManyTest extends TestCase
 
     public function testEagerLoaderConnectionRole(): void
     {
+        $this->markTestSkipped('SQL-only: SQLite read/write role split + CREATE TABLE; ODM setConnection requires Crustum Mongo Connection (F26). See docs/reference/30-connection-roles-plan.md.');
         $this->skipIf(!extension_loaded('pdo_sqlite'), 'Skipping as SQLite extension is missing');
 
         Log::setConfig('queries', [

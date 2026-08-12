@@ -107,6 +107,16 @@ return [
             'articles_tags_tag_id' => ['key' => ['tag_id' => 1]],
         ],
     ],
+    'articles_tags_binding_keys' => [
+        'fields' => [
+            'article_id' => ['bsonType' => 'objectId'],
+            'tagname' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [
+            'articles_tags_binding_keys_article_id' => ['key' => ['article_id' => 1]],
+            'articles_tags_binding_keys_tagname' => ['key' => ['tagname' => 1]],
+        ],
+    ],
     'authors_tags' => [
         'fields' => [
             'author_id' => ['bsonType' => 'objectId'],
@@ -468,6 +478,7 @@ return [
     ],
     'uuid_items' => [
         'fields' => [
+            '_id' => ['bsonType' => 'string'],
             'id' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'int'],
             'name' => ['bsonType' => 'string'],
@@ -478,6 +489,7 @@ return [
     ],
     'binary_uuid_items' => [
         'fields' => [
+            '_id' => ['bsonType' => 'string'],
             'id' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'bool'],
             'name' => ['bsonType' => 'string'],
@@ -488,6 +500,7 @@ return [
     ],
     'binary_uuid_tags' => [
         'fields' => [
+            '_id' => ['bsonType' => 'string'],
             'id' => ['bsonType' => 'string'],
             'name' => ['bsonType' => 'string'],
         ],

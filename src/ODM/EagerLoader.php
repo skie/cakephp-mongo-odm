@@ -39,6 +39,17 @@ class EagerLoader
     private array $external = [];
 
     /**
+     * Whether in-pipeline stages have been attached to the source query.
+     *
+     * Set by {@see attachAssociations()} so repeated attaches (e.g. a `count()`
+     * on an already-executed query) never re-append `$lookup` / `$unwind`
+     * stages.
+     *
+     * @var bool
+     */
+    private bool $pipelineAttached = false;
+
+    /**
      * Options accepted by association containment configuration.
      *
      * @var array<string, true>
@@ -182,6 +193,31 @@ class EagerLoader
     }
 
     /**
+     * Whether the query carries in-pipeline eager loads that affect the row set.
+     *
+     * `matching()` always joins through the pipeline (lookup + unwind), so a
+     * `count()` must aggregate rather than `countDocuments($filter)`. Regular
+     * `contain()` on `select`/`reference` strategies loads externally and does
+     * not change the row count.
+     *
+     * @return bool
+     */
+    public function hasInPipelineLoads(): bool
+    {
+        if ($this->getMatching() !== []) {
+            return true;
+        }
+
+        foreach ($this->containments as $alias => $options) {
+            if (is_array($options) && ($options['matching'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Attaches in-pipeline strategies and records external strategies.
      *
      * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
@@ -191,11 +227,26 @@ class EagerLoader
     public function attachAssociations(SelectQuery $query, BaseCollection $repository): void
     {
         $this->external = [];
+        if ($this->pipelineAttached) {
+            return;
+        }
+
         foreach ($this->normalized($repository) as $loadable) {
             $this->dispatch($loadable, $query);
         }
 
         $this->ensureKeyFieldsSelected($query, $repository);
+        $this->pipelineAttached = true;
+    }
+
+    /**
+     * Whether in-pipeline eager stages have already been attached.
+     *
+     * @return bool
+     */
+    public function isPipelineAttached(): bool
+    {
+        return $this->pipelineAttached;
     }
 
     /**

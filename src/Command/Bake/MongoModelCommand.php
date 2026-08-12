@@ -24,7 +24,6 @@ use Crustum\Mongo\Bake\MongoCollectionContext;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
-use Crustum\Mongo\Database\Schema\Index;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
@@ -313,6 +312,10 @@ class MongoModelCommand extends BakeCommand
     public function findBelongsTo(BaseCollection $model, array $associations, ?Arguments $args = null): array
     {
         $schema = $model->describeSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return $associations;
+        }
+
         $collections = $this->listAll();
         foreach ($schema->columns() as $fieldName) {
             if ($schema->getFieldType($fieldName) !== 'objectid') {
@@ -410,6 +413,10 @@ class MongoModelCommand extends BakeCommand
         bool $uniqueOnly,
     ): array {
         $schema = $model->getSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return $associations;
+        }
+
         $primaryKey = $schema->primaryKey();
         $collectionName = $model->getCollection();
         $foreignKey = $this->_modelKey($collectionName);
@@ -462,10 +469,6 @@ class MongoModelCommand extends BakeCommand
     protected function hasUniqueIndexFor(CollectionSchema $schema, string $keyField): bool
     {
         foreach ($schema->indexes() as $index) {
-            if (!$index instanceof Index) {
-                continue;
-            }
-
             if (!$index->getUnique()) {
                 continue;
             }
@@ -572,12 +575,17 @@ class MongoModelCommand extends BakeCommand
             return $displayField;
         }
 
-        foreach ($model->getSchema()->columns() as $field) {
+        $schema = $model->getSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return [];
+        }
+
+        foreach ($schema->columns() as $field) {
             if ($field === '_id') {
                 continue;
             }
 
-            if ($model->getSchema()->getFieldType($field) === 'string') {
+            if ($schema->getFieldType($field) === 'string') {
                 return $field;
             }
         }
@@ -616,6 +624,10 @@ class MongoModelCommand extends BakeCommand
         $properties = [];
 
         $schema = $model->getSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return $properties;
+        }
+
         foreach ($schema->columns() as $column) {
             $properties[$column] = [
                 'kind' => 'column',
@@ -739,6 +751,10 @@ class MongoModelCommand extends BakeCommand
         }
 
         $schema = $model->getSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return false;
+        }
+
         $fields = $schema->columns();
         if ($fields === []) {
             return false;
@@ -881,6 +897,10 @@ class MongoModelCommand extends BakeCommand
         }
 
         $schema = $model->getSchema();
+        if (!$schema instanceof CollectionSchema) {
+            return [];
+        }
+
         $schemaFields = $schema->columns();
         if ($schemaFields === []) {
             return [];
@@ -1040,6 +1060,16 @@ class MongoModelCommand extends BakeCommand
 
         $collectionName = $model->getCollection();
         $schema = $model->describeSchema();
+        if (!$schema instanceof CollectionSchema) {
+            $schema = $model->getSchema();
+        }
+
+        if (!$schema instanceof CollectionSchema) {
+            $io->error(sprintf('Unable to introspect schema for `%s`.', $model->getAlias()));
+
+            return;
+        }
+
         $fields = [];
         foreach ($schema->columns() as $fieldName) {
             $type = (string)$schema->getFieldType($fieldName);

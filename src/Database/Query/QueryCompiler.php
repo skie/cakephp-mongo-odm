@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Query;
 
 use Cake\Database\ExpressionInterface;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\QueryBuilder as ExpressionBuilder;
@@ -552,6 +553,23 @@ class QueryCompiler
         }
 
         return $this;
+    }
+
+    /**
+     * Appends a `$count` stage returning the number of documents so far.
+     *
+     * Renders as `['$count' => $field]` via the aggregation `Count` stage so the
+     * caller never embeds a raw pipeline array.
+     *
+     * @param string $field The output field name for the count.
+     * @return $this
+     */
+    public function count(string $field)
+    {
+        $builder = new AggregationBuilder();
+        $stage = $builder->count($field)->getExpression();
+
+        return $this->pipeline([$stage]);
     }
 
     /**

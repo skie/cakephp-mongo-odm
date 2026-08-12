@@ -10,9 +10,11 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use Cake\Core\Exception\CakeException;
 use Cake\Datasource\FactoryLocator;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Bake\MongoCollectionContext;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use Crustum\Mongo\View\Helper\MongoDocBlockHelper;
 use Override;
@@ -75,6 +77,13 @@ class CollectionCommand extends BakeCommand
 
         $locator = FactoryLocator::get('Collection');
         $modelObject = $locator->get($name);
+        if (!$modelObject instanceof BaseCollection) {
+            throw new CakeException(sprintf(
+                '`%s` resolved to a non-ODM repository. Mongo bake requires a `%s`.',
+                $name,
+                BaseCollection::class,
+            ));
+        }
 
         $context = new MongoCollectionContext();
         $data = $context->build($modelObject);

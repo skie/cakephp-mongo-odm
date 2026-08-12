@@ -17,6 +17,7 @@
     "require": {
         "php": ">=8.2",
         "cakephp/cakephp": "^5.4",
+        "cakephp/bake": "^3.7",
         "crustum/plugin-manifest": "^1.0",
         "mongodb/mongodb": "^2.0"
     },

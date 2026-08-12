@@ -40,7 +40,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      * Sets the default collection locator for associations.
      * If no locator is provided, the global one will be used.
      *
-     * @param \Cake\Datasource\Locator\LocatorInterface|null $collectionLocator Collection locator instance.
+     * @param \Cake\Datasource\Locator\LocatorInterface<covariant \Cake\Datasource\RepositoryInterface>|null $collectionLocator Collection locator instance.
      */
     public function __construct(?LocatorInterface $collectionLocator = null)
     {

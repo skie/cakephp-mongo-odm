@@ -26,14 +26,14 @@ trait LocatorAwareTrait
     /**
      * The collection locator instance.
      *
-     * @var \Cake\Datasource\Locator\LocatorInterface<\Cake\Datasource\RepositoryInterface>|null
+     * @var \Cake\Datasource\Locator\LocatorInterface<covariant \Cake\Datasource\RepositoryInterface>|null
      */
     protected ?LocatorInterface $collectionLocator = null;
 
     /**
      * Sets the collection locator.
      *
-     * @param \Cake\Datasource\Locator\LocatorInterface $collectionLocator Locator to use for fetching collections.
+     * @param \Cake\Datasource\Locator\LocatorInterface<covariant \Cake\Datasource\RepositoryInterface> $collectionLocator Locator to use for fetching collections.
      * @return $this
      */
     public function setCollectionLocator(LocatorInterface $collectionLocator): static
@@ -48,8 +48,7 @@ trait LocatorAwareTrait
      *
      * Falls back to the factory-registered locator for the `Collection` type.
      *
-     * @return \Cake\Datasource\Locator\LocatorInterface<\Cake\Datasource\RepositoryInterface> The configured or factory-registered locator.
-     * @throws \UnexpectedValueException If the factory contains another locator type.
+     * @return \Cake\Datasource\Locator\LocatorInterface<covariant \Cake\Datasource\RepositoryInterface> The configured or factory-registered locator.
      */
     public function getCollectionLocator(): LocatorInterface
     {
@@ -58,11 +57,6 @@ trait LocatorAwareTrait
         }
 
         $locator = FactoryLocator::get('Collection');
-        if (!$locator instanceof LocatorInterface) {
-            throw new UnexpectedValueException(
-                '`FactoryLocator` must return a LocatorInterface for type `Collection`.',
-            );
-        }
 
         return $this->collectionLocator = $locator;
     }

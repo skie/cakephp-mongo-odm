@@ -455,6 +455,7 @@ class BelongsToManyTest extends TestCase
         ];
         $association = new BelongsToMany('Tag', $this->article, $config);
         $association->junction($articleTag);
+
         $this->article->getAssociation($articleTag->getAlias());
 
         $counter = 0;
@@ -482,6 +483,7 @@ class BelongsToManyTest extends TestCase
         ];
         $association = new BelongsToMany('Tag', $this->article, $config);
         $association->junction($articleTag);
+
         $this->article->getAssociation($articleTag->getAlias());
 
         $articleTag->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
@@ -569,7 +571,7 @@ class BelongsToManyTest extends TestCase
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $this->getCollectionLocator()->get('Tags');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags');
-        $articlesTags->deleteAll('1=1');
+        $articlesTags->deleteAll([]);
 
         $config = [
             'target' => $tags,
@@ -587,10 +589,10 @@ class BelongsToManyTest extends TestCase
         $this->assertTrue($assoc->link($articleTwo, [$tagThree]));
 
         $this->assertCount(2, $articleOne->tags, 'In-memory tags are incorrect');
-        $this->assertSame([3, 2], collection($articleOne->tags)->extract('_id')->toList());
+        $this->assertSame(['000000000000000000000003', '000000000000000000000002'], collection($articleOne->tags)->extract('_id')->toList());
 
         $this->assertCount(1, $articleTwo->tags, 'In-memory tags are incorrect');
-        $this->assertSame([3], collection($articleTwo->tags)->extract('_id')->toList());
+        $this->assertSame(['000000000000000000000003'], collection($articleTwo->tags)->extract('_id')->toList());
         $rows = $articlesTags->find()->all();
         $this->assertCount(3, $rows, '3 link rows should be created.');
     }
@@ -637,6 +639,7 @@ class BelongsToManyTest extends TestCase
         /** @var \Crustum\Mongo\ODM\BaseCollection&\Mockery\MockInterface $joint */
         $junctionCollection = new BaseCollection(['alias' => 'ArticlesTags', 'connection' => $connection]);
         $junctionCollection->setRegistryAlias('Plugin.ArticlesTags');
+
         $joint = Mockery::mock($junctionCollection)->makePartial();
 
         $config = [
@@ -1043,6 +1046,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinkBinaryUuid(): void
     {
+        $this->markTestSkipped('36-char UUID _id (binaryuuid PK) is SQL-ism — Mongo ODM uses ObjectId _id; junction FK casts to objectid and rejects UUID (F29).');
         $items = $this->getCollectionLocator()->get('BinaryUuidItems');
         $tags = $this->getCollectionLocator()->get('BinaryUuidTags');
 
@@ -1059,6 +1063,7 @@ class BelongsToManyTest extends TestCase
             new Document(['name' => 'net new']),
         ];
         $item->name = 'Updated';
+
         $items->saveOrFail($item);
 
         $refresh = $items->find()->where(['_id' => $item->getId()])->contain('BinaryUuidTags')->firstOrFail();
@@ -1109,6 +1114,7 @@ class BelongsToManyTest extends TestCase
         // instances.
         $article = $findArticle($article);
         $article = $articles->patchDocument($article, ['tags' => ['_ids' => [$tag1->getId(), $tag2->getId()]]]);
+
         $result = $articles->save($article, ['associated' => 'Tags']);
 
         // Check in memory entity.
@@ -1168,6 +1174,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = new BaseCollection(['alias' => 'Articles', 'collection' => 'articles']);
         $table->setSchemaFromArray([]);
+
         $assoc = Mockery::mock(BelongsToMany::class, ['tags', $table])
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
@@ -1192,6 +1199,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = new BaseCollection(['alias' => 'Articles', 'collection' => 'articles']);
         $table->setSchemaFromArray([]);
+
         $assoc = Mockery::mock(BelongsToMany::class, ['tags', $table])
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
@@ -1217,6 +1225,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = new BaseCollection(['alias' => 'Articles', 'collection' => 'articles']);
         $table->setSchemaFromArray([]);
+
         $assoc = Mockery::mock(BelongsToMany::class, ['tags', $table])
             ->makePartial();
         $entity = new Document([
@@ -1242,6 +1251,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = new BaseCollection(['alias' => 'Articles', 'collection' => 'articles']);
         $table->setSchemaFromArray([]);
+
         $assoc = Mockery::mock(BelongsToMany::class, ['tags', $table])
             ->makePartial();
         $entity = new Document([
@@ -1309,6 +1319,7 @@ class BelongsToManyTest extends TestCase
             'target' => $this->tag,
         ]);
         $assoc->setCollectionLocator(new CollectionLocator());
+
         $junction = $assoc->junction();
         $this->assertInstanceOf(BaseCollection::class, $junction);
     }
@@ -1398,6 +1409,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testEagerLoadingRequiresPrimaryKey(): void
     {
+        $this->markTestSkipped('SQL-only: CollectionSchema has no dropConstraint(\'primary\') — Mongo has no constraints (F19).');
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('The `tags` table does not define a primary key');
         $table = $this->getCollectionLocator()->get('Articles');
@@ -1418,6 +1430,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsToMany('Tags');
+
         $result = $table
             ->find()
             ->contain(['Tags' => fn(SelectQuery $q): SelectQuery => $q->select(['_id'])])
@@ -1450,6 +1463,7 @@ class BelongsToManyTest extends TestCase
         $this->markTestSkipped('ODM has no SQL joins; testEagerLoadingBelongsToManyLimitedFieldsWithAutoFields is SQL-only (F25).');
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsToMany('Tags');
+
         $result = $table
             ->find()
             ->contain(['Tags' => fn(SelectQuery $q): SelectQuery => $q->select(['two' => $q->expr()])->enableAutoFields()])
@@ -1466,7 +1480,7 @@ class BelongsToManyTest extends TestCase
     {
         $table = $this->getCollectionLocator()->get('Articles');
         $table->belongsToMany('Tags');
-        $table->Tags->junction()->deleteAll('1=1');
+        $table->Tags->junction()->deleteAll([]);
 
         $query = $table->Tags->find();
         $result = $query->toArray();
@@ -1635,7 +1649,7 @@ class BelongsToManyTest extends TestCase
             'bindingKey' => 'name',
         ]);
         $query = $table->find()
-            ->matching('Articles', fn($q) => $q->where(['Articles.id >' => 0]));
+            ->matching('Articles', fn($q) => $q->where(['Articles._id' => ['$exists' => true]]));
         $results = $query->all();
 
         // 4 records in the junction table.
@@ -1644,6 +1658,7 @@ class BelongsToManyTest extends TestCase
 
     public function testEagerLoaderConnectionRole(): void
     {
+        $this->markTestSkipped('SQL-only: SQLite read/write role split + CREATE TABLE; ODM setConnection requires Crustum Mongo Connection (F26). See docs/reference/30-connection-roles-plan.md.');
         $this->skipIf(!extension_loaded('pdo_sqlite'), 'Skipping as SQLite extension is missing');
 
         Log::setConfig('queries', [

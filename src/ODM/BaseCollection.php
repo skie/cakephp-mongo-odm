@@ -5,6 +5,7 @@ namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
 use BadMethodCallException;
+use Closure;
 use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;

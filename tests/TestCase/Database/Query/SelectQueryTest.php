@@ -1144,6 +1144,41 @@ class SelectQueryTest extends TestCase
     }
 
     /**
+     * Test builder count() appends a $count stage.
+     *
+     * @return void
+     */
+    public function testBuilderCountStage(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->getBuilder()->count('total');
+
+        $this->assertQueryType('aggregate', $query->compile());
+        $this->assertPipeline([
+            ['$count' => 'total'],
+        ], $query->compile());
+    }
+
+    /**
+     * Test builder count() composes with existing pipeline stages.
+     *
+     * @return void
+     */
+    public function testBuilderCountStageComposes(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->pipeline([
+            ['$match' => ['published' => true]],
+        ]);
+        $query->getBuilder()->count('total');
+
+        $this->assertPipeline([
+            ['$match' => ['published' => true]],
+            ['$count' => 'total'],
+        ], $query->compile());
+    }
+
+    /**
      * Test compile() includes the collection.
      *
      * @return void

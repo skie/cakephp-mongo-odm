@@ -27,6 +27,14 @@ return Architecture::define()
         'Orm' => ['CakeORM', 'Datasource', 'Database', 'CakeDatasource', 'CakeDatabase', 'ODM', 'Collection', 'Event', '+Utility', 'Validation'],
     ])
     ->skipClassViolation(
+        'Crustum\\Mongo\\ODM\\Locator\\CollectionAwareTrait',
+        'Cake\\ORM\\Table',
+    )
+    ->skipClassViolation(
         'Crustum\\Mongo\\ODM\\ResultSetFactory',
         'Cake\\ORM\\DtoMapper',
+    )
+    ->skipClassViolation(
+        'Crustum\\Mongo\\ODM\\BaseCollection',
+        'Cake\\ORM\\Locator\\LocatorAwareTrait',
     );

@@ -87,8 +87,10 @@ class MongoFixtureCommand extends BakeCommand
             $collection = $locator->get($name);
             if ($collection instanceof BaseCollection) {
                 $schema = $collection->describeSchema();
-                $fields = $schema->columns();
-                $records = $this->sampleRecords($schema);
+                if ($schema instanceof CollectionSchema) {
+                    $fields = $schema->columns();
+                    $records = $this->sampleRecords($schema);
+                }
             }
         } catch (Throwable) {
             // no collection configured; fixture stays schema-less

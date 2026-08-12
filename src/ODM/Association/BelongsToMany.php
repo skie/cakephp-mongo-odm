@@ -9,6 +9,7 @@ use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Expression\FunctionExpression;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -983,10 +984,12 @@ class BelongsToMany extends Association
 
         $tableName = $this->junctionTableName();
         $alias = Inflector::camelize($tableName);
-        $collection = $this->getCollectionLocator()->get($alias, [
-            'collection' => $tableName,
-            'allowFallbackClass' => true,
-        ]);
+        $locator = $this->getCollectionLocator();
+        $config = [];
+        if (!$locator->exists($alias)) {
+            $config = ['collection' => $tableName, 'allowFallbackClass' => true];
+        }
+        $collection = $locator->get($alias, $config);
         if (!$collection instanceof BaseCollection) {
             throw new InvalidArgumentException(sprintf(
                 'Junction collection `%s` did not resolve to a BaseCollection.',
@@ -1371,6 +1374,146 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Removes junction-prefixed conditions from an association conditions array.
+     *
+     * Junction conditions (e.g. `SpecialTags.highlighted`) are handled by the
+     * pipeline `$match` on the through lookup; keeping them in the root-level
+     * conditions would target a non-existent root field.
+     *
+     * @param array<int|string, mixed> $conditions The association conditions.
+     * @param string $junctionAlias The junction collection alias.
+     * @return array<int|string, mixed> The conditions without junction-prefixed entries.
+     */
+    protected function stripJunctionConditions(array $conditions, string $junctionAlias): array
+    {
+        $stripped = [];
+        $alias = $junctionAlias . '.';
+        foreach ($conditions as $field => $value) {
+            if (is_string($field) && str_starts_with($field, $alias)) {
+                continue;
+            }
+
+            if (is_string($field) && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $nested = $this->stripJunctionConditions($value, $junctionAlias);
+                if ($nested !== []) {
+                    $stripped[$field] = $nested;
+                }
+
+                continue;
+            }
+
+            $stripped[$field] = $value;
+        }
+
+        return $stripped;
+    }
+
+    /**
+     * Extracts junction-prefixed conditions from an association conditions array.
+     *
+     * Complements {@see stripJunctionConditions()}: the junction-prefixed
+     * entries are returned for the through `$filter`, the rest stay as target
+     * conditions.
+     *
+     * @param array<int|string, mixed> $conditions The association conditions.
+     * @param string $junctionAlias The junction collection alias.
+     * @return array<int|string, mixed> The junction-prefixed conditions.
+     */
+    protected function extractJunctionConditions(array $conditions, string $junctionAlias): array
+    {
+        $extracted = [];
+        $alias = $junctionAlias . '.';
+        foreach ($conditions as $field => $value) {
+            if (is_string($field) && str_starts_with($field, $alias)) {
+                $extracted[$field] = $value;
+
+                continue;
+            }
+
+            if (is_string($field) && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $nested = $this->extractJunctionConditions($value, $junctionAlias);
+                if ($nested !== []) {
+                    $extracted[$field] = $nested;
+                }
+            }
+        }
+
+        return $extracted;
+    }
+
+    /**
+     * Builds a `$filter` `cond` expression from junction-prefixed conditions.
+     *
+     * `SpecialTags.highlighted => true` becomes
+     * `{$and: [{$eq: ['$$item.highlighted', true]}]}` so the through rows inside
+     * the `_join_<property>` lookup array can be filtered before the target
+     * lookup runs. Operators compose through `FunctionsBuilder` (`eq`, `and`,
+     * `or`, `not`), never raw arrays.
+     *
+     * @param array<int|string, mixed> $conditions The junction conditions (alias-prefixed).
+     * @param string $junctionAlias The junction alias including the trailing dot.
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    protected function junctionCondExpression(
+        array $conditions,
+        string $junctionAlias,
+        AggregationBuilder $builder,
+    ): FunctionExpression {
+        $func = $builder->func();
+        $parts = [];
+        foreach ($conditions as $field => $value) {
+            $field = (string)$field;
+            $upper = strtoupper(ltrim($field, '$'));
+            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $parts[] = $this->junctionGroupExpression($upper, $value, $junctionAlias, $builder);
+                continue;
+            }
+
+            $bare = str_starts_with($field, $junctionAlias) ? substr($field, strlen($junctionAlias)) : $field;
+            $parts[] = $func->eq('$$item.' . $bare, $value);
+        }
+
+        return $parts === [] ? $func->literal(true) : $func->and($parts);
+    }
+
+    /**
+     * Builds a `$and`/`$or`/`$nor` group expression for junction conditions.
+     *
+     * @param string $operator The uppercase conjunction name (AND/OR/NOT).
+     * @param array<int|string, mixed> $conditions The nested condition group.
+     * @param string $junctionAlias The junction alias including the trailing dot.
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    protected function junctionGroupExpression(
+        string $operator,
+        array $conditions,
+        string $junctionAlias,
+        AggregationBuilder $builder,
+    ): FunctionExpression {
+        $func = $builder->func();
+        $parts = [];
+        foreach ($conditions as $field => $value) {
+            $field = (string)$field;
+            $upper = strtoupper(ltrim($field, '$'));
+            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $parts[] = $this->junctionGroupExpression($upper, $value, $junctionAlias, $builder);
+                continue;
+            }
+
+            $bare = str_starts_with($field, $junctionAlias) ? substr($field, strlen($junctionAlias)) : $field;
+            $parts[] = $func->eq('$$item.' . $bare, $value);
+        }
+
+        return match ($operator) {
+            'OR' => $func->or($parts),
+            'NOT' => $func->nor($parts),
+            default => $func->and($parts),
+        };
+    }
+
+    /**
      * Gets the join collection source key.
      *
      * @return string|null
@@ -1484,6 +1627,33 @@ class BelongsToMany extends Association
         }
 
         $pipelineOptions = $options + $this->associationPipelineOptions();
+
+        // Junction conditions (e.g. `SpecialTags.highlighted`) reference fields
+        // of the through collection, which live inside the `_join_<property>`
+        // lookup result. Filter that array to only matching through rows so the
+        // subsequent target lookup and the loaded property only include them.
+        $junctionConditions = [];
+        if (!empty($pipelineOptions['conditions']) && is_array($pipelineOptions['conditions'])) {
+            $junctionConditions = $this->extractJunctionConditions($pipelineOptions['conditions'], $junction->getAlias());
+            $pipelineOptions['conditions'] = $this->stripJunctionConditions(
+                $pipelineOptions['conditions'],
+                $junction->getAlias(),
+            );
+        }
+
+        if ($junctionConditions !== []) {
+            $join = '_join_' . $this->getProperty();
+            $junctionAlias = $junction->getAlias() . '.';
+            $builder->addFields()->field(
+                $join,
+                $builder->func()->filter(
+                    '$' . $join,
+                    'item',
+                    $this->junctionCondExpression($junctionConditions, $junctionAlias, $builder),
+                ),
+            );
+        }
+
         if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
             $property = $this->getProperty();
             $pipelineOptions['conditions'] = $this->prefixMatchConditions(

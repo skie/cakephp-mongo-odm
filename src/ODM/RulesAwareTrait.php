@@ -20,7 +20,7 @@ trait RulesAwareTrait
     /**
      * The domain rules to be applied to documents saved by this collection.
      *
-     * @var \Cake\Datasource\RulesChecker|null
+     * @var \Crustum\Mongo\ODM\RulesChecker|null
      */
     protected ?RulesChecker $rulesChecker = null;
 
@@ -63,8 +63,8 @@ trait RulesAwareTrait
     /**
      * Returns the RulesChecker for this instance.
      *
-     * @see \Cake\Datasource\RulesChecker
-     * @return \Cake\Datasource\RulesChecker
+     * @see \Crustum\Mongo\ODM\RulesChecker
+     * @return \Crustum\Mongo\ODM\RulesChecker
      */
     public function rulesChecker(): RulesChecker
     {
@@ -72,7 +72,7 @@ trait RulesAwareTrait
             return $this->rulesChecker;
         }
 
-        /** @var class-string<\Cake\Datasource\RulesChecker> $class */
+        /** @var class-string<\Crustum\Mongo\ODM\RulesChecker> $class */
         $class = defined('static::RULES_CLASS') ? static::RULES_CLASS : RulesChecker::class;
         $this->rulesChecker = $this->buildRules(new $class(['repository' => $this]));
         $this->dispatchEvent('Collection.buildRules', ['rules' => $this->rulesChecker]);

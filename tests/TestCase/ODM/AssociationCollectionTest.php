@@ -120,6 +120,7 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Clients', 'collection' => 'clients']);
         $collection->setSchemaFromArray([]);
+
         $belongsTo = new BelongsTo('Users', $collection);
         $this->assertSame('user', $belongsTo->getProperty());
         $this->associations->add('Users', $belongsTo);
@@ -233,6 +234,7 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
+
         $mockOne = Mockery::mock(new BelongsTo('Parent', $collection))->makePartial();
         $mockTwo = Mockery::mock(new HasMany('Child', $collection))->makePartial();
 
@@ -268,6 +270,7 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
+
         $mockOne = Mockery::mock(new BelongsTo('Parents', $collection))->makePartial();
         $mockTwo = Mockery::mock(new BelongsTo('Categories', $collection))->makePartial();
 
@@ -303,6 +306,7 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
+
         $mockOne = Mockery::mock(new HasMany('Comments', $collection))->makePartial();
         $mockTwo = Mockery::mock(new HasOne('Profiles', $collection))->makePartial();
 
@@ -370,6 +374,7 @@ class AssociationCollectionTest extends TestCase
         $belongsTo = new BelongsTo('', new BaseCollection());
         $this->associations->add('users', $belongsTo);
         $this->associations->add('categories', $belongsTo);
+
         $expected = ['users' => [], 'categories' => []];
         $this->assertSame($expected, $this->associations->normalizeKeys(true));
     }

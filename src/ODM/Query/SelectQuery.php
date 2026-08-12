@@ -341,6 +341,15 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Returns the number of matching documents.
      *
+     * When the query carries an in-pipeline eager load (`matching()` /
+     * `contain()` via `$lookup`), the count must run through the pipeline
+     * because rows are joined, filtered and possibly unwound by those stages —
+     * a bare `countDocuments($filter)` would ignore them. The pipeline is built
+     * on a clone (mirroring cake's `cleanCopy()`) so the source query is never
+     * mutated, then a `$count` stage is appended so the server aggregates
+     * instead of streaming every row. Otherwise the fast collection-level count
+     * is used.
+     *
      * @return int
      */
     public function count(): int
@@ -348,6 +357,27 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         $connection = $this->getConnection();
         if (!$connection instanceof Connection) {
             return 0;
+        }
+
+        if ($this->getEagerLoader()->hasInPipelineLoads()) {
+            $clone = clone $this;
+            $clone->addDefaultFields();
+            if ($clone->repository instanceof BaseCollection) {
+                $clone->eagerLoader->attachAssociations($clone, $clone->repository);
+            }
+
+            $clone->getBuilder()->count('total');
+            $rows = $clone->parentExecute();
+            if ($rows instanceof Traversable) {
+                $rows = iterator_to_array($rows);
+            }
+
+            $first = $rows[0] ?? null;
+            if (is_object($first) && property_exists($first, 'total')) {
+                return (int)$first->total;
+            }
+
+            return (int)($first['total'] ?? 0);
         }
 
         return $connection->getCollection($this->getCollection())->countDocuments($this->getBuilder()->getFilter());
@@ -769,6 +799,19 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         }
 
         return $resultSet;
+    }
+
+    /**
+     * Executes the underlying database query without ODM decoration.
+     *
+     * Used by {@see count()} so the pipeline can be aggregated on a clone
+     * without recursing into hydration / ResultSet::count().
+     *
+     * @return mixed The raw database result (Mongo cursor or array).
+     */
+    public function parentExecute(): mixed
+    {
+        return parent::execute();
     }
 
     /**

@@ -268,6 +268,28 @@ class FunctionsBuilder
     }
 
     /**
+     * Builds a `$filter` array-filter expression.
+     *
+     * `$filter` iterates `input`, aliases each element as `as`, and keeps the
+     * elements for which `cond` (an `$expr`-style condition, e.g. built with
+     * `eq()`/`and()`/`or()`) evaluates truthy. Used to filter in-document
+     * arrays of embedded/joined documents.
+     *
+     * @param mixed $input The input array expression (`$field` path or expression).
+     * @param string $as The element variable name (without `$`).
+     * @param mixed $cond The filter condition expression.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function filter(mixed $input, string $as, mixed $cond): FunctionExpression
+    {
+        return new FunctionExpression('$filter', [[
+            'input' => $input,
+            'as' => $as,
+            'cond' => $cond,
+        ]]);
+    }
+
+    /**
      * Builds an arbitrary operator expression.
      *
      * @param string $name The operator name (with or without the leading `$`)

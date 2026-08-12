@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Command\Bake;
 use Bake\CodeGen\FileBuilder;
 use Bake\Command\BakeCommand;
 use Bake\Utility\TemplateRenderer;
+use BackedEnum;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
@@ -168,7 +169,7 @@ class DocumentCommand extends BakeCommand
                 'name' => $fieldName,
                 'type' => $type,
                 'constant' => SchemaFields::typeConstant($type),
-                'nullable' => (bool)($definition['nullable'] ?? false),
+                'nullable' => $definition['nullable'],
                 'primaryKey' => $fieldName === '_id',
                 'enum' => is_array($enumValues) && $enumValues !== [] ? $enumValues : null,
             ];
@@ -243,7 +244,7 @@ class DocumentCommand extends BakeCommand
             }
 
             $className = sprintf('%s\Model\Enum\%s%s', $this->namespace(), $name, Inflector::camelize($field['name']));
-            if (enum_exists($className)) {
+            if (enum_exists($className) && is_subclass_of($className, BackedEnum::class)) {
                 $enumTypes[$field['name']] = $className;
             }
         }

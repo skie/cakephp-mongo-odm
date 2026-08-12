@@ -188,4 +188,72 @@ class FunctionsBuilderTest extends TestCase
             $this->functions->binarySize('$data')->getConditions(),
         );
     }
+
+    /**
+     * Test filter() builds a $filter array-filter operator.
+     *
+     * The `cond` accepts an `$expr`-style condition (e.g. `eq`), which renders
+     * as an operator document — no raw arrays required on the caller side.
+     *
+     * @return void
+     */
+    public function testFilter(): void
+    {
+        $func = $this->functions;
+        $cond = $func->and([$func->eq('$$item.highlighted', true)]);
+
+        $this->assertSame(
+            ['$filter' => [
+                'input' => '$_join_tags',
+                'as' => 'item',
+                'cond' => ['$and' => [['$eq' => ['$$item.highlighted', true]]]],
+            ]],
+            $func->filter('$_join_tags', 'item', $cond)->getConditions(),
+        );
+    }
+
+    /**
+     * Test comparison/conjunction operators render $expr-style documents.
+     *
+     * These are used as `$filter` conditions over in-document arrays (junction
+     * through-rows), so they must render operator documents, not `{field: value}`
+     * query documents.
+     *
+     * @return void
+     */
+    public function testComparisonAndConjunctionOperators(): void
+    {
+        $func = $this->functions;
+
+        $this->assertSame(
+            ['$eq' => ['$$item.highlighted', true]],
+            $func->eq('$$item.highlighted', true)->getConditions(),
+        );
+        $this->assertSame(
+            ['$and' => [
+                ['$eq' => ['$$item.a', 1]],
+                ['$eq' => ['$$item.b', 2]],
+            ]],
+            $func->and([
+                $func->eq('$$item.a', 1),
+                $func->eq('$$item.b', 2),
+            ])->getConditions(),
+        );
+        $this->assertSame(
+            ['$or' => [
+                ['$eq' => ['$$item.a', 1]],
+                ['$eq' => ['$$item.a', 2]],
+            ]],
+            $func->or([
+                $func->eq('$$item.a', 1),
+                $func->eq('$$item.a', 2),
+            ])->getConditions(),
+        );
+        $this->assertSame(
+            ['$nor' => [
+                ['$eq' => ['$$item.a', 1]],
+            ]],
+            $func->nor([$func->eq('$$item.a', 1)])->getConditions(),
+        );
+    }
 }

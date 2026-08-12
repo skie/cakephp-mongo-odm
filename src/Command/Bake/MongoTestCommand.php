@@ -513,7 +513,9 @@ class MongoTestCommand extends BakeCommand
             [, $model] = $this->splitName($model);
             $locator = FactoryLocator::get('Collection');
             $collection = $locator->get($model);
-            $this->processModel($collection);
+            if ($collection instanceof BaseCollection) {
+                $this->processModel($collection);
+            }
         }
     }
 
