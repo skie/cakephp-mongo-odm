@@ -68,7 +68,7 @@
     {%~ for field in groupedFields.number %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ field|humanize }}') ?></th>
-{% set columnData = MongoBake.columnData(field, schema) %}
+{% set columnData = MongoBake.mongoColumnData(field, schema) %}
 {% if columnData.null %}
                     <td><?= ${{ singularVar }}->{{ field }} === null ? '' : $this->Number->format(${{ singularVar }}->{{ field }}) ?></td>
         {%~ else %}
@@ -81,8 +81,8 @@
     {%~ for field in groupedFields.enum %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ field|humanize }}') ?></th>
-        {%~ set columnData = MongoBake.columnData(field, schema) %}
-        {%~ set supportsLabel = MongoBake.enumSupportsLabel(field, schema) %}
+        {%~ set columnData = MongoBake.mongoColumnData(field, schema) %}
+        {%~ set supportsLabel = MongoBake.mongoEnumSupportsLabel(field, schema) %}
         {%~ if columnData.null %}
                     <td><?= ${{ singularVar }}->{{ field }} === null ? '' : h(${{ singularVar }}->{{ field }}->{% if supportsLabel %}label(){% else %}value{% endif %}) ?></td>
         {%~ else %}

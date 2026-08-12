@@ -14,6 +14,7 @@ use Cake\Datasource\FactoryLocator;
 use Cake\Event\Event;
 use Cake\Event\EventManager;
 use Cake\Utility\Inflector;
+use Crustum\Mongo\Bake\MongoAssociationFilter;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use InvalidArgumentException;

@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Command\Bake;
+namespace Crustum\Mongo\Bake;
 
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\Association;

@@ -34,11 +34,11 @@
             }
             $this->Flash->error({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} could not be saved. Please, try again.'));
         }
-{% set associations = MongoBake.aliasExtractor(modelObj, 'BelongsTo') %}
-{% set associations = associations|merge(MongoBake.aliasExtractor(modelObj, 'BelongsToMany')) %}
+{% set associations = MongoBake.mongoAliasExtractor(modelObj, 'BelongsTo') %}
+{% set associations = associations|merge(MongoBake.mongoAliasExtractor(modelObj, 'BelongsToMany')) %}
 
 {%- for assoc in associations %}
-    {%~ set otherName = MongoBake.getAssociatedTableAlias(modelObj, assoc) %}
+    {%~ set otherName = MongoBake.mongoGetAssociatedTableAlias(modelObj, assoc) %}
     {%~ set otherPlural = otherName|variable %}
     {%~ if otherPlural == singularName %}
         {%~ set otherPlural = otherPlural ~ 'List' %}

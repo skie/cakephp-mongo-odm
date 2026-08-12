@@ -1,14 +1,18 @@
 {#
 /**
  * Crustum Mongo ODM — Collection bake template.
+ *
+ * Ported from cakephp/bake `Model/table.twig` for MongoDB.
  */
 #}
+{% set annotations = MongoDocBlock.buildTableAnnotations(associations, associationInfo, behaviors, document, namespace) %}
+{% set generatedFunctions = ['initialize'] %}
 {{ element('Bake.file_header', {
     namespace: "#{namespace}\\Model\\Collection",
-    classImports: ['Crustum\\Mongo\\ODM\\BaseCollection'],
+    classImports: ['Crustum\\Mongo\\ODM\\RulesChecker', 'Crustum\\Mongo\\ODM\\BaseCollection', 'Cake\\Validation\\Validator'],
 }) }}
 
-{{ DocBlock.classDescription(name ~ 'Collection', 'Model', [])|raw }}
+{{ DocBlock.classDescription(name, 'Model', annotations)|raw }}
 class {{ name }}Collection extends BaseCollection
 {
 {% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
@@ -34,8 +38,95 @@ class {{ name }}Collection extends BaseCollection
         $this->setDocumentClass({{ '\\' ~ documentClass }}::class);
         $this->setSchemaFromDocument({{ '\\' ~ documentClass }}::class);
 {% endif %}
+{% if displayField %}
+        $this->setDisplayField({{ (displayField is iterable ? Bake.exportArray(displayField) : Bake.exportVar(displayField))|raw }});
+{% endif %}
+{% if primaryKey %}
+    {%~ if primaryKey is iterable and primaryKey|length > 1 %}
+        $this->setPrimaryKey({{ Bake.exportArray(primaryKey)|raw }});
+    {%~ else %}
+        $this->setPrimaryKey('{{ primaryKey|as_array|first }}');
+    {%~ endif %}
+{% endif %}
+{% if behaviors %}
+
+    {%~ for behavior, behaviorData in behaviors %}
+        $this->addBehavior('{{ behavior }}'{{ (behaviorData ? (", " ~ Bake.exportArray(behaviorData, 2)|raw ~ '') : '')|raw }});
+    {%~ endfor %}
+{% endif %}
+{% if associations.belongsTo or associations.hasMany or associations.belongsToMany or associations.hasOne %}
+{% set assocTypes = {'belongsTo': 'belongsTo', 'hasOne': 'hasOne', 'hasMany': 'hasMany', 'belongsToMany': 'belongsToMany'} %}
+    {%~ for type, assocs in associations %}
+        {%~ for assoc in assocs %}
+            {%~ set assocData = [] %}
+            {%~ for key, val in assoc %}
+                {%~ if key is not same as('alias') %}
+                    {%~ set assocData = assocData|merge({(key): val}) %}
+                {%~ endif %}
+            {%~ endfor %}
+        $this->{{ assocTypes[type] ?? type }}('{{ assoc.alias }}', {{ Bake.exportArray(assocData, 2)|raw }});
+        {%~ endfor %}
+    {%~ endfor %}
+{% endif %}
     }
+{% if validation %}
+
+    {%~ set generatedFunctions = generatedFunctions|merge(['validationDefault']) %}
+    /**
+     * Default validation rules.
+     *
+     * @param \Cake\Validation\Validator $validator Validator instance.
+     * @return \Cake\Validation\Validator
+     */
+    public function validationDefault(Validator $validator): Validator
+    {
+    {%~ for field, rules in validation %}
+        {%~ set validationMethods = Bake.getValidationMethods(field, rules) %}
+        {%~ if validationMethods %}
+        $validator
+            {%~ for validationMethod in validationMethods %}
+                {%~ if loop.last %}
+                    {%~ set validationMethod = validationMethod ~ ';' %}
+                {%~ endif %}
+            {{ validationMethod|raw }}
+            {%~ endfor %}
+
+        {%~ endif %}
+    {%~ endfor %}
+        return $validator;
+    }
+{% endif %}
+{%- if rulesChecker %}
+    {%~ set generatedFunctions = generatedFunctions|merge(['buildRules']) %}
+
+    /**
+     * Returns a rules checker object that will be used for validating
+     * application integrity.
+     *
+     * @param \Crustum\Mongo\ODM\RulesChecker $rules The rules object to be modified.
+     * @return \Crustum\Mongo\ODM\RulesChecker
+     */
+    public function buildRules(RulesChecker $rules): RulesChecker
+    {
+    {%~ for rule in rulesChecker %}
+        {%~ set fields = Bake.exportArray(rule.fields) %}
+        {%~ set options = '' %}
+        {%~ for optionName, optionValue in rule.options %}
+            {%~ set options = (loop.first ? '[' : options) ~ "'#{optionName}' => " ~ Bake.exportVar(optionValue) ~ (loop.last ? ']' : ', ') %}
+        {%~ endfor %}
+        {%~ set ruleOptions = "'errorField' => '" ~ rule.fields[0] ~ "'" %}
+        {%~ if rule.message is defined %}
+            {%~ set ruleOptions = ruleOptions ~ ", 'message' => __(" ~ Bake.exportVar(rule.message) ~ ")" %}
+        {%~ endif %}
+        $rules->add($rules->{{ rule.name }}({{ fields|raw }}{{ (rule.extra|default ? ", '#{rule.extra}'" : '')|raw }}{{ (options ? ', ' ~ options : '')|raw }}), [{{ ruleOptions|raw }}]);
+    {%~ endfor %}
+
+        return $rules;
+    }
+{% endif %}
 {% if connection is not same as('mongo') and connection %}
+    {%~ set generatedFunctions = generatedFunctions|merge(['defaultConnectionName']) %}
+
     /**
      * Returns the database connection name to use by default.
      *
@@ -46,7 +137,7 @@ class {{ name }}Collection extends BaseCollection
         return '{{ connection }}';
     }
 {% endif %}
-{% set userFunctions = fileBuilder.classBuilder.userFunctions(['initialize']) %}
+{% set userFunctions = fileBuilder.classBuilder.userFunctions(generatedFunctions) %}
 {% if userFunctions %}
 
     {{~ Bake.concat('\n\n', userFunctions) }}

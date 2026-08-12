@@ -3,13 +3,18 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Command\Bake;
 
+use Bake\CodeGen\FileBuilder;
 use Bake\Command\BakeCommand;
 use Bake\Utility\TemplateRenderer;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use Cake\Datasource\FactoryLocator;
 use Cake\Utility\Inflector;
+use Crustum\Mongo\Bake\MongoCollectionContext;
+use Crustum\Mongo\View\Helper\MongoBakeHelper;
+use Crustum\Mongo\View\Helper\MongoDocBlockHelper;
 use Override;
 
 /**
@@ -68,17 +73,48 @@ class CollectionCommand extends BakeCommand
             $namespace = $this->_pluginNamespace($this->plugin);
         }
 
+        $locator = FactoryLocator::get('Collection');
+        $modelObject = $locator->get($name);
+
+        $context = new MongoCollectionContext();
+        $data = $context->build($modelObject);
+
+        $documentClass = $this->documentClassFor($name, $namespace);
+
+        $data += [
+            'name' => $name,
+            'namespace' => $namespace,
+            'plugin' => $this->plugin,
+            'connection' => $this->connection,
+            'document' => $this->documentName($name),
+            'documentClass' => $documentClass,
+            'fileBuilder' => new FileBuilder($io, "{$namespace}\Model\Collection"),
+        ];
+
         $contents = $this->createTemplateRenderer()
-            ->set('name', $name)
-            ->set('namespace', $namespace)
-            ->set('plugin', $this->plugin)
-            ->set('documentClass', $this->documentClassFor($name, $namespace))
+            ->set($data)
             ->generate('Crustum/Mongo.Collection/collection');
 
         $io->createFile($filename, $contents, $this->force);
 
         $emptyFile = $path . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Creates the template renderer with Mongo bake helpers loaded.
+     *
+     * @return \Bake\Utility\TemplateRenderer
+     */
+    public function createTemplateRenderer(): TemplateRenderer
+    {
+        $renderer = parent::createTemplateRenderer();
+        $renderer->viewBuilder()->addHelpers([
+            'Crustum/Mongo.MongoBake' => ['className' => MongoBakeHelper::class],
+            'Crustum/Mongo.MongoDocBlock' => ['className' => MongoDocBlockHelper::class],
+        ]);
+
+        return $renderer;
     }
 
     /**
@@ -97,6 +133,17 @@ class CollectionCommand extends BakeCommand
     }
 
     /**
+     * Resolves the singular Document class name for a collection.
+     *
+     * @param string $name Collection class name (e.g. `Authors`).
+     * @return string
+     */
+    protected function documentName(string $name): string
+    {
+        return Inflector::singularize($name);
+    }
+
+    /**
      * Resolves the singular Document class for a collection, if it exists.
      *
      * @param string $name Collection class name (e.g. `Authors`).
@@ -111,7 +158,6 @@ class CollectionCommand extends BakeCommand
             return $class;
         }
 
-        // fall back to the singularized class name without suffix
         return null;
     }
 

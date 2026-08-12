@@ -38,14 +38,14 @@
 {% for field in fields %}
     {%~ if field not in primaryKey %}
         {%~ if keyFields[field] is defined %}
-            {%~ set fieldData = MongoBake.columnData(field, schema) %}
+            {%~ set fieldData = MongoBake.mongoColumnData(field, schema) %}
             {%~ if fieldData.null %}
                     echo $this->Form->control('{{ field }}', ['options' => ${{ keyFields[field] }}, 'empty' => true]);
             {%~ else %}
                     echo $this->Form->control('{{ field }}', ['options' => ${{ keyFields[field] }}]);
             {%~ endif %}
         {%~ elseif field not in ['created', 'modified', 'updated'] %}
-            {%~ set fieldData = MongoBake.columnData(field, schema) %}
+            {%~ set fieldData = MongoBake.mongoColumnData(field, schema) %}
             {%~ if fieldData.type in ['date', 'datetime', 'time'] and fieldData.null %}
                     echo $this->Form->control('{{ field }}', ['empty' => true]);
             {%~ else %}

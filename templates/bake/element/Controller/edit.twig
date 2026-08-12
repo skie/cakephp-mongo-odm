@@ -13,8 +13,8 @@
  * @license       https://www.opensource.org/licenses/mit-license.php MIT License
  */
 #}
-{% set belongsTo = MongoBake.aliasExtractor(modelObj, 'BelongsTo') %}
-{% set belongsToMany = MongoBake.aliasExtractor(modelObj, 'belongsToMany') %}
+{% set belongsTo = MongoBake.mongoAliasExtractor(modelObj, 'BelongsTo') %}
+{% set belongsToMany = MongoBake.mongoAliasExtractor(modelObj, 'belongsToMany') %}
 {% set compact = ["'#{singularName}'"] %}
     /**
      * Edit method
@@ -39,7 +39,7 @@
             $this->Flash->error({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} could not be saved. Please, try again.'));
         }
 {% for assoc in belongsTo|merge(belongsToMany) %}
-    {%~ set otherName = MongoBake.getAssociatedTableAlias(modelObj, assoc) %}
+    {%~ set otherName = MongoBake.mongoGetAssociatedTableAlias(modelObj, assoc) %}
     {%~ set otherPlural = otherName|variable %}
     {%~ if otherPlural == singularName %}
         {%~ set otherPlural = otherPlural ~ 'List' %}

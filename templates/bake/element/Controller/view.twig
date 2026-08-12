@@ -13,10 +13,10 @@
  * @license       https://www.opensource.org/licenses/mit-license.php MIT License
  */
 #}
-{% set allAssociations = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
-{% set allAssociations = allAssociations|merge(Bake.aliasExtractor(modelObj, 'BelongsToMany')) %}
-{% set allAssociations = allAssociations|merge(Bake.aliasExtractor(modelObj, 'HasOne')) %}
-{% set allAssociations = allAssociations|merge(Bake.aliasExtractor(modelObj, 'HasMany')) %}
+{% set allAssociations = MongoBake.mongoAliasExtractor(modelObj, 'BelongsTo') %}
+{% set allAssociations = allAssociations|merge(MongoBake.mongoAliasExtractor(modelObj, 'BelongsToMany')) %}
+{% set allAssociations = allAssociations|merge(MongoBake.mongoAliasExtractor(modelObj, 'HasOne')) %}
+{% set allAssociations = allAssociations|merge(MongoBake.mongoAliasExtractor(modelObj, 'HasMany')) %}
     /**
      * View method
      *

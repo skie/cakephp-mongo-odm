@@ -48,8 +48,8 @@
         {%~ endfor %}
     {%~ endif %}
     {%~ if isKey is not same as(true) %}
-        {%~ set columnData = MongoBake.columnData(field, schema) %}
-        {%~ set supportsLabel = MongoBake.enumSupportsLabel(field, schema) %}
+        {%~ set columnData = MongoBake.mongoColumnData(field, schema) %}
+        {%~ set supportsLabel = MongoBake.mongoEnumSupportsLabel(field, schema) %}
         {%~ if columnData.type starts with 'enum-' %}
                     <td><?= ${{ singularVar }}->{{ field }} === null ? '' : h(${{ singularVar }}->{{ field }}->{% if supportsLabel %}label(){% else %}value{% endif %}) ?></td>
         {%~ elseif columnData.type not in ['integer', 'float', 'decimal', 'biginteger', 'smallinteger', 'tinyinteger'] %}

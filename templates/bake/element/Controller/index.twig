@@ -20,7 +20,7 @@
      */
     public function index()
     {
-{% set belongsTo = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
+{% set belongsTo = MongoBake.mongoAliasExtractor(modelObj, 'BelongsTo') %}
 {% if belongsTo %}
         $query = $this->{{ currentModelName }}->find()
             ->contain({{ Bake.exportArray(belongsTo)|raw }});

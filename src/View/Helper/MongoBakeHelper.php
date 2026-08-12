@@ -17,10 +17,13 @@ use Crustum\Mongo\ODM\BaseCollection;
 /**
  * Mongo-aware bake helper.
  *
- * Extends the cake `BakeHelper` so templates can call `MongoBake.columnData()`,
- * `MongoBake.enumSupportsLabel()` and `MongoBake.aliasExtractor()` with a
- * `CollectionSchema` / `BaseCollection` instead of a SQL `TableSchema`.
- * Field types are Mongo canonical names.
+ * Extends the cake `BakeHelper` (inheriting `filterFields`, `exportVar`,
+ * `exportArray`, `getValidationMethods`, …) and adds Mongo-specific methods
+ * prefixed `mongo*` so they do not clash with the SQL-typed signatures of the
+ * parent (`columnData`, `enumSupportsLabel`, `aliasExtractor`).
+ *
+ * Templates use `MongoBake.mongoColumnData()` and friends with a
+ * `CollectionSchema` / `BaseCollection`.
  */
 class MongoBakeHelper extends BakeHelper
 {
@@ -31,7 +34,7 @@ class MongoBakeHelper extends BakeHelper
      * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema Schema.
      * @return array<string, mixed>|null
      */
-    public function columnData(string $field, CollectionSchema $schema): ?array
+    public function mongoColumnData(string $field, CollectionSchema $schema): ?array
     {
         return $schema->getColumn($field);
     }
@@ -46,11 +49,9 @@ class MongoBakeHelper extends BakeHelper
      * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema The collection schema.
      * @return bool
      */
-    public function enumSupportsLabel(string $field, CollectionSchema $schema): bool
+    public function mongoEnumSupportsLabel(string $field, CollectionSchema $schema): bool
     {
-        $type = $schema->getColumnType($field);
-
-        return $type === 'enum';
+        return $schema->getColumnType($field) === 'enum';
     }
 
     /**
@@ -60,7 +61,7 @@ class MongoBakeHelper extends BakeHelper
      * @param string $type Association type (BelongsTo, HasMany, …).
      * @return array<int, string>
      */
-    public function aliasExtractor(BaseCollection $collection, string $type): array
+    public function mongoAliasExtractor(BaseCollection $collection, string $type): array
     {
         return array_map(
             fn($association): string => $association->getTarget()->getAlias(),
@@ -75,7 +76,7 @@ class MongoBakeHelper extends BakeHelper
      * @param string $assoc Association name.
      * @return string
      */
-    public function getAssociatedTableAlias(BaseCollection $collection, string $assoc): string
+    public function mongoGetAssociatedTableAlias(BaseCollection $collection, string $assoc): string
     {
         $association = $collection->getAssociation($assoc);
         if ($association === null) {
