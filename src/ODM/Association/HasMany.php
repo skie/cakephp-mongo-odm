@@ -213,8 +213,12 @@ class HasMany extends Association
             ));
         }
 
-        $foreignKeyReference = array_combine(
+        $foreignKeys = array_values(array_filter(
             (array)$this->getForeignKey(),
+            is_string(...),
+        ));
+        $foreignKeyReference = array_combine(
+            $foreignKeys,
             $entity->extract((array)$this->getBindingKey()),
         );
 

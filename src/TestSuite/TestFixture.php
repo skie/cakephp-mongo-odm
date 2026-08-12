@@ -7,6 +7,7 @@ use Cake\Core\Exception\CakeException;
 use Cake\Datasource\ConnectionInterface;
 use Cake\Datasource\FixtureInterface;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use MongoDB\BSON\ObjectId;
 use Throwable;
@@ -145,6 +146,10 @@ class TestFixture implements FixtureInterface, MongoFixtureInterface
             }
 
             $driver = $db->getDriver();
+            if (!$driver instanceof MongoDriver) {
+                continue;
+            }
+
             foreach ($record as $field => $value) {
                 if (!is_string($value)) {
                     continue;

@@ -38,7 +38,7 @@ trait CollectionEventsTrait
      * to the patchDocument() or newDocument() call.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Collection event.
-     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
+     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void

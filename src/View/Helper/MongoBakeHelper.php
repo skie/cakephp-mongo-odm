@@ -66,9 +66,14 @@ class MongoBakeHelper extends BakeHelper
      */
     public function mongoAliasExtractor(BaseCollection $collection, string $type): array
     {
+        $class = 'Crustum\Mongo\ODM\Association\\' . $type;
+        if (!class_exists($class) || !is_subclass_of($class, Association::class)) {
+            return [];
+        }
+
         return array_map(
             fn($association): string => $association->getTarget()->getAlias(),
-            $collection->associations()->getByType($type),
+            $collection->associations()->getByType($class),
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Association\Loader;
 
 use Cake\Datasource\EntityInterface;
+use Cake\Datasource\QueryInterface;
 use Closure;
 
 /**
@@ -42,7 +43,7 @@ class SelectLoader implements LoaderInterface
 
         return function (iterable $entities) use ($options): iterable {
             $query = $options['finder']();
-            if (!is_object($query) || !is_callable([$query, 'where']) || !is_callable([$query, 'all'])) {
+            if (!$query instanceof QueryInterface) {
                 return $entities;
             }
 
@@ -110,7 +111,7 @@ class SelectLoader implements LoaderInterface
             }
 
             if (!empty($options['skip'])) {
-                $query->skip($options['skip']);
+                $query->offset((int)$options['skip']);
             }
 
             if (!empty($options['queryBuilder'])) {

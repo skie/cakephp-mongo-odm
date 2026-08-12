@@ -299,8 +299,6 @@ class BelongsToMany extends Association
         $assocConditions = $hasMany->getConditions();
         if (is_array($assocConditions)) {
             $conditions = array_merge($conditions, $assocConditions);
-        } else {
-            $conditions[] = $assocConditions;
         }
 
         $table->deleteAll($conditions);
@@ -989,6 +987,7 @@ class BelongsToMany extends Association
         if (!$locator->exists($alias)) {
             $config = ['collection' => $tableName, 'allowFallbackClass' => true];
         }
+
         $collection = $locator->get($alias, $config);
         if (!$collection instanceof BaseCollection) {
             throw new InvalidArgumentException(sprintf(
@@ -1217,9 +1216,7 @@ class BelongsToMany extends Association
         $matching = [];
         $alias = $this->getAlias() . '.';
         foreach ($conditions as $field => $value) {
-            if (is_string($field) && str_starts_with($field, $alias)) {
-                $matching[$field] = $value;
-            } elseif (is_int($field)) {
+            if (str_starts_with($field, $alias)) {
                 $matching[$field] = $value;
             }
         }
@@ -1679,7 +1676,7 @@ class BelongsToMany extends Association
      * loaded property array via a `$map` expression.
      *
      * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
-     * @param array<string, mixed> $options Pipeline options.
+     * @param array<string, mixed>|list<string>|null $fields Containment fields/select options.
      * @return void
      */
     protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void

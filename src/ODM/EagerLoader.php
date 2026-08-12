@@ -208,7 +208,7 @@ class EagerLoader
             return true;
         }
 
-        foreach ($this->containments as $alias => $options) {
+        foreach ($this->containments as $options) {
             if (is_array($options) && ($options['matching'] ?? false) === true) {
                 return true;
             }

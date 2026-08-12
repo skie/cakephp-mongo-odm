@@ -76,7 +76,10 @@ class BelongsTo extends Association
             return false;
         }
 
-        $foreignKey = (array)$this->getForeignKey();
+        $foreignKey = array_values(array_filter(
+            (array)$this->getForeignKey(),
+            is_string(...),
+        ));
         $reference = $saved->extract((array)$this->getBindingKey());
         $entity->patch(array_combine($foreignKey, $reference), ['guard' => false]);
 
@@ -113,7 +116,7 @@ class BelongsTo extends Association
     {
         $finder = $this->getFinder();
         $loaderOptions = [
-            'finder' => fn(): QueryInterface => $this->getTarget()->find(is_array($finder) ? $finder[0] : $finder),
+            'finder' => fn(): QueryInterface => $this->getTarget()->find($this->extractFinder($finder)[0]),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),

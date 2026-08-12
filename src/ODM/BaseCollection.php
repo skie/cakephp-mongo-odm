@@ -5,7 +5,6 @@ namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
 use BadMethodCallException;
-use Closure;
 use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
@@ -26,6 +25,7 @@ use Cake\ORM\Locator\LocatorAwareTrait as OrmLocatorAwareTrait;
 use Cake\Utility\Inflector;
 use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
+use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Database\Type\TypeFactory;

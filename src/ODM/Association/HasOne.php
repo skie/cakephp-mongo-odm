@@ -73,7 +73,10 @@ class HasOne extends Association
             return false;
         }
 
-        $foreignKey = (array)$this->getForeignKey();
+        $foreignKey = array_values(array_filter(
+            (array)$this->getForeignKey(),
+            is_string(...),
+        ));
         $reference = $saved->extract((array)$this->getBindingKey());
         $entity->patch(array_combine($foreignKey, $reference), ['guard' => false]);
 

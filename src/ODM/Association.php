@@ -518,13 +518,18 @@ abstract class Association
      * Converts a key configuration into a pipeline field name.
      *
      * Composite keys are represented by their ordered dotted path here; the
-     * collection query layer can provide tuple handling when required.
+     * collection query layer can provide tuple handling when required. A
+     * `false`/`null` key (disabled foreign key) yields an empty string.
      *
-     * @param array<string>|string|null $key Key configuration.
+     * @param array<string>|string|false|null $key Key configuration.
      * @return string
      */
-    protected function fieldName(array|string|null $key): string
+    protected function fieldName(array|string|false|null $key): string
     {
+        if ($key === false || $key === null) {
+            return '';
+        }
+
         return implode('.', (array)$key);
     }
 
@@ -600,10 +605,11 @@ abstract class Association
             return true;
         }
 
-        $keys = array_combine(
+        $foreignKeys = array_values(array_filter(
             (array)$this->getForeignKey(),
-            $entity->extract((array)$this->getBindingKey()),
-        );
+            is_string(...),
+        ));
+        $keys = array_combine($foreignKeys, $entity->extract((array)$this->getBindingKey()));
         if ($keys === [] || in_array(null, $keys, true)) {
             return true;
         }
@@ -715,7 +721,12 @@ abstract class Association
         }
 
         if ($sort instanceof OrderClauseExpression) {
-            $sort = [(string)$sort->getField() => $this->orderDirection($sort)];
+            $field = $sort->getField();
+            if (is_string($field)) {
+                $sort = [$field => $this->orderDirection($sort)];
+            } else {
+                $sort = [];
+            }
         }
 
         if (is_string($sort)) {

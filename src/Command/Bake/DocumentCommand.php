@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Command\Bake;
 
+use BackedEnum;
 use Bake\CodeGen\FileBuilder;
 use Bake\Command\BakeCommand;
 use Bake\Utility\TemplateRenderer;
-use BackedEnum;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;

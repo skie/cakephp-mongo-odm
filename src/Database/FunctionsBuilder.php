@@ -290,6 +290,69 @@ class FunctionsBuilder
     }
 
     /**
+     * Builds an `$eq` comparison expression.
+     *
+     * Renders as `['$eq' => [$left, $right]]` — the `$expr` form used inside
+     * `$filter` / `$cond` (aggregation) documents, not the query `{field: value}`
+     * form.
+     *
+     * @param mixed $left The left operand (e.g. `$$item.field`).
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function eq(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$eq', [$left, $right]);
+    }
+
+    /**
+     * Builds an `$and` group expression.
+     *
+     * @param list<mixed> $expressions The condition expressions to AND together.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function and(array $expressions): FunctionExpression
+    {
+        return new FunctionExpression('$and', [$expressions]);
+    }
+
+    /**
+     * Builds an `$or` group expression.
+     *
+     * @param list<mixed> $expressions The condition expressions to OR together.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function or(array $expressions): FunctionExpression
+    {
+        return new FunctionExpression('$or', [$expressions]);
+    }
+
+    /**
+     * Builds a `$nor` group expression.
+     *
+     * `$nor` is the array form used to negate a list of conditions inside an
+     * aggregation expression (the unary `$not` only takes one operand).
+     *
+     * @param list<mixed> $expressions The condition expressions to negate.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function nor(array $expressions): FunctionExpression
+    {
+        return new FunctionExpression('$nor', [$expressions]);
+    }
+
+    /**
+     * Builds a `$literal` expression.
+     *
+     * @param mixed $value The literal value.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function literal(mixed $value): FunctionExpression
+    {
+        return new FunctionExpression('$literal', [$value]);
+    }
+
+    /**
      * Builds an arbitrary operator expression.
      *
      * @param string $name The operator name (with or without the leading `$`)

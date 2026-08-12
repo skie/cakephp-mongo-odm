@@ -393,7 +393,7 @@ class QueryCompiler
      * of each group is emitted, mirroring SQL `DISTINCT`. An empty array
      * disables deduplication.
      *
-     * @param list<string>|string $fields Fields to deduplicate by.
+     * @param array<string>|string $fields Fields to deduplicate by.
      * @param bool $overwrite Whether to replace previously configured fields.
      * @return $this
      */

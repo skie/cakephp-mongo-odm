@@ -24,5 +24,15 @@ parameters:
             identifier: trait.unused
             path: src/Database/TypeMapTrait.php
             reportUnmatched: false
+        -
+            # Public library trait: unused within src/ by design (consumers mix it in).
+            identifier: trait.unused
+            path: src/ODM/Enum/EnumLabelTrait.php
+            reportUnmatched: false
+        -
+            # Public library trait: unused within src/ by design (consumers mix it in).
+            identifier: trait.unused
+            path: src/ODM/Locator/CollectionAwareTrait.php
+            reportUnmatched: false
 
 services:

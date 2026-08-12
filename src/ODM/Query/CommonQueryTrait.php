@@ -149,7 +149,10 @@ trait CommonQueryTrait
     public function orderBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
     {
         if ($fields instanceof OrderClauseExpression) {
-            $fields = [(string)$fields->getField() => $this->orderDirection($fields)];
+            $field = $fields->getField();
+            if (is_string($field)) {
+                $fields = [$field => $this->orderDirection($fields)];
+            }
         }
 
         return parent::orderBy($fields, $overwrite);
