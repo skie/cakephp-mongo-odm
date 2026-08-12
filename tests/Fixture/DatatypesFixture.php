@@ -22,7 +22,7 @@ class DatatypesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'datatypes';
+    public string $collection = 'datatypes';
 
     /**
      * Documents to insert.

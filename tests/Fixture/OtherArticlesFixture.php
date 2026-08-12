@@ -26,7 +26,7 @@ class OtherArticlesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'other_articles';
+    public string $collection = 'other_articles';
 
     /**
      * Documents to insert.

@@ -22,7 +22,7 @@ class SessionsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'sessions';
+    public string $collection = 'sessions';
 
     /**
      * Documents to insert.

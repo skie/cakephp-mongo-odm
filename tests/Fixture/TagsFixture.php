@@ -22,7 +22,7 @@ class TagsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'tags';
+    public string $collection = 'tags';
 
     /**
      * Documents to insert.

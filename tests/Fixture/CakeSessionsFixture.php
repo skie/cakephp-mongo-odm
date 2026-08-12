@@ -22,7 +22,7 @@ class CakeSessionsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'cake_sessions';
+    public string $collection = 'cake_sessions';
 
     /**
      * Documents to insert.

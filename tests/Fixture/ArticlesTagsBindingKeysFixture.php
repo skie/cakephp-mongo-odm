@@ -22,7 +22,7 @@ class ArticlesTagsBindingKeysFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'articles_tags_binding_keys';
+    public string $collection = 'articles_tags_binding_keys';
 
     /**
      * Documents to insert.

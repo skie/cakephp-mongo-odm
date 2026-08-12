@@ -22,7 +22,7 @@ class PostsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'posts';
+    public string $collection = 'posts';
 
     /**
      * Documents to insert.

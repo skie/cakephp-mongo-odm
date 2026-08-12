@@ -22,7 +22,7 @@ class CompositeIncrementsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'composite_increments';
+    public string $collection = 'composite_increments';
 
     /**
      * Documents to insert.

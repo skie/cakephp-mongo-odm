@@ -24,7 +24,7 @@ class EquipmentFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'equipment';
+    public string $collection = 'equipment';
 
     /**
      * Documents to insert.

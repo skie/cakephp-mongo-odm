@@ -25,7 +25,7 @@ class NullableAuthorsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'nullable_authors';
+    public string $collection = 'nullable_authors';
 
     /**
      * Documents to insert.

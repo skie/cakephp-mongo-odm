@@ -22,7 +22,7 @@ class SectionsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'sections';
+    public string $collection = 'sections';
 
     /**
      * Documents to insert.

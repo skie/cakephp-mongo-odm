@@ -26,7 +26,7 @@ class AliasedArticlesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'articles';
+    public string $collection = 'articles';
 
     /**
      * Documents to insert.

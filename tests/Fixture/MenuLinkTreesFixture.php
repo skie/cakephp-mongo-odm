@@ -22,7 +22,7 @@ class MenuLinkTreesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'menu_link_trees';
+    public string $collection = 'menu_link_trees';
 
     /**
      * Documents to insert.

@@ -25,7 +25,7 @@ class TestFixture implements FixtureInterface
      *
      * @var string
      */
-    public string $table = '';
+    public string $collection = '';
 
     /**
      * The connection name. Must start with `test`.
@@ -73,7 +73,7 @@ class TestFixture implements FixtureInterface
             throw new CakeException(sprintf(
                 'Invalid datasource name "%s" for "%s" fixture. Fixture datasource names must begin with "test".',
                 $this->connection,
-                $this->table,
+                $this->collection,
             ));
         }
 
@@ -98,17 +98,17 @@ class TestFixture implements FixtureInterface
             return false;
         }
 
-        if (empty($this->table)) {
+        if (empty($this->collection)) {
             return false;
         }
 
         try {
             $database = $db->getDatabase();
-            $database->dropCollection($this->table);
-            $database->createCollection($this->table, $this->indexSettings);
+            $database->dropCollection($this->collection);
+            $database->createCollection($this->collection, $this->indexSettings);
 
             if ($this->schema !== []) {
-                $db->getCollection($this->table)->createIndex($this->schema);
+                $db->getCollection($this->collection)->createIndex($this->schema);
             }
 
             $this->created[] = $db->configName();
@@ -128,11 +128,11 @@ class TestFixture implements FixtureInterface
             return false;
         }
 
-        $collection = $db->getCollection($this->table);
+        $collection = $db->getCollection($this->collection);
 
         $typeMap = [];
         try {
-            $typeMap = $db->getSchemaCollection()->describe($this->table)->typeMap();
+            $typeMap = $db->getSchemaCollection()->describe($this->collection)->typeMap();
         } catch (Throwable) {
             // Schema metadata is best-effort; fall back to naming conventions.
         }
@@ -171,7 +171,7 @@ class TestFixture implements FixtureInterface
         }
 
         try {
-            $db->getDatabase()->dropCollection($this->table);
+            $db->getDatabase()->dropCollection($this->collection);
 
             return true;
         } catch (Throwable) {
@@ -189,7 +189,7 @@ class TestFixture implements FixtureInterface
         }
 
         try {
-            $db->getCollection($this->table)->deleteMany([]);
+            $db->getCollection($this->collection)->deleteMany([]);
 
             return true;
         } catch (Throwable) {
@@ -210,7 +210,7 @@ class TestFixture implements FixtureInterface
      */
     public function sourceName(): string
     {
-        return $this->table;
+        return $this->collection;
     }
 
     /**

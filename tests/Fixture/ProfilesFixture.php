@@ -22,7 +22,7 @@ class ProfilesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'profiles';
+    public string $collection = 'profiles';
 
     /**
      * Documents to insert.

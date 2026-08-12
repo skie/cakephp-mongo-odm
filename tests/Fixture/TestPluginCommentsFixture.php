@@ -22,7 +22,7 @@ class TestPluginCommentsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'test_plugin_comments';
+    public string $collection = 'test_plugin_comments';
 
     /**
      * Documents to insert.

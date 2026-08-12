@@ -22,7 +22,7 @@ class OrdersFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'orders';
+    public string $collection = 'orders';
 
     /**
      * Documents to insert.

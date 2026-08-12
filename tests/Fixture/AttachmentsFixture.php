@@ -22,7 +22,7 @@ class AttachmentsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'attachments';
+    public string $collection = 'attachments';
 
     /**
      * Documents to insert.

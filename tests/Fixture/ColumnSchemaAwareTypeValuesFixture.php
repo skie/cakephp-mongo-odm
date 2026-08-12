@@ -26,7 +26,7 @@ class ColumnSchemaAwareTypeValuesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'column_schema_aware_type_values';
+    public string $collection = 'column_schema_aware_type_values';
 
     /**
      * {@inheritDoc}

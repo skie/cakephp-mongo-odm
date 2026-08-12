@@ -22,7 +22,7 @@ class CommentsTranslationsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'comments_translations';
+    public string $collection = 'comments_translations';
 
     /**
      * Documents to insert.

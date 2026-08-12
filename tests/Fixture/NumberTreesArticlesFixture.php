@@ -22,7 +22,7 @@ class NumberTreesArticlesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'number_trees_articles';
+    public string $collection = 'number_trees_articles';
 
     /**
      * Documents to insert.

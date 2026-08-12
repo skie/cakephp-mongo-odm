@@ -22,7 +22,7 @@ class UuidItemsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'uuid_items';
+    public string $collection = 'uuid_items';
 
     /**
      * Documents to insert.

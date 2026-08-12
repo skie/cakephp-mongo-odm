@@ -22,7 +22,7 @@ class PolymorphicTaggedFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'polymorphic_tagged';
+    public string $collection = 'polymorphic_tagged';
 
     /**
      * Documents to insert.

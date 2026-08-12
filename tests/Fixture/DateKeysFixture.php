@@ -22,7 +22,7 @@ class DateKeysFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'date_keys';
+    public string $collection = 'date_keys';
 
     /**
      * Documents to insert.

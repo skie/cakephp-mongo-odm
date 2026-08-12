@@ -22,7 +22,7 @@ class SpecialTagsTranslationsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'special_tags_translations';
+    public string $collection = 'special_tags_translations';
 
     /**
      * Documents to insert.

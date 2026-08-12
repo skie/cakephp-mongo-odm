@@ -22,7 +22,7 @@ class ProductsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'products';
+    public string $collection = 'products';
 
     /**
      * Documents to insert.

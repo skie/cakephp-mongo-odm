@@ -22,7 +22,7 @@ class UniqueAuthorsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'unique_authors';
+    public string $collection = 'unique_authors';
 
     /**
      * Documents to insert.

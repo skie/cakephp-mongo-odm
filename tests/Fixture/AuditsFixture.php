@@ -27,7 +27,7 @@ class AuditsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'audits';
+    public string $collection = 'audits';
 
     /**
      * Documents to insert.

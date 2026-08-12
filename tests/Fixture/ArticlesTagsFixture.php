@@ -22,7 +22,7 @@ class ArticlesTagsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'articles_tags';
+    public string $collection = 'articles_tags';
 
     /**
      * Documents to insert.

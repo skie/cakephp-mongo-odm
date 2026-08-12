@@ -22,7 +22,7 @@ class SpecialPkFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'special_pks';
+    public string $collection = 'special_pks';
 
     /**
      * Documents to insert.

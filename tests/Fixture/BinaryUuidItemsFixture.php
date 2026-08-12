@@ -22,7 +22,7 @@ class BinaryUuidItemsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'binary_uuid_items';
+    public string $collection = 'binary_uuid_items';
 
     /**
      * Documents to insert.

@@ -22,7 +22,7 @@ class CounterCacheCommentsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'counter_cache_comments';
+    public string $collection = 'counter_cache_comments';
 
     /**
      * Documents to insert.

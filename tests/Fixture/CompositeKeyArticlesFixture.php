@@ -22,7 +22,7 @@ class CompositeKeyArticlesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'composite_key_articles';
+    public string $collection = 'composite_key_articles';
 
     /**
      * Documents to insert.

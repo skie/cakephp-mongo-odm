@@ -22,7 +22,7 @@ class ThingsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'things';
+    public string $collection = 'things';
 
     /**
      * Documents to insert.

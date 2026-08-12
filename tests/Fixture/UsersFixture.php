@@ -22,7 +22,7 @@ class UsersFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'users';
+    public string $collection = 'users';
 
     /**
      * Documents to insert.

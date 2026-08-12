@@ -22,7 +22,7 @@ class CategoriesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'categories';
+    public string $collection = 'categories';
 
     /**
      * Documents to insert.

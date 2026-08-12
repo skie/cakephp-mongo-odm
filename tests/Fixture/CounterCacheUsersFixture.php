@@ -22,7 +22,7 @@ class CounterCacheUsersFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'counter_cache_users';
+    public string $collection = 'counter_cache_users';
 
     /**
      * Documents to insert.

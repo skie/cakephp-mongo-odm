@@ -22,7 +22,7 @@ class TranslatesFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'i18n';
+    public string $collection = 'i18n';
 
     /**
      * Documents to insert.

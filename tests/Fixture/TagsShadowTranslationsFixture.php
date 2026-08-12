@@ -22,7 +22,7 @@ class TagsShadowTranslationsFixture extends TestFixture
      *
      * @var string
      */
-    public string $table = 'tags_shadow_translations';
+    public string $collection = 'tags_shadow_translations';
 
     /**
      * Documents to insert.
