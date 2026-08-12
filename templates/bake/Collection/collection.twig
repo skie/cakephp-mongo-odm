@@ -7,9 +7,13 @@
 #}
 {% set annotations = MongoDocBlock.buildTableAnnotations(associations, associationInfo, behaviors, document, namespace) %}
 {% set generatedFunctions = ['initialize'] %}
+{%- set imports = ['Crustum\\Mongo\\ODM\\RulesChecker', 'Crustum\\Mongo\\ODM\\BaseCollection', 'Cake\\Validation\\Validator'] -%}
+{%- if documentClass -%}
+    {%- set imports = imports|merge([documentClass]) -%}
+{%- endif %}
 {{ element('Bake.file_header', {
-    namespace: "#{namespace}\\Model\\Collection",
-    classImports: ['Crustum\\Mongo\\ODM\\RulesChecker', 'Crustum\\Mongo\\ODM\\BaseCollection', 'Cake\\Validation\\Validator'],
+    namespace: fileBuilder.namespace,
+    classImports: fileBuilder.classImports(imports),
 }) }}
 
 {{ DocBlock.classDescription(name, 'Model', annotations)|raw }}
@@ -35,8 +39,8 @@ class {{ name }}Collection extends BaseCollection
     {
         parent::initialize($config);
 {% if documentClass %}
-        $this->setDocumentClass({{ '\\' ~ documentClass }}::class);
-        $this->setSchemaFromDocument({{ '\\' ~ documentClass }}::class);
+        $this->setDocumentClass({{ document }}::class);
+        $this->setSchemaFromDocument({{ document }}::class);
 {% endif %}
 {% if displayField %}
         $this->setDisplayField({{ (displayField is iterable ? Bake.exportArray(displayField) : Bake.exportVar(displayField))|raw }});

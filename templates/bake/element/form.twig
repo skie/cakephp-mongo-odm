@@ -13,7 +13,7 @@
  * @license       https://www.opensource.org/licenses/mit-license.php MIT License
  */
 #}
-{% set fields = Bake.filterFields(fields, schema, modelObject) %}
+{% set fields = MongoBake.mongoFilterFields(fields, schema, modelObject) %}
 <div class="row">
     <aside class="column">
         <div class="side-nav">

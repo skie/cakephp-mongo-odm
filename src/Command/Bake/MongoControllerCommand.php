@@ -4,13 +4,12 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Command\Bake;
 
 use Bake\Command\BakeCommand;
+use Bake\Utility\TemplateRenderer;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\FactoryLocator;
-use Cake\Event\Event;
-use Cake\Event\EventManager;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use Override;
@@ -65,8 +64,6 @@ class MongoControllerCommand extends BakeCommand
     public function bake(string $controllerName, Arguments $args, ConsoleIo $io): void
     {
         $io->quiet(sprintf('Baking controller class for %s...', $controllerName));
-
-        $this->registerMongoBakeHelper();
 
         $actions = [];
         if (!$args->getOption('no-actions') && !$args->getOption('actions')) {
@@ -141,6 +138,7 @@ class MongoControllerCommand extends BakeCommand
         $contents = $this->createTemplateRenderer()
             ->set($data)
             ->generate('Crustum/Mongo.Controller/controller');
+        $contents = str_replace("\r\n", "\n", $contents);
 
         $path = $this->getPath($args);
         $filename = $path . $controllerName . 'Controller.php';
@@ -151,18 +149,18 @@ class MongoControllerCommand extends BakeCommand
     }
 
     /**
-     * Registers the MongoBake helper on the bake view.
+     * Creates the template renderer with the MongoBake helper loaded.
      *
-     * @return void
+     * @return \Bake\Utility\TemplateRenderer
      */
-    protected function registerMongoBakeHelper(): void
+    public function createTemplateRenderer(): TemplateRenderer
     {
-        EventManager::instance()->on('Bake.initialize', function (Event $event): void {
-            $view = $event->getSubject();
-            if (method_exists($view, 'loadHelper')) {
-                $view->loadHelper('Crustum/Mongo.MongoBake', ['className' => MongoBakeHelper::class]);
-            }
-        });
+        $renderer = parent::createTemplateRenderer();
+        $renderer->viewBuilder()->addHelpers([
+            'Crustum/Mongo.MongoBake' => ['className' => MongoBakeHelper::class],
+        ]);
+
+        return $renderer;
     }
 
     /**

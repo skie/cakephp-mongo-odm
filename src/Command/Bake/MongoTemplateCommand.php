@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Command\Bake;
 
 use Bake\Command\BakeCommand;
+use Bake\Utility\TemplateRenderer;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
@@ -11,8 +12,6 @@ use Cake\Core\App;
 use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\FactoryLocator;
-use Cake\Event\Event;
-use Cake\Event\EventManager;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Bake\MongoAssociationFilter;
 use Crustum\Mongo\ODM\BaseCollection;
@@ -58,7 +57,6 @@ class MongoTemplateCommand extends BakeCommand
             $this->abort();
         }
 
-        $this->registerMongoBakeHelper();
         $this->controller($args, $name, (string)$args->getOption('controller'));
         $this->model($name);
 
@@ -74,18 +72,18 @@ class MongoTemplateCommand extends BakeCommand
     }
 
     /**
-     * Registers the MongoBake helper on the bake view.
+     * Creates the template renderer with the MongoBake helper loaded.
      *
-     * @return void
+     * @return \Bake\Utility\TemplateRenderer
      */
-    protected function registerMongoBakeHelper(): void
+    public function createTemplateRenderer(): TemplateRenderer
     {
-        EventManager::instance()->on('Bake.initialize', function (Event $event): void {
-            $view = $event->getSubject();
-            if (method_exists($view, 'loadHelper')) {
-                $view->loadHelper('Crustum/Mongo.MongoBake', ['className' => MongoBakeHelper::class]);
-            }
-        });
+        $renderer = parent::createTemplateRenderer();
+        $renderer->viewBuilder()->addHelpers([
+            'Crustum/Mongo.MongoBake' => ['className' => MongoBakeHelper::class],
+        ]);
+
+        return $renderer;
     }
 
     /**
@@ -229,7 +227,7 @@ class MongoTemplateCommand extends BakeCommand
         $renderer->set('indexColumns', $indexColumns);
         $renderer->set('action', $method);
 
-        return $renderer->generate(sprintf('Crustum/Mongo.Template/%s', $method));
+        return str_replace("\r\n", "\n", $renderer->generate(sprintf('Crustum/Mongo.Template/%s', $method)));
     }
 
     /**

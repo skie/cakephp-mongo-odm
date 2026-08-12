@@ -1,28 +1,52 @@
-{# Crustum Mongo ODM — Document bake template. #}
-{%- set imports = ['Crustum\\Mongo\\ODM\\Document'] -%}
+{#
+/**
+ * Crustum Mongo ODM — Document bake template.
+ *
+ * Ported from cakephp/bake `Model/entity.twig` for MongoDB.
+ */
+#}
+{% set propertyHintMap = MongoDocBlock.buildEntityPropertyHintTypeMap(propertySchema ?: []) %}
+{% set associationHintMap = MongoDocBlock.buildEntityAssociationHintTypeMap(propertySchema ?: []) %}
+{% set annotations = MongoDocBlock.propertyHints(propertyHintMap) %}
+
+{%- if associationHintMap -%}
+    {%- set annotations = annotations|merge(['']) %}
+    {%- set annotations = annotations|merge(MongoDocBlock.propertyHints(associationHintMap)) %}
+{%- endif %}
+
+{%- set accessible = Bake.getFieldAccessibility(fieldNames, primaryKey) %}
+
+{%- set generatedProperties = [] %}
+{%- set imports = ['Crustum\\Mongo\\ODM\\Document'] %}
 {%- if fields is defined and fields|length > 0 -%}
-    {%- set imports = imports|merge(['Crustum\\Mongo\\ODM\\Attribute\\Document', 'Crustum\\Mongo\\ODM\\Attribute\\Field']) -%}
-{%- endif -%}
-{%- if useConstants is defined and useConstants -%}
-    {%- set imports = imports|merge(['Crustum\\Mongo\\Database\\Schema\\CollectionSchemaInterface']) -%}
+    {%- set imports = imports|merge({'DocumentAttribute': 'Crustum\\Mongo\\ODM\\Attribute\\Document', 'Field': 'Crustum\\Mongo\\ODM\\Attribute\\Field'}) -%}
+    {%- if useConstants -%}
+        {%- set imports = imports|merge(['Crustum\\Mongo\\Database\\Schema\\CollectionSchemaInterface']) -%}
+    {%- endif -%}
 {%- endif -%}
 {{- element('Bake.file_header', {
-    namespace: "#{namespace}\\Model\\Document",
-    classImports: imports,
+    namespace: fileBuilder.namespace,
+    classImports: fileBuilder.classImports(imports),
 }) }}
 
-{{ DocBlock.classDescription(name, 'Model', [])|raw }}
+{{ MongoDocBlock.classDescription(name, 'Document', annotations)|raw }}
 {% if fields is defined and fields|length > 0 %}
-#[Document(collection: '{{ collection is defined ? collection : name|underscore }}')]
+#[DocumentAttribute(collection: '{{ collection is defined ? collection : name|underscore }}')]
 {% for field in fields %}
 #[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
 {% endfor %}
 {% endif %}
-class {{ name }} extends Document
+class {{ name }} extends Document{{ fileBuilder.classBuilder.implements ? ' implements ' ~ fileBuilder.classBuilder.implements|join(', ') : '' }}
 {
-{% if fields is defined and fields|length > 0 %}
+{% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
+{% if userConstants %}
+    {{~ Bake.concat('\n\n', userConstants) }}
+
+{% endif %}
+{% if accessible %}
+{%~ set generatedProperties = generatedProperties|merge(['_accessible']) %}
     /**
-     * Fields that can be mass assigned using newEntity() or patchEntity().
+     * Fields that can be mass assigned using newDocument() or patchDocument().
      *
      * Note that when '*' is set to true, this allows all unspecified fields to
      * be mass assigned. For security purposes, it is advised to set '*' to false
@@ -30,23 +54,26 @@ class {{ name }} extends Document
      *
      * @var array<string, bool>
      */
-    protected array $_accessible = [
-{% for field in fields %}
-        '{{ field.name }}' => true,
-{% endfor %}
-    ];
+    protected array $_accessible = {{ Bake.exportVar(accessible, 1)|raw }};
 {% endif %}
-{% set userConstants = fileBuilder.classBuilder.userConstants([]) %}
-{% if userConstants %}
-    {{~ Bake.concat('\n\n', userConstants) }}
+{% if accessible and hidden %}
 
 {% endif %}
-{% set userProperties = fileBuilder.classBuilder.userProperties([]) %}
+{% if hidden %}
+    {%~ set generatedProperties = generatedProperties|merge(['_hidden']) %}
+    /**
+     * Fields that are excluded from JSON versions of the document.
+     *
+     * @var array<string>
+     */
+    protected array $_hidden = {{ Bake.exportVar(hidden, 1)|raw }};
+{% endif %}
+{% set userProperties = fileBuilder.classBuilder.userProperties(generatedProperties) %}
 {% if userProperties %}
-    {{~ Bake.concat('\n\n', userProperties) }}
 
+    {{~ Bake.concat('\n\n', userProperties) }}
 {% endif %}
-{% set userFunctions = fileBuilder.classBuilder.userFunctions(['jsonSerialize']) %}
+{% set userFunctions = fileBuilder.classBuilder.userFunctions([]) %}
 {% if userFunctions %}
 
     {{~ Bake.concat('\n\n', userFunctions) }}

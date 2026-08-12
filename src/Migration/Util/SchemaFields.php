@@ -54,23 +54,40 @@ class SchemaFields
      *
      * @param array<string, array<string, mixed>> $schema The dumped schema map
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool}> Field definitions keyed by field name
      */
     public static function fromSchema(array $schema, string $collection): array
     {
-        if (!isset($schema[$collection]['validator']['$jsonSchema']['properties'])) {
+        $jsonSchema = $schema[$collection]['validator']['$jsonSchema'] ?? null;
+        if (!is_array($jsonSchema) || !isset($jsonSchema['properties'])) {
             return [];
         }
 
+        $required = array_map(strval(...), (array)($jsonSchema['required'] ?? []));
+
         $fields = [];
-        $properties = $schema[$collection]['validator']['$jsonSchema']['properties'];
+        $properties = $jsonSchema['properties'];
         foreach ($properties as $name => $definition) {
             if (!is_array($definition)) {
                 continue;
             }
 
-            $bsonType = $definition['bsonType'] ?? 'string';
-            $fields[$name] = ['bsonType' => $bsonType];
+            $bsonTypes = $definition['bsonType'] ?? ['string'];
+            if (!is_array($bsonTypes)) {
+                $bsonTypes = [$bsonTypes];
+            }
+
+            $nullable = in_array('null', $bsonTypes, true) || !in_array($name, $required, true);
+            $nonNullTypes = array_values(array_filter(
+                $bsonTypes,
+                static fn(mixed $type): bool => is_string($type) && $type !== 'null',
+            ));
+            $primary = $nonNullTypes[0] ?? 'string';
+
+            $fields[$name] = [
+                'bsonType' => $primary,
+                'nullable' => $nullable,
+            ];
         }
 
         return $fields;

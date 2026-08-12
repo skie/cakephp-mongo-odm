@@ -11,8 +11,10 @@ declare(strict_types=1);
 namespace Crustum\Mongo\View\Helper;
 
 use Bake\View\Helper\BakeHelper;
+use Cake\Datasource\SchemaInterface;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\ODM\BaseCollection;
+use function Cake\Collection\collection;
 
 /**
  * Mongo-aware bake helper.
@@ -67,6 +69,44 @@ class MongoBakeHelper extends BakeHelper
             fn($association): string => $association->getTarget()->getAlias(),
             $collection->associations()->getByType($type),
         );
+    }
+
+    /**
+     * Filters field list, removing fields of the given column types.
+     *
+     * Mongo-aware counterpart of `BakeHelper::filterFields()` that accepts a
+     * `BaseCollection` instead of a `Cake\ORM\Table`.
+     *
+     * @param array<int, string> $fields Fields list.
+     * @param \Cake\Datasource\SchemaInterface $schema Schema instance.
+     * @param \Crustum\Mongo\ODM\BaseCollection|null $modelObject Model object.
+     * @param string|int $takeFields Take fields.
+     * @param array<string> $filterTypes Filter field types.
+     * @return array<int, string>
+     */
+    public function mongoFilterFields(
+        array $fields,
+        SchemaInterface $schema,
+        ?BaseCollection $modelObject = null,
+        string|int $takeFields = 0,
+        array $filterTypes = ['binary'],
+    ): array {
+        $fields = collection($fields)
+            ->filter(function ($field) use ($schema, $filterTypes): bool {
+                return !in_array($schema->getColumnType($field), $filterTypes, true);
+            });
+
+        if (isset($modelObject) && $modelObject->hasBehavior('Tree')) {
+            $fields = $fields->reject(function ($field): bool {
+                return $field === 'lft' || $field === 'rght';
+            });
+        }
+
+        if (!empty($takeFields)) {
+            $fields = $fields->take((int)$takeFields);
+        }
+
+        return $fields->toArray();
     }
 
     /**

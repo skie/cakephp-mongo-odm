@@ -19,10 +19,52 @@ use Cake\Utility\Inflector;
  *
  * Mirrors `Bake\View\Helper\DocBlockHelper` but generates `@method` hints for
  * the Mongo ODM Document API (`newEmptyDocument`, `patchDocument`, …) instead
- * of the SQL Entity API.
+ * of the SQL Entity API, and maps Mongo field types to PHP DocBlock types.
  */
 class MongoDocBlockHelper extends DocBlockHelper
 {
+    /**
+     * Converts a Mongo canonical type to its DocBlock type counterpart.
+     *
+     * @param string $type The field type.
+     * @return string The DocBlock type.
+     */
+    public function columnTypeToHintType(string $type): ?string
+    {
+        return match ($type) {
+            'objectid', 'id' => '\MongoDB\BSON\ObjectId',
+            'string', 'binary', 'uuid' => 'string',
+            'integer', 'int', 'int64', 'float' => 'int|float',
+            'decimal128' => 'string',
+            'boolean', 'bool' => 'bool',
+            'date', 'datetime', 'timestamp' => '\Cake\I18n\DateTime',
+            'array', 'collection' => 'array',
+            'hash', 'object' => 'array',
+            'raw' => 'mixed',
+            default => 'string',
+        };
+    }
+
+    /**
+     * Builds a map of Document associations as DocBlock types.
+     *
+     * @param array<string, array<string, mixed>> $propertySchema The property schema.
+     * @return array<string, string> The property DocType map.
+     */
+    public function buildEntityAssociationHintTypeMap(array $propertySchema): array
+    {
+        $properties = [];
+        foreach ($propertySchema as $property => $info) {
+            if ($info['kind'] !== 'association') {
+                continue;
+            }
+
+            $properties[$property] = '\\' . ltrim((string)$info['type'], '\\') . '|null';
+        }
+
+        return $properties;
+    }
+
     /**
      * Builds table annotations for a Collection.
      *

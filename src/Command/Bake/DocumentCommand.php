@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Command\Bake;
 
+use Bake\CodeGen\FileBuilder;
 use Bake\Command\BakeCommand;
+use Bake\Utility\TemplateRenderer;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
@@ -12,6 +14,8 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Migration\Util\SchemaFields;
+use Crustum\Mongo\View\Helper\MongoBakeHelper;
+use Crustum\Mongo\View\Helper\MongoDocBlockHelper;
 use Override;
 use RuntimeException;
 
@@ -47,7 +51,7 @@ class DocumentCommand extends BakeCommand
         }
 
         $name = $this->_getName($name);
-        $name = Inflector::camelize($name);
+        $name = Inflector::camelize(Inflector::singularize($name));
         $this->bake($name, $args, $io);
 
         return static::CODE_SUCCESS;
@@ -72,25 +76,44 @@ class DocumentCommand extends BakeCommand
             $namespace = $this->_pluginNamespace($this->plugin);
         }
 
-        $fields = $this->schemaFields($name, $args, $io);
         $collection = $args->getOption('collection');
         if (!is_string($collection) || $collection === '') {
             $collection = Inflector::tableize($name);
         }
 
+        $fields = $this->schemaFields($name, $args, $io);
+        $propertySchema = $this->propertySchema($fields);
+        $primaryKey = ['_id'];
+        $hidden = $this->hiddenFields($fields);
+        $fieldNames = array_column($fields, 'name');
         $useConstants = array_any(
             $fields,
             fn(array $field): bool => $field['constant'] !== null,
         );
 
+        $parsedFile = null;
+        if ($args->getOption('update')) {
+            $parsedFile = $this->parseFile($filename);
+        }
+
+        $data = [
+            'name' => $name,
+            'namespace' => $namespace,
+            'plugin' => $this->plugin,
+            'fields' => $fields,
+            'fieldNames' => $fieldNames,
+            'propertySchema' => $propertySchema,
+            'primaryKey' => $primaryKey,
+            'hidden' => $hidden,
+            'collection' => $collection,
+            'useConstants' => $useConstants,
+            'fileBuilder' => new FileBuilder($io, "{$namespace}\Model\Document", $parsedFile),
+        ];
+
         $contents = $this->createTemplateRenderer()
-            ->set('name', $name)
-            ->set('namespace', $namespace)
-            ->set('plugin', $this->plugin)
-            ->set('fields', $fields)
-            ->set('collection', $collection)
-            ->set('useConstants', $useConstants)
+            ->set($data)
             ->generate('Crustum/Mongo.Document/document');
+        $contents = str_replace("\r\n", "\n", $contents);
 
         $io->createFile($filename, $contents, $this->force);
 
@@ -142,12 +165,59 @@ class DocumentCommand extends BakeCommand
                 'name' => $fieldName,
                 'type' => $type,
                 'constant' => SchemaFields::typeConstant($type),
-                'nullable' => false,
+                'nullable' => (bool)($definition['nullable'] ?? false),
                 'primaryKey' => $fieldName === '_id',
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Builds the property schema map for the document template.
+     *
+     * @param list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool}> $fields Schema fields.
+     * @return array<string, array{kind: string, type: string, null: bool}>
+     */
+    protected function propertySchema(array $fields): array
+    {
+        $schema = [];
+        foreach ($fields as $field) {
+            $schema[$field['name']] = [
+                'kind' => 'column',
+                'type' => $field['type'],
+                'null' => $field['nullable'],
+            ];
+        }
+
+        return $schema;
+    }
+
+    /**
+     * Resolves the default hidden fields for the document.
+     *
+     * @param list<array{name: string, type: string, constant: string|null, nullable: bool, primaryKey: bool}> $fields Schema fields.
+     * @return list<string>
+     */
+    protected function hiddenFields(array $fields): array
+    {
+        return ['password', 'token'];
+    }
+
+    /**
+     * Creates the template renderer with Mongo bake helpers loaded.
+     *
+     * @return \Bake\Utility\TemplateRenderer
+     */
+    public function createTemplateRenderer(): TemplateRenderer
+    {
+        $renderer = parent::createTemplateRenderer();
+        $renderer->viewBuilder()->addHelpers([
+            'Crustum/Mongo.MongoBake' => ['className' => MongoBakeHelper::class],
+            'Crustum/Mongo.MongoDocBlock' => ['className' => MongoDocBlockHelper::class],
+        ]);
+
+        return $renderer;
     }
 
     /**
@@ -164,6 +234,9 @@ class DocumentCommand extends BakeCommand
                 'help' => 'The Mongo collection name (defaults to the tableized class name).',
             ])->addOption('schema-file', [
                 'help' => 'The schema dump lock file to read fields from (defaults to live connection).',
+            ])->addOption('update', [
+                'boolean' => true,
+                'help' => "Update generated methods in existing files. If the file doesn't exist it will be created.",
             ]);
 
         return $parser;

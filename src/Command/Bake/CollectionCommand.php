@@ -94,6 +94,7 @@ class CollectionCommand extends BakeCommand
         $contents = $this->createTemplateRenderer()
             ->set($data)
             ->generate('Crustum/Mongo.Collection/collection');
+        $contents = str_replace("\r\n", "\n", $contents);
 
         $io->createFile($filename, $contents, $this->force);
 
