@@ -7,6 +7,7 @@ use Cake\Core\Exception\CakeException;
 use Cake\Datasource\ConnectionInterface;
 use Cake\Datasource\FixtureInterface;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Type\TypeFactory;
 use MongoDB\BSON\ObjectId;
 use Throwable;
 
@@ -143,15 +144,22 @@ class TestFixture implements FixtureInterface, MongoFixtureInterface
                 unset($record['id']);
             }
 
+            $driver = $db->getDriver();
             foreach ($record as $field => $value) {
-                if (!is_string($value) || !preg_match('/^[0-9a-f]{24}$/', $value)) {
+                if (!is_string($value)) {
                     continue;
                 }
 
-                $isObjectId = $field === '_id'
-                    || ($typeMap[$field] ?? null) === 'objectid';
-                if ($isObjectId) {
+                $type = $typeMap[$field] ?? null;
+
+                if ($field === '_id' && $type === null && preg_match('/^[0-9a-f]{24}$/', $value)) {
                     $record[$field] = new ObjectId($value);
+
+                    continue;
+                }
+
+                if ($type !== null) {
+                    $record[$field] = TypeFactory::build($type)->toDatabase($value, $driver);
                 }
             }
 
