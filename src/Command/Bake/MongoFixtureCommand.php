@@ -12,6 +12,7 @@ use Cake\Datasource\FactoryLocator;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\BaseCollection;
 use Override;
+use Throwable;
 
 /**
  * Command for generating Mongo test fixtures.
@@ -82,7 +83,7 @@ class MongoFixtureCommand extends BakeCommand
             if ($collection instanceof BaseCollection) {
                 $fields = $collection->getSchema()->columns();
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // no collection configured; fixture stays schema-less
         }
 

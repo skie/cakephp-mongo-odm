@@ -69,11 +69,13 @@ class CachedSchemaCollection implements SchemaCollectionInterface
      */
     public function clearCache(?string $name = null): void
     {
-        if ($name === null) {
+        if ($name !== null) {
+            $this->cacher->delete($this->cacheKey($name));
+
             return;
         }
 
-        $this->cacher->delete($this->cacheKey($name));
+        $this->cacher->clear();
     }
 
     /**

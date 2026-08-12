@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Ported and adapted from cakephp/bake ControllerCommand (MIT License).
+ *
+ * @copyright Copyright (c) Cake Software Foundation, Inc.
+ * @license https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+
 namespace Crustum\Mongo\Command\Bake;
 
 use Bake\Command\BakeCommand;
@@ -9,8 +16,10 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use Cake\Core\Plugin;
+use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\FactoryLocator;
-use Cake\Utility\Inflector;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\View\Helper\MongoBakeHelper;
 use Override;
 
@@ -18,11 +27,12 @@ use Override;
  * Command for generating Mongo CRUD controllers.
  *
  * Uses the CollectionLocator and generates controllers built on
- * newDocument()/patchDocument()/getId().
+ * newDocument()/patchDocument().
  *
  * Usage:
  * ```
  * bin/cake bake mongocontroller Articles
+ * bin/cake bake mongocontroller Articles --no-test
  * ```
  */
 class MongoControllerCommand extends BakeCommand
@@ -35,30 +45,42 @@ class MongoControllerCommand extends BakeCommand
     public string $pathFragment = 'Controller/';
 
     /**
+     * Collections to skip when listing.
+     *
+     * @var array<string>
+     */
+    public array $skipCollections = ['_migrations', '_seeds', 'system'];
+
+    /**
      * @inheritDoc
      */
     public function execute(Arguments $args, ConsoleIo $io): ?int
     {
         $this->extractCommonProperties($args);
-        $controllerName = $args->getArgumentAt(0);
-        if (empty($controllerName)) {
-            $io->error('You must provide a name to bake a Controller.');
-            $this->abort();
+        $name = $args->getArgument('name') ?? '';
+        $name = $this->_getName($name);
+
+        if (empty($name)) {
+            $io->out('Possible controllers based on your current database:');
+            foreach ($this->listCollections() as $collection) {
+                $io->out('- ' . $this->_camelize($collection));
+            }
+
+            return static::CODE_SUCCESS;
         }
 
-        $controllerName = $this->_getName($controllerName);
-        $controllerName = Inflector::camelize($controllerName);
-        $this->bake($controllerName, $args, $io);
+        $controller = $this->_camelize($name);
+        $this->bake($controller, $args, $io);
 
         return static::CODE_SUCCESS;
     }
 
     /**
-     * Assembles controller data and writes the file.
+     * Assembles and writes a Controller file.
      *
-     * @param string $controllerName Controller class name.
-     * @param \Cake\Console\Arguments $args CLI arguments.
-     * @param \Cake\Console\ConsoleIo $io Console io.
+     * @param string $controllerName Controller name already pluralized and correctly cased.
+     * @param \Cake\Console\Arguments $args The console arguments.
+     * @param \Cake\Console\ConsoleIo $io The console io.
      * @return void
      */
     public function bake(string $controllerName, Arguments $args, ConsoleIo $io): void
@@ -73,9 +95,12 @@ class MongoControllerCommand extends BakeCommand
             $actions = array_map('trim', explode(',', (string)$args->getOption('actions')));
             $actions = array_filter($actions);
         }
+        if (!$args->getOption('actions') && Plugin::isLoaded('Authentication') && $controllerName === 'Users') {
+            $actions[] = 'login';
+        }
 
-        $helpers = [];
-        $components = [];
+        $helpers = $this->getHelpers($args);
+        $components = $this->getComponents($args);
 
         $prefix = $this->getPrefix($args);
         if ($prefix) {
@@ -87,6 +112,8 @@ class MongoControllerCommand extends BakeCommand
         if ($this->plugin) {
             $namespace = $this->_pluginNamespace($this->plugin);
         }
+        // If the plugin has an AppController other plugin controllers
+        // should inherit from it.
         if ($this->plugin && class_exists("{$namespace}\Controller\AppController")) {
             $baseNamespace = $namespace;
         }
@@ -106,6 +133,8 @@ class MongoControllerCommand extends BakeCommand
         $singularHumanName = $this->_singularHumanName($controllerName);
         $pluralHumanName = $this->_variableName($controllerName);
 
+        // Handle cases where singular and plural are identical to avoid
+        // variable collisions in generated controller code.
         if ($singularName === $pluralName) {
             $singularName .= 'Document';
         }
@@ -135,6 +164,32 @@ class MongoControllerCommand extends BakeCommand
         );
         $data['name'] = $controllerName;
 
+        $this->bakeController($controllerName, $data, $args, $io);
+        $this->bakeTest($controllerName, $args, $io);
+    }
+
+    /**
+     * Generate the controller code.
+     *
+     * @param string $controllerName The name of the controller.
+     * @param array<string, mixed> $data The data to turn into code.
+     * @param \Cake\Console\Arguments $args The console args.
+     * @param \Cake\Console\ConsoleIo $io The console io.
+     * @return void
+     */
+    public function bakeController(string $controllerName, array $data, Arguments $args, ConsoleIo $io): void
+    {
+        $data += [
+            'name' => null,
+            'namespace' => null,
+            'prefix' => null,
+            'actions' => null,
+            'helpers' => null,
+            'components' => null,
+            'plugin' => null,
+            'pluginPath' => null,
+        ];
+
         $contents = $this->createTemplateRenderer()
             ->set($data)
             ->generate('Crustum/Mongo.Controller/controller');
@@ -146,6 +201,100 @@ class MongoControllerCommand extends BakeCommand
 
         $emptyFile = $path . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Assembles and writes a unit test file.
+     *
+     * @param string $className Controller class name.
+     * @param \Cake\Console\Arguments $args The console arguments.
+     * @param \Cake\Console\ConsoleIo $io The console io.
+     * @return void
+     */
+    public function bakeTest(string $className, Arguments $args, ConsoleIo $io): void
+    {
+        if ($args->getOption('no-test')) {
+            return;
+        }
+
+        $test = new MongoTestCommand();
+        $testArgs = new Arguments(
+            ['controller', $className],
+            $args->getOptions(),
+            ['type', 'name'],
+        );
+        $test->execute($testArgs, $io);
+    }
+
+    /**
+     * Get the list of components for the controller.
+     *
+     * @param \Cake\Console\Arguments $args The console arguments.
+     * @return array<string>
+     */
+    public function getComponents(Arguments $args): array
+    {
+        $components = [];
+        if ($args->getOption('components')) {
+            $components = explode(',', (string)$args->getOption('components'));
+            $components = array_values(array_filter(array_map('trim', $components)));
+        } elseif (Plugin::isLoaded('Authorization')) {
+            $components[] = 'Authorization.Authorization';
+        }
+
+        return $components;
+    }
+
+    /**
+     * Get the list of helpers for the controller.
+     *
+     * @param \Cake\Console\Arguments $args The console arguments.
+     * @return array<string>
+     */
+    public function getHelpers(Arguments $args): array
+    {
+        $helpers = [];
+        if ($args->getOption('helpers')) {
+            $helpers = explode(',', (string)$args->getOption('helpers'));
+            $helpers = array_values(array_filter(array_map('trim', $helpers)));
+        }
+
+        return $helpers;
+    }
+
+    /**
+     * Returns the list of collections to bake controllers for.
+     *
+     * @return array<string>
+     */
+    protected function listCollections(): array
+    {
+        $connection = ConnectionManager::get($this->connection);
+        if (!$connection instanceof Connection) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $connection->getSchemaCollection()->listCollections(),
+            fn(string $name): bool => !$this->isSkippedCollection($name),
+        ));
+    }
+
+    /**
+     * Whether a collection name should be skipped when listing.
+     *
+     * @param string $name Collection name.
+     * @return bool
+     */
+    protected function isSkippedCollection(string $name): bool
+    {
+        foreach ($this->skipCollections as $prefix) {
+            if (str_starts_with($name, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -169,20 +318,32 @@ class MongoControllerCommand extends BakeCommand
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
-        $parser->setDescription(static::getDescription())
-            ->addArgument('name', [
-                'help' => 'Name of the controller class to bake (e.g., Articles).',
-                'required' => true,
-            ])
-            ->addOption('actions', [
-                'short' => 'a',
-                'help' => 'Comma separated list of actions to generate. (e.g. index,view)',
-                'default' => '',
-            ])
-            ->addOption('no-actions', [
-                'boolean' => true,
-                'help' => 'Do not generate actions.',
-            ]);
+        $parser->addOption('connection', [
+            'default' => 'mongo',
+            'help' => 'The datasource connection to get data from.',
+        ]);
+
+        $parser->setDescription(
+            'Bake a Mongo controller skeleton.',
+        )->addArgument('name', [
+            'help' => 'Name of the controller to bake (without the `Controller` suffix). ' .
+                'You can use Plugin.name to bake controllers into plugins.',
+        ])->addOption('components', [
+            'help' => 'The comma separated list of components to use.',
+        ])->addOption('helpers', [
+            'help' => 'The comma separated list of helpers to use.',
+        ])->addOption('prefix', [
+            'help' => 'The namespace/routing prefix to use.',
+        ])->addOption('actions', [
+            'help' => 'The comma separated list of actions to generate. ' .
+                'You can include custom methods provided by your template set here.',
+        ])->addOption('no-test', [
+            'boolean' => true,
+            'help' => 'Do not generate a test skeleton.',
+        ])->addOption('no-actions', [
+            'boolean' => true,
+            'help' => 'Do not generate basic CRUD action methods.',
+        ]);
 
         return $parser;
     }
