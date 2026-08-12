@@ -343,6 +343,7 @@ class MongoModelCommand extends BakeCommand
 
             $associations['belongsTo'][] = [
                 'alias' => $alias,
+                'className' => $this->_camelize($targetCollection),
                 'foreignKey' => $fieldName,
             ];
         }
@@ -773,7 +774,7 @@ class MongoModelCommand extends BakeCommand
         if ($fieldName === 'email') {
             $rules['email'] = [];
         } elseif ($type === 'objectid') {
-            $rules['validId'] = [];
+            $rules['validId'] = ['rule' => 'validId', 'provider' => 'mongo'];
         } elseif ($type === 'integer' || $type === 'int64') {
             $rules['integer'] = [];
         } elseif ($type === 'float' || $type === 'decimal128') {

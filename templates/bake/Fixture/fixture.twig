@@ -35,10 +35,27 @@ class {{ name }}Fixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-{% if hasRecords %}
-{% for record in records %}
-        {{ Bake.exportVar(record, 2)|raw }},
-{% endfor %}
-{% endif %}
+{% if not hasRecords %}
     ];
+{% endif %}
+{% if hasRecords %}
+    ];
+
+    /**
+     * Configures the fixture.
+     *
+     * Sample records may contain BSON value objects, so they are built in
+     * `init()` rather than as a property default.
+     *
+     * @return void
+     */
+    public function init(): void
+    {
+        $this->records = [
+{% for record in records %}
+            {{ Bake.exportVar(record, 2)|raw }},
+{% endfor %}
+        ];
+    }
+{% endif %}
 }

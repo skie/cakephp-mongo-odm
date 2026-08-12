@@ -7,7 +7,18 @@
 #}
 {% set annotations = MongoDocBlock.buildTableAnnotations(associations, associationInfo, behaviors, document, namespace) %}
 {% set generatedFunctions = ['initialize'] %}
+{%~ set usesMongoProvider = false %}
+{%~ for field, rules in validation|default([]) %}
+    {%~ for ruleName, rule in rules %}
+        {%~ if rule.provider is defined and rule.provider == 'mongo' %}
+            {%~ set usesMongoProvider = true %}
+        {%~ endif %}
+    {%~ endfor %}
+{%~ endfor %}
 {%- set imports = ['Crustum\\Mongo\\ODM\\RulesChecker', 'Crustum\\Mongo\\ODM\\BaseCollection', 'Cake\\Validation\\Validator'] -%}
+{%- if usesMongoProvider -%}
+    {%- set imports = imports|merge(['Crustum\\Mongo\\Validation\\MongoValidation']) -%}
+{%- endif %}
 {%- if documentClass -%}
     {%- set imports = imports|merge([documentClass]) -%}
 {%- endif %}
@@ -84,6 +95,9 @@ class {{ name }}Collection extends BaseCollection
      */
     public function validationDefault(Validator $validator): Validator
     {
+{% if usesMongoProvider %}
+        $validator->setProvider('mongo', MongoValidation::class);
+{% endif %}
     {%~ for field, rules in validation %}
         {%~ set validationMethods = Bake.getValidationMethods(field, rules) %}
         {%~ if validationMethods %}

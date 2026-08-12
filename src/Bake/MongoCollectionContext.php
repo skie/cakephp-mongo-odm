@@ -195,7 +195,7 @@ class MongoCollectionContext
         if ($fieldName === 'email') {
             $rules['email'] = ['rule' => 'email', 'args' => []];
         } elseif ($type === 'objectid' || $fieldName === '_id' || str_ends_with($fieldName, '_id')) {
-            $rules['validId'] = ['rule' => 'validId', 'args' => []];
+            $rules['validId'] = ['rule' => 'validId', 'provider' => 'mongo', 'args' => []];
         } elseif ($type === 'integer' || $type === 'int64') {
             $rules['integer'] = ['rule' => 'integer', 'args' => []];
         } elseif ($type === 'float' || $type === 'decimal128') {
@@ -212,12 +212,12 @@ class MongoCollectionContext
         }
 
         if ($nullable) {
-            $rules['allowEmpty'] = ['rule' => 'allowEmpty', 'args' => []];
+            $rules['allowEmpty'] = ['rule' => $this->getEmptyMethod($fieldName, $type), 'args' => []];
         } else {
             if (($field['default'] ?? null) === null && !$isForeignKey) {
                 $rules['requirePresence'] = ['rule' => 'requirePresence', 'args' => ['create']];
             }
-            $rules['notEmpty'] = ['rule' => 'notEmpty', 'args' => []];
+            $rules['notEmpty'] = ['rule' => $this->getEmptyMethod($fieldName, $type, 'not'), 'args' => []];
         }
 
         // Unique indexes → validateUnique rule.
@@ -232,6 +232,35 @@ class MongoCollectionContext
         }
 
         return $rules;
+    }
+
+    /**
+     * Get the specific allow-empty method name for a field based on its type.
+     *
+     * @param string $fieldName Field name.
+     * @param string|null $type Canonical Mongo type.
+     * @param string $prefix Method name prefix (`allow` or `not`).
+     * @return string
+     */
+    protected function getEmptyMethod(string $fieldName, ?string $type, string $prefix = 'allow'): string
+    {
+        switch ($type) {
+            case 'date':
+                return $prefix . 'EmptyDate';
+
+            case 'datetime':
+            case 'timestamp':
+                return $prefix . 'EmptyDateTime';
+
+            case 'time':
+                return $prefix . 'EmptyTime';
+        }
+
+        if (preg_match('/(^|\s|_|-)(attachment|file|image)$/i', $fieldName)) {
+            return $prefix . 'EmptyFile';
+        }
+
+        return $prefix . 'EmptyString';
     }
 
     /**

@@ -473,7 +473,7 @@ class MongoTestCommand extends BakeCommand
      */
     protected function processModel(BaseCollection $subject): void
     {
-        $this->addFixture($subject->getAlias());
+        $this->addFixture($subject->getAlias(), $subject->getCollection());
         foreach ($subject->associations()->keys() as $alias) {
             $assoc = $subject->getAssociation($alias);
             if ($assoc === null) {
@@ -482,7 +482,7 @@ class MongoTestCommand extends BakeCommand
             $target = $assoc->getTarget();
             $name = $target->getAlias();
             if (!isset($this->_fixtures[$name])) {
-                $this->addFixture($target->getAlias());
+                $this->addFixture($target->getAlias(), $target->getCollection());
             }
         }
     }
@@ -516,13 +516,18 @@ class MongoTestCommand extends BakeCommand
     /**
      * Add class name to the fixture list.
      *
-     * @param string $name Name of the model class.
+     * The fixture name is derived from the collection name (plural), matching
+     * `bake mongofixture` output, and WITHOUT the `Fixture` suffix — Cake's
+     * fixture loader appends it (`app.Articles` → `App\Test\Fixture\ArticlesFixture`).
+     *
+     * @param string $name Alias used as the dedup key.
+     * @param string $collectionName The collection name.
      * @return void
      */
-    protected function addFixture(string $name): void
+    protected function addFixture(string $name, string $collectionName): void
     {
         $prefix = $this->plugin ? 'plugin.' . $this->plugin . '.' : 'app.';
-        $fixture = $prefix . $this->fixtureName($name);
+        $fixture = $prefix . Inflector::camelize(Inflector::underscore($collectionName));
         $this->_fixtures[$name] = $fixture;
     }
 
@@ -541,17 +546,6 @@ class MongoTestCommand extends BakeCommand
         }
 
         return [null, $name];
-    }
-
-    /**
-     * Converts an alias into a fixture class name.
-     *
-     * @param string $name Alias.
-     * @return string
-     */
-    protected function fixtureName(string $name): string
-    {
-        return Inflector::camelize(Inflector::underscore($name)) . 'Fixture';
     }
 
     /**
