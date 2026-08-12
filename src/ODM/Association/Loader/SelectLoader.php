@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM\Association\Loader;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
+use Traversable;
 
 /**
  * Loads referenced documents with one batched query.
@@ -86,7 +87,12 @@ class SelectLoader implements LoaderInterface
             }
 
             $conditions = is_array($conditions) ? $conditions : [];
-            $conditions[$targetKey . ' IN'] = array_values($keys);
+            // A disabled foreign key (`setForeignKey(false)`) matches only by
+            // the association conditions; there is no key to filter on.
+            if ($targetKey !== '') {
+                $conditions[$targetKey . ' IN'] = array_values($keys);
+            }
+
             $query->where($conditions);
             if (!empty($options['fields'])) {
                 $fields = $options['fields'];
@@ -124,16 +130,24 @@ class SelectLoader implements LoaderInterface
 
             $rows = $query->all();
             $map = [];
-            foreach ($rows as $row) {
-                $value = $row instanceof EntityInterface ? $row->get($targetKey) : ($row[$targetKey] ?? null);
-                if ($value === null) {
-                    continue;
-                }
+            $disabledKey = $targetKey === '';
+            if ($disabledKey) {
+                // Foreign key disabled (`setForeignKey(false)`): association is
+                // matched purely by its conditions, so every loaded row applies
+                // to every source entity.
+                $map['*'] = $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
+            } else {
+                foreach ($rows as $row) {
+                    $value = $row instanceof EntityInterface ? $row->get($targetKey) : ($row[$targetKey] ?? null);
+                    if ($value === null) {
+                        continue;
+                    }
 
-                if ($many) {
-                    $map[(string)$value][] = $row;
-                } else {
-                    $map[(string)$value] = $row;
+                    if ($many) {
+                        $map[(string)$value][] = $row;
+                    } else {
+                        $map[(string)$value] = $row;
+                    }
                 }
             }
 
@@ -141,11 +155,15 @@ class SelectLoader implements LoaderInterface
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
             foreach ($sourceEntities as $sourceEntity) {
-                $value = $sourceEntity instanceof EntityInterface
-                    ? $sourceEntity->get($sourceKey)
-                    : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
-                $key = $value === null ? '' : (string)$value;
-                $loaded = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+                if ($disabledKey) {
+                    $loaded = $many ? $map['*'] : ($map['*'][0] ?? null);
+                } else {
+                    $value = $sourceEntity instanceof EntityInterface
+                        ? $sourceEntity->get($sourceKey)
+                        : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
+                    $key = $value === null ? '' : (string)$value;
+                    $loaded = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+                }
 
                 if ($sourceEntity instanceof EntityInterface) {
                     $sourceEntity->set($property, $loaded);

@@ -87,7 +87,6 @@ class HasOneTest extends TestCase
         $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('larry', $user->profile->first_name);
     }
-
     /**
      * Tests that the association reports it can be joined
      */

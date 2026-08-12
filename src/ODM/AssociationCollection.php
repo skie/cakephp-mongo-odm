@@ -232,7 +232,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
      * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
-     * @param array<string, mixed> $associations The list of associations to save parents from.
+     * @param array<int|string, mixed> $associations The list of associations to save parents from.
      *   associations not in this list will not be saved.
      * @param array<string, mixed> $options The options for the save operation.
      * @return bool Success
@@ -254,7 +254,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
      * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
-     * @param array<string, mixed> $associations The list of associations to save children from.
+     * @param array<int|string, mixed> $associations The list of associations to save children from.
      *   associations not in this list will not be saved.
      * @param array<string, mixed> $options The options for the save operation.
      * @return bool Success
@@ -273,7 +273,7 @@ class AssociationCollection implements Countable, IteratorAggregate
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $table The collection the save is currently operating on
      * @param \Cake\Datasource\EntityInterface $entity The entity to save
-     * @param array<string, mixed> $associations Array of associations to save.
+     * @param array<int|string, mixed> $associations Array of associations to save.
      * @param array<string, mixed> $options Original options
      * @param bool $owningSide Compared with association classes'
      *   isOwningSide method.
@@ -289,6 +289,11 @@ class AssociationCollection implements Countable, IteratorAggregate
     ): bool {
         unset($options['associated']);
         foreach ($associations as $alias => $nested) {
+            if (is_int($alias)) {
+                $alias = $nested;
+                $nested = [];
+            }
+
             $relation = $this->get($alias);
             if (!$relation instanceof Association) {
                 $msg = sprintf(
