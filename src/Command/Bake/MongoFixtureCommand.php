@@ -10,7 +10,11 @@ use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\FactoryLocator;
 use Cake\Utility\Inflector;
+use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\ODM\BaseCollection;
+use MongoDB\BSON\Binary;
+use MongoDB\BSON\ObjectId;
+use MongoDB\BSON\UTCDateTime;
 use Override;
 use Throwable;
 
@@ -77,11 +81,14 @@ class MongoFixtureCommand extends BakeCommand
 
         // Try to read schema fields from the matching collection.
         $fields = [];
+        $records = [];
         try {
             $locator = FactoryLocator::get('Collection');
             $collection = $locator->get($name);
             if ($collection instanceof BaseCollection) {
-                $fields = $collection->getSchema()->columns();
+                $schema = $collection->describeSchema();
+                $fields = $schema->columns();
+                $records = $this->sampleRecords($schema);
             }
         } catch (Throwable) {
             // no collection configured; fixture stays schema-less
@@ -93,12 +100,59 @@ class MongoFixtureCommand extends BakeCommand
             ->set('plugin', $this->plugin)
             ->set('table', $table)
             ->set('fields', $fields)
+            ->set('records', $records)
+            ->set('hasRecords', $records !== [])
             ->generate('Crustum/Mongo.Fixture/fixture');
+        $contents = str_replace("\r\n", "\n", $contents);
 
         $io->createFile($filename, $contents, $this->force);
 
         $emptyFile = $path . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Builds sample documents from the collection schema.
+     *
+     * Produces one sample document per field type so tests have realistic
+     * fixture data without touching the database.
+     *
+     * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema The schema.
+     * @return list<array<string, mixed>>
+     */
+    protected function sampleRecords(CollectionSchema $schema): array
+    {
+        $record = [];
+        foreach ($schema->columns() as $field) {
+            if ($field === '_id') {
+                continue;
+            }
+
+            $record[$field] = $this->sampleValue($schema->getFieldType($field) ?? 'string');
+        }
+
+        return $record === [] ? [] : [$record];
+    }
+
+    /**
+     * Produces a representative sample value for a field type.
+     *
+     * @param string $type Canonical Mongo type name.
+     * @return mixed
+     */
+    protected function sampleValue(string $type): mixed
+    {
+        return match ($type) {
+            'objectid' => new ObjectId(),
+            'integer', 'int64' => 1,
+            'float', 'decimal128' => 1.5,
+            'boolean' => true,
+            'date', 'datetime', 'timestamp' => new UTCDateTime(),
+            'array', 'collection' => [],
+            'hash' => [],
+            'binary' => new Binary('data'),
+            default => 'Sample data',
+        };
     }
 
     /**
@@ -120,6 +174,11 @@ class MongoFixtureCommand extends BakeCommand
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
+        $parser->addOption('connection', [
+            'default' => 'mongo',
+            'help' => 'The datasource connection to get data from.',
+        ]);
+
         $parser->setDescription(static::getDescription())
             ->addArgument('name', [
                 'help' => 'Name of the fixture to bake (e.g., Articles). "Fixture" suffix is added automatically.',

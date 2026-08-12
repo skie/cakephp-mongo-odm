@@ -35,5 +35,10 @@ class {{ name }}Fixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
+{% if hasRecords %}
+{% for record in records %}
+        {{ Bake.exportVar(record, 2)|raw }},
+{% endfor %}
+{% endif %}
     ];
 }
