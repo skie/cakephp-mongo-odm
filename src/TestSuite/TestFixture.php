@@ -18,7 +18,7 @@ use Throwable;
  *
  * @see cake50/src/TestSuite/Fixture/TestFixture.php
  */
-class TestFixture implements FixtureInterface
+class TestFixture implements FixtureInterface, MongoFixtureInterface
 {
     /**
      * The collection name.
