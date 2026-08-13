@@ -1,0 +1,64 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\TestCase\ODM\Association;
+
+use Crustum\Mongo\ODM\Document;
+use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Document\Address;
+
+/**
+ * Tests the P1 embedded-association hydration for `embedOne`: `contain('profile')`
+ * hydrates a single Document (or null), zero extra queries.
+ */
+class EmbedOneTest extends TestCase
+{
+    /**
+     * Mongo fixtures.
+     *
+     * @var array<string>
+     */
+    protected array $fixtures = [
+        'plugin.Crustum/Mongo.UsersEmbedded',
+    ];
+
+    /**
+     * Tests that contain('profile') hydrates the single embedded doc.
+     *
+     * @return void
+     */
+    public function testContainHydratesSingleEmbedded(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $user = $users->find()
+            ->contain(['Profile'])
+            ->where(['_id' => '000000000000000000000001'])
+            ->first();
+
+        $this->assertInstanceOf(Document::class, $user);
+        $this->assertInstanceOf(Address::class, $user->get('profile'));
+        $this->assertSame('NYC', $user->get('profile')->get('city'));
+        $this->assertSame($user, $user->get('profile')->getEmbeddedParent()['parent']);
+    }
+
+    /**
+     * Tests that contain('profile') yields null when the field is null.
+     *
+     * @return void
+     */
+    public function testContainNullEmbedded(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $user = $users->find()
+            ->contain(['Profile'])
+            ->where(['_id' => '000000000000000000000002'])
+            ->first();
+
+        $this->assertNull($user->get('profile'));
+    }
+}

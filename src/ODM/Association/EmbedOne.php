@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Datasource\EntityInterface;
 use Closure;
 
 /**
@@ -28,13 +29,26 @@ class EmbedOne extends Embedded
      * @param array<string, mixed> $options Hydration options.
      * @return \Closure
      */
+
+    /**
+     * @inheritDoc
+     */
+    public function hydrateEmbedded(mixed $raw, EntityInterface $parent, array $options = []): mixed
+    {
+        $value = $this->normalize($raw);
+
+        return $value === null ? null : $this->embeddedDocument((array)$value, $parent, $options);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function eagerLoader(array $options): Closure
     {
         return function (iterable $entities) use ($options): iterable {
             $property = $this->getProperty();
             foreach ($entities as $entity) {
-                $value = $this->normalize($entity->get($property));
-                $entity->set($property, $value === null ? null : $this->document((array)$value, $options));
+                $entity->set($property, $this->hydrateEmbedded($entity->get($property), $entity, $options));
                 $entity->setDirty($property, false);
             }
 

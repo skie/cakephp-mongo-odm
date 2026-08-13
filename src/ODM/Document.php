@@ -7,6 +7,7 @@ use ArrayAccess;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\EntityTrait;
 use Cake\Datasource\InvalidPropertyInterface;
+use Crustum\Mongo\ODM\Association\Embedded;
 use DateTimeZone;
 use MongoDB\BSON\Decimal128;
 use MongoDB\BSON\ObjectId;
@@ -146,6 +147,40 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
     public function jsonSerialize(): array
     {
         return $this->toArray();
+    }
+
+    /**
+     * The embedded parent document and association (in-memory back-pointer).
+     *
+     * Set during embedded hydration so a child `$doc->save()` can route to
+     * the root document's write.
+     *
+     * @var array{parent: \Cake\Datasource\EntityInterface, association: \Crustum\Mongo\ODM\Association\Embedded}|null
+     */
+    protected ?array $embeddedParent = null;
+
+    /**
+     * Sets the embedded parent back-pointer on this document.
+     *
+     * @param \Cake\Datasource\EntityInterface $parent The parent document.
+     * @param \Crustum\Mongo\ODM\Association\Embedded $association The embedded association.
+     * @return $this
+     */
+    public function setEmbeddedParent(EntityInterface $parent, Embedded $association): static
+    {
+        $this->embeddedParent = ['parent' => $parent, 'association' => $association];
+
+        return $this;
+    }
+
+    /**
+     * Gets the embedded parent back-pointer, or null for root documents.
+     *
+     * @return array{parent: \Cake\Datasource\EntityInterface, association: \Crustum\Mongo\ODM\Association\Embedded}|null
+     */
+    public function getEmbeddedParent(): ?array
+    {
+        return $this->embeddedParent;
     }
 
     /**

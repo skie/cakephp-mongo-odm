@@ -257,6 +257,9 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         $row = $this->applySelectClause($row);
 
+        $document = $repository->newEmptyDocument();
+        $document->setSource($repository->getRegistryAlias());
+
         $results = [];
         $matching = [];
 
@@ -276,7 +279,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             if ($instance instanceof Embedded) {
-                $results[$propertyName] = $row[$propertyName];
+                $results[$propertyName] = $instance->hydrateEmbedded($row[$propertyName], $document, $assoc['config']);
                 continue;
             }
 
@@ -291,8 +294,6 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
         }
 
-        $document = $repository->newEmptyDocument();
-        $document->setSource($repository->getRegistryAlias());
         $document->patch($results + $row, ['guard' => false]);
 
         if ($matching !== []) {

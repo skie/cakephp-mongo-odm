@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use InvalidArgumentException;
 use MongoDB\Model\BSONArray;
@@ -25,6 +27,17 @@ abstract class Embedded extends Association
      * @var array<string>
      */
     protected array $validStrategies = [self::STRATEGY_EMBED];
+
+    /**
+     * Embedded data lives inside the source document, so the "target" is the
+     * source collection itself.
+     *
+     * @return \Crustum\Mongo\ODM\BaseCollection
+     */
+    public function getTarget(): BaseCollection
+    {
+        return $this->getSource();
+    }
 
     /**
      * Embedded associations always hydrate in the root document.
@@ -81,6 +94,43 @@ abstract class Embedded extends Association
         if (!$document instanceof Document) {
             throw new InvalidArgumentException('Embedded entity class must extend Document.');
         }
+
+        return $document;
+    }
+
+    /**
+     * Hydrates the raw embedded value into a Document (or list of Documents).
+     *
+     * The embedded parent back-pointer is set so a child `$doc->save()` can
+     * route to the root document's write.
+     *
+     * Named `hydrateEmbedded` (not `hydrate`) because `DBRef` (also an
+     * Embedded) owns the `hydrate()` name with a different signature.
+     *
+     * @param mixed $raw The raw embedded value from the parent document.
+     * @param \Cake\Datasource\EntityInterface $parent The parent document.
+     * @param array<string, mixed> $options Hydration options.
+     * @return mixed
+     */
+    public function hydrateEmbedded(mixed $raw, EntityInterface $parent, array $options = []): mixed
+    {
+        $value = $this->normalize($raw);
+
+        return $value === null ? null : $this->embeddedDocument((array)$value, $parent, $options);
+    }
+
+    /**
+     * Hydrates one embedded document with the parent back-pointer set.
+     *
+     * @param array<string, mixed> $data Embedded data.
+     * @param \Cake\Datasource\EntityInterface $parent The parent document.
+     * @param array<string, mixed> $options Hydration options.
+     * @return \Crustum\Mongo\ODM\Document
+     */
+    protected function embeddedDocument(array $data, EntityInterface $parent, array $options): Document
+    {
+        $document = $this->document($data, $options);
+        $document->setEmbeddedParent($parent, $this);
 
         return $document;
     }
