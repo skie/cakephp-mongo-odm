@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\IntegerType;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for IntegerType
  */
+#[CoversClass(IntegerType::class)]
 class IntegerTypeTest extends TestCase
 {
     /**

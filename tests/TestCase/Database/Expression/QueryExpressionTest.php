@@ -9,6 +9,7 @@ use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\QueryBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the QueryExpression class.
@@ -16,6 +17,7 @@ use Crustum\Mongo\Database\QueryBuilder;
  * Adapted from cake50/tests/TestCase/Database/Expression/QueryExpressionTest.php
  * for the Mongo conjunction semantics (`$and` / `$or`).
  */
+#[CoversClass(QueryExpression::class)]
 class QueryExpressionTest extends TestCase
 {
     /**

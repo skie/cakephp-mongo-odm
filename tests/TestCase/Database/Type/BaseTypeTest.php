@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\BaseType;
 use Crustum\Mongo\Database\Type\TypeInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for BaseType
  */
+#[CoversClass(BaseType::class)]
 class BaseTypeTest extends TestCase
 {
     /**

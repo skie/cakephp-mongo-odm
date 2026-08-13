@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\VectorSearch;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for VectorSearch stage
  */
+#[CoversClass(VectorSearch::class)]
 class VectorSearchTest extends TestCase
 {
     /**

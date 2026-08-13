@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TimestampType;
 use InvalidArgumentException;
 use MongoDB\BSON\Timestamp;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for TimestampType
  */
+#[CoversClass(TimestampType::class)]
 class TimestampTypeTest extends TestCase
 {
     /**

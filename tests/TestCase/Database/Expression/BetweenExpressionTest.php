@@ -8,6 +8,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Expression\BetweenExpression;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the BetweenExpression class.
@@ -15,6 +16,7 @@ use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
  * Adapted from cake50/tests/TestCase/Database/Expression/BetweenExpressionTest.php
  * for the Mongo `$gte` / `$lte` range compilation.
  */
+#[CoversClass(BetweenExpression::class)]
 class BetweenExpressionTest extends TestCase
 {
     /**

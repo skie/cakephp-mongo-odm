@@ -12,6 +12,7 @@ use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Test\TestCase\Database\QueryAssertsTrait;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Traversable;
 
 /**
@@ -20,6 +21,7 @@ use Traversable;
  * Adapted from cake60/tests/TestCase/Database/Query/SelectQueryTest.php for the
  * Mongo find/aggregate semantics.
  */
+#[CoversClass(SelectQuery::class)]
 class SelectQueryTest extends TestCase
 {
     use QueryAssertsTrait;

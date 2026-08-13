@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Count;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Count stage
  */
+#[CoversClass(Count::class)]
 class CountTest extends TestCase
 {
     /**

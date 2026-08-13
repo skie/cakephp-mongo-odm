@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Densify;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Densify aggregation stage
  */
+#[CoversClass(Densify::class)]
 class DensifyTest extends TestCase
 {
     /**

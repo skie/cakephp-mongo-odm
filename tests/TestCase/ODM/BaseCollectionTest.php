@@ -49,6 +49,7 @@ use InvalidArgumentException;
 use Mockery;
 use PDOException;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use TestApp\Model\Collection\ArticlesCollection;
@@ -67,6 +68,7 @@ use TestPlugin\Model\Collection\CommentsCollection;
  * Tests BaseCollection class
  */
 #[AllowMockObjectsWithoutExpectations]
+#[CoversClass(BaseCollection::class)]
 class BaseCollectionTest extends TestCase
 {
     /**

@@ -10,8 +10,10 @@ use Cake\Datasource\QueryInterface;
 use Cake\Datasource\RepositoryInterface;
 use Cake\Datasource\ResultSetInterface;
 use Crustum\Mongo\Datasource\Paging\MongoPaginator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(MongoPaginator::class)]
 class MongoPaginatorTest extends TestCase
 {
     /**

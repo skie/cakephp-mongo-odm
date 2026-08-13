@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\Decimal128Type;
 use MongoDB\BSON\Decimal128;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Decimal128Type
  */
+#[CoversClass(Decimal128Type::class)]
 class Decimal128TypeTest extends TestCase
 {
     /**

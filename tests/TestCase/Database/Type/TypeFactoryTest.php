@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Type\StringType;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\Type\TypeInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for TypeFactory
  */
+#[CoversClass(TypeFactory::class)]
 class TypeFactoryTest extends TestCase
 {
     /**

@@ -9,6 +9,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\TestSuite\Fixture\SchemaGenerator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
@@ -17,6 +18,7 @@ use RuntimeException;
  * These cover Mongo-specific schema loading (keyed format, scoped drop,
  * validator/index creation) and are not part of the ORM→ODM test port plan.
  */
+#[CoversClass(SchemaGenerator::class)]
 class SchemaGeneratorTest extends TestCase
 {
     /**

@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Expression;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Expression\FunctionExpression;
 use Crustum\Mongo\Database\FunctionsBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the FunctionsBuilder (Cake-style aggregation functions factory).
  */
+#[CoversClass(FunctionsBuilder::class)]
 class FunctionsBuilderTest extends TestCase
 {
     /**

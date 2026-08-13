@@ -9,6 +9,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Query\UpdateQuery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the UpdateQuery class.
@@ -16,6 +17,7 @@ use Crustum\Mongo\Database\Query\UpdateQuery;
  * Adapted from cake60/tests/TestCase/Database/Query/UpdateQueryTest.php for the
  * Mongo update operators (`$set`, `$unset`, `$inc`, `$push`, `$pull`, ...).
  */
+#[CoversClass(UpdateQuery::class)]
 class UpdateQueryTest extends TestCase
 {
     /**

@@ -7,12 +7,15 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Pipeline;
 use Crustum\Mongo\Database\Aggregation\Stage\Limit;
+use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
 use Crustum\Mongo\Database\Aggregation\Stage\RawStage;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Lookup stage
  */
+#[CoversClass(Lookup::class)]
 class LookupTest extends TestCase
 {
     /**

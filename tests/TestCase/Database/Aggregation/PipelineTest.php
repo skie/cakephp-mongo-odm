@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Pipeline;
 use Crustum\Mongo\Database\Aggregation\Stage\Group;
 use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Pipeline
  */
+#[CoversClass(Pipeline::class)]
 class PipelineTest extends TestCase
 {
     /**

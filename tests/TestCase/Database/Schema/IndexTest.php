@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Schema;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Schema\Index;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
@@ -16,6 +17,7 @@ use RuntimeException;
  * Mongo-specific options (`unique`, `sparse`, `expireAfterSeconds`,
  * `partialFilterExpression`, `collation`) are covered instead.
  */
+#[CoversClass(Index::class)]
 class IndexTest extends TestCase
 {
     /**

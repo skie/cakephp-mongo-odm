@@ -5,10 +5,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Schema;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Schema\Validator;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for the Validator value object.
  */
+#[CoversClass(Validator::class)]
 class ValidatorTest extends TestCase
 {
     /**

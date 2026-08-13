@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
+use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Collection\UsersEmbeddedCollection;
 use TestApp\Model\Document\Address;
 
@@ -12,6 +14,7 @@ use TestApp\Model\Document\Address;
  * Tests the P1 embedded-association hydration for `embedOne`: `contain('profile')`
  * hydrates a single Document (or null), zero extra queries.
  */
+#[CoversClass(EmbedOne::class)]
 class EmbedOneTest extends TestCase
 {
     /**

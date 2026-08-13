@@ -10,11 +10,13 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Database\Schema\SchemaCollection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\SimpleCache\CacheInterface;
 
 /**
  * Test case for CachedSchemaCollection
  */
+#[CoversClass(CachedSchemaCollection::class)]
 class CachedSchemaCollectionTest extends TestCase
 {
     /**

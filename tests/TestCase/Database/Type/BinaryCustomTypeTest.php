@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\BinaryCustomType;
 use Crustum\Mongo\Database\Type\BinaryType;
 use MongoDB\BSON\Binary;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for BinaryCustomType
  */
+#[CoversClass(BinaryCustomType::class)]
 class BinaryCustomTypeTest extends TestCase
 {
     /**

@@ -15,10 +15,12 @@ use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests HasOne class
  */
+#[CoversClass(HasOne::class)]
 class HasOneTest extends TestCase
 {
     /**
@@ -87,6 +89,7 @@ class HasOneTest extends TestCase
         $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('larry', $user->profile->first_name);
     }
+
     /**
      * Tests that the association reports it can be joined
      */

@@ -26,12 +26,14 @@ use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use function Cake\I18n\__;
 
 /**
  * Tests HasMany class
  */
+#[CoversClass(HasMany::class)]
 class HasManyTest extends TestCase
 {
     /**

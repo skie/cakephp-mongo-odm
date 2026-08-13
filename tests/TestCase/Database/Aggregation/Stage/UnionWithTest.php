@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
 use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for UnionWith aggregation stage
  */
+#[CoversClass(UnionWith::class)]
 class UnionWithTest extends TestCase
 {
     /**

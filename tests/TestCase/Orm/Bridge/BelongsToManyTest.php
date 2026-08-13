@@ -8,6 +8,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Orm\Bridge\BelongsToMany;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
 
 /**
@@ -16,6 +17,7 @@ use TestApp\Model\Entity\Order;
  * Covers both pivot designs: junction collection (`orders_tags`) and the
  * in-document `order_ids` array pivot.
  */
+#[CoversClass(BelongsToMany::class)]
 class BelongsToManyTest extends TestCase
 {
     /**

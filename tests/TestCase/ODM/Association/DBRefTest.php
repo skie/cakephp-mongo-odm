@@ -9,7 +9,9 @@ use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Model\BSONDocument;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(DBRef::class)]
 class DBRefTest extends TestCase
 {
     public function testCreateRefUsesCollectionAndDocumentId(): void

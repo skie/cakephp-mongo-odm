@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Type;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\CollectionType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for CollectionType
  */
+#[CoversClass(CollectionType::class)]
 class CollectionTypeTest extends TestCase
 {
     /**

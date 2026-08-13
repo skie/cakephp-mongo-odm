@@ -11,6 +11,7 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Marshaller;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Model\Document\OpenArticleEntity;
 use TestApp\Model\Document\OpenTag;
@@ -19,6 +20,7 @@ use TestApp\Model\Document\ProtectedArticle;
 /**
  * Marshaller test case
  */
+#[CoversClass(Marshaller::class)]
 class MarshallerTest extends TestCase
 {
     protected array $fixtures = [

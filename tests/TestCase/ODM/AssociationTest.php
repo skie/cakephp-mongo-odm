@@ -10,6 +10,7 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Collection\AuthorsCollection;
 use TestApp\Model\Collection\TestCollection;
 use TestPlugin\Model\Collection\CommentsCollection;
@@ -17,6 +18,7 @@ use TestPlugin\Model\Collection\CommentsCollection;
 /**
  * Tests Association class
  */
+#[CoversClass(Association::class)]
 class AssociationTest extends TestCase
 {
     /**

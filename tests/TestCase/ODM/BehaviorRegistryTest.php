@@ -9,12 +9,14 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\BehaviorRegistry;
 use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Behavior\SluggableBehavior;
 use TestPlugin\Model\Behavior\PersisterOneBehavior;
 
 /**
  * Port of `Cake\Test\TestCase\ORM\BehaviorRegistryTest` for the ODM layer.
  */
+#[CoversClass(BehaviorRegistry::class)]
 class BehaviorRegistryTest extends TestCase
 {
     /**

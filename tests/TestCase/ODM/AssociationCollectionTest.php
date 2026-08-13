@@ -14,11 +14,13 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * AssociationCollection test case.
  */
+#[CoversClass(AssociationCollection::class)]
 class AssociationCollectionTest extends TestCase
 {
     /**

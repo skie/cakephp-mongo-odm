@@ -5,10 +5,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Update;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Update\UpdateBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for UpdateBuilder
  */
+#[CoversClass(UpdateBuilder::class)]
 class UpdateBuilderTest extends TestCase
 {
     /**

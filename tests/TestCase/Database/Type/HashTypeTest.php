@@ -6,11 +6,13 @@ namespace Crustum\Mongo\Test\TestCase\Database\Type;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\HashType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
  * Test case for HashType
  */
+#[CoversClass(HashType::class)]
 class HashTypeTest extends TestCase
 {
     /**

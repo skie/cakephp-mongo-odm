@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Type;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\StringType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for StringType
  */
+#[CoversClass(StringType::class)]
 class StringTypeTest extends TestCase
 {
     /**

@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\CollStats;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for CollStats aggregation stage
  */
+#[CoversClass(CollStats::class)]
 class CollStatsTest extends TestCase
 {
     /**

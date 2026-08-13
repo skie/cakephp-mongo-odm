@@ -9,8 +9,10 @@ use Crustum\Mongo\MongoPlugin;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use Crustum\Mongo\View\Form\DocumentContext;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Collection\UsersCollection;
 
+#[CoversClass(DocumentContext::class)]
 class DocumentContextTest extends TestCase
 {
     protected function setUp(): void

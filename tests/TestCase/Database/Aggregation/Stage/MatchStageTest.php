@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for MatchStage
  */
+#[CoversClass(MatchStage::class)]
 class MatchStageTest extends TestCase
 {
     /**

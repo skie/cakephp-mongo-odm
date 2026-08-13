@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\JsonType;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for JsonType
  */
+#[CoversClass(JsonType::class)]
 class JsonTypeTest extends TestCase
 {
     /**

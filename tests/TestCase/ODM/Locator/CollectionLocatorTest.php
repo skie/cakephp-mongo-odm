@@ -11,8 +11,10 @@ use Crustum\Mongo\ODM\Exception\MissingCollectionException;
 use Crustum\Mongo\ODM\Locator\CollectionContainer;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Collection\UsersCollection;
 
+#[CoversClass(CollectionLocator::class)]
 class CollectionLocatorTest extends TestCase
 {
     protected function setUp(): void

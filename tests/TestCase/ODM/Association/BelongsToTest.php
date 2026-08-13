@@ -16,10 +16,12 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests BelongsTo class
  */
+#[CoversClass(BelongsTo::class)]
 class BelongsToTest extends TestCase
 {
     /**

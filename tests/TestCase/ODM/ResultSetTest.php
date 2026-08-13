@@ -4,10 +4,13 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Crustum\Mongo\ODM\Document;
+use Crustum\Mongo\ODM\ResultSet;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * ResultSet test case.
  */
+#[CoversClass(ResultSet::class)]
 class ResultSetTest extends TestCase
 {
     /**

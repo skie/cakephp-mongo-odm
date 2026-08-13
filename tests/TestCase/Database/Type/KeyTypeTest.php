@@ -7,11 +7,13 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\HashType;
 use Crustum\Mongo\Database\Type\KeyType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
  * Tests for KeyType
  */
+#[CoversClass(KeyType::class)]
 class KeyTypeTest extends TestCase
 {
     /**

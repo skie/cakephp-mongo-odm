@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Expression;
 use Cake\Database\ValueBinder;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Expression\FunctionExpression;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the FunctionExpression class (aggregation operator expression).
  */
+#[CoversClass(FunctionExpression::class)]
 class FunctionExpressionTest extends TestCase
 {
     /**

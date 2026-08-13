@@ -8,10 +8,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
 use Crustum\Mongo\Database\Log\MongoLogger;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for CommandSubscriber against a real Mongo connection.
  */
+#[CoversClass(CommandSubscriber::class)]
 class CommandSubscriberTest extends TestCase
 {
     /**

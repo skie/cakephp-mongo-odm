@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
+use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Collection\UsersEmbeddedCollection;
 use TestApp\Model\Document\Address;
 
@@ -13,6 +15,7 @@ use TestApp\Model\Document\Address;
  * Tests the P1 embedded-association hydration: `contain('addresses')`
  * returns hydrated Documents (with parent back-pointer), zero extra queries.
  */
+#[CoversClass(EmbedMany::class)]
 class EmbedManyTest extends TestCase
 {
     /**

@@ -5,10 +5,13 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Set;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Set stage
  */
+#[CoversClass(Set::class)]
 class SetTest extends TestCase
 {
     /**

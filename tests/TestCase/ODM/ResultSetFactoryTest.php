@@ -10,6 +10,7 @@ use Cake\Log\Log;
 use Cake\ORM\DtoMapper;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Dto\ArticleArrayDto;
 use TestApp\Dto\ArticleDto;
 use TestApp\Dto\AuthorArrayDto;
@@ -20,6 +21,7 @@ use TestApp\Dto\SimpleArticleDto;
 /**
  * ResultSetFactory test case.
  */
+#[CoversClass(ResultSetFactory::class)]
 class ResultSetFactoryTest extends TestCase
 {
     /**

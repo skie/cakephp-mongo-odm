@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\ValueBinder;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the ValueBinder class.
@@ -13,6 +14,7 @@ use Crustum\Mongo\Database\ValueBinder;
  * Mongo-specific binding shape (no positional `?` placeholders, no `placeholder`
  * metadata key).
  */
+#[CoversClass(ValueBinder::class)]
 class ValueBinderTest extends TestCase
 {
     /**

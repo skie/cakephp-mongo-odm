@@ -5,10 +5,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Id;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Id\UuidGenerator;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for UuidGenerator (UUID v7)
  */
+#[CoversClass(UuidGenerator::class)]
 class UuidGeneratorTest extends TestCase
 {
     /**

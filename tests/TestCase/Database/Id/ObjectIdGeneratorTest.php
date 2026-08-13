@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Id;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Id\ObjectIdGenerator;
 use MongoDB\BSON\ObjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for ObjectIdGenerator
  */
+#[CoversClass(ObjectIdGenerator::class)]
 class ObjectIdGeneratorTest extends TestCase
 {
     /**

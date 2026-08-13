@@ -8,6 +8,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Orm\Bridge\DBRef;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\File;
 
 /**
@@ -16,6 +17,7 @@ use TestApp\Model\Entity\File;
  * The SQL `files.file_ref` column holds a Mongo `_id` (or a DBRef array);
  * the association resolves it against the Mongo `Files` collection.
  */
+#[CoversClass(DBRef::class)]
 class DBRefTest extends TestCase
 {
     /**

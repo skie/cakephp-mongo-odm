@@ -24,6 +24,7 @@ use Crustum\Mongo\ODM\RulesChecker;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use TestApp\Model\Document\ArticlesTag;
 use function Cake\Collection\collection;
@@ -31,6 +32,7 @@ use function Cake\Collection\collection;
 /**
  * Tests BelongsToMany class
  */
+#[CoversClass(BelongsToMany::class)]
 class BelongsToManyTest extends TestCase
 {
     /**

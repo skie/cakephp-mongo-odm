@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Type;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\UuidType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for UuidType
  */
+#[CoversClass(UuidType::class)]
 class UuidTypeTest extends TestCase
 {
     /**

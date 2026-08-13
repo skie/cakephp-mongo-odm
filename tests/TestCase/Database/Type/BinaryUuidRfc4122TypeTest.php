@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\BinaryType;
 use Crustum\Mongo\Database\Type\BinaryUuidRfc4122Type;
 use MongoDB\BSON\Binary;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for BinaryUuidRfc4122Type
  */
+#[CoversClass(BinaryUuidRfc4122Type::class)]
 class BinaryUuidRfc4122TypeTest extends TestCase
 {
     /**

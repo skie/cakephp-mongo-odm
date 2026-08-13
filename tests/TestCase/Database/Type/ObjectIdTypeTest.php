@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\ObjectIdType;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for ObjectIdType
  */
+#[CoversClass(ObjectIdType::class)]
 class ObjectIdTypeTest extends TestCase
 {
     /**

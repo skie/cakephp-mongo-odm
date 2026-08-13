@@ -11,10 +11,12 @@ use Crustum\Mongo\Database\Query\InsertQuery;
 use Crustum\Mongo\Database\Query\QueryFactory;
 use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Database\Query\UpdateQuery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the Database QueryFactory entry points.
  */
+#[CoversClass(QueryFactory::class)]
 class QueryFactoryTest extends TestCase
 {
     /**

@@ -21,6 +21,7 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Session;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\SimpleCache\CacheInterface;
 use RuntimeException;
 use Traversable;
@@ -31,6 +32,7 @@ use Traversable;
  * Adapted from cake50/tests/TestCase/Database/ConnectionTest.php for the Mongo
  * driver/run/schema-cache lifecycle.
  */
+#[CoversClass(Connection::class)]
 class ConnectionTest extends TestCase
 {
     /**

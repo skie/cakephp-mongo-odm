@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Bucket;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Bucket aggregation stage
  */
+#[CoversClass(Bucket::class)]
 class BucketTest extends TestCase
 {
     /**

@@ -30,12 +30,14 @@ use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionProperty;
 
 /**
  * Tests SelectQuery class
  */
+#[CoversClass(SelectQuery::class)]
 class SelectQueryTest extends TestCase
 {
     /**

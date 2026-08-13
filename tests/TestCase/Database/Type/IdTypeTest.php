@@ -9,10 +9,12 @@ use Crustum\Mongo\Database\Type\IdType;
 use Crustum\Mongo\Database\Type\ObjectIdType;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for IdType
  */
+#[CoversClass(IdType::class)]
 class IdTypeTest extends TestCase
 {
     /**

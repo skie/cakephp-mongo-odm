@@ -7,6 +7,7 @@ use Cake\Database\ValueBinder;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the ComparisonExpression class.
@@ -14,6 +15,7 @@ use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
  * Adapted from cake50/tests/TestCase/Database/Expression/ComparisonExpressionTest.php
  * for the Mongo operator mapping.
  */
+#[CoversClass(ComparisonExpression::class)]
 class ComparisonExpressionTest extends TestCase
 {
     /**

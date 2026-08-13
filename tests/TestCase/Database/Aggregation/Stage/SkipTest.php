@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Skip;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Skip stage
  */
+#[CoversClass(Skip::class)]
 class SkipTest extends TestCase
 {
     /**

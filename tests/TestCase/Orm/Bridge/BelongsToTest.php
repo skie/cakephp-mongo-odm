@@ -8,6 +8,7 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Orm\Bridge\BelongsTo;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
 
 /**
@@ -16,6 +17,7 @@ use TestApp\Model\Entity\Order;
  * The SQL source is a plain Cake entity; the Mongo target is the real
  * `Authors` collection (seeded via Mongo fixtures).
  */
+#[CoversClass(BelongsTo::class)]
 class BelongsToTest extends TestCase
 {
     /**

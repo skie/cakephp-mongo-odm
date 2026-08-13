@@ -9,6 +9,7 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Orm\Bridge\HasOne;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
 
 /**
@@ -18,6 +19,7 @@ use TestApp\Model\Entity\Order;
  * int `order_id` (unique). This proves the bridge works with real ORM int
  * primary keys — no hex conversion needed.
  */
+#[CoversClass(HasOne::class)]
 class HasOneTest extends TestCase
 {
     /**

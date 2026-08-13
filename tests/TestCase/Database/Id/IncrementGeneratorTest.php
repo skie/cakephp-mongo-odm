@@ -7,10 +7,12 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Id\IncrementGenerator;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for IncrementGenerator against a real Mongo connection.
  */
+#[CoversClass(IncrementGenerator::class)]
 class IncrementGeneratorTest extends TestCase
 {
     /**

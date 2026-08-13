@@ -9,6 +9,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Query\DeleteQuery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the DeleteQuery class.
@@ -16,6 +17,7 @@ use Crustum\Mongo\Database\Query\DeleteQuery;
  * Adapted from cake60/tests/TestCase/Database/Query/DeleteQueryTest.php for the
  * Mongo deleteMany semantics.
  */
+#[CoversClass(DeleteQuery::class)]
 class DeleteQueryTest extends TestCase
 {
     /**

@@ -9,10 +9,12 @@ use Crustum\Mongo\Database\Type\DateType;
 use DateTime;
 use InvalidArgumentException;
 use MongoDB\BSON\UTCDateTime;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for DateType
  */
+#[CoversClass(DateType::class)]
 class DateTypeTest extends TestCase
 {
     /**

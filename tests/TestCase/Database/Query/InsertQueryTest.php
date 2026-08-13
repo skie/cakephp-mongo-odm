@@ -10,6 +10,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\InsertQuery;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the InsertQuery class.
@@ -17,6 +18,7 @@ use MongoDB\BSON\ObjectId;
  * Adapted from cake60/tests/TestCase/Database/Query/InsertQueryTest.php for the
  * Mongo insertOne/insertMany semantics.
  */
+#[CoversClass(InsertQuery::class)]
 class InsertQueryTest extends TestCase
 {
     /**

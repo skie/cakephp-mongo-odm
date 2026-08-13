@@ -7,10 +7,12 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for the CollectionSchema
  */
+#[CoversClass(CollectionSchema::class)]
 class CollectionSchemaTest extends TestCase
 {
     /**

@@ -12,6 +12,7 @@ use MongoDB\BSON\Decimal128;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 use MongoDB\Model\BSONDocument;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 use TestApp\Model\Document\Extending;
 use TestApp\Model\Document\NonExtending;
@@ -20,6 +21,7 @@ use TestApp\Model\Document\VirtualUser;
 /**
  * Document test case.
  */
+#[CoversClass(Document::class)]
 class DocumentTest extends TestCase
 {
     public function testIdAndNewState(): void

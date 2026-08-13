@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\BinaryMd5Type;
 use Crustum\Mongo\Database\Type\BinaryType;
 use MongoDB\BSON\Binary;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for BinaryMd5Type
  */
+#[CoversClass(BinaryMd5Type::class)]
 class BinaryMd5TypeTest extends TestCase
 {
     /**

@@ -13,6 +13,7 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Manager;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionMethod;
 use ReflectionProperty;
 
@@ -22,6 +23,7 @@ use ReflectionProperty;
  * Adapted from cake50/tests/TestCase/Database/DriverTest.php for the Mongo
  * connection-string/config/capability surface.
  */
+#[CoversClass(MongoDriver::class)]
 class MongoDriverTest extends TestCase
 {
     /**

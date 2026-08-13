@@ -6,10 +6,12 @@ namespace Crustum\Mongo\Test\TestCase\Database\Aggregation\Stage;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Sample;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Sample aggregation stage
  */
+#[CoversClass(Sample::class)]
 class SampleTest extends TestCase
 {
     /**

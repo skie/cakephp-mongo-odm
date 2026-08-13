@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Database\Schema;
 
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Schema\Field;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
@@ -16,6 +17,7 @@ use RuntimeException;
  * collate, srid, datetime-fractional) are dropped; Mongo/ODM options
  * (`enumType`, `notSaved`) are covered instead.
  */
+#[CoversClass(Field::class)]
 class FieldTest extends TestCase
 {
     /**

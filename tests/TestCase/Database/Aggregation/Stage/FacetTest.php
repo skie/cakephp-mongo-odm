@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Facet;
 use Crustum\Mongo\Database\Aggregation\Stage\MatchStage;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Facet aggregation stage
  */
+#[CoversClass(Facet::class)]
 class FacetTest extends TestCase
 {
     /**

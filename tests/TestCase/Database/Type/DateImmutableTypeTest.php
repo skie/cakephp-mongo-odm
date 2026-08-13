@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\DateImmutableType;
 use DateTimeImmutable;
 use MongoDB\BSON\UTCDateTime;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for DateImmutableType
  */
+#[CoversClass(DateImmutableType::class)]
 class DateImmutableTypeTest extends TestCase
 {
     /**

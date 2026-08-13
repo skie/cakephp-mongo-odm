@@ -9,6 +9,7 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Orm\Bridge\HasMany;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
 
 /**
@@ -18,6 +19,7 @@ use TestApp\Model\Entity\Order;
  * matching int `order_id`. This proves the bridge works with real ORM int
  * primary keys — no hex conversion needed.
  */
+#[CoversClass(HasMany::class)]
 class HasManyTest extends TestCase
 {
     /**

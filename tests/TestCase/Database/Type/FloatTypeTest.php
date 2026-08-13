@@ -7,10 +7,12 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\FloatType;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for FloatType
  */
+#[CoversClass(FloatType::class)]
 class FloatTypeTest extends TestCase
 {
     /**

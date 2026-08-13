@@ -10,10 +10,12 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\Database\SchemaCache;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for SchemaCache
  */
+#[CoversClass(SchemaCache::class)]
 class SchemaCacheTest extends TestCase
 {
     /**

@@ -10,10 +10,12 @@ use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for TimeType
  */
+#[CoversClass(TimeType::class)]
 class TimeTypeTest extends TestCase
 {
     /**

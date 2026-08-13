@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\EnumType;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for EnumType
  */
+#[CoversClass(EnumType::class)]
 class EnumTypeTest extends TestCase
 {
     /**

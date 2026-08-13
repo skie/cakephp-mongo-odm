@@ -7,10 +7,12 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for SchemaManager against a real Mongo connection.
  */
+#[CoversClass(SchemaManager::class)]
 class SchemaManagerTest extends TestCase
 {
     /**

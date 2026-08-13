@@ -16,10 +16,12 @@ use Crustum\Mongo\Database\Aggregation\Stage\Sort;
 use Crustum\Mongo\Database\Aggregation\Stage\Stage;
 use Crustum\Mongo\Database\Aggregation\Stage\Unwind;
 use OutOfRangeException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for AggregationBuilder
  */
+#[CoversClass(AggregationBuilder::class)]
 class AggregationBuilderTest extends TestCase
 {
     /**

@@ -8,10 +8,12 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\Int64Type;
 use InvalidArgumentException;
 use MongoDB\BSON\Int64;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Int64Type
  */
+#[CoversClass(Int64Type::class)]
 class Int64TypeTest extends TestCase
 {
     /**
