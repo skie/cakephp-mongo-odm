@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Driver;
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
 use Cake\Database\Log\QueryLogger;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Enum\DriverFeature;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
 use Crustum\Mongo\Database\Log\MongoLogger;
@@ -287,7 +288,9 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     }
 
     /**
-     * @inheritDoc
+     * Returns the driver configuration.
+     *
+     * @return array<string, mixed>
      */
     public function config(): array
     {
@@ -297,10 +300,18 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     /**
      * @inheritDoc
      */
+    public function getRole(): string
+    {
+        return $this->config['_role'] ?? Connection::ROLE_WRITE;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function connect(): void
     {
         $dsn = $this->buildDsn();
-        $this->client = new Client($dsn, $this->connectionOptions());
+        $this->client = new Client($dsn, $this->getOptions());
     }
 
     /**
@@ -355,16 +366,24 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     /**
      * Returns the MongoDB client constructor options.
      *
+     * The read role emits `readPreference: secondaryPreferred` (replica-set
+     * secondary reads) unless the config already pins one; the write role
+     * keeps the library default (primary).
+     *
      * @return array<string, mixed>
      */
-    protected function connectionOptions(): array
+    public function getOptions(): array
     {
         $options = $this->config['options'] ?? [];
-        if (is_array($options)) {
-            return $options;
+        if (!is_array($options)) {
+            $options = [];
         }
 
-        return [];
+        if ($this->getRole() === Connection::ROLE_READ && !isset($options['readPreference'])) {
+            $options['readPreference'] = 'secondaryPreferred';
+        }
+
+        return $options;
     }
 
     /**

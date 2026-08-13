@@ -21,3 +21,15 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   pipeline, not SQL `clause('join')`/`clause('select')`); added
   `testAttachToEndToEnd`. SQL-only cases (multi-column primary keys, target
   `beforeFind`) marked skip (F25).
+
+### Added
+- **Connection read/write roles (doc 30)** — dual-driver `Connection`
+  (`getReadDriver()`/`getWriteDriver()`/`getDriver($role)`, `createDrivers()`
+  split for `['read' => …, 'write' => …]`), `MongoDriver::getRole()` +
+  `readPreference: secondaryPreferred` for the read role (via
+  `MongoDriver::getOptions()`), query `connectionRole`
+  (`getConnectionRole()`/`setConnectionRole()`/`useReadRole()`/`useWriteRole()`),
+  `Connection::run()` routes by role, and `SelectLoader` inherits the parent
+  query role. Tests: `ConnectionTest` role suite +
+  `BelongsToManyTest`/`HasManyTest::testEagerLoaderConnectionRole` rewritten
+  for Mongo.

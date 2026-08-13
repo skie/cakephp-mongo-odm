@@ -72,6 +72,59 @@ abstract class Query implements Stringable
     protected bool $dirty = false;
 
     /**
+     * Connection role (read/write) this query runs under.
+     *
+     * Defaults to write, mirroring cake60 `Query::$connectionRole`.
+     *
+     * @var string
+     */
+    protected string $connectionRole = Connection::ROLE_WRITE;
+
+    /**
+     * Returns the connection role this query runs under.
+     *
+     * @return string
+     */
+    public function getConnectionRole(): string
+    {
+        return $this->connectionRole;
+    }
+
+    /**
+     * Sets the connection role this query runs under.
+     *
+     * @param string $role `Connection::ROLE_READ` or `Connection::ROLE_WRITE`.
+     * @return $this
+     */
+    public function setConnectionRole(string $role): static
+    {
+        assert($role === Connection::ROLE_READ || $role === Connection::ROLE_WRITE);
+        $this->connectionRole = $role;
+
+        return $this;
+    }
+
+    /**
+     * Routes this query through the read driver (replica-set secondary).
+     *
+     * @return $this
+     */
+    public function useReadRole(): static
+    {
+        return $this->setConnectionRole(Connection::ROLE_READ);
+    }
+
+    /**
+     * Routes this query through the write driver (primary, the default).
+     *
+     * @return $this
+     */
+    public function useWriteRole(): static
+    {
+        return $this->setConnectionRole(Connection::ROLE_WRITE);
+    }
+
+    /**
      * Constructor.
      *
      * @param \Crustum\Mongo\Database\Connection|null $connection The connection to execute on.

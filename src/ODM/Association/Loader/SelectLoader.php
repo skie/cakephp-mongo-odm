@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM\Association\Loader;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
+use Crustum\Mongo\Database\Query\Query;
 use Traversable;
 
 /**
@@ -46,6 +47,11 @@ class SelectLoader implements LoaderInterface
             $query = $options['finder']();
             if (!$query instanceof QueryInterface) {
                 return $entities;
+            }
+
+            $parentQuery = $options['query'] ?? null;
+            if ($query instanceof Query && $parentQuery instanceof Query) {
+                $query->setConnectionRole($parentQuery->getConnectionRole());
             }
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'

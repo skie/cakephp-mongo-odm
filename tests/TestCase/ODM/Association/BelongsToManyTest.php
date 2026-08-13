@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
-use Cake\Database\Connection;
-use Cake\Database\Driver\Sqlite;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Expression\OrderClauseExpression;
 use Cake\Database\Expression\QueryExpression;
@@ -12,10 +10,11 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\I18n\DateTime;
-use Cake\Log\Log;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
+use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
@@ -90,8 +89,6 @@ class BelongsToManyTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        ConnectionManager::drop('test_read_write');
-        Log::drop('queries');
     }
 
     /**
@@ -1660,67 +1657,40 @@ class BelongsToManyTest extends TestCase
 
     public function testEagerLoaderConnectionRole(): void
     {
-        $this->markTestSkipped('SQL-only: SQLite read/write role split + CREATE TABLE; ODM setConnection requires Crustum Mongo Connection (F26). See docs/reference/30-connection-roles-plan.md.');
-        $this->skipIf(!extension_loaded('pdo_sqlite'), 'Skipping as SQLite extension is missing');
-
-        Log::setConfig('queries', [
-            'className' => 'Array',
-            'scopes' => ['queriesLog'],
-        ]);
-
-        ConnectionManager::setConfig('test_read_write', [
-            'className' => Connection::class,
-            'driver' => Sqlite::class,
-            'write' => [
-                'database' => ':memory:',
-                'cached' => 'shared', // used so role configs are unique
-                'log' => true,
-            ],
-            'read' => [
-                'database' => ':memory:',
-                'log' => true,
-            ],
-        ]);
-
-        $connection = ConnectionManager::get('test_read_write');
-        $this->assertNotSame($connection->getDriver(Connection::ROLE_READ), $connection->getDriver(Connection::ROLE_WRITE));
-
-        // Create belongs to many relationships with unique table names
-        $driver = $connection->getDriver(Connection::ROLE_WRITE);
-        $driver->execute('CREATE TABLE unique_items (id int PRIMARY KEY);');
-        $driver->execute('CREATE TABLE articles (id int PRIMARY KEY);');
-        $driver->execute('CREATE TABLE articles_unique_items (unique_item_id int, article_id int);');
-
-        $driver = $connection->getDriver(Connection::ROLE_READ);
-        $driver->execute('CREATE TABLE unique_items (id int PRIMARY KEY);');
-        $driver->execute('CREATE TABLE articles (id int PRIMARY KEY);');
-        $driver->execute('CREATE TABLE articles_unique_items (unique_item_id int, article_id int);');
-        $driver->execute('INSERT INTO unique_items (id) VALUES (1)');
-        $driver->execute('INSERT INTO articles (id) VALUES (1)');
-        $driver->execute('INSERT INTO articles_unique_items (unique_item_id, article_id) VALUES (1, 1)');
-
+        $connection = ConnectionManager::get('test_mongo');
         $articles = $this->getCollectionLocator()->get('Articles')->setConnection($connection);
-        $articles->belongsToMany('UniqueItems')->getTarget()->setConnection($connection);
+        $articles->belongsToMany('Tags');
 
         $query = $articles->find();
-        $this->assertSame(Connection::ROLE_WRITE, $query->getConnectionRole(), 'This test assumes select queries still default to write role');
+        $this->assertSame(
+            Connection::ROLE_WRITE,
+            $query->getConnectionRole(),
+            'Select queries default to the write role',
+        );
 
-        $results = $query->contain('UniqueItems')->useReadRole()->toArray();
-        $this->assertCount(1, $results);
-        $this->assertCount(1, $results[0]->unique_items);
-        $this->assertSame(1, $results[0]->unique_items[0]->getId());
+        $query->useReadRole();
+        $this->assertSame(
+            Connection::ROLE_READ,
+            $query->getConnectionRole(),
+            'useReadRole() routes the query to the read role',
+        );
 
-        $logs = Log::engine('queries')->read();
-        $this->assertNotEmpty($logs);
+        $target = $articles->Tags->getTarget();
+        $child = $target->find();
+        $loader = new SelectLoader([
+            'finder' => fn() => $child,
+            'foreignKey' => 'tag_id',
+            'bindingKey' => '_id',
+            'associationType' => 'manyToMany',
+            'nestKey' => 'tags',
+        ]);
+        $callback = $loader->buildEagerLoader(['query' => $query]);
+        $callback([]);
 
-        foreach ($logs as $log) {
-            if (
-                str_contains($log, 'FROM articles') ||
-                str_contains($log, 'FROM articles_unique_items') ||
-                str_contains($log, 'FROM unique_items')
-            ) {
-                $this->assertStringContainsString('role=read', $log);
-            }
-        }
+        $this->assertSame(
+            Connection::ROLE_READ,
+            $child->getConnectionRole(),
+            'Child association query inherits the parent read role',
+        );
     }
 }

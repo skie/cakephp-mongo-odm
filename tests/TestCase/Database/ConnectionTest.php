@@ -83,6 +83,98 @@ class ConnectionTest extends TestCase
     }
 
     /**
+     * Test that a flat config reuses one driver for both roles.
+     *
+     * @return void
+     */
+    public function testFlatConfigReusesSingleDriver(): void
+    {
+        $connection = new Connection([
+            'name' => 'flat',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+        ]);
+
+        $this->assertSame($connection->getReadDriver(), $connection->getWriteDriver());
+        $this->assertSame($connection->getDriver(), $connection->getWriteDriver());
+        $this->assertSame($connection->getDriver(Connection::ROLE_WRITE), $connection->getWriteDriver());
+        $this->assertSame($connection->getDriver(Connection::ROLE_READ), $connection->getReadDriver());
+    }
+
+    /**
+     * Test that a read/write split config builds two distinct role drivers.
+     *
+     * @return void
+     */
+    public function testReadWriteSplitBuildsTwoDrivers(): void
+    {
+        $connection = new Connection([
+            'name' => 'split',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'write' => ['username' => 'writer'],
+            'read' => ['username' => 'reader'],
+        ]);
+
+        $this->assertNotSame($connection->getReadDriver(), $connection->getWriteDriver());
+        $this->assertSame(Connection::ROLE_WRITE, $connection->getWriteDriver()->getRole());
+        $this->assertSame(Connection::ROLE_READ, $connection->getReadDriver()->getRole());
+        $this->assertSame('writer', $connection->getWriteDriver()->config()['username']);
+        $this->assertSame('reader', $connection->getReadDriver()->config()['username']);
+    }
+
+    /**
+     * Test that the read-role driver emits secondaryPreferred readPreference.
+     *
+     * @return void
+     */
+    public function testReadDriverEmitsSecondaryPreferred(): void
+    {
+        $connection = new Connection([
+            'name' => 'role_read',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'read' => ['username' => 'reader'],
+        ]);
+
+        $writeOptions = $connection->getWriteDriver()->getOptions();
+        $this->assertArrayNotHasKey('readPreference', $writeOptions);
+
+        $readOptions = $connection->getReadDriver()->getOptions();
+        $this->assertSame('secondaryPreferred', $readOptions['readPreference']);
+    }
+
+    /**
+     * Test that a query's connection role routes through the matching driver.
+     *
+     * @return void
+     */
+    public function testQueryConnectionRoleSelectsDriver(): void
+    {
+        $connection = new Connection([
+            'name' => 'role_query',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'read' => ['username' => 'reader'],
+        ]);
+
+        $query = $connection->selectQuery()->from('items');
+        $this->assertSame(Connection::ROLE_WRITE, $query->getConnectionRole());
+
+        $query->useReadRole();
+        $this->assertSame(Connection::ROLE_READ, $query->getConnectionRole());
+        $this->assertSame($connection->getReadDriver(), $connection->getDriver($query->getConnectionRole()));
+
+        $query->useWriteRole();
+        $this->assertSame(Connection::ROLE_WRITE, $query->getConnectionRole());
+        $this->assertSame($connection->getWriteDriver(), $connection->getDriver($query->getConnectionRole()));
+    }
+
+    /**
      * Test the connection implements ConnectionInterface.
      *
      * @return void

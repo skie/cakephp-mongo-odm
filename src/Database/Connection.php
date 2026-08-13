@@ -41,11 +41,18 @@ class Connection implements ConnectionInterface
     public const string ROLE_WRITE = 'write';
 
     /**
-     * The driver.
+     * The read driver (replica-set secondary / readPreference).
      *
      * @var \Crustum\Mongo\Database\Driver\DriverInterface
      */
-    protected DriverInterface $driver;
+    protected DriverInterface $readDriver;
+
+    /**
+     * The write driver (primary).
+     *
+     * @var \Crustum\Mongo\Database\Driver\DriverInterface
+     */
+    protected DriverInterface $writeDriver;
 
     /**
      * Connection name.
@@ -131,26 +138,82 @@ class Connection implements ConnectionInterface
         $this->name = (string)($config['name'] ?? '');
         $this->config = $config;
 
+        [$this->readDriver, $this->writeDriver] = $this->createDrivers($config);
+    }
+
+    /**
+     * Builds the read and write drivers from the connection config.
+     *
+     * Mirrors cake60 `Connection::createDrivers()`: a config with `read` /
+     * `write` sub-arrays builds two drivers (each tagged with its `_role`);
+     * a flat config reuses one driver for both roles.
+     *
+     * @param array<string, mixed> $config Connection config.
+     * @return array{\Crustum\Mongo\Database\Driver\DriverInterface, \Crustum\Mongo\Database\Driver\DriverInterface} [read, write]
+     */
+    protected function createDrivers(array $config): array
+    {
         $driverClass = $config['driver'] ?? MongoDriver::class;
         if ($driverClass instanceof DriverInterface) {
-            $this->driver = $driverClass;
-        } elseif (is_string($driverClass) && is_subclass_of($driverClass, DriverInterface::class)) {
-            $this->driver = new $driverClass($config);
-        } else {
+            return [$driverClass, $driverClass];
+        }
+
+        if (!is_string($driverClass) || !is_subclass_of($driverClass, DriverInterface::class)) {
             throw new CakeException(sprintf(
                 'Driver class `%s` must implement %s.',
                 is_object($driverClass) ? $driverClass::class : (string)$driverClass,
                 DriverInterface::class,
             ));
         }
+
+        $sharedConfig = array_diff_key($config, array_flip([
+            'name',
+            'driver',
+            'cacheMetadata',
+            'cacheKeyPrefix',
+            'read',
+            'write',
+        ]));
+
+        $writeConfig = ($config['write'] ?? []) + $sharedConfig;
+        $readConfig = ($config['read'] ?? []) + $sharedConfig;
+        if (array_key_exists('write', $config) || array_key_exists('read', $config)) {
+            $readDriver = new $driverClass(['_role' => self::ROLE_READ] + $readConfig);
+            $writeDriver = new $driverClass(['_role' => self::ROLE_WRITE] + $writeConfig);
+        } else {
+            $readDriver = new $driverClass(['_role' => self::ROLE_WRITE] + $writeConfig);
+            $writeDriver = $readDriver;
+        }
+
+        return [$readDriver, $writeDriver];
     }
 
     /**
      * @inheritDoc
      */
-    public function getDriver(string $role = self::ROLE_WRITE): object
+    public function getDriver(string $role = self::ROLE_WRITE): DriverInterface
     {
-        return $this->driver;
+        return $role === self::ROLE_READ ? $this->getReadDriver() : $this->getWriteDriver();
+    }
+
+    /**
+     * Returns the read driver.
+     *
+     * @return \Crustum\Mongo\Database\Driver\DriverInterface
+     */
+    public function getReadDriver(): DriverInterface
+    {
+        return $this->readDriver;
+    }
+
+    /**
+     * Returns the write driver.
+     *
+     * @return \Crustum\Mongo\Database\Driver\DriverInterface
+     */
+    public function getWriteDriver(): DriverInterface
+    {
+        return $this->writeDriver;
     }
 
     /**
@@ -203,7 +266,7 @@ class Connection implements ConnectionInterface
      */
     public function getClient(): Client
     {
-        return $this->driver->getClient();
+        return $this->getDriver()->getClient();
     }
 
     /**
@@ -213,7 +276,7 @@ class Connection implements ConnectionInterface
      */
     public function getDatabase(): Database
     {
-        return $this->driver->getDatabase();
+        return $this->getDriver()->getDatabase();
     }
 
     /**
@@ -224,7 +287,7 @@ class Connection implements ConnectionInterface
      */
     public function getCollection(string $name): Collection
     {
-        return $this->driver->getCollection($name);
+        return $this->getDriver()->getCollection($name);
     }
 
     /**
@@ -360,7 +423,8 @@ class Connection implements ConnectionInterface
     public function run(Query $query): mixed
     {
         $compiled = $query->compile();
-        $collection = $this->getCollection((string)($compiled['collection'] ?? ''));
+        $driver = $this->getDriver($query->getConnectionRole());
+        $collection = $driver->getCollection((string)($compiled['collection'] ?? ''));
 
         $options = $compiled['options'] ?? [];
         if ($this->session instanceof Session) {
@@ -625,7 +689,7 @@ class Connection implements ConnectionInterface
         return [
             'config' => $config,
             'name' => $this->name,
-            'driver' => get_debug_type($this->driver),
+            'driver' => get_debug_type($this->getDriver()),
             'inTransaction' => $this->inTransaction(),
         ];
     }

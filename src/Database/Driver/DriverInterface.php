@@ -63,6 +63,15 @@ interface DriverInterface
     public function config(): array;
 
     /**
+     * Returns the connection role this driver was built for.
+     *
+     * Mirrors cake60 `Driver::getRole()`: read or write, defaulting to write.
+     *
+     * @return string
+     */
+    public function getRole(): string;
+
+    /**
      * Establishes the connection.
      *
      * @return void
