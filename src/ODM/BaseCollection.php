@@ -795,9 +795,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function save(EntityInterface $entity, array $options = []): EntityInterface|false
     {
-        // An embedded child saved through its own collection routes to the
-        // parent document's positional write (mirrors laravel's parent-relation
-        // intercept): `$users->save($address)` updates the parent's `addresses`.
         if ($entity instanceof Document) {
             $embeddedParent = $entity->getEmbeddedParent();
             if ($embeddedParent !== null) {
@@ -1952,7 +1949,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
 
             $query->applyOptions($namedArgs);
-            // Fetch custom args without the query options.
+
             $args = $unNamedArgs + array_intersect_key($args, $query->getOptions());
 
             unset($params[0]);
@@ -1995,7 +1992,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $method = Inflector::underscore($method);
         preg_match('/^find_([\w]+)_by_/', $method, $matches);
         if ($matches === []) {
-            // find_by_ is 8 characters.
             $fields = substr($method, 8);
             $findType = 'all';
         } else {
@@ -2306,14 +2302,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $primaryKey = (array)$this->getPrimaryKey();
         $data = $entity->toArray();
 
-        // Referenced associations are persisted through their own queries /
-        // junction collections, never embedded into the document.
         foreach ($this->associationProperties() as $property) {
             unset($data[$property]);
         }
 
-        // Generate the primary key up front (like cake _newId) so a new
-        // document always has an `_id` on the entity after the insert.
         if (!$entity->has($primaryKey)) {
             $newId = $this->newId(array_values($primaryKey));
             if ($newId !== null) {

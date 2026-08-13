@@ -65,7 +65,6 @@ class ManagerFactory
     {
         $folder = (string)$this->getOption('source');
 
-        // The dir for migrations and seeds.
         $dir = ROOT . DS . 'config' . DS . $folder;
         if (defined('CONFIG')) {
             $dir = CONFIG . $folder;

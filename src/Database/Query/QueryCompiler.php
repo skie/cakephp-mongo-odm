@@ -797,8 +797,6 @@ class QueryCompiler
                 return array_map(fn(mixed $item): mixed => $this->castValue($item, $type), $value);
             }
 
-            // Mongo operator arrays (e.g. `$ne`, `$in`) carry scalar values
-            // that must be cast like their bare field value would be.
             foreach ($value as $operator => $operand) {
                 if (is_string($operator) && str_starts_with($operator, '$')) {
                     $value[$operator] = $this->castValue($operand, $type);

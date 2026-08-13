@@ -212,7 +212,6 @@ class MongoCollectionContext
             $rules['notEmpty'] = ['rule' => $this->getEmptyMethod($fieldName, $type, 'not'), 'args' => []];
         }
 
-        // Unique indexes → validateUnique rule.
         foreach ($schema->indexes() as $index) {
             if (!$index->getUnique()) {
                 continue;

@@ -11,7 +11,9 @@ use Crustum\Mongo\ODM\Association\Embedded;
  */
 class EmbedLoader implements LoaderInterface
 {
-    /** Embedded association being loaded. */
+    /**
+     * Embedded association being loaded.
+     */
     public function __construct(protected Embedded $association)
     {
     }

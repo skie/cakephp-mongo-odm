@@ -346,12 +346,6 @@ class EagerLoader
                 continue;
             }
 
-            // cake60: a non-nested association whose binding/foreign key is
-            // missing from the selected source fields cannot be eager loaded.
-            // belongsTo reads its FK from the source document; an absent or
-            // null value there is a classic optional association → skip it and
-            // leave the property null. HasMany/HasOne read the source binding
-            // key (`_id`) which cake requires to be selected → throw.
             $aliasPath = $loadable->aliasPath();
             if (!str_contains($aliasPath, '.') && $instance->requiresKeys($loadable->getConfig())) {
                 $source = $instance->getSource();

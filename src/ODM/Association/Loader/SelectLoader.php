@@ -50,9 +50,7 @@ class SelectLoader implements LoaderInterface
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
-            // Key ownership follows the relation type: belongsTo (manyToOne)
-            // stores the FK on the source and matches the target binding key;
-            // hasOne/hasMany match the target FK against the source binding key.
+
             $sourceHoldsForeignKey = ($options['associationType'] ?? '') === 'manyToOne';
             $rawSourceKey = $sourceHoldsForeignKey
                 ? ($options['foreignKey'] ?? '_id')
@@ -87,8 +85,6 @@ class SelectLoader implements LoaderInterface
             }
 
             $conditions = is_array($conditions) ? $conditions : [];
-            // A disabled foreign key (`setForeignKey(false)`) matches only by
-            // the association conditions; there is no key to filter on.
             if ($targetKey !== '') {
                 $conditions[$targetKey . ' IN'] = array_values($keys);
             }
@@ -132,9 +128,6 @@ class SelectLoader implements LoaderInterface
             $map = [];
             $disabledKey = $targetKey === '';
             if ($disabledKey) {
-                // Foreign key disabled (`setForeignKey(false)`): association is
-                // matched purely by its conditions, so every loaded row applies
-                // to every source entity.
                 $map['*'] = $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
             } else {
                 foreach ($rows as $row) {
@@ -195,8 +188,6 @@ class SelectLoader implements LoaderInterface
         }
 
         $segments = explode('.', $sourcePath);
-        // The last segment is this association's own property; parents are the
-        // entities that own it (the path without the final segment).
         array_pop($segments);
         $collected = [];
         foreach ($entities as $entity) {

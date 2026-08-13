@@ -74,12 +74,10 @@ class Util
         $matches = [];
         $baseName = basename($fileName);
 
-        // Check for readable format: 2024_12_08_120000_CreateUsersTable.php
         if (preg_match(static::READABLE_MIGRATION_FILE_NAME_PATTERN, $baseName, $matches)) {
             return (int)($matches[1] . $matches[2] . $matches[3] . $matches[4]);
         }
 
-        // Traditional format
         preg_match('/^\d+/', $baseName, $matches);
         $value = (int)($matches[0] ?? null);
         if ($value === 0) {
@@ -115,7 +113,6 @@ class Util
     {
         $matches = [];
 
-        // Check for readable format first: 2024_12_08_120000_CreateUsersTable.php
         if (preg_match(static::READABLE_MIGRATION_FILE_NAME_PATTERN, $fileName, $matches)) {
             return $matches[5];
         }

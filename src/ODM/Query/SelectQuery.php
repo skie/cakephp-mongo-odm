@@ -877,7 +877,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
                 : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, $this);
         }
 
-        // DTO projection runs AFTER all other formatters so behaviors see arrays/documents
         if ($this->dtoClass !== null) {
             $hydrator = $this->resultSetFactory()->getDtoHydrator($this->dtoClass);
             $mapped = $resultSet->map(fn(mixed $row): object => $hydrator((array)$row));

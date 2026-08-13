@@ -109,15 +109,12 @@ class MongoControllerCommand extends BakeCommand
             $prefix = '\\' . str_replace('/', '\\', $prefix);
         }
 
-        // Controllers default to importing AppController from `App`.
         $baseNamespace = Configure::read('App.namespace');
         $namespace = $baseNamespace;
         if ($this->plugin) {
             $namespace = $this->_pluginNamespace($this->plugin);
         }
 
-        // If the plugin has an AppController other plugin controllers
-        // should inherit from it.
         if ($this->plugin && class_exists("{$namespace}\Controller\AppController")) {
             $baseNamespace = $namespace;
         }
@@ -137,8 +134,6 @@ class MongoControllerCommand extends BakeCommand
         $singularHumanName = $this->_singularHumanName($controllerName);
         $pluralHumanName = $this->_variableName($controllerName);
 
-        // Handle cases where singular and plural are identical to avoid
-        // variable collisions in generated controller code.
         if ($singularName === $pluralName) {
             $singularName .= 'Document';
         }

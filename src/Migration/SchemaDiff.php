@@ -44,7 +44,6 @@ class SchemaDiff
 
             $actualDef = $actual[$name];
 
-            // Validator
             $desiredValidator = $definition['validator'] ?? null;
             $actualValidator = $actualDef['validator'] ?? null;
             if ($desiredValidator !== $actualValidator) {
@@ -55,7 +54,6 @@ class SchemaDiff
                 ];
             }
 
-            // Indexes
             $desiredIndexes = $definition['indexes'] ?? [];
             $actualIndexes = $actualDef['indexes'] ?? [];
 

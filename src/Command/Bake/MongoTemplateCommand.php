@@ -262,8 +262,6 @@ class MongoTemplateCommand extends BakeCommand
         $pluralVar = Inflector::variable($this->controllerName);
         $pluralHumanName = $this->_pluralHumanName($this->controllerName);
 
-        // Handle cases where singular and plural are identical to avoid
-        // invalid code like `foreach ($news as $news)`.
         if ($singularVar === $pluralVar) {
             $singularVar .= 'Document';
         }
@@ -344,7 +342,6 @@ class MongoTemplateCommand extends BakeCommand
 
         $renderer->set('indexColumns', $indexColumns);
 
-        // Always use domain translations when in plugin context.
         $useDomain = (bool)$this->plugin;
         $renderer->set('useDomain', $useDomain);
 

@@ -79,7 +79,6 @@ class MongoFixtureCommand extends BakeCommand
             $table = Inflector::underscore(Inflector::pluralize($name));
         }
 
-        // Try to read schema fields from the matching collection.
         $fields = [];
         $records = [];
         try {

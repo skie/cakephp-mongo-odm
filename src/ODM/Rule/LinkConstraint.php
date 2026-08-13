@@ -112,13 +112,9 @@ class LinkConstraint
         $target = $association->getTarget();
 
         if ($association instanceof BelongsTo) {
-            // The source document holds the foreign key (e.g. comment.article_id);
-            // match it against the target binding key (e.g. article._id).
             $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
             $targetKeys = (array)$association->getBindingKey();
         } else {
-            // The target document holds the foreign key; match it against the
-            // source binding key (e.g. author._id).
             $sourceKeys = (array)$association->getBindingKey();
             $targetKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
         }

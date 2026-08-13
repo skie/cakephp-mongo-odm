@@ -350,8 +350,6 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            // Saving the new linked entity failed, copy errors back into the
-            // original entity if applicable and abort.
             if (!empty($options['atomic'])) {
                 $originalEntity = $original[$k] ?? null;
                 if ($originalEntity instanceof EntityInterface) {
@@ -714,9 +712,6 @@ class BelongsToMany extends Association
             return [];
         }
 
-        // The junction records only count as existing links when the related
-        // target document passes the association finder (cake60 joins through
-        // the junction, applying the target association finder/conditions).
         $target = $this->getTarget();
         $targetBindingKey = (array)$junction->getAssociation($target->getAlias())->getBindingKey();
         $targetIds = [];
@@ -1625,10 +1620,6 @@ class BelongsToMany extends Association
 
         $pipelineOptions = $options + $this->associationPipelineOptions();
 
-        // Junction conditions (e.g. `SpecialTags.highlighted`) reference fields
-        // of the through collection, which live inside the `_join_<property>`
-        // lookup result. Filter that array to only matching through rows so the
-        // subsequent target lookup and the loaded property only include them.
         $junctionConditions = [];
         if (!empty($pipelineOptions['conditions']) && is_array($pipelineOptions['conditions'])) {
             $junctionConditions = $this->extractJunctionConditions($pipelineOptions['conditions'], $junction->getAlias());
@@ -1805,8 +1796,6 @@ class BelongsToMany extends Association
             return;
         }
 
-        // Strip the target alias prefix (`Tags._id` -> `_id`) because the sort
-        // applies to the in-array lookup documents.
         $alias = $this->getTarget()->getAlias();
         $stripped = [];
         foreach ($normalized as $field => $direction) {

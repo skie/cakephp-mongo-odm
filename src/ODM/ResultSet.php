@@ -228,8 +228,6 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             return array_diff_key($row, array_flip(array_keys($projection)));
         }
 
-        // Include-style projection: keep keys whose bare field matches a
-        // projection key, or whose mapped value is a string field name.
         $keep = [];
         foreach ($projection as $key => $value) {
             if ((int)$value === 1) {

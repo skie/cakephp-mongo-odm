@@ -177,7 +177,6 @@ class MongoEnumCommand extends SimpleBakeCommand
         $path = $this->getPath($args);
         $filename = $path . $name . '.php';
 
-        // Work around composer caching that classes/files do not exist.
         if (file_exists($filename)) {
             require_once $filename;
         }
