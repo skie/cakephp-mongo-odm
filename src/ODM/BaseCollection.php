@@ -2378,7 +2378,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
 
             if ($entity->has($field)) {
-                $set[$field] = $entity->get($field);
+                $set[$field] = $this->serializeForWrite($entity->get($field));
             } else {
                 $unset[] = $field;
             }
@@ -2401,6 +2401,29 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $count = $query->execute();
 
         return is_int($count) ? $entity : false;
+    }
+
+    /**
+     * Serializes a value for a Mongo write, converting nested Documents to
+     * their array form.
+     *
+     * Embedded children are `Document` instances in memory; the driver needs
+     * plain arrays. Mirrors the recursive export used by `insert()`.
+     *
+     * @param mixed $value The value to serialize.
+     * @return mixed
+     */
+    protected function serializeForWrite(mixed $value): mixed
+    {
+        if ($value instanceof Document) {
+            return $value->toArray();
+        }
+
+        if (is_array($value)) {
+            return array_map(fn(mixed $item): mixed => $this->serializeForWrite($item), $value);
+        }
+
+        return $value;
     }
 
     /**

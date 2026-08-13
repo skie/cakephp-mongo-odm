@@ -5,7 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
 use TestApp\Model\Document\Address;
 
 /**
@@ -31,7 +31,7 @@ class EmbedOneTest extends TestCase
     public function testContainHydratesSingleEmbedded(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $user = $users->find()
             ->contain(['Profile'])
@@ -52,7 +52,7 @@ class EmbedOneTest extends TestCase
     public function testContainNullEmbedded(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $user = $users->find()
             ->contain(['Profile'])
@@ -70,7 +70,7 @@ class EmbedOneTest extends TestCase
     public function testPropertyOption(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Profile');
         $this->assertSame('profile', $association->getProperty());
@@ -87,7 +87,7 @@ class EmbedOneTest extends TestCase
     public function testSetLocalKey(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Profile');
 

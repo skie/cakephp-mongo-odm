@@ -5,7 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
 
 /**
  * Tests the P4 embedded cascade: embedded data lives inside the parent, so
@@ -31,7 +31,7 @@ class EmbeddedCascadeTest extends TestCase
     protected function users(): BaseCollection
     {
         return $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
     }
 

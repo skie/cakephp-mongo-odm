@@ -6,7 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
-use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
 use TestApp\Model\Document\Address;
 
 /**
@@ -32,7 +32,7 @@ class EmbedManyTest extends TestCase
     public function testContainHydratesEmbeddedDocuments(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $user = $users->find()
             ->contain(['Addresses'])
@@ -55,7 +55,7 @@ class EmbedManyTest extends TestCase
     public function testEmbeddedChildrenCarryParentMarker(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $user = $users->find()
             ->contain(['Addresses'])
@@ -76,7 +76,7 @@ class EmbedManyTest extends TestCase
     public function testContainEmptyEmbedded(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $user = $users->find()
             ->contain(['Addresses'])
@@ -95,7 +95,7 @@ class EmbedManyTest extends TestCase
     public function testPropertyOption(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Addresses');
         $this->assertSame('addresses', $association->getProperty());
@@ -112,7 +112,7 @@ class EmbedManyTest extends TestCase
     public function testSetLocalKey(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Addresses');
 
@@ -129,7 +129,7 @@ class EmbedManyTest extends TestCase
     public function testStrategyFailure(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Addresses');
 
@@ -146,7 +146,7 @@ class EmbedManyTest extends TestCase
     public function testEagerLoader(): void
     {
         $users = $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
         $association = $users->getAssociation('Addresses');
 

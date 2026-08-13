@@ -22,7 +22,7 @@ class UsersEmbeddedFixture extends TestFixture
      *
      * @var string
      */
-    public string $collection = 'users';
+    public string $collection = 'users_embedded';
 
     /**
      * Documents to insert.

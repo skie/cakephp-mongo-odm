@@ -5,7 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
 use TestApp\Model\Document\Address;
 
 /**
@@ -31,7 +31,7 @@ class EmbedManySaveTest extends TestCase
     protected function users(): BaseCollection
     {
         return $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
     }
 

@@ -53,6 +53,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use TestApp\Model\Collection\ArticlesCollection;
 use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
+use TestApp\Model\Document\Address;
 use TestApp\Model\Document\Article;
 use TestApp\Model\Document\ArticlesTag;
 use TestApp\Model\Document\Author;
@@ -83,6 +85,7 @@ class BaseCollectionTest extends TestCase
         'plugin.Crustum/Mongo.PolymorphicTagged',
         'plugin.Crustum/Mongo.SiteArticles',
         'plugin.Crustum/Mongo.Users',
+        'plugin.Crustum/Mongo.UsersEmbedded',
     ];
 
     /**
@@ -6926,5 +6929,148 @@ class BaseCollectionTest extends TestCase
      */
     public function skipIfSqlServer(): void
     {
+    }
+
+    /**
+     * Tests select/contain on a collection with embedded associations.
+     *
+     * @return void
+     */
+    public function testEmbeddedSelectContain(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $user = $users->find()
+            ->contain(['Addresses'])
+            ->where(['_id' => '000000000000000000000001'])
+            ->first();
+
+        $this->assertInstanceOf(Document::class, $user);
+        $this->assertContainsOnlyInstancesOf(Address::class, $user->get('addresses'));
+        $this->assertSame('NYC', $user->get('addresses')[0]->get('city'));
+    }
+
+    /**
+     * Tests selecting parents filtered by an embedded field (dotted path).
+     *
+     * @return void
+     */
+    public function testEmbeddedSelectFilteredByEmbeddedField(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $result = $users->find()
+            ->where(['addresses.city' => 'LA'])
+            ->toArray();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('mariano', $result[0]->get('username'));
+    }
+
+    /**
+     * Tests insert of a parent document carrying embedded children.
+     *
+     * @return void
+     */
+    public function testEmbeddedInsert(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $user = $users->newEmptyDocument();
+        $user->set('username', 'embedded-new');
+        $user->set('addresses', [
+            new Address(['city' => 'Chicago', 'zip' => '60601']),
+        ]);
+
+        $saved = $users->save($user);
+        $this->assertNotFalse($saved);
+
+        $loaded = $users->find()->where(['username' => 'embedded-new'])->first();
+        $this->assertCount(1, $loaded->get('addresses'));
+        $this->assertSame('Chicago', $loaded->get('addresses')[0]['city']);
+    }
+
+    /**
+     * Tests update replacing the embedded children of an existing parent.
+     *
+     * @return void
+     */
+    public function testEmbeddedUpdate(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $user = $users->get('000000000000000000000001');
+        $user->set('addresses', [
+            new Address(['city' => 'Chicago', 'zip' => '60601']),
+        ]);
+
+        $this->assertNotFalse($users->save($user));
+
+        $loaded = $users->get('000000000000000000000001');
+        $this->assertCount(1, $loaded->get('addresses'));
+        $this->assertSame('Chicago', $loaded->get('addresses')[0]['city']);
+    }
+
+    /**
+     * Tests delete removing a parent and its embedded children structurally.
+     *
+     * @return void
+     */
+    public function testEmbeddedDelete(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $user = $users->get('000000000000000000000002');
+        $this->assertTrue($users->delete($user));
+
+        $this->assertFalse($users->exists(['_id' => '000000000000000000000002']));
+    }
+
+    /**
+     * Tests matching() on an embedded association filters parents.
+     *
+     * @return void
+     */
+    public function testEmbeddedMatching(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $result = $users->find()->matching('Addresses')->toArray();
+
+        $this->assertCount(2, $result);
+    }
+
+    /**
+     * Tests updateAll on an embedded field (dotted path).
+     *
+     * @return void
+     */
+    public function testEmbeddedUpdateAll(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersEmbeddedCollection::class,
+        ]);
+
+        $count = $users->updateAll(
+            ['addresses' => [['city' => 'X', 'zip' => '00000']]],
+            ['_id' => '000000000000000000000001'],
+        );
+
+        $this->assertSame(1, $count);
+
+        $loaded = $users->get('000000000000000000000001');
+        $this->assertSame('X', $loaded->get('addresses')[0]['city']);
     }
 }

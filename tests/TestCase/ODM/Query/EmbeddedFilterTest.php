@@ -5,7 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Query;
 
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use TestApp\Model\Collection\UsersCollection;
+use TestApp\Model\Collection\UsersEmbeddedCollection;
 
 /**
  * Tests the P2 server-side filtering of embedded documents via the standard
@@ -30,7 +30,7 @@ class EmbeddedFilterTest extends TestCase
     protected function users(): BaseCollection
     {
         return $this->getCollectionLocator()->get('Users', [
-            'className' => UsersCollection::class,
+            'className' => UsersEmbeddedCollection::class,
         ]);
     }
 
