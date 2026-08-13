@@ -23,6 +23,7 @@ use Cake\Event\EventManager;
 use Cake\Event\EventManagerInterface;
 use Cake\ORM\Locator\LocatorAwareTrait as OrmLocatorAwareTrait;
 use Cake\Utility\Inflector;
+use Cake\Validation\Validator;
 use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
 use Closure;
@@ -794,6 +795,19 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function save(EntityInterface $entity, array $options = []): EntityInterface|false
     {
+        // An embedded child saved through its own collection routes to the
+        // parent document's positional write (mirrors laravel's parent-relation
+        // intercept): `$users->save($address)` updates the parent's `addresses`.
+        if ($entity instanceof Document) {
+            $embeddedParent = $entity->getEmbeddedParent();
+            if ($embeddedParent !== null) {
+                $parent = $embeddedParent['parent'];
+                $association = $embeddedParent['association'];
+
+                return $association->saveChild($parent, $entity) ? $entity : false;
+            }
+        }
+
         $options = new ArrayObject($options + [
             'atomic' => true,
             'associated' => true,
@@ -2757,6 +2771,34 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * In the above example, the email uniqueness will be scoped to only documents having
      * the same site_id. Scoping will only be used if the scoping field is present in
      * the data to be validated.
+     */
+    public function validationDefault(Validator $validator): Validator
+    {
+        foreach ($this->associations as $association) {
+            if (!$association instanceof Embedded) {
+                continue;
+            }
+
+            $childValidator = $association->getEmbeddedValidator();
+            if (!$childValidator instanceof Validator) {
+                continue;
+            }
+
+            if ($association instanceof EmbedMany) {
+                $validator->addNestedMany($association->getLocalKey(), $childValidator);
+            } else {
+                $validator->addNested($association->getLocalKey(), $childValidator);
+            }
+        }
+
+        return $validator;
+    }
+
+    /**
+     * Validates a unique value against the collection.
+     *
+     * Replaces the specified set of fields with the value in the schema, checks
+     * that the value is not in use by another document on the same collection.
      *
      * @param mixed $value The value of column to be checked for uniqueness.
      * @param array<string, mixed> $options The options array, optionally containing the 'scope' key.

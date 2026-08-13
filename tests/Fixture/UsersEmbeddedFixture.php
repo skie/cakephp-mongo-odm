@@ -34,16 +34,16 @@ class UsersEmbeddedFixture extends TestFixture
             '_id' => '000000000000000000000001',
             'username' => 'mariano',
             'addresses' => [
-                ['city' => 'NYC', 'zip' => '10001'],
-                ['city' => 'LA', 'zip' => '90001'],
+                ['_id' => '000000000000000000000001', 'city' => 'NYC', 'zip' => '10001'],
+                ['_id' => '000000000000000000000002', 'city' => 'LA', 'zip' => '90001'],
             ],
-            'profile' => ['city' => 'NYC', 'zip' => '10001'],
+            'profile' => ['_id' => '000000000000000000000001', 'city' => 'NYC', 'zip' => '10001'],
         ],
         [
             '_id' => '000000000000000000000002',
             'username' => 'nate',
             'addresses' => [
-                ['city' => 'SF', 'zip' => '94101'],
+                ['_id' => '000000000000000000000003', 'city' => 'SF', 'zip' => '94101'],
             ],
             'profile' => null,
         ],
