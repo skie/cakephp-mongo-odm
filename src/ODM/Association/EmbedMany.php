@@ -60,15 +60,4 @@ class EmbedMany extends Embedded
             return $entities;
         };
     }
-
-    /**
-     * Embedded values require no aggregation stages.
-     *
-     * @param array<string, mixed> $options Pipeline options.
-     * @return array<int, array<string, mixed>>
-     */
-    public function buildPipeline(array $options = []): array
-    {
-        return [];
-    }
 }

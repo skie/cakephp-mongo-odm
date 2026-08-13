@@ -29,6 +29,26 @@ abstract class Embedded extends Association
     protected array $validStrategies = [self::STRATEGY_EMBED];
 
     /**
+     * Parent field holding the embedded data (defaults to the property).
+     *
+     * @var string|null
+     */
+    protected ?string $localKey = null;
+
+    /**
+     * Sets the local key (parent field holding the embedded data).
+     *
+     * @param string $localKey Field name on the parent document.
+     * @return $this
+     */
+    public function setLocalKey(string $localKey): static
+    {
+        $this->localKey = $localKey;
+
+        return $this;
+    }
+
+    /**
      * Embedded data lives inside the source document, so the "target" is the
      * source collection itself.
      *
@@ -96,6 +116,66 @@ abstract class Embedded extends Association
         }
 
         return $document;
+    }
+
+    /**
+     * Builds `$match` stages for `matching()` / `notMatching()` on the
+     * embedded field.
+     *
+     * Embedded data lives in the parent document, so matching is a plain
+     * `$match` on the field:
+     * - `matching()` → the field is non-empty (`$exists` + `$ne` empty; with
+     *   conditions an `$elemMatch`).
+     * - `notMatching()` (negateMatch) → the field is absent/null/empty.
+     *
+     * @param array<string, mixed> $options Pipeline options (`matching`,
+     *   `negateMatch`, `conditions`).
+     * @return array<int, array<string, mixed>>
+     */
+    public function buildPipeline(array $options = []): array
+    {
+        $matching = (bool)($options['matching'] ?? false);
+        if (!$matching) {
+            return [];
+        }
+
+        $field = $this->getLocalKey();
+        $negate = (bool)($options['negateMatch'] ?? false);
+        $conditions = $options['conditions'] ?? [];
+
+        if ($negate) {
+            return [[
+                '$match' => [
+                    $field => ['$in' => [null, []]],
+                ],
+            ]];
+        }
+
+        if ($conditions !== []) {
+            return [[
+                '$match' => [
+                    $field => ['$elemMatch' => $conditions],
+                ],
+            ]];
+        }
+
+        return [[
+            '$match' => [
+                $field => ['$exists' => true, '$nin' => [null, []]],
+            ],
+        ]];
+    }
+
+    /**
+     * Gets the local key (parent field holding the embedded data).
+     *
+     * Defaults to the association property; overridable via `localKey`.
+     *
+     * @return string
+     */
+    public function getLocalKey(): string
+    {
+        return $this->localKey ?? $this->getProperty();
     }
 
     /**

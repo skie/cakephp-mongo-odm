@@ -540,6 +540,15 @@ class QueryBuilder
         switch ($operator) {
             case '=':
             case 'eq':
+                // An associative (document-shaped) array value is a Mongo
+                // element match: `{field: {k: v}}` only matches embedded docs
+                // whose *whole* shape equals the value. Wrap in `$elemMatch`
+                // so it matches any embedded element with those fields
+                // (standard Cake `where(['field' => ['k' => 'v']])`).
+                if (is_array($value) && $value !== [] && !array_is_list($value)) {
+                    return ['$elemMatch' => $value];
+                }
+
                 return $value;
             case 'is':
             default:
