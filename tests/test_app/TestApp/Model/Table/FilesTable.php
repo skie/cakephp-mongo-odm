@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace TestApp\Model\Table;
 
 use Cake\ORM\Table;
+use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
+use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareTrait;
 
 /**
  * SQL ORM Files table for the cross-boundary bridge tests.
@@ -13,8 +15,10 @@ use Cake\ORM\Table;
  *
  * @see docs/reference/29-orm-mongo-association-bridge.md §5.5
  */
-class FilesTable extends Table
+class FilesTable extends Table implements MongoCollectionAwareInterface
 {
+    use MongoCollectionAwareTrait;
+
     /**
      * @inheritDoc
      */
