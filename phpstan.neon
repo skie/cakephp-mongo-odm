@@ -54,5 +54,10 @@ parameters:
             identifier: trait.unused
             path: src/Orm/Bridge/OrmTableAwareTrait.php
             reportUnmatched: false
+        -
+            # Public library trait: consumed by collections outside src/.
+            identifier: trait.unused
+            path: src/Orm/Bridge/Orm/OrmAssociationsTrait.php
+            reportUnmatched: false
 
 services:
