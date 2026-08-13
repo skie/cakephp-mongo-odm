@@ -7,7 +7,9 @@ use Cake\Datasource\EntityInterface;
 use Cake\ORM\Table;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
+use Crustum\Mongo\Orm\Bridge\Row\DocumentWrapper;
 use InvalidArgumentException;
 use function Cake\Core\pluginSplit;
 
@@ -417,9 +419,36 @@ abstract class Association
     {
         $key = $this->extractSourceKey($row);
         $value = $key !== null ? ($map[(string)$key] ?? $this->emptyValue()) : $this->emptyValue();
-        $this->attachToRow($row, $value, $nestKey);
+        $this->attachToRow($row, $this->wrapValue($value), $nestKey);
 
         return $row;
+    }
+
+    /**
+     * Wraps loaded documents when `autoWrap` is enabled.
+     *
+     * A single `Document` becomes a `DocumentWrapper`; a list becomes a list
+     * of wrappers.
+     *
+     * @param mixed $value The loaded association value.
+     * @return mixed
+     */
+    protected function wrapValue(mixed $value): mixed
+    {
+        if (!$this->autoWrap) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $wrapped = [];
+            foreach ($value as $key => $item) {
+                $wrapped[$key] = $item instanceof Document ? new DocumentWrapper($item) : $item;
+            }
+
+            return $wrapped;
+        }
+
+        return $value instanceof Document ? new DocumentWrapper($value) : $value;
     }
 
     /**
