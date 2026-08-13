@@ -61,4 +61,38 @@ class EmbedOneTest extends TestCase
 
         $this->assertNull($user->get('profile'));
     }
+
+    /**
+     * Tests that a custom propertyName option is honoured.
+     *
+     * @return void
+     */
+    public function testPropertyOption(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Profile');
+        $this->assertSame('profile', $association->getProperty());
+
+        $association->setProperty('mainProfile');
+        $this->assertSame('mainProfile', $association->getProperty());
+    }
+
+    /**
+     * Tests that setLocalKey overrides the parent field holding the data.
+     *
+     * @return void
+     */
+    public function testSetLocalKey(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Profile');
+
+        $this->assertSame('profile', $association->getLocalKey());
+        $association->setLocalKey('mainProfile');
+        $this->assertSame('mainProfile', $association->getLocalKey());
+    }
 }

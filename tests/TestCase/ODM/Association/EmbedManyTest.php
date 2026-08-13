@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use InvalidArgumentException;
 use TestApp\Model\Collection\UsersCollection;
 use TestApp\Model\Document\Address;
 
@@ -84,5 +85,80 @@ class EmbedManyTest extends TestCase
 
         $this->assertCount(1, $user->get('addresses'));
         $this->assertSame('SF', $user->get('addresses')[0]->get('city'));
+    }
+
+    /**
+     * Tests that a custom propertyName option is honoured.
+     *
+     * @return void
+     */
+    public function testPropertyOption(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Addresses');
+        $this->assertSame('addresses', $association->getProperty());
+
+        $association->setProperty('locations');
+        $this->assertSame('locations', $association->getProperty());
+    }
+
+    /**
+     * Tests that setLocalKey overrides the parent field holding the data.
+     *
+     * @return void
+     */
+    public function testSetLocalKey(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Addresses');
+
+        $this->assertSame('addresses', $association->getLocalKey());
+        $association->setLocalKey('locations');
+        $this->assertSame('locations', $association->getLocalKey());
+    }
+
+    /**
+     * Tests that a non-embed strategy is rejected.
+     *
+     * @return void
+     */
+    public function testStrategyFailure(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Addresses');
+
+        $this->assertSame('embed', $association->getStrategy());
+        $this->expectException(InvalidArgumentException::class);
+        $association->setStrategy('select');
+    }
+
+    /**
+     * Tests that eagerLoader() hydrates via the association directly.
+     *
+     * @return void
+     */
+    public function testEagerLoader(): void
+    {
+        $users = $this->getCollectionLocator()->get('Users', [
+            'className' => UsersCollection::class,
+        ]);
+        $association = $users->getAssociation('Addresses');
+
+        $loader = $association->eagerLoader([]);
+        $user = $users->newEmptyDocument();
+        $user->set('addresses', [
+            ['city' => 'NYC', 'zip' => '10001'],
+            ['city' => 'LA', 'zip' => '90001'],
+        ]);
+
+        $result = iterator_to_array($loader([$user]));
+        $this->assertSame($user, $result[0]);
+        $this->assertContainsOnlyInstancesOf(Address::class, $user->get('addresses'));
     }
 }
