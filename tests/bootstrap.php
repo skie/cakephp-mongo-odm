@@ -153,6 +153,8 @@ $schemaLoader->loadInternalFile(TESTS . 'schema.php');
 $schemaGenerator = new SchemaGenerator(TESTS . 'schema_mongo.php', 'test_mongo');
 $schemaGenerator->reload();
 
+$schemaLoader->loadInternalFile(TESTS . 'schema_orm.php');
+
 if (file_exists(CONFIG . 'bootstrap.php')) {
     require CONFIG . 'bootstrap.php';
 }
