@@ -33,3 +33,7 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   query role. Tests: `ConnectionTest` role suite +
   `BelongsToManyTest`/`HasManyTest::testEagerLoaderConnectionRole` rewritten
   for Mongo.
+- **Nested options merge in `Connection::createDrivers()`** — `read`/`write`
+  sub-configs merge with the shared config via `array_replace_recursive`, so a
+  role-specific `readPreference` keeps shared TLS/`retryWrites` options (app.php
+  roles + TLS work together).

@@ -175,6 +175,43 @@ class ConnectionTest extends TestCase
     }
 
     /**
+     * Test that a read sub-config merges nested options with the shared config
+     * (TLS in the shared options must survive a read-only readPreference).
+     *
+     * @return void
+     */
+    public function testReadWriteSplitMergesNestedOptions(): void
+    {
+        $connection = new Connection([
+            'name' => 'split_options',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'options' => [
+                'tls' => 'true',
+                'tlsCAFile' => '/path/to/bundle.pem',
+                'retryWrites' => false,
+            ],
+            'read' => [
+                'options' => ['readPreference' => 'secondaryPreferred'],
+            ],
+            'write' => [
+                'options' => ['readPreference' => 'primary'],
+            ],
+        ]);
+
+        $readOptions = $connection->getReadDriver()->getOptions();
+        $this->assertSame('true', $readOptions['tls']);
+        $this->assertSame('/path/to/bundle.pem', $readOptions['tlsCAFile']);
+        $this->assertFalse($readOptions['retryWrites']);
+        $this->assertSame('secondaryPreferred', $readOptions['readPreference']);
+
+        $writeOptions = $connection->getWriteDriver()->getOptions();
+        $this->assertSame('true', $writeOptions['tls']);
+        $this->assertSame('primary', $writeOptions['readPreference']);
+    }
+
+    /**
      * Test the connection implements ConnectionInterface.
      *
      * @return void
