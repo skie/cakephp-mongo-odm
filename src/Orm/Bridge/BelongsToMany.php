@@ -17,9 +17,26 @@ class BelongsToMany extends Association
     /**
      * @inheritDoc
      */
-    public function load(iterable $entities): void
+    public function loadByKeys(array $keys): array
     {
         // Implemented in P4 (junction + array pivot load).
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function sourceKeyField(): string
+    {
+        return $this->bindingKey();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function emptyValue(): mixed
+    {
+        return [];
     }
 
     /**
@@ -38,5 +55,17 @@ class BelongsToMany extends Association
         $pk = $this->getSource()->getPrimaryKey();
 
         return is_array($pk) ? ($pk[0] ?? '_id') : $pk;
+    }
+
+    /**
+     * Single binding key (string) read from the source row.
+     *
+     * @return string
+     */
+    protected function bindingKey(): string
+    {
+        $key = $this->getBindingKey();
+
+        return is_array($key) ? ($key[0] ?? '_id') : $key;
     }
 }

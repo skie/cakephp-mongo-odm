@@ -21,31 +21,17 @@ class BelongsTo extends Association
     /**
      * @inheritDoc
      */
-    public function load(iterable $entities): void
+    public function loadByKeys(array $keys): array
     {
         $collection = $this->getTarget();
         $bindingKey = $this->bindingKey();
-        $foreignKey = $this->foreignKey();
 
-        $ids = [];
-        $rows = [];
-        foreach ($entities as $row) {
-            $rows[] = $row;
-            $value = $this->extractField($row, $foreignKey);
-            if ($value !== null && $value !== '') {
-                $ids[(string)$value] = $value;
-            }
+        $query = $collection->find()->where([$bindingKey . ' IN' => $keys]);
+        if ($this->getConditions() !== []) {
+            $query->where($this->getConditions());
         }
 
-        if ($ids === []) {
-            $this->attachNull($rows);
-
-            return;
-        }
-
-        $documents = $collection->find()
-            ->where([$bindingKey . ' IN' => array_values($ids)])
-            ->toArray();
+        $documents = $query->toArray();
 
         $map = [];
         foreach ($documents as $document) {
@@ -57,10 +43,23 @@ class BelongsTo extends Association
             }
         }
 
-        foreach ($rows as $row) {
-            $value = $this->extractField($row, $foreignKey);
-            $this->attachToRow($row, $value !== null ? ($map[(string)$value] ?? null) : null);
-        }
+        return $map;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function sourceKeyField(): string
+    {
+        return $this->foreignKey();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function emptyValue(): mixed
+    {
+        return null;
     }
 
     /**
@@ -111,18 +110,5 @@ class BelongsTo extends Association
         $key = $this->getForeignKey();
 
         return is_array($key) ? ($key[0] ?? '') : $key;
-    }
-
-    /**
-     * Sets null on every source row when there is nothing to match.
-     *
-     * @param list<\Cake\Datasource\EntityInterface|array<string, mixed>> $rows Source rows.
-     * @return void
-     */
-    protected function attachNull(array $rows): void
-    {
-        foreach ($rows as $row) {
-            $this->attachToRow($row, null);
-        }
     }
 }

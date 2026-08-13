@@ -16,9 +16,26 @@ class DBRef extends Association
     /**
      * @inheritDoc
      */
-    public function load(iterable $entities): void
+    public function loadByKeys(array $keys): array
     {
         // Implemented in P4 (DBRef pointer load).
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function sourceKeyField(): string
+    {
+        return $this->foreignKey();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function emptyValue(): mixed
+    {
+        return null;
     }
 
     /**
@@ -35,5 +52,17 @@ class DBRef extends Association
     protected function defaultBindingKey(): string
     {
         return '_id';
+    }
+
+    /**
+     * Single foreign key (string) read from the source row.
+     *
+     * @return string
+     */
+    protected function foreignKey(): string
+    {
+        $key = $this->getForeignKey();
+
+        return is_array($key) ? ($key[0] ?? '') : $key;
     }
 }

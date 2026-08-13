@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Test\TestCase\Orm\Bridge;
 
 use Cake\ORM\Table;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Orm\Bridge\HasOne;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
@@ -126,5 +127,21 @@ class HasOneTest extends TestCase
         $this->assertSame('bridge_order_id', $association->getForeignKey());
         $this->assertSame('id', $association->getBindingKey());
         $this->assertSame('post', $association->getProperty());
+    }
+
+    /**
+     * Tests that find() returns an un-executed query against the target.
+     *
+     * @return void
+     */
+    public function testFindReturnsLazyQuery(): void
+    {
+        $association = new HasOne('Posts', $this->Orders, [
+            'foreignKey' => 'order_id',
+        ]);
+
+        $query = $association->find();
+        $this->assertInstanceOf(SelectQuery::class, $query);
+        $this->assertCount(2, $query->all()->toList());
     }
 }

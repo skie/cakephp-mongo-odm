@@ -34,5 +34,25 @@ parameters:
             identifier: trait.unused
             path: src/ODM/Locator/CollectionAwareTrait.php
             reportUnmatched: false
+        -
+            # Public library trait: unused within src/ by design (consumers mix it in).
+            identifier: trait.unused
+            path: src/Orm/Bridge/MongoAssociationsTrait.php
+            reportUnmatched: false
+        -
+            # Public library trait: used by the Proxy classes in this package.
+            identifier: trait.unused
+            path: src/Orm/Bridge/Proxy/ProxyTrait.php
+            reportUnmatched: false
+        -
+            # Public library trait: consumed by app tables outside src/.
+            identifier: trait.unused
+            path: src/Orm/Bridge/MongoCollectionAwareTrait.php
+            reportUnmatched: false
+        -
+            # Public library trait: consumed by collections outside src/.
+            identifier: trait.unused
+            path: src/Orm/Bridge/OrmTableAwareTrait.php
+            reportUnmatched: false
 
 services:

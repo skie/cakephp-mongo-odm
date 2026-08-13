@@ -21,45 +21,69 @@ class HasMany extends Association
     /**
      * @inheritDoc
      */
-    public function load(iterable $entities): void
+    public function loadByKeys(array $keys): array
     {
         $collection = $this->getTarget();
         $foreignKey = $this->foreignKey();
-        $bindingKey = $this->bindingKey();
 
-        $rows = [];
-        $ids = [];
-        foreach ($entities as $row) {
-            $rows[] = $row;
-            $value = $this->extractField($row, $bindingKey);
-            if ($value !== null && $value !== '') {
-                $ids[(string)$value] = $value;
-            }
+        $query = $collection->find()->where([$foreignKey . ' IN' => $keys]);
+        if ($this->getConditions() !== []) {
+            $query->where($this->getConditions());
         }
+
+        $documents = $query->toArray();
 
         $map = [];
-        if ($ids !== []) {
-            $query = $collection->find()->where([$foreignKey . ' IN' => array_values($ids)]);
-            if ($this->getConditions() !== []) {
-                $query->where($this->getConditions());
-            }
-
-            $documents = $query->toArray();
-            foreach ($documents as $document) {
-                $value = $document instanceof EntityInterface
-                    ? $document->get($foreignKey)
-                    : ($document[$foreignKey] ?? null);
-                if ($value !== null) {
-                    $map[(string)$value][] = $document;
-                }
+        foreach ($documents as $document) {
+            $value = $document instanceof EntityInterface
+                ? $document->get($foreignKey)
+                : ($document[$foreignKey] ?? null);
+            if ($value !== null) {
+                $map[(string)$value][] = $document;
             }
         }
 
-        foreach ($rows as $row) {
-            $value = $this->extractField($row, $bindingKey);
-            $loaded = $value !== null ? ($map[(string)$value] ?? []) : [];
-            $this->attachToRow($row, $loaded);
+        return $map;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function sourceKeyField(): string
+    {
+        return $this->bindingKey();
+    }
+
+    /**
+     * Persists a list of documents, each carrying the source foreign key.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source entity.
+     * @param mixed $value List of document data rows.
+     * @return bool
+     */
+    public function save(EntityInterface $entity, mixed $value): bool
+    {
+        $fkValue = $entity->get($this->bindingKey());
+        $collection = $this->getTarget();
+
+        $documents = [];
+        foreach ((array)$value as $data) {
+            if (!is_array($data)) {
+                continue;
+            }
+            $data[$this->foreignKey()] = $fkValue;
+            $documents[] = $collection->newDocument($data);
         }
+
+        return $collection->saveMany($documents) !== false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function emptyValue(): mixed
+    {
+        return [];
     }
 
     /**

@@ -3,11 +3,10 @@ declare(strict_types=1);
 
 namespace TestApp\Model\Table;
 
-use Cake\Datasource\FactoryLocator;
 use Cake\ORM\Table;
-use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\Orm\Bridge\MongoAssociationsTrait;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
-use InvalidArgumentException;
+use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareTrait;
 
 /**
  * Minimal ORM Table for the cross-boundary bridge tests.
@@ -19,21 +18,8 @@ use InvalidArgumentException;
  */
 class BridgeOrdersTable extends Table implements MongoCollectionAwareInterface
 {
-    /**
-     * @inheritDoc
-     */
-    public function getMongoCollection(string $alias, array $options = []): BaseCollection
-    {
-        $collection = FactoryLocator::get('Collection')->get($alias, $options);
-        if (!$collection instanceof BaseCollection) {
-            throw new InvalidArgumentException(sprintf(
-                '`%s` did not resolve to a BaseCollection.',
-                $alias,
-            ));
-        }
-
-        return $collection;
-    }
+    use MongoAssociationsTrait;
+    use MongoCollectionAwareTrait;
 
     /**
      * Returns the primary key without hitting a database schema.

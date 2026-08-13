@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Orm\Bridge;
 
 use Cake\ORM\Table;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Orm\Bridge\BelongsTo;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
@@ -121,6 +122,20 @@ class BelongsToTest extends TestCase
         $this->assertSame('author_id', $association->getForeignKey());
         $this->assertSame('_id', $association->getBindingKey());
         $this->assertSame('author', $association->getProperty());
+    }
+
+    /**
+     * Tests that find() returns an un-executed query against the target.
+     *
+     * @return void
+     */
+    public function testFindReturnsLazyQuery(): void
+    {
+        $association = new BelongsTo('Authors', $this->Orders);
+
+        $query = $association->find();
+        $this->assertInstanceOf(SelectQuery::class, $query);
+        $this->assertCount(4, $query->all()->toList());
     }
 
     /**

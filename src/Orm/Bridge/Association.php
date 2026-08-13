@@ -7,6 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\ORM\Table;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use function Cake\Core\pluginSplit;
 
@@ -154,6 +155,75 @@ abstract class Association
     }
 
     /**
+     * Builds a lazy query against the target Mongo collection.
+     *
+     * Mirrors cake `Association::find()`: the query is returned un-executed so
+     * the caller decides when to materialize (`->all()`, `->first()`). The
+     * association `conditions` are pre-applied.
+     *
+     * @param string $type Finder name.
+     * @param mixed ...$args Finder arguments.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery
+     */
+    public function find(string $type = 'all', mixed ...$args): SelectQuery
+    {
+        $query = $this->getTarget()->find($type, ...$args);
+        if ($this->getConditions() !== []) {
+            $query->where($this->getConditions());
+        }
+
+        return $query;
+    }
+
+    /**
+     * Persists a dirty cross-association value for a source row.
+     *
+     * Direction-1 save hook used by `saveWithBridge()`: writes the associated
+     * data to the target Mongo collection. The base implementation marshals
+     * the value into a document carrying the foreign key and saves it via the
+     * target collection; subclasses override when the write shape differs
+     * (HasMany writes a list of documents).
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source entity.
+     * @param mixed $value The dirty association value.
+     * @return bool Whether the write succeeded.
+     */
+    public function save(EntityInterface $entity, mixed $value): bool
+    {
+        $data = is_array($value) ? $value : ['data' => $value];
+        $data[$this->foreignKey()] = $entity->get($this->bindingKey());
+
+        $collection = $this->getTarget();
+        $document = $collection->newDocument($data);
+
+        return $collection->save($document) !== false;
+    }
+
+    /**
+     * Single foreign key (string) used for writes.
+     *
+     * @return string
+     */
+    protected function foreignKey(): string
+    {
+        $key = $this->getForeignKey();
+
+        return is_array($key) ? ($key[0] ?? '') : $key;
+    }
+
+    /**
+     * Single binding key (string) read from the source row.
+     *
+     * @return string
+     */
+    protected function bindingKey(): string
+    {
+        $key = $this->getBindingKey();
+
+        return is_array($key) ? ($key[0] ?? '_id') : $key;
+    }
+
+    /**
      * Gets the foreign key.
      *
      * @return array<string>|string
@@ -284,10 +354,104 @@ abstract class Association
      * Runs one batched Mongo query, matches by key, and sets the association
      * property on each source entity.
      *
-     * @param iterable<\Cake\Datasource\EntityInterface> $entities Source entities.
+     * @param iterable<\Cake\Datasource\EntityInterface|array<string, mixed>> $entities Source rows.
      * @return void
      */
-    abstract public function load(iterable $entities): void;
+    public function load(iterable $entities): void
+    {
+        $rows = [];
+        $keys = [];
+        foreach ($entities as $row) {
+            $rows[] = $row;
+            $value = $this->extractSourceKey($row);
+            if ($value !== null && $value !== '') {
+                $keys[(string)$value] = $value;
+            }
+        }
+
+        $map = $keys === [] ? [] : $this->loadByKeys(array_values($keys));
+
+        foreach ($rows as $row) {
+            $this->injectRow($row, $map);
+        }
+    }
+
+    /**
+     * Loads the target documents matching the given source keys and builds a
+     * keyed map (one batched Mongo query).
+     *
+     * @param list<int|string> $keys Source key values.
+     * @return array<string, mixed> Map of target-key string to document(s).
+     */
+    abstract public function loadByKeys(array $keys): array;
+
+    /**
+     * Injects the loaded association value into a single source row.
+     *
+     * Reads the source key from the row, looks it up in the map, and attaches
+     * the result under the association property (or the given nest key).
+     *
+     * @param \Cake\Datasource\EntityInterface|array<string, mixed> $row The source row.
+     * @param array<string, mixed> $map Keyed map built by {@see loadByKeys()}.
+     * @param string|null $nestKey Override for the property name (eager-loader alias path).
+     * @return \Cake\Datasource\EntityInterface|array<string, mixed>
+     */
+    public function injectRow(EntityInterface|array $row, array $map, ?string $nestKey = null): EntityInterface|array
+    {
+        $key = $this->extractSourceKey($row);
+        $value = $key !== null ? ($map[(string)$key] ?? $this->emptyValue()) : $this->emptyValue();
+        $this->attachToRow($row, $value, $nestKey);
+
+        return $row;
+    }
+
+    /**
+     * Extracts the source-side key field used to build the batched filter.
+     *
+     * BelongsTo reads the SQL foreign key column; HasOne/HasMany read the SQL
+     * primary key (binding key).
+     *
+     * @param \Cake\Datasource\EntityInterface|array<string, mixed> $row The source row.
+     * @return mixed
+     */
+    protected function extractSourceKey(EntityInterface|array $row): mixed
+    {
+        return $this->extractField($row, $this->sourceKeyField());
+    }
+
+    /**
+     * Source-side field whose value is matched against the target.
+     *
+     * @return string
+     */
+    abstract protected function sourceKeyField(): string;
+
+    /**
+     * Default value attached when nothing matches (null for singular, [] for many).
+     *
+     * @return mixed
+     */
+    abstract protected function emptyValue(): mixed;
+
+    /**
+     * Public accessor for the default empty value.
+     *
+     * @return mixed
+     */
+    public function getEmptyValue(): mixed
+    {
+        return $this->emptyValue();
+    }
+
+    /**
+     * Public accessor for the source-side key field.
+     *
+     * @return string
+     */
+    public function getSourceKeyField(): string
+    {
+        return $this->sourceKeyField();
+    }
 
     /**
      * Extracts a single field value from an entity or array row.
@@ -310,17 +474,19 @@ abstract class Association
      *
      * @param \Cake\Datasource\EntityInterface|array<string, mixed> $row The row.
      * @param mixed $value The loaded value.
+     * @param string|null $nestKey Override for the property name.
      * @return void
      */
-    protected function attachToRow(EntityInterface|array &$row, mixed $value): void
+    protected function attachToRow(EntityInterface|array &$row, mixed $value, ?string $nestKey = null): void
     {
+        $property = $nestKey ?? $this->propertyName;
         if ($row instanceof EntityInterface) {
-            $row->set($this->propertyName, $value);
+            $row->set($property, $value);
 
             return;
         }
 
-        $row[$this->propertyName] = $value;
+        $row[$property] = $value;
     }
 
     /**

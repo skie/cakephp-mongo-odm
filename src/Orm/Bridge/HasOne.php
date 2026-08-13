@@ -21,45 +21,45 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
-    public function load(iterable $entities): void
+    public function loadByKeys(array $keys): array
     {
         $collection = $this->getTarget();
         $foreignKey = $this->foreignKey();
-        $bindingKey = $this->bindingKey();
 
-        $rows = [];
-        $ids = [];
-        foreach ($entities as $row) {
-            $rows[] = $row;
-            $value = $this->extractField($row, $bindingKey);
-            if ($value !== null && $value !== '') {
-                $ids[(string)$value] = $value;
-            }
+        $query = $collection->find()->where([$foreignKey . ' IN' => $keys]);
+        if ($this->getConditions() !== []) {
+            $query->where($this->getConditions());
         }
+
+        $documents = $query->toArray();
 
         $map = [];
-        if ($ids !== []) {
-            $query = $collection->find()->where([$foreignKey . ' IN' => array_values($ids)]);
-            if ($this->getConditions() !== []) {
-                $query->where($this->getConditions());
-            }
-
-            $documents = $query->toArray();
-            foreach ($documents as $document) {
-                $value = $document instanceof EntityInterface
-                    ? $document->get($foreignKey)
-                    : ($document[$foreignKey] ?? null);
-                if ($value !== null && !isset($map[(string)$value])) {
-                    $map[(string)$value] = $document;
-                }
+        foreach ($documents as $document) {
+            $value = $document instanceof EntityInterface
+                ? $document->get($foreignKey)
+                : ($document[$foreignKey] ?? null);
+            if ($value !== null && !isset($map[(string)$value])) {
+                $map[(string)$value] = $document;
             }
         }
 
-        foreach ($rows as $row) {
-            $value = $this->extractField($row, $bindingKey);
-            $loaded = $value !== null ? ($map[(string)$value] ?? null) : null;
-            $this->attachToRow($row, $loaded);
-        }
+        return $map;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function sourceKeyField(): string
+    {
+        return $this->bindingKey();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function emptyValue(): mixed
+    {
+        return null;
     }
 
     /**
