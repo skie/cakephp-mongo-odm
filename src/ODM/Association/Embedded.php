@@ -179,6 +179,20 @@ abstract class Embedded extends Association
     }
 
     /**
+     * Embedded cascade is structural: the data lives inside the parent, so
+     * deleting the parent removes it. `dependent` is a no-op and must not
+     * issue any FK-based delete.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The parent document.
+     * @param array<string, mixed> $options Delete options.
+     * @return bool
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        return true;
+    }
+
+    /**
      * Hydrates the raw embedded value into a Document (or list of Documents).
      *
      * The embedded parent back-pointer is set so a child `$doc->save()` can
