@@ -705,6 +705,39 @@ abstract class Association
     }
 
     /**
+     * Attaches the association to a query as an in-pipeline lookup load.
+     *
+     * The ODM analog of cake60 `Association::attachTo()`: where cake builds a
+     * SQL join, this registers the association with the query's eager loader
+     * under the `lookup` strategy, so `EagerLoader::dispatch()` appends the
+     * association's `$lookup` pipeline stages and `ResultSet` deconstructs the
+     * loaded documents into the association property. `contain`/`matching`/
+     * `joinWith` flows share this single path.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query to attach to.
+     * @param array<string, mixed> $options Attachment options.
+     * @return void
+     * @see cake60/src/ORM/Association.php (attachTo)
+     */
+    public function attachTo(SelectQuery $query, array $options = []): void
+    {
+        $options += [
+            'foreignKey' => $this->getForeignKey(),
+            'conditions' => [],
+            'joinType' => $this->getJoinType(),
+            'fields' => [],
+        ];
+
+        if ($options['fields'] === false) {
+            $options['fields'] = [];
+        }
+
+        $options['strategy'] = static::STRATEGY_LOOKUP;
+
+        $query->getEagerLoader()->contain([$this->getName() => $options]);
+    }
+
+    /**
      * Normalizes a sort specification into a Mongo `$sort` object.
      *
      * Accepts `'field DESC'`, `['field' => 'DESC']`, `['field' => -1]`, and

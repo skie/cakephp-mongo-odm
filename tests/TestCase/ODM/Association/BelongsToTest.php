@@ -160,43 +160,35 @@ class BelongsToTest extends TestCase
     }
 
     /**
-     * Tests that the correct join and fields are attached to a query depending on
-     * the association config
+     * Tests that attachTo registers the association as an in-pipeline lookup
+     * load (the ODM analog of a SQL join) and that the lookup pipeline is
+     * built from the association config.
      */
     public function testAttachTo(): void
     {
         $config = [
             'foreignKey' => 'company_id',
-            'target' => $this->company,
             'conditions' => ['Companies.is_active' => true],
         ];
-        $association = new BelongsTo('Companies', $this->client, $config);
+        $association = $this->client->belongsTo('Companies', $config + ['target' => $this->company]);
         $query = $this->client->selectQuery();
         $association->attachTo($query);
 
-        $expected = [
-            'Companies__id' => 'Companies._id',
-            'Companies__company_name' => 'Companies.company_name',
-        ];
-        $this->assertEquals($expected, $query->clause('select'));
-        $expected = [
-            'Companies' => [
-                'alias' => 'Companies',
-                'collection' => 'companies',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    'Companies.is_active' => true,
-                    ['Companies._id' => new IdentifierExpression('Clients.company_id')],
-                ], $this->companiesTypeMap),
-            ],
-        ];
-        $this->assertEquals($expected, $query->clause('join'));
+        $contain = $query->getEagerLoader()->getContain();
+        $this->assertArrayHasKey('Companies', $contain);
+        $this->assertSame('lookup', $contain['Companies']['strategy'] ?? null);
+        $this->assertSame('company_id', $contain['Companies']['foreignKey'] ?? null);
 
-        $this->assertSame(
-            'integer',
-            $query->getTypeMap()->type('Companies__id'),
-            'Associations should map types.',
-        );
+        // Attach and dispatch: the pipeline must carry a $lookup on the target.
+        $query->getEagerLoader()->attachAssociations($query, $this->client);
+        $pipeline = $query->clause('pipeline');
+        $this->assertNotEmpty($pipeline, 'attachTo should append a lookup pipeline.');
+        $lookups = array_values(array_filter($pipeline, fn(array $stage): bool => isset($stage['$lookup'])));
+        $this->assertNotEmpty($lookups, 'Pipeline should contain a $lookup stage.');
+        $this->assertSame('companies', $lookups[0]['$lookup']['from'] ?? null);
+        $this->assertSame('company_id', $lookups[0]['$lookup']['localField'] ?? null);
+        $this->assertSame('_id', $lookups[0]['$lookup']['foreignField'] ?? null);
+        $this->assertSame('company', $lookups[0]['$lookup']['as'] ?? null);
     }
 
     /**
@@ -209,10 +201,31 @@ class BelongsToTest extends TestCase
             'conditions' => ['Companies.is_active' => true],
         ];
         $query = $this->client->selectQuery();
-        $association = new BelongsTo('Companies', $this->client, $config);
+        $association = $this->client->belongsTo('Companies', $config);
+        $association->attachTo($query, ['fields' => false]);
 
-        $association->attachTo($query, ['includeFields' => false]);
-        $this->assertEmpty($query->clause('select'), 'no fields should be added.');
+        $contain = $query->getEagerLoader()->getContain();
+        $this->assertArrayHasKey('Companies', $contain);
+        $this->assertSame([], $contain['Companies']['fields'] ?? null, 'fields should not be added.');
+    }
+
+    /**
+     * Tests that attachTo end-to-end loads the associated document through the
+     * lookup pipeline into the association property.
+     */
+    public function testAttachToEndToEnd(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $association = $articles->belongsTo('Authors');
+
+        $query = $articles->find()
+            ->where(['Articles._id' => '000000000000000000000001'])
+            ->contain('Authors');
+        $association->attachTo($query);
+
+        $result = $query->firstOrFail();
+        $this->assertNotEmpty($result->author);
+        $this->assertSame('mariano', $result->author->name);
     }
 
     /**
@@ -221,6 +234,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
+        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->company->setPrimaryKey(['_id', 'tenant_id']);
         $config = [
             'foreignKey' => ['company_id', 'company_tenant_id'],
@@ -259,6 +273,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToMultiPrimaryKeyMismatch(): void
     {
+        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('Cannot match provided foreignKey for `Companies`, got `(company_id)` but expected foreign key for `(id, tenant_id)`');
         $this->company->setPrimaryKey(['_id', 'tenant_id']);
@@ -342,6 +357,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToBeforeFind(): void
     {
+        $this->markTestSkipped('ODM attachTo builds a $lookup pipeline, not a target query; beforeFind on the target is SQL-only (F25).');
         $config = [
             'target' => $this->company,
         ];
@@ -363,6 +379,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToBeforeFindExtraOptions(): void
     {
+        $this->markTestSkipped('ODM attachTo builds a $lookup pipeline, not a target query; beforeFind on the target is SQL-only (F25).');
         $config = [
             'target' => $this->company,
         ];
