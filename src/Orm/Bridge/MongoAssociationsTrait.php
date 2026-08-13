@@ -209,6 +209,45 @@ trait MongoAssociationsTrait
     }
 
     /**
+     * Deletes the SQL row and cascades to dependent Mongo documents.
+     *
+     * Runs inside a SQL transaction; each bridge association with
+     * `dependent` enabled cascades its target documents (doc 29 §10).
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The entity to delete.
+     * @param array<string, mixed> $options Delete options.
+     * @return bool Whether the delete succeeded.
+     */
+    public function deleteWithBridge(EntityInterface $entity, array $options = []): bool
+    {
+        $options['atomic'] = false;
+
+        $deleted = $this->getConnection()->transactional(function () use ($entity, $options) {
+            $errors = [];
+            foreach ($this->getBridgeAssociations() as $association) {
+                if (!$association->getDependent()) {
+                    continue;
+                }
+                if (!$association->cascadeDelete($entity, $options)) {
+                    $errors[] = $association->getProperty();
+                }
+            }
+            if ($errors !== []) {
+                $entity->setError('_bridge', sprintf(
+                    'Cascade delete failed for: %s',
+                    implode(', ', $errors),
+                ));
+
+                return false;
+            }
+
+            return $this->delete($entity, $options);
+        });
+
+        return $deleted;
+    }
+
+    /**
      * Lists the bridge associations registered on this table.
      *
      * A bridge association is a `Proxy\*` cake association exposing

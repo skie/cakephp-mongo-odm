@@ -65,6 +65,26 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        if (!$this->getDependent()) {
+            return true;
+        }
+
+        $collection = $this->getTarget();
+        $fkValue = $entity->get($this->bindingKey());
+        if ($fkValue === null) {
+            return true;
+        }
+
+        $collection->deleteAll([$this->foreignKey() => $fkValue]);
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     protected function defaultForeignKey(): string
     {
         return $this->modelKey($this->getSource()->getAlias());

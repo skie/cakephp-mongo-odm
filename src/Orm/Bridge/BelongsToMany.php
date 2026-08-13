@@ -323,6 +323,34 @@ class BelongsToMany extends Association
     /**
      * @inheritDoc
      */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        if (!$this->getDependent()) {
+            return true;
+        }
+
+        $sourceKey = $entity->get($this->bindingKey());
+        if ($sourceKey === null) {
+            return true;
+        }
+
+        if ($this->pivot === self::PIVOT_ARRAY) {
+            $this->getTarget()->updateQuery()
+                ->pull($this->arrayPivotField(), $sourceKey)
+                ->where([$this->arrayPivotField() => $sourceKey])
+                ->execute();
+
+            return true;
+        }
+
+        $this->getJunction()->deleteAll([$this->getSourceForeignKey() => $sourceKey]);
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     protected function defaultForeignKey(): string
     {
         return $this->modelKey($this->getSource()->getTable());

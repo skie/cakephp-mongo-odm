@@ -110,7 +110,7 @@ abstract class Association
         $this->foreignKey = $options['foreignKey'] ?? $this->defaultForeignKey();
         $this->bindingKey = $options['bindingKey'] ?? $this->defaultBindingKey();
         $this->conditions = (array)($options['conditions'] ?? []);
-        $this->dependent = (bool)($options['dependent'] ?? false);
+        $this->dependent = $options['dependent'] ?? false;
         $this->autoWrap = (bool)($options['autoWrap'] ?? false);
     }
 
@@ -197,6 +197,23 @@ abstract class Association
         $document = $collection->newDocument($data);
 
         return $collection->save($document) !== false;
+    }
+
+    /**
+     * Cascades a source-row delete to the target Mongo documents.
+     *
+     * Direction-1 delete hook used by `deleteWithBridge()`. The base
+     * implementation is a no-op; subclasses apply the `dependent` matrix
+     * (doc 29 §10): HasOne deletes the target, HasMany deletes or nullifies,
+     * BelongsToMany clears links, DBRef does nothing.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source entity being deleted.
+     * @param array<string, mixed> $options Delete options.
+     * @return bool Whether the cascade succeeded.
+     */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        return true;
     }
 
     /**

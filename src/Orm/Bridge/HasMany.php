@@ -89,6 +89,33 @@ class HasMany extends Association
     /**
      * @inheritDoc
      */
+    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    {
+        if (!$this->getDependent()) {
+            return true;
+        }
+
+        $collection = $this->getTarget();
+        $fkValue = $entity->get($this->bindingKey());
+        if ($fkValue === null) {
+            return true;
+        }
+
+        $conditions = [$this->foreignKey() => $fkValue];
+        if ($this->getDependent() === 'nullify') {
+            $collection->updateAll([$this->foreignKey() => null], $conditions);
+
+            return true;
+        }
+
+        $collection->deleteAll($conditions);
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
     protected function defaultForeignKey(): string
     {
         return $this->modelKey($this->getSource()->getTable());
