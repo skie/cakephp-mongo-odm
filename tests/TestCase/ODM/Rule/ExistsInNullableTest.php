@@ -7,11 +7,12 @@ use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Rule\ExistsIn;
 use Crustum\Mongo\ODM\Rule\ExistsInNullable;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the ExistsInNullable rule
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\Crustum\Mongo\ODM\Rule\ExistsInNullable::class)]
+#[CoversClass(ExistsInNullable::class)]
 class ExistsInNullableTest extends TestCase
 {
     /**

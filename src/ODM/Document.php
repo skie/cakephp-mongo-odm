@@ -30,6 +30,10 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
 {
     use EntityTrait {
         toArray as protected entityToArray;
+        get as protected entityGet;
+        has as protected entityHas;
+        __isset as protected entityIsset;
+        __get as protected entityGetMagic;
     }
 
     /**
@@ -181,6 +185,70 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
     public function getEmbeddedParent(): ?array
     {
         return $this->embeddedParent;
+    }
+
+    /**
+     * Magic getter with `id` → `_id` fallback.
+     *
+     * Mongo stores identity in `_id`; reading `$doc->id` / `$doc['id']` maps
+     * to it so cake-style code keeps working. A plain `id` field wins when
+     * present (cake entities may set `id` as an ordinary field).
+     *
+     * @param string $field The field to read.
+     * @return mixed
+     */
+    public function &__get(string $field): mixed
+    {
+        if ($field === 'id' && !$this->entityHas('id')) {
+            return $this->getRequiredOrFail('_id', false);
+        }
+
+        return $this->entityGetMagic($field);
+    }
+
+    /**
+     * Checks `id` → `_id` for magic isset.
+     *
+     * @param string $field The field to check.
+     * @return bool
+     */
+    public function __isset(string $field): bool
+    {
+        if ($field === 'id' && !$this->entityHas('id')) {
+            return $this->entityHas('_id');
+        }
+
+        return $this->entityIsset($field);
+    }
+
+    /**
+     * Gets a field with `id` → `_id` fallback.
+     *
+     * @param string $field The field to read.
+     * @return mixed
+     */
+    public function &get(string $field): mixed
+    {
+        if ($field === 'id' && !$this->entityHas('id')) {
+            return $this->getRequiredOrFail('_id', false);
+        }
+
+        return $this->entityGet($field);
+    }
+
+    /**
+     * Checks field presence with `id` → `_id` fallback.
+     *
+     * @param array<string>|string $field The field(s) to check.
+     * @return bool
+     */
+    public function has(array|string $field): bool
+    {
+        if ($field === 'id' && !$this->entityHas('id')) {
+            return $this->entityHas('_id');
+        }
+
+        return $this->entityHas($field);
     }
 
     /**

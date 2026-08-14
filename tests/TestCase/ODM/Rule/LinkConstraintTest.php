@@ -5,9 +5,9 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Rule;
 
 use Cake\Core\Configure;
 use Cake\Database\Exception\DatabaseException;
-use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\QueryExpression;
 use Cake\Event\Event;
+use Crustum\Mongo\Database\Expression\IdentifierExpression;
+use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\Rule\LinkConstraint;
@@ -16,6 +16,7 @@ use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use TestApp\Model\Collection\ArticlesCollection;
@@ -24,7 +25,7 @@ use TestApp\Model\Collection\ArticlesCollection;
  * Tests the LinkConstraint rule.
  */
 #[AllowMockObjectsWithoutExpectations]
-#[\PHPUnit\Framework\Attributes\CoversClass(\Crustum\Mongo\ODM\Rule\LinkConstraint::class)]
+#[CoversClass(LinkConstraint::class)]
 class LinkConstraintTest extends TestCase
 {
     /**
@@ -74,7 +75,7 @@ class LinkConstraintTest extends TestCase
     public function testInvalidConstructorArgumentTwo(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Argument 2 is expected to match one of the `Crustum\Mongo\ODM\Rule\LinkConstraint::STATUS_*` constants.');
+        $this->expectExceptionMessage('Argument 2 is expected to match one of the `' . LinkConstraint::class . '::STATUS_*` constants.');
 
         new LinkConstraint('Association', 'invalid');
     }
@@ -177,7 +178,7 @@ class LinkConstraintTest extends TestCase
      * @param mixed $options
      */
     #[DataProvider('invalidRepositoryOptionsDataProvider')]
-    public function testInvalidRepository($options): void
+    public function testInvalidRepository(array $options): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Argument 2 is expected to have a `repository` key that holds an instance of `\Crustum\Mongo\ODM\BaseCollection`');
@@ -232,7 +233,7 @@ class LinkConstraintTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $Comments->save($Comments->newDocument([
+        $orphan = $Comments->save($Comments->newDocument([
             'article_id' => '000000000000000000009999',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -247,7 +248,7 @@ class LinkConstraintTest extends TestCase
             ],
         );
 
-        $comment = $Comments->get('000000000000000000000007');
+        $comment = $Comments->get($orphan->getId());
         $comment->setDirty('comment', true);
         $this->assertFalse($Comments->save($comment));
 
@@ -264,7 +265,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustBeLinkedViaBelongsToManyToIsLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
         $rulesChecker = $Tags->rulesChecker();
@@ -286,7 +286,7 @@ class LinkConstraintTest extends TestCase
         $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
-        $Tags->save($Tags->newDocument([
+        $orphan = $Tags->save($Tags->newDocument([
             'name' => 'Orphaned Tag',
         ]));
 
@@ -299,7 +299,7 @@ class LinkConstraintTest extends TestCase
             ],
         );
 
-        $tag = $Tags->get('000000000000000000000004');
+        $tag = $Tags->get($orphan->getId());
         $tag->setDirty('name', true);
         $this->assertFalse($Tags->save($tag));
 
@@ -416,7 +416,7 @@ class LinkConstraintTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $Comments->save($Comments->newDocument([
+        $orphan = $Comments->save($Comments->newDocument([
             'article_id' => '000000000000000000009999',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -427,7 +427,7 @@ class LinkConstraintTest extends TestCase
             new LinkConstraint('Articles', LinkConstraint::STATUS_NOT_LINKED),
         );
 
-        $comment = $Comments->get('000000000000000000000007');
+        $comment = $Comments->get($orphan->getId());
         $this->assertTrue($Comments->delete($comment));
         $this->assertEmpty($comment->getErrors());
     }
@@ -468,7 +468,7 @@ class LinkConstraintTest extends TestCase
         $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
-        $Tags->save($Tags->newDocument([
+        $orphan = $Tags->save($Tags->newDocument([
             'name' => 'Orphaned Tag',
         ]));
 
@@ -477,7 +477,7 @@ class LinkConstraintTest extends TestCase
             new LinkConstraint('Articles', LinkConstraint::STATUS_NOT_LINKED),
         );
 
-        $tag = $Tags->get('000000000000000000000004');
+        $tag = $Tags->get($orphan->getId());
         $this->assertTrue($Tags->delete($tag));
         $this->assertEmpty($tag->getErrors());
     }
@@ -487,7 +487,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustNotBeLinkedViaBelongsToManyIsLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
         $rulesChecker = $Tags->rulesChecker();
@@ -611,17 +610,15 @@ class LinkConstraintTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasOne('Comments', [
             'foreignKey' => false,
-            'conditions' => function (QueryExpression $exp, SelectQuery $query) {
+            'conditions' => function (QueryExpression $exp, SelectQuery $query): QueryExpression {
                 $connection = $query->getConnection();
                 $subQuery = $connection
                     ->selectQuery(['RecentComments.id'])
                     ->from(['RecentComments' => 'comments'])
-                    ->where(function (QueryExpression $exp) {
-                        return $exp->eq(
-                            new IdentifierExpression('Articles.id'),
-                            new IdentifierExpression('RecentComments.article_id'),
-                        );
-                    })
+                    ->where(fn(QueryExpression $exp): QueryExpression => $exp->eq(
+                        new IdentifierExpression('Articles.id'),
+                        new IdentifierExpression('RecentComments.article_id'),
+                    ))
                     ->orderBy(['RecentComments.created' => 'DESC'])
                     ->limit(1);
 
@@ -648,17 +645,15 @@ class LinkConstraintTest extends TestCase
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasOne('Comments', [
             'foreignKey' => false,
-            'conditions' => function (QueryExpression $exp, SelectQuery $query) {
+            'conditions' => function (QueryExpression $exp, SelectQuery $query): QueryExpression {
                 $connection = $query->getConnection();
                 $subQuery = $connection
                     ->selectQuery(['RecentComments.id'])
                     ->from(['RecentComments' => 'comments'])
-                    ->where(function (QueryExpression $exp) {
-                        return $exp->eq(
-                            new IdentifierExpression('Articles.id'),
-                            new IdentifierExpression('RecentComments.article_id'),
-                        );
-                    })
+                    ->where(fn(QueryExpression $exp): QueryExpression => $exp->eq(
+                        new IdentifierExpression('Articles.id'),
+                        new IdentifierExpression('RecentComments.article_id'),
+                    ))
                     ->orderBy(['RecentComments.created' => 'DESC'])
                     ->limit(1);
 
@@ -691,7 +686,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testConditionsWithMustNotBeLinkedIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: conditions count: F34');
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasMany('Comments', [
             'conditions' => [
@@ -746,15 +740,12 @@ class LinkConstraintTest extends TestCase
      */
     public function testConditionsReferencingParentColumnWithMustNotBeLinkedIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: IdentifierExpression conditions: F34');
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasOne('Comments', [
-            'conditions' => function (QueryExpression $exp) {
-                return $exp->notEq(
-                    new IdentifierExpression('Comments.published'),
-                    new IdentifierExpression('Articles.published'),
-                );
-            },
+            'conditions' => fn(QueryExpression $exp): QueryExpression => $exp->notEq(
+                new IdentifierExpression('Comments.published'),
+                new IdentifierExpression('Articles.published'),
+            ),
         ]);
 
         $article = $Articles->save($Articles->newDocument([
@@ -785,12 +776,7 @@ class LinkConstraintTest extends TestCase
     {
         $Articles = $this->getCollectionLocator()->get('Articles');
         $Articles->hasOne('Comments', [
-            'conditions' => function (QueryExpression $exp) {
-                return $exp->eq(
-                    new IdentifierExpression('Comments.published'),
-                    new IdentifierExpression('Articles.published'),
-                );
-            },
+            'conditions' => fn(QueryExpression $exp): QueryExpression => $exp->not(fn(QueryExpression $e): QueryExpression => $e->equalFields('Comments.published', 'Articles.published')),
         ]);
 
         $rulesChecker = $Articles->rulesChecker();
@@ -818,7 +804,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testFinderWithMustNotBeLinkedIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: finder count: F34');
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles', [
             'finder' => 'published',
@@ -903,7 +888,7 @@ class LinkConstraintTest extends TestCase
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
-        $Comments->save($Comments->newDocument([
+        $orphan = $Comments->save($Comments->newDocument([
             'article_id' => '000000000000000000009999',
             'user_id' => '000000000000000000000001',
             'comment' => 'Orphaned Comment',
@@ -918,7 +903,7 @@ class LinkConstraintTest extends TestCase
             ],
         );
 
-        $comment = $Comments->get('000000000000000000000007');
+        $comment = $Comments->get($orphan->getId());
         $comment->setDirty('comment', true);
         $this->assertFalse($Comments->save($comment));
 

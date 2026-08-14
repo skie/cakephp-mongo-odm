@@ -101,7 +101,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function eq(string $field, mixed $value): static
+    public function eq(string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$eq'));
     }
@@ -132,7 +132,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function notEq(string $field, mixed $value): static
+    public function notEq(string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$ne'));
     }

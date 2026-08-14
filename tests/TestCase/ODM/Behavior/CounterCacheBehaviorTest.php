@@ -7,6 +7,7 @@ use Cake\Database\Driver\Sqlserver;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
+use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Behavior\CounterCacheBehavior;
 use Crustum\Mongo\ODM\Document;
@@ -220,6 +221,7 @@ class CounterCacheBehaviorTest extends TestCase
         $before = $this->getUser();
         $post = $this->post->find('all')->first();
         $this->post->delete($post);
+
         $after = $this->getUser();
 
         $this->assertSame(2, $before->get('post_count'));
@@ -243,6 +245,7 @@ class CounterCacheBehaviorTest extends TestCase
         $post = $this->post->find('all')
             ->first();
         $this->post->delete($post, ['ignoreCounterCache' => true]);
+
         $after = $this->getUser();
 
         $this->assertSame(2, $before->get('post_count'));
@@ -363,7 +366,7 @@ class CounterCacheBehaviorTest extends TestCase
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection) use ($document, $collection) {
+                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection) use ($document, $collection): int {
                     $this->assertSame($orgCollection, $collection);
                     $this->assertSame($orgEntity, $document);
 
@@ -392,7 +395,7 @@ class CounterCacheBehaviorTest extends TestCase
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection) use ($document, $collection) {
+                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection) use ($document, $collection): false {
                     $this->assertSame($orgCollection, $collection);
                     $this->assertSame($orgEntity, $document);
 
@@ -421,7 +424,7 @@ class CounterCacheBehaviorTest extends TestCase
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection, $original) use ($document, $collection) {
+                'posts_published' => function (EventInterface $orgEvent, EntityInterface $orgEntity, BaseCollection $orgCollection, $original) use ($document, $collection): int {
                     $this->assertSame($orgCollection, $collection);
                     $this->assertSame($orgEntity, $document);
 
@@ -435,6 +438,7 @@ class CounterCacheBehaviorTest extends TestCase
         ]);
 
         $this->post->save($document);
+
         $between = $this->getUser();
         $document->user_id = '000000000000000000000002';
         $this->post->save($document);
@@ -456,9 +460,7 @@ class CounterCacheBehaviorTest extends TestCase
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => function (EventInterface $event, EntityInterface $document, BaseCollection $collection) {
-                    return $collection->getConnection()->selectQuery(4);
-                },
+                'posts_published' => fn(EventInterface $event, EntityInterface $document, BaseCollection $collection): SelectQuery => $collection->getConnection()->selectQuery(4),
             ],
         ]);
 

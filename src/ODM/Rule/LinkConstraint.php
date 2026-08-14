@@ -106,10 +106,21 @@ class LinkConstraint
     protected function countLinks(Association $association, EntityInterface $entity): int
     {
         if ($association instanceof BelongsToMany) {
-            return $this->countBelongsToManyLinks($association, $entity);
-        }
+            $source = $association->getSource();
+            $primaryKey = (array)$source->getPrimaryKey();
 
-        $target = $association->getTarget();
+            if (count(array_filter($entity->extract($primaryKey), static fn(mixed $value): bool => $value !== null)) !== count($primaryKey)) {
+                return 0;
+            }
+
+            $conditions = array_combine($primaryKey, $entity->extract($primaryKey));
+
+            return $source
+                ->find()
+                ->matching($association->getName())
+                ->where($conditions)
+                ->count();
+        }
 
         if ($association instanceof BelongsTo) {
             $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
@@ -126,48 +137,6 @@ class LinkConstraint
 
         $conditions = array_combine($targetKeys, $sourceValues);
 
-        return $target->find()->where($conditions)->count();
-    }
-
-    /**
-     * Counts the junction links for a BelongsToMany association.
-     *
-     * @param \Crustum\Mongo\ODM\Association\BelongsToMany $association The association.
-     * @param \Cake\Datasource\EntityInterface $entity The source entity.
-     * @return int
-     */
-    protected function countBelongsToManyLinks(BelongsToMany $association, EntityInterface $entity): int
-    {
-        $junction = $association->junction();
-        $target = $association->getTarget();
-
-        $foreignKey = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
-        $bindingKey = (array)$association->getBindingKey();
-        $targetForeignKey = (array)$association->getTargetForeignKey();
-
-        $sourceKeys = array_combine($foreignKey, $entity->extract($bindingKey));
-
-        $belongsTo = $junction->getAssociation($target->getAlias());
-        $assocForeignKey = (array)$belongsTo->getForeignKey();
-
-        $links = $junction->find()
-            ->where($sourceKeys)
-            ->toArray();
-
-        if ($links === []) {
-            return 0;
-        }
-
-        $targetKeys = [];
-        foreach ($links as $link) {
-            $targetKeys[] = $link->extract($assocForeignKey);
-        }
-
-        $targetConditions = [];
-        foreach ($targetKeys as $key) {
-            $targetConditions[] = array_combine($targetForeignKey, array_values((array)$key));
-        }
-
-        return $target->find()->where(['OR' => $targetConditions])->count();
+        return $association->find()->where($conditions)->count();
     }
 }
