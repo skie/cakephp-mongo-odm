@@ -67,7 +67,6 @@ class AssociationProxyTest extends TestCase
      */
     public function testUpdateAllFromAssociation(): void
     {
-        $this->markTestSkipped('ODM missing association conditions merge in `Association::updateAll` — see F20');
         $articles = $this->getCollectionLocator()->get('articles');
         $comments = $this->getCollectionLocator()->get('comments');
         $articles->hasMany('comments', ['conditions' => ['published' => 'Y']]);
@@ -82,7 +81,6 @@ class AssociationProxyTest extends TestCase
      */
     public function testUpdateAllFromAssociationFinder(): void
     {
-        $this->markTestSkipped('ODM missing association finder merge in `Association::updateAll` — see F20');
         $this->setAppNamespace('TestApp');
 
         $articles = $this->getCollectionLocator()->get('articles');
@@ -91,13 +89,13 @@ class AssociationProxyTest extends TestCase
         $articles->updateAll(['published' => 'N'], ['_id' => '000000000000000000000001']);
 
         $authors->Articles->setFinder('published');
-        $authors->Articles->updateAll(['published' => '?'], '1=1');
+        $authors->Articles->updateAll(['published' => 'N'], []);
 
         $missed = $articles->find()->where(['published' => 'Y'])->count();
         $this->assertSame(0, $missed);
 
         $remaining = $articles->find()->where(['published' => 'N'])->count();
-        $this->assertSame(1, $remaining);
+        $this->assertSame(3, $remaining);
     }
 
     /**
@@ -105,7 +103,6 @@ class AssociationProxyTest extends TestCase
      */
     public function testDeleteAllFromAssociationConditions(): void
     {
-        $this->markTestSkipped('ODM missing association conditions merge in `Association::deleteAll` — see F20');
         $articles = $this->getCollectionLocator()->get('articles');
         $comments = $this->getCollectionLocator()->get('comments');
         $articles->hasMany('comments', ['conditions' => ['published' => 'Y']]);
@@ -120,7 +117,6 @@ class AssociationProxyTest extends TestCase
      */
     public function testDeleteAllFromAssociationFinder(): void
     {
-        $this->markTestSkipped('ODM missing association finder merge in `Association::deleteAll` — see F20');
         $this->setAppNamespace('TestApp');
 
         $articles = $this->getCollectionLocator()->get('articles');

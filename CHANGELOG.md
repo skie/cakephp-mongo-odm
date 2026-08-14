@@ -37,6 +37,10 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   `SelectQuery::count()`. F21 (`testFindEmptyConditions`) unskipped.
 - `ResultSetFactoryTest::testQueryLoggingForSelectsWithZeroRows` aligned to
   cake6 (asserts the query ran as `find`, not the pre-fix `aggregate`).
+- **F20 resolved** — `Association::updateAll`/`deleteAll` already route through
+  the association `find()` (conditions + finder applied); `AssociationProxyTest`
+  now 10/10 (was 5/10). The `updateAllFromAssociationFinder` test was SQL-only
+  (`'?'` placeholder + `'1=1'`) — rewritten to Mongo values.
 
 ### Added
 - **Connection read/write roles (doc 30)** — dual-driver `Connection`
