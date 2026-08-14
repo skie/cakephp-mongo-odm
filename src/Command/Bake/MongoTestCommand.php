@@ -22,7 +22,6 @@ use Cake\Datasource\FactoryLocator;
 use Cake\Http\ServerRequest as Request;
 use Cake\Utility\Inflector;
 use Cake\View\View;
-use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use ReflectionClass;
 use UnexpectedValueException;
@@ -481,9 +480,6 @@ class MongoTestCommand extends BakeCommand
         $this->addFixture($subject->getAlias(), $subject->getCollection());
         foreach ($subject->associations()->keys() as $alias) {
             $assoc = $subject->getAssociation($alias);
-            if (!$assoc instanceof Association) {
-                continue;
-            }
 
             $target = $assoc->getTarget();
             $name = $target->getAlias();

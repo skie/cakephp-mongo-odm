@@ -75,6 +75,8 @@ ensureDirectoryExists(TMP . 'sessions');
 ensureDirectoryExists(TMP . 'tests');
 ensureDirectoryExists(LOGS);
 
+date_default_timezone_set('UTC');
+
 Configure::write('debug', true);
 Configure::write('App', [
     'namespace' => 'App',

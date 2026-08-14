@@ -121,9 +121,6 @@ class MongoBakeHelper extends BakeHelper
     public function mongoGetAssociatedTableAlias(BaseCollection $collection, string $assoc): string
     {
         $association = $collection->getAssociation($assoc);
-        if (!$association instanceof Association) {
-            return $assoc;
-        }
 
         return $association->getTarget()->getAlias();
     }

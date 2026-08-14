@@ -3,15 +3,14 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Type;
 
+use Cake\I18n\DateTime as CakeDateTime;
 use Crustum\Mongo\Database\Driver\MongoDriver;
-use DateTimeImmutable;
-use DateTimeInterface;
 
 /**
  * Date immutable type converter
  *
- * Use to convert date data between PHP and MongoDB, always returning
- * `DateTimeImmutable` instances. Mirrors `Doctrine\ODM\MongoDB\Types\DateImmutableType`.
+ * Use to convert date data between PHP and MongoDB. `Cake\I18n\DateTime`
+ * extends `DateTimeImmutable`, so all instances are immutable.
  */
 class DateImmutableType extends DateType
 {
@@ -20,39 +19,21 @@ class DateImmutableType extends DateType
      *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return \DateTimeImmutable|null
+     * @return \Cake\I18n\DateTime|null
      */
-    public function toPHP(mixed $value, MongoDriver $driver): ?DateTimeImmutable
+    public function toPHP(mixed $value, MongoDriver $driver): ?CakeDateTime
     {
-        $date = parent::toPHP($value, $driver);
-        if (!$date instanceof DateTimeInterface) {
-            return null;
-        }
-
-        if ($date instanceof DateTimeImmutable) {
-            return $date;
-        }
-
-        return DateTimeImmutable::createFromMutable($date);
+        return parent::toPHP($value, $driver);
     }
 
     /**
      * Marshals request data into PHP DateTimeImmutable
      *
      * @param mixed $value The value to convert
-     * @return \DateTimeImmutable|null Converted value
+     * @return \Cake\I18n\DateTime|null Converted value
      */
-    public function marshal(mixed $value): ?DateTimeImmutable
+    public function marshal(mixed $value): ?CakeDateTime
     {
-        $result = parent::marshal($value);
-        if (!$result instanceof DateTimeInterface) {
-            return null;
-        }
-
-        if ($result instanceof DateTimeImmutable) {
-            return $result;
-        }
-
-        return DateTimeImmutable::createFromMutable($result);
+        return parent::marshal($value);
     }
 }

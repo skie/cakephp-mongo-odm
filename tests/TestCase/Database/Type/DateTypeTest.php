@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\Database\Type;
 
+use Cake\I18n\DateTime;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\DateType;
-use DateTime;
 use InvalidArgumentException;
 use MongoDB\BSON\UTCDateTime;
 use PHPUnit\Framework\Attributes\CoversClass;

@@ -4,13 +4,12 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Behavior;
 
 use ArrayObject;
+use AssertionError;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
+use Cake\I18n\DateTime as CakeDateTime;
 use Crustum\Mongo\ODM\Behavior;
-use DateTimeImmutable;
 use DateTimeInterface;
-use DateTimeZone;
-use MongoDB\BSON\UTCDateTime;
 use UnexpectedValueException;
 
 /**
@@ -33,9 +32,9 @@ class TimestampBehavior extends Behavior
     /**
      * Cached timestamp shared by fields in one event cycle.
      *
-     * @var \MongoDB\BSON\UTCDateTime|null
+     * @var \Cake\I18n\DateTime|null
      */
-    private ?UTCDateTime $timestampValue = null;
+    private ?CakeDateTime $timestampValue = null;
 
     /**
      * Initializes timestamp event configuration.
@@ -84,7 +83,10 @@ class TimestampBehavior extends Behavior
 
         foreach ($fields as $field => $when) {
             if (!in_array($when, ['always', 'new', 'existing'], true)) {
-                throw new UnexpectedValueException(sprintf('Invalid timestamp condition `%s`.', (string)$when));
+                throw new UnexpectedValueException(sprintf(
+                    'When should be one of "always", "new" or "existing". The passed value `%s` is invalid.',
+                    (string)$when,
+                ));
             }
 
             if ($when === 'always' || ($when === 'new' && $entity->isNew()) || ($when === 'existing' && !$entity->isNew())) {
@@ -94,23 +96,22 @@ class TimestampBehavior extends Behavior
     }
 
     /**
-     * Returns a reusable BSON UTC timestamp.
+     * Returns a reusable Cake timestamp.
      *
      * @param \DateTimeInterface|null $timestamp Explicit timestamp to use.
      * @param bool $refresh Whether to refresh the cached timestamp.
-     * @return \MongoDB\BSON\UTCDateTime
+     * @return \Cake\I18n\DateTime
      */
-    public function timestamp(?DateTimeInterface $timestamp = null, bool $refresh = false): UTCDateTime
+    public function timestamp(?DateTimeInterface $timestamp = null, bool $refresh = false): CakeDateTime
     {
         if ($timestamp instanceof DateTimeInterface) {
             $this->setConfig('refreshTimestamp', false);
 
-            return $this->timestampValue = new UTCDateTime($timestamp);
+            return $this->timestampValue = new CakeDateTime($timestamp);
         }
 
-        if (!$this->timestampValue instanceof UTCDateTime || $refresh) {
-            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-            $this->timestampValue = new UTCDateTime($now);
+        if (!$this->timestampValue instanceof CakeDateTime || $refresh) {
+            $this->timestampValue = new CakeDateTime();
         }
 
         return $this->timestampValue;
@@ -155,6 +156,18 @@ class TimestampBehavior extends Behavior
     {
         if ($entity->isDirty($field)) {
             return;
+        }
+
+        $schema = $this->collection->getSchema();
+        $columnType = $schema->getColumnType($field);
+        if (!$columnType) {
+            return;
+        }
+
+        if (!in_array($columnType, ['datetime', 'datetimefractional', 'timestamp', 'date'], true)) {
+            throw new AssertionError(
+                'TimestampBehavior only supports columns of type `Cake\Database\Type\DateTimeType`.',
+            );
         }
 
         $entity->set($field, $this->timestamp(null, $refresh && (bool)$this->getConfig('refreshTimestamp')));

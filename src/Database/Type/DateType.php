@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Type;
 
+use Cake\I18n\DateTime as CakeDateTime;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use DateTime;
 use DateTimeInterface;
@@ -98,11 +99,11 @@ class DateType extends BaseType implements BatchCastingInterface
     }
 
     /**
-     * Convert date values to PHP DateTimeInterface
+     * Convert date values to PHP Cake DateTime
      *
      * @param mixed $value The value to convert
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
-     * @return \DateTimeInterface|null
+     * @return \Cake\I18n\DateTime|null
      */
     public function toPHP(mixed $value, MongoDriver $driver): ?DateTimeInterface
     {
@@ -111,23 +112,20 @@ class DateType extends BaseType implements BatchCastingInterface
         }
 
         if ($value instanceof UTCDateTime) {
-            return $value->toDateTime();
+            return new CakeDateTime($value->toDateTime());
         }
 
         if ($value instanceof DateTimeInterface) {
-            return $value;
+            return new CakeDateTime($value);
         }
 
         if (is_numeric($value)) {
-            $date = new DateTime();
-            $date->setTimestamp((int)$value);
-
-            return $date;
+            return new CakeDateTime('@' . (int)$value);
         }
 
         if (is_string($value)) {
             try {
-                return new DateTime($value);
+                return new CakeDateTime($value);
             } catch (Exception) {
                 return null;
             }
@@ -153,10 +151,10 @@ class DateType extends BaseType implements BatchCastingInterface
     }
 
     /**
-     * Marshals request data into PHP DateTime
+     * Marshals request data into Cake DateTime
      *
      * @param mixed $value The value to convert
-     * @return \DateTimeInterface|null Converted value
+     * @return \Cake\I18n\DateTime|null Converted value
      */
     public function marshal(mixed $value): ?DateTimeInterface
     {
@@ -165,21 +163,26 @@ class DateType extends BaseType implements BatchCastingInterface
         }
 
         if ($value instanceof DateTimeInterface) {
-            return $value;
+            return new CakeDateTime($value);
         }
 
         if (is_string($value)) {
             if ($this->useLocaleMarshal) {
-                return $this->parseLocaleValue($value);
+                $parsed = $this->parseLocaleValue($value);
+                if ($parsed instanceof DateTimeInterface) {
+                    return new CakeDateTime($parsed);
+                }
+
+                return null;
             }
 
             $parsed = $this->parseValue($value);
             if ($parsed instanceof DateTimeInterface) {
-                return $parsed;
+                return new CakeDateTime($parsed);
             }
 
             try {
-                return new DateTime($value);
+                return new CakeDateTime($value);
             } catch (Exception) {
                 return null;
             }
@@ -198,7 +201,7 @@ class DateType extends BaseType implements BatchCastingInterface
 
         $format = sprintf('%d-%02d-%02d', $value['year'], $value['month'], $value['day']);
 
-        return new DateTime($format);
+        return new CakeDateTime($format);
     }
 
     /**
@@ -230,11 +233,11 @@ class DateType extends BaseType implements BatchCastingInterface
     /**
      * Gets the class name used for building objects.
      *
-     * @return class-string<\DateTime>
+     * @return class-string<\Cake\I18n\DateTime>
      */
     public function getDateClassName(): string
     {
-        return DateTime::class;
+        return CakeDateTime::class;
     }
 
     /**

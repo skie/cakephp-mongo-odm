@@ -516,9 +516,6 @@ class EagerLoader
     private function normalize(BaseCollection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
     {
         $association = $repository->getAssociation($alias);
-        if (!$association instanceof Association) {
-            throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
-        }
 
         if (($options['matching'] ?? false) === true) {
             $propertyPath = '_matchingData.' . $alias;

@@ -5,10 +5,10 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Behavior;
 
 use ArrayObject;
 use Cake\Event\Event;
+use Cake\I18n\DateTime;
 use Crustum\Mongo\ODM\Behavior\TimestampBehavior;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use MongoDB\BSON\UTCDateTime;
 
 final class BehaviorTest extends TestCase
 {
@@ -19,15 +19,15 @@ final class BehaviorTest extends TestCase
 
         $behavior->handleEvent(new Event('Collection.beforeSave'), $document, new ArrayObject());
 
-        $this->assertInstanceOf(UTCDateTime::class, $document->get('created'));
-        $this->assertInstanceOf(UTCDateTime::class, $document->get('modified'));
-        $this->assertSame(0, $document->get('created')->toDateTime()->getOffset());
+        $this->assertInstanceOf(DateTime::class, $document->get('created'));
+        $this->assertInstanceOf(DateTime::class, $document->get('modified'));
+        $this->assertSame(0, $document->get('created')->getOffset());
     }
 
     public function testDirtyTimestampIsNotOverwritten(): void
     {
         $behavior = new TimestampBehavior(new BehaviorCollection());
-        $existing = new UTCDateTime(1577836800000);
+        $existing = new DateTime('2020-01-01 00:00:00');
         $document = new Document(['modified' => $existing], ['markNew' => true]);
 
         $behavior->handleEvent(new Event('Collection.beforeSave'), $document, new ArrayObject());

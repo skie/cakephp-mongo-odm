@@ -1096,7 +1096,7 @@ class BelongsToMany extends Association
             ]);
         } else {
             $belongsTo = $junction->getAssociation($tAlias);
-            if ($belongsTo instanceof Association && ($this->getTargetForeignKey() !== $belongsTo->getForeignKey() || $target !== $belongsTo->getTarget())) {
+            if ($this->getTargetForeignKey() !== $belongsTo->getForeignKey() || $target !== $belongsTo->getTarget()) {
                 throw new InvalidArgumentException(sprintf(
                     'The existing `%s` association on `%s` is incompatible with the `%s` association on `%s`.',
                     $tAlias,
@@ -1851,9 +1851,6 @@ class BelongsToMany extends Association
     protected function junctionJoinForeignKey(BaseCollection $junction, BaseCollection $side): ?string
     {
         $association = $junction->getAssociation($side->getAlias());
-        if (!$association instanceof Association) {
-            return null;
-        }
 
         $key = $association->getForeignKey();
         if (is_array($key)) {
@@ -1873,11 +1870,9 @@ class BelongsToMany extends Association
     protected function junctionTargetBindingKey(BaseCollection $junction, BaseCollection $target): string
     {
         $association = $junction->getAssociation($target->getAlias());
-        if ($association instanceof Association) {
-            $key = $association->getBindingKey();
-            if (is_string($key) && $key !== '') {
-                return $key;
-            }
+        $key = $association->getBindingKey();
+        if (is_string($key) && $key !== '') {
+            return $key;
         }
 
         return '_id';
