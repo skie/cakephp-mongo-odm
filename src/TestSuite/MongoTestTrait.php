@@ -8,8 +8,14 @@ use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\Fixture\FixtureStrategyInterface;
 use Cake\TestSuite\Fixture\TruncateStrategy;
+use Cake\Utility\Inflector;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\ODM\BaseCollection;
+use Crustum\Mongo\ODM\Exception\MissingCollectionException;
+use Mockery;
+use Mockery\LegacyMockInterface;
 use MongoDB\Collection;
+use function Cake\Core\pluginSplit;
 
 /**
  * Mix into `Cake\TestSuite\TestCase` (optionally with `IntegrationTestTrait`)
@@ -68,6 +74,62 @@ trait MongoTestTrait
     public function getCollection(string $name): Collection
     {
         return $this->getMongoConnection()->getCollection($name);
+    }
+
+    /**
+     * Mock a collection with Mockery, keeping fixtures and associations.
+     *
+     * Requires the consuming test class (or a parent) to use
+     * `Crustum\Mongo\ODM\Locator\LocatorAwareTrait` so the locator can be
+     * resolved; the ODM `TestCase` provides this out of the box.
+     *
+     * @template T of \Crustum\Mongo\ODM\BaseCollection
+     * @param class-string<T>|string $alias The alias or the FQCN of the collection to get a mock for.
+     * @param array<string, mixed> $options The config data for the mock's constructor.
+     * @return (T|\Crustum\Mongo\ODM\BaseCollection)&\Mockery\LegacyMockInterface
+     */
+    public function getMockForCollection(string $alias, array $options = []): BaseCollection&LegacyMockInterface
+    {
+        $className = $this->_getCollectionClassName($alias, $options);
+        $connectionName = $className::defaultConnectionName();
+        $connection = ConnectionManager::get($connectionName);
+
+        $locator = $this->getCollectionLocator();
+
+        [, $baseClass] = pluginSplit($alias);
+        $options += ['alias' => $baseClass, 'connection' => $connection];
+        $options += $locator->getConfig($alias);
+
+        $mock = Mockery::mock(new $className($options))->makePartial();
+
+        $locator->set($baseClass, $mock);
+        $locator->set($alias, $mock);
+
+        return $mock;
+    }
+
+    /**
+     * Gets the class name for the collection.
+     *
+     * @param string $alias The collection to get a mock for.
+     * @param array<string, mixed> $options The config data for the mock's constructor.
+     * @return class-string<\Crustum\Mongo\ODM\BaseCollection>
+     * @throws \Crustum\Mongo\ODM\Exception\MissingCollectionException
+     */
+    protected function _getCollectionClassName(string $alias, array $options): string
+    {
+        if (empty($options['className'])) {
+            $class = Inflector::camelize($alias);
+            /** @var class-string<\Crustum\Mongo\ODM\BaseCollection>|null $className */
+            $className = App::className($class, 'Model/Collection', 'Collection');
+            if (!$className) {
+                throw new MissingCollectionException([$alias]);
+            }
+
+            $options['className'] = $className;
+        }
+
+        return $options['className'];
     }
 
     /**
