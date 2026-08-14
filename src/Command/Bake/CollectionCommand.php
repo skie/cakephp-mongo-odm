@@ -86,6 +86,7 @@ class CollectionCommand extends BakeCommand
         }
 
         $context = new MongoCollectionContext();
+        $context->plugin = $this->plugin;
         $data = $context->build($modelObject);
 
         $documentClass = $this->documentClassFor($name, $namespace);

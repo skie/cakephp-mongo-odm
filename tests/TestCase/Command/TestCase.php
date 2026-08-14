@@ -7,6 +7,7 @@ use Cake\Console\TestSuite\ConsoleIntegrationTestTrait;
 use Cake\Routing\Router;
 use Cake\TestSuite\StringCompareTrait;
 use Cake\TestSuite\TestCase as BaseTestCase;
+use TestApp\BakeTestApplication;
 
 /**
  * Base test case for the Crustum/Mongo bake commands.
@@ -42,7 +43,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         Router::reload();
-        $this->configApplication(\TestApp\BakeTestApplication::class, null);
+        $this->configApplication(BakeTestApplication::class, null);
         self::setAppNamespace('TestApp');
     }
 
@@ -77,5 +78,35 @@ abstract class TestCase extends BaseTestCase
         foreach ($files as $file) {
             $this->assertFileExists($file, $message);
         }
+    }
+
+    /**
+     * Assert that a file contains a substring.
+     *
+     * @param string $expected The expected content.
+     * @param string $path The path to check.
+     * @param string $message The error message.
+     */
+    protected function assertFileContains(string $expected, string $path, string $message = ''): void
+    {
+        $this->assertFileExists($path, 'Cannot test contents, file does not exist.');
+
+        $contents = file_get_contents($path);
+        $this->assertStringContainsString($expected, $contents, $message);
+    }
+
+    /**
+     * Assert that a file does not contain a substring.
+     *
+     * @param string $expected The content that should be absent.
+     * @param string $path The path to check.
+     * @param string $message The error message.
+     */
+    protected function assertFileNotContains(string $expected, string $path, string $message = ''): void
+    {
+        $this->assertFileExists($path, 'Cannot test contents, file does not exist.');
+
+        $contents = file_get_contents($path);
+        $this->assertStringNotContainsString($expected, $contents, $message);
     }
 }

@@ -52,9 +52,16 @@ class SchemaFields
     /**
      * Extracts fields for a collection from a dumped schema map.
      *
+     * A field whose validator definition carries nested structure is reported
+     * as embedded:
+     * - `bsonType: array` + `items.bsonType: object` + `items.properties` → `['many' => true]`
+     * - `bsonType: object` + `properties` → `['many' => false]`
+     * The nested field definitions are collected so bake can generate an
+     * embedded Document class + `#[Embedded]` attribute.
+     *
      * @param array<string, array<string, mixed>> $schema The dumped schema map
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null, embedded?: array{many: bool, key: string, fields: list<array{name: string, type: string, nullable: bool, primaryKey: bool}>}}> Field definitions keyed by field name
      */
     public static function fromSchema(array $schema, string $collection): array
     {
@@ -91,9 +98,76 @@ class SchemaFields
                     ? array_values($definition['enum'])
                     : null,
             ];
+
+            $embedded = self::embeddedDefinition($name, $definition);
+            if ($embedded !== null) {
+                $fields[$name]['embedded'] = $embedded;
+            }
         }
 
         return $fields;
+    }
+
+    /**
+     * Extracts an embedded definition from a validator field when it declares
+     * a nested object/array-of-objects shape.
+     *
+     * @param string $name The parent field name (the embedded `key`).
+     * @param array<string, mixed> $definition The validator field definition.
+     * @return array{many: bool, key: string, fields: list<array{name: string, type: string, nullable: bool, primaryKey: bool}>}|null
+     */
+    protected static function embeddedDefinition(string $name, array $definition): ?array
+    {
+        $properties = null;
+        $many = false;
+
+        $type = $definition['bsonType'] ?? null;
+        $types = is_array($type) ? $type : [$type];
+
+        $hasObject = array_any($types, static fn(mixed $t): bool => is_string($t) && $t === 'object');
+        $hasArray = array_any($types, static fn(mixed $t): bool => is_string($t) && $t === 'array');
+
+        if ($hasArray && is_array($definition['items'] ?? null)) {
+            $items = $definition['items'];
+            if (isset($items['properties']) && is_array($items['properties'])) {
+                $properties = $items['properties'];
+                $many = true;
+            }
+        } elseif ($hasObject && isset($definition['properties']) && is_array($definition['properties'])) {
+            $properties = $definition['properties'];
+        }
+
+        if ($properties === null) {
+            return null;
+        }
+
+        $nested = [];
+        foreach ($properties as $nestedName => $nestedDef) {
+            if (!is_array($nestedDef)) {
+                continue;
+            }
+
+            $nestedTypes = $nestedDef['bsonType'] ?? ['string'];
+            if (!is_array($nestedTypes)) {
+                $nestedTypes = [$nestedTypes];
+            }
+            $nonNull = array_values(array_filter(
+                $nestedTypes,
+                static fn(mixed $t): bool => is_string($t) && $t !== 'null',
+            ));
+            $nested[] = [
+                'name' => $nestedName,
+                'type' => self::typeName($nonNull[0] ?? 'string'),
+                'nullable' => in_array('null', $nestedTypes, true),
+                'primaryKey' => $nestedName === '_id',
+            ];
+        }
+
+        return [
+            'many' => $many,
+            'key' => $name,
+            'fields' => $nested,
+        ];
     }
 
     /**

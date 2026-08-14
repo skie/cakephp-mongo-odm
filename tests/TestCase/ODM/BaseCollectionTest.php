@@ -1384,7 +1384,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListNoHydration(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1393,30 +1392,43 @@ class BaseCollectionTest extends TestCase
 
         $query = $table->find('list')
             ->enableHydration(false)
-            ->orderBy('id');
+            ->orderBy('_id');
         $expected = [
-            1 => 'mariano',
-            2 => 'nate',
-            3 => 'larry',
-            4 => 'garrett',
+            '000000000000000000000001' => 'mariano',
+            '000000000000000000000002' => 'nate',
+            '000000000000000000000003' => 'larry',
+            '000000000000000000000004' => 'garrett',
         ];
         $this->assertSame($expected, $query->toArray());
 
-        $query = $table->find('list', fields: ['id', 'username'])
+        $query = $table->find('list', fields: ['_id', 'username'])
             ->enableHydration(false)
-            ->orderBy('id');
+            ->orderBy('_id');
         $expected = [
-            1 => 'mariano',
-            2 => 'nate',
-            3 => 'larry',
-            4 => 'garrett',
+            '000000000000000000000001' => 'mariano',
+            '000000000000000000000002' => 'nate',
+            '000000000000000000000003' => 'larry',
+            '000000000000000000000004' => 'garrett',
         ];
         $this->assertSame($expected, $query->toArray());
+    }
+
+    /**
+     * Tests find('list') with a group field (SQL `id % 2` expression — ODM gap).
+     */
+    public function testFindListGroupField(): void
+    {
+        $this->markTestSkipped('// SQL `id % 2` QueryExpression has no ODM $mod-projection analog (F16); see 18-orm-tests-port-plan.md.');
+        $table = new BaseCollection([
+            'collection' => 'users',
+            'connection' => $this->connection,
+        ]);
+        $table->setDisplayField('username');
 
         $query = $table->find('list', groupField: 'odd')
-            ->select(['id', 'username', 'odd' => new QueryExpression('id % 2')])
+            ->select(['_id', 'username', 'odd' => new QueryExpression('id % 2')])
             ->enableHydration(false)
-            ->orderBy('id');
+            ->orderBy('_id');
         $expected = [
             1 => [
                 1 => 'mariano',
@@ -1435,7 +1447,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindThreadedNoHydration(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'categories',
             'connection' => $this->connection,
@@ -1537,7 +1548,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindThreadedHydrated(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'categories',
             'connection' => $this->connection,
@@ -1562,7 +1572,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListHydrated(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1602,7 +1611,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListSelectedFields(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1657,7 +1665,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListWithVirtualField(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1687,7 +1694,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListWithAssociatedCollection(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = new BaseCollection([
             'collection' => 'articles',
             'connection' => $this->connection,
@@ -1782,7 +1788,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testTableClassNonExistent(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(MissingDocumentException::class);
         $this->expectExceptionMessage('Document class `FooUser` could not be found.');
         $table = new BaseCollection();
@@ -1816,7 +1821,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalBelongsToLoading(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
@@ -1830,7 +1834,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalHasManyLoading(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
@@ -1850,7 +1853,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalBelongsToMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
@@ -1867,7 +1869,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindCleanEntities(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new ArticlesCollection([
             'connection' => $this->connection,
         ]);

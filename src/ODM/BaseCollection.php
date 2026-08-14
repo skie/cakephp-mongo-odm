@@ -38,6 +38,7 @@ use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Association\EmbedOne;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Association\HasOne;
+use Crustum\Mongo\ODM\Attribute\Embedded as EmbeddedAttribute;
 use Crustum\Mongo\ODM\Exception\MissingDocumentException;
 use Crustum\Mongo\ODM\Exception\PersistenceFailedException;
 use Crustum\Mongo\ODM\Exception\RolledbackTransactionException;
@@ -262,6 +263,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         if (isset($options['documentClass'])) {
             $this->setDocumentClass((string)$options['documentClass']);
+        } elseif (isset($options['entityClass'])) {
+            // cake-compatible alias: cake uses `entityClass`, the ODM name is
+            // `documentClass`. Accept both, documentClass wins.
+            $this->setDocumentClass((string)$options['entityClass']);
         }
 
         if (isset($options['primaryKey'])) {
@@ -493,17 +498,21 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Returns the schema describing this collection's fields.
      *
-     * Mongo is schemaless, so this lazily creates an empty `CollectionSchema`
-     * when none was set explicitly — callers never receive `null`. Fields come
-     * from the application schema readers (`setSchemaFromDto`,
-     * `setSchemaFromDocument`, `setSchemaFromArray`) rather than from database
-     * introspection.
+     * When none was set explicitly, the schema is lazily introspected from the
+     * database (mirroring cake6 `Table::getSchema()`); fields come from the
+     * collection's live validator/indexes. Explicit application schemas
+     * (`setSchemaFromDto`, `setSchemaFromDocument`, `setSchemaFromArray`) take
+     * precedence and are never overwritten. Callers never receive `null`.
      *
      * @return \Cake\Datasource\SchemaInterface
      */
     public function getSchema(): SchemaInterface
     {
-        return $this->schema ??= new CollectionSchema($this->getCollection());
+        if ($this->schema === null) {
+            $this->schema = $this->describeSchema();
+        }
+
+        return $this->schema;
     }
 
     /**
@@ -1232,13 +1241,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * ODM extension — no direct cake analog.
      *
+     * When the `documentClass` option references a class carrying `#[Embedded]`,
+     * the `many`/`key`/`localKey` options are derived from it automatically.
+     *
      * @param string $associated The alias for the embedded document.
      * @param array<string, mixed> $options Association options.
      * @return \Crustum\Mongo\ODM\Association\EmbedOne
      */
     public function embedOne(string $associated, array $options = []): EmbedOne
     {
-        return $this->associations->load(EmbedOne::class, $associated, $this, $options);
+        return $this->associations->load(EmbedOne::class, $associated, $this, $this->embeddedOptions($associated, $options, false));
     }
 
     /**
@@ -1246,13 +1258,44 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * ODM extension — no direct cake analog.
      *
+     * When the `documentClass` option references a class carrying `#[Embedded]`,
+     * the `many`/`key`/`localKey` options are derived from it automatically.
+     *
      * @param string $associated The alias for the embedded documents.
      * @param array<string, mixed> $options Association options.
      * @return \Crustum\Mongo\ODM\Association\EmbedMany
      */
     public function embedMany(string $associated, array $options = []): EmbedMany
     {
-        return $this->associations->load(EmbedMany::class, $associated, $this, $options);
+        return $this->associations->load(EmbedMany::class, $associated, $this, $this->embeddedOptions($associated, $options, true));
+    }
+
+    /**
+     * Derives `many`/`key`/`localKey` from a `#[Embedded]` attribute when the
+     * given document class carries it and the option was not explicit.
+     *
+     * @param string $associated The association alias.
+     * @param array<string, mixed> $options Association options.
+     * @param bool $many Whether the caller expects the many shape.
+     * @return array<string, mixed>
+     */
+    protected function embeddedOptions(string $associated, array $options, bool $many): array
+    {
+        $documentClass = $options['documentClass'] ?? null;
+        if (!is_string($documentClass) || !class_exists($documentClass)) {
+            return $options;
+        }
+
+        $embedded = EmbeddedAttribute::read($documentClass);
+        if ($embedded === null) {
+            return $options;
+        }
+
+        if (!array_key_exists('localKey', $options)) {
+            $options['localKey'] = $embedded['key'];
+        }
+
+        return $options;
     }
 
     /**
@@ -1389,6 +1432,27 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $keyField ??= $this->getPrimaryKey();
         $valueField ??= $this->getDisplayField();
 
+        if (
+            !$query->clause('select') &&
+            !$keyField instanceof Closure &&
+            !$valueField instanceof Closure &&
+            !$groupField instanceof Closure
+        ) {
+            $fields = array_merge(
+                (array)$keyField,
+                (array)$valueField,
+                (array)$groupField,
+            );
+
+            // Mongo is schemaless, but a populated schema (from a live
+            // validator) lets us skip virtual-only select fields. When the
+            // schema has no columns we cannot intersect, so select anyway.
+            $columns = $this->getSchema()->columns();
+            if ($columns === [] || count($fields) === count(array_intersect($fields, $columns))) {
+                $query->select($fields);
+            }
+        }
+
         $options = $this->setFieldMatchers(
             ['keyField' => $keyField, 'valueField' => $valueField, 'groupField' => $groupField, 'valueSeparator' => $valueSeparator],
             ['keyField', 'valueField', 'groupField'],
@@ -1465,7 +1529,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
             $fields = $options[$field];
             $glue = in_array($field, ['keyField', 'parentField'], true) ? ';' : $options['valueSeparator'];
-            $options[$field] = static function (array $row) use ($fields, $glue): string {
+            $options[$field] = static function (mixed $row) use ($fields, $glue): string {
                 $matches = [];
                 foreach ($fields as $field) {
                     $matches[] = (string)($row[$field] ?? '');

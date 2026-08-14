@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Command;
 
 use Cake\Console\CommandInterface;
-use Crustum\Mongo\Test\TestCase\Command\TestCase;
 
 /**
  * MongoEnumCommandTest class

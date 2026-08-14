@@ -18,8 +18,12 @@
 
 {%- set generatedProperties = [] %}
 {%- set imports = ['Crustum\\Mongo\\ODM\\Document'] %}
+{%- set hasEmbedded = fields is defined and fields|filter(f => f.embedded is defined and f.embedded is not null)|length > 0 %}
 {%- if fields is defined and fields|length > 0 -%}
     {%- set imports = imports|merge({'DocumentAttribute': 'Crustum\\Mongo\\ODM\\Attribute\\Document', 'Field': 'Crustum\\Mongo\\ODM\\Attribute\\Field'}) -%}
+    {%- if hasEmbedded -%}
+        {%- set imports = imports|merge({'Embedded': 'Crustum\\Mongo\\ODM\\Attribute\\Embedded'}) -%}
+    {%- endif -%}
     {%- if useConstants -%}
         {%- set imports = imports|merge(['Crustum\\Mongo\\Database\\Schema\\CollectionSchemaInterface']) -%}
     {%- endif -%}
@@ -31,10 +35,14 @@
 
 {{ MongoDocBlock.classDescription(name, 'Document', annotations)|raw }}
 {% if fields is defined and fields|length > 0 %}
-#[DocumentAttribute(collection: '{{ collection is defined ? collection : name|underscore }}')]
+#[DocumentAttribute(collection: '{{ collection is defined and collection ? collection : name|underscore }}')]
 {% for field in fields %}
 {%- set enumShort = enumTypes is defined and enumTypes[field.name] is defined ? enumTypes[field.name]|split('\\')|last : null %}
+{%- if field.embedded is defined and field.embedded is not null %}
+#[Embedded(many: {{ field.embeddedMany ? 'true' : 'false' }}, key: '{{ field.embeddedKey }}')]
+{%- else %}
 #[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }}{{ enumShort ? ", enumType: '\\" ~ enumTypes[field.name] ~ "'" : '' }})]
+{%- endif %}
 {% endfor %}
 {% endif %}
 class {{ name }} extends Document{{ fileBuilder.classBuilder.implements ? ' implements ' ~ fileBuilder.classBuilder.implements|join(', ') : '' }}

@@ -1,0 +1,38 @@
+{#
+/**
+ * Crustum Mongo ODM — Embedded Document bake template.
+ *
+ * Renders a Document class that lives inside a parent (carries `#[Embedded]`).
+ */
+#}
+{%- set accessible = Bake.getFieldAccessibility(fieldNames, primaryKey) %}
+{%- set imports = ['Crustum\\Mongo\\ODM\\Document'] %}
+{%- if fields is defined and fields|length > 0 -%}
+    {%- set imports = imports|merge({'Embedded': 'Crustum\\Mongo\\ODM\\Attribute\\Embedded', 'Field': 'Crustum\\Mongo\\ODM\\Attribute\\Field'}) -%}
+    {%- if useConstants -%}
+        {%- set imports = imports|merge(['Crustum\\Mongo\\Database\\Schema\\CollectionSchemaInterface']) -%}
+    {%- endif -%}
+{%- endif -%}
+{{- element('Bake.file_header', {
+    namespace: fileBuilder.namespace,
+    classImports: fileBuilder.classImports(imports),
+}) }}
+
+{{ MongoDocBlock.classDescription(name, 'Document', [])|raw }}
+{% if fields is defined and fields|length > 0 %}
+#[Embedded(many: {{ embedded.many ? 'true' : 'false' }}, key: '{{ embedded.key }}')]
+{% for field in fields %}
+#[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }})]
+{% endfor %}
+{% endif %}
+class {{ name }} extends Document
+{
+{% if accessible %}
+    /**
+     * Fields that can be mass assigned using newDocument() or patchDocument().
+     *
+     * @var array<string, bool>
+     */
+    protected array $_accessible = {{ Bake.exportVar(accessible, 1)|raw }};
+{% endif %}
+}

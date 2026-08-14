@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Command;
 
 use Cake\Console\CommandInterface;
-use Crustum\Mongo\Test\TestCase\Command\TestCase;
+use Crustum\Mongo\Command\Bake\CollectionCommand;
+use ReflectionClass;
 
 /**
  * CollectionCommandTest class
@@ -41,5 +42,47 @@ class CollectionCommandTest extends TestCase
         $result = file_get_contents($this->generatedFile);
         $this->assertStringContainsString('class BakeArticlesCollection extends BaseCollection', $result);
         $this->assertStringContainsString('public function initialize(array $config): void', $result);
+    }
+
+    /**
+     * Test that the document name is singularized.
+     *
+     * @return void
+     */
+    public function testDocumentName(): void
+    {
+        $command = new CollectionCommand();
+        $method = (new ReflectionClass($command))->getMethod('documentName');
+
+        $this->assertSame('Article', $method->invoke($command, 'Articles'));
+        $this->assertSame('Author', $method->invoke($command, 'Authors'));
+    }
+
+    /**
+     * Test that the document class resolves only when it exists.
+     *
+     * @return void
+     */
+    public function testDocumentClassFor(): void
+    {
+        $command = new CollectionCommand();
+        $method = (new ReflectionClass($command))->getMethod('documentClassFor');
+
+        $this->assertSame(
+            'TestApp\Model\Document\Article',
+            $method->invoke($command, 'Articles', 'TestApp'),
+        );
+        $this->assertNull($method->invoke($command, 'Products', 'TestApp'));
+    }
+
+    /**
+     * Test that the command aborts without a name.
+     *
+     * @return void
+     */
+    public function testExecuteNoName(): void
+    {
+        $this->exec('bake collection');
+        $this->assertExitCode(CommandInterface::CODE_ERROR);
     }
 }

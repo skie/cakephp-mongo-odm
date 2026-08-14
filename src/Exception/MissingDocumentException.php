@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\ODM\Exception;
+namespace Crustum\Mongo\Exception;
 
 use Cake\Core\Exception\CakeException;
 
@@ -15,5 +15,5 @@ class MissingDocumentException extends CakeException
      *
      * @var string
      */
-    protected string $_messageTemplate = 'Document class `%s` could not be found.';
+    protected string $_messageTemplate = 'Document class %s could not be found.';
 }

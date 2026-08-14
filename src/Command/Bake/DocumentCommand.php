@@ -93,6 +93,8 @@ class DocumentCommand extends BakeCommand
         );
         $enumTypes = $this->enumTypes($name, $fields);
 
+        $fields = $this->resolveEmbedded($name, $fields);
+
         $parsedFile = null;
         if ($args->getOption('update')) {
             $parsedFile = $this->parseFile($filename);
@@ -120,8 +122,108 @@ class DocumentCommand extends BakeCommand
 
         $io->createFile($filename, $contents, $this->force);
 
+        $this->bakeEmbeddedDocuments($name, $fields, $args, $io);
+
         $emptyFile = $path . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Resolves embedded fields to their generated document class names.
+     *
+     * Each embedded field gains an `embeddedClass` short name (e.g. `Address`
+     * for `addresses`) used by the template to emit `#[Embedded]` and by
+     * `bakeEmbeddedDocuments()` to generate the class file.
+     *
+     * @param string $parentName The parent document class name.
+     * @param list<array<string, mixed>> $fields Schema fields.
+     * @return list<array<string, mixed>>
+     */
+    protected function resolveEmbedded(string $parentName, array $fields): array
+    {
+        foreach ($fields as &$field) {
+            if (empty($field['embedded'])) {
+                continue;
+            }
+
+            $embedded = $field['embedded'];
+            $field['embeddedClass'] = $parentName . Inflector::camelize(
+                Inflector::singularize((string)$embedded['key']),
+            );
+            $field['embeddedMany'] = $embedded['many'];
+            $field['embeddedKey'] = $embedded['key'];
+        }
+        unset($field);
+
+        return $fields;
+    }
+
+    /**
+     * Generates an embedded Document class for every embedded field.
+     *
+     * @param string $parentName The parent document class name.
+     * @param list<array<string, mixed>> $fields Schema fields.
+     * @param \Cake\Console\Arguments $args CLI arguments.
+     * @param \Cake\Console\ConsoleIo $io Console io.
+     * @return void
+     */
+    protected function bakeEmbeddedDocuments(string $parentName, array $fields, Arguments $args, ConsoleIo $io): void
+    {
+        foreach ($fields as $field) {
+            if (empty($field['embedded'])) {
+                continue;
+            }
+
+            $embedded = $field['embedded'];
+            $embeddedName = (string)$field['embeddedClass'];
+            $io->out("\n" . sprintf('Baking embedded document class for %s...', $embeddedName));
+
+            $path = $this->getPath($args);
+            $filename = $path . $embeddedName . '.php';
+
+            $namespace = Configure::read('App.namespace');
+            if ($this->plugin) {
+                $namespace = $this->_pluginNamespace($this->plugin);
+            }
+
+            $fields2 = [];
+            foreach ($embedded['fields'] as $nested) {
+                $fields2[] = [
+                    'name' => $nested['name'],
+                    'type' => $nested['type'],
+                    'constant' => SchemaFields::typeConstant($nested['type']),
+                    'nullable' => $nested['nullable'],
+                    'primaryKey' => $nested['primaryKey'],
+                    'enum' => null,
+                ];
+            }
+
+            $data = [
+                'name' => $embeddedName,
+                'namespace' => $namespace,
+                'plugin' => $this->plugin,
+                'fields' => $fields2,
+                'fieldNames' => array_values(array_diff(array_column($fields2, 'name'), ['_id'])),
+                'propertySchema' => $this->propertySchema($fields2),
+                'primaryKey' => ['_id'],
+                'hidden' => [],
+                'collection' => null,
+                'useConstants' => array_any($fields2, fn(array $f): bool => $f['constant'] !== null),
+                'enumTypes' => [],
+                'embedded' => [
+                    'many' => $embedded['many'],
+                    'key' => $embedded['key'],
+                ],
+                'fileBuilder' => new FileBuilder($io, "{$namespace}\Model\Document"),
+            ];
+
+            $contents = $this->createTemplateRenderer()
+                ->set($data)
+                ->generate('Crustum/Mongo.Document/embedded');
+            $contents = str_replace("\r\n", "\n", $contents);
+
+            $io->createFile($filename, $contents, $this->force);
+        }
     }
 
     /**
@@ -172,6 +274,7 @@ class DocumentCommand extends BakeCommand
                 'nullable' => $definition['nullable'],
                 'primaryKey' => $fieldName === '_id',
                 'enum' => is_array($enumValues) && $enumValues !== [] ? $enumValues : null,
+                'embedded' => $definition['embedded'] ?? null,
             ];
         }
 

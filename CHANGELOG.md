@@ -15,12 +15,30 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 - `ODM\Association::attachTo()` — in-pipeline (lookup) association attach, the
   ODM analog of cake60 `Association::attachTo()`; registers the association on
   the query eager loader so `$lookup` stages build and results nest (doc 32).
+- **`#[Embedded]` attribute (doc 36)** — `ODM\Attribute\Embedded` marks a
+  Document as embedded inside a parent (`many`/`key`/`localKey`), with
+  `Embedded::read()` reflection. `Collection::embedOne()/embedMany()` now derive
+  `localKey` from the attribute automatically.
+- **Embedded bake (doc 36)** — `SchemaFields` detects nested validator shapes
+  (`array` + `items.properties` → embedMany, `object` + `properties` →
+  embedOne); `bake document`/`bake mongo_model` emit `#[Embedded]` on the parent
+  and generate the embedded Document class; `bake collection`/`bake mongo_model`
+  emit `embedOne()`/`embedMany(['documentClass' => ...])`. Plain arrays/hashes
+  stay `TYPE_COLLECTION`/`TYPE_HASH`.
 
 ### Tests
-- Ported the reference `bake` command tests into `tests/TestCase/Command/`
-  (enum, document, mongo_model, fixture, controller, template, test, collection)
-  with a dedicated `TestApp\BakeTestApplication` console harness. Run with
-  `php vendor/bin/phpunit tests/TestCase/Command` (doc 35).
+- Ported the reference `bake` + `migrations` bake command tests into
+  `tests/TestCase/Command/` (enum 4, document 7, mongo_model 28, association
+  detection 6, fixture 4, controller 11, template 13, test 7, collection 4,
+  bake mongo_migration 6, bake mongo_seed 5, bake snapshot 2, bake diff 3,
+  embedded bake 9 = **111 tests**) with a dedicated `TestApp\BakeTestApplication`
+  console harness.
+  Bake output only ever lands in the throwaway test app
+  (`tests/test_app/TestApp/`) with fresh unique names + tearDown cleanup; the
+  fixture/test commands (whose paths resolve to the real plugin `tests/` dirs)
+  are covered by pure method tests so the real suite is never written into
+  (doc 35). The migration *engine* is not exercised. Run with
+  `php vendor/bin/phpunit tests/TestCase/Command`.
 - Rewrote `BelongsToTest::testAttachTo*` to the ODM shape (assert the `$lookup`
   pipeline, not SQL `clause('join')`/`clause('select')`); added
   `testAttachToEndToEnd`. SQL-only cases (multi-column primary keys, target
@@ -45,10 +63,15 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   `BaseCollection::defaultConnectionName()`.
 - **`bake mongo_model`**: `getCollectionObject()` passes `collection` (was
   `table`, which `BaseCollection` ignores) so `--collection` is honored.
+- **`bake mongo_migration`**: `collectionName()` inference fixed for
+  `Remove*From*` names (`RemoveFieldsFromUsers` → `users`, was `s_from_users`)
+  by matching the plural `Fields`/`Columns` alternation first.
 
 ### Fixed
-- **`SelectQuery::count()`** honors `group`/`having`/`distinct`/in-pipeline loads
-  by routing through the `$count` aggregation pipeline; simple queries still use
+- **`Association`**: `className` now defaults to the full alias (cake60 parity) so
+  plugin-prefixed associations (`hasMany('TestPlugin.Comments')`) resolve the
+  plugin collection class; `HasMany::options()` handles `sort` and `saveStrategy`.
+- **`SelectQuery::count()`** honors `group`/`having`/`distinct`/in-pipeline loads  by routing through the `$count` aggregation pipeline; simple queries still use
   `countDocuments(filter)` (total, mirroring cake6 `performCount`).
 - **`ResultSet::count()`** counts buffered rows (cake `BufferedIterator`
   semantics) instead of delegating to the query's total count — so

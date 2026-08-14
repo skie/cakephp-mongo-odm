@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Command;
 
 use Cake\Console\CommandInterface;
-use Crustum\Mongo\Test\TestCase\Command\TestCase;
+use Crustum\Mongo\Command\Bake\DocumentCommand;
+use ReflectionClass;
 
 /**
  * DocumentCommandTest class
@@ -41,7 +42,7 @@ class DocumentCommandTest extends TestCase
         $this->assertStringContainsString("#[DocumentAttribute(collection: 'articles')]", $result);
         $this->assertStringContainsString("#[Field(name: 'author_id', type: CollectionSchemaInterface::TYPE_OBJECTID, nullable: true)]", $result);
         $this->assertStringContainsString("#[Field(name: 'title', type: CollectionSchemaInterface::TYPE_STRING, nullable: true)]", $result);
-        $this->assertStringContainsString("protected array \$_accessible = [", $result);
+        $this->assertStringContainsString('protected array $_accessible = [', $result);
     }
 
     /**
@@ -95,5 +96,54 @@ class DocumentCommandTest extends TestCase
 
         $this->assertStringContainsString('class BakeLock extends Document', $result);
         $this->assertStringContainsString("#[Field(name: 'title', type: CollectionSchemaInterface::TYPE_STRING)]", $result);
+    }
+
+    /**
+     * Test that the property schema maps each field to column metadata.
+     *
+     * @return void
+     */
+    public function testPropertySchema(): void
+    {
+        $command = new DocumentCommand();
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('propertySchema');
+
+        $fields = [
+            ['name' => '_id', 'type' => 'objectid', 'nullable' => false],
+            ['name' => 'title', 'type' => 'string', 'nullable' => true],
+        ];
+        $result = $method->invoke($command, $fields);
+        $this->assertSame('column', $result['_id']['kind']);
+        $this->assertSame('objectid', $result['_id']['type']);
+        $this->assertFalse($result['_id']['null']);
+        $this->assertTrue($result['title']['null']);
+    }
+
+    /**
+     * Test the default hidden fields.
+     *
+     * @return void
+     */
+    public function testHiddenFields(): void
+    {
+        $command = new DocumentCommand();
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('hiddenFields');
+
+        $fields = [['name' => 'title', 'type' => 'string', 'nullable' => false]];
+        $result = $method->invoke($command, $fields);
+        $this->assertSame(['password', 'token'], $result);
+    }
+
+    /**
+     * Test that the command aborts without a name.
+     *
+     * @return void
+     */
+    public function testExecuteNoName(): void
+    {
+        $this->exec('bake document');
+        $this->assertExitCode(CommandInterface::CODE_ERROR);
     }
 }

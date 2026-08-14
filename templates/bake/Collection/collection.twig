@@ -22,6 +22,9 @@
 {%- if documentClass -%}
     {%- set imports = imports|merge([documentClass]) -%}
 {%- endif %}
+{%- if embeddedImports is defined -%}
+    {%- set imports = imports|merge(embeddedImports) -%}
+{%- endif %}
 {{ element('Bake.file_header', {
     namespace: fileBuilder.namespace,
     classImports: fileBuilder.classImports(imports),
@@ -81,6 +84,11 @@ class {{ name }}Collection extends BaseCollection
             {%~ endfor %}
         $this->{{ assocTypes[type] ?? type }}('{{ assoc.alias }}', {{ Bake.exportArray(assocData, 2)|raw }});
         {%~ endfor %}
+    {%~ endfor %}
+{% endif %}
+{% if embedded is defined and embedded|length > 0 %}
+    {%~ for assoc in embedded %}
+        $this->{{ assoc.type == 'EmbedMany' ? 'embedMany' : 'embedOne' }}('{{ assoc.property }}', ['documentClass' => {{ assoc.documentClass }}::class]);
     {%~ endfor %}
 {% endif %}
     }

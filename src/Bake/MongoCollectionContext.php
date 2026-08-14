@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Bake;
 
+use Cake\Core\Configure;
+use Cake\Utility\Inflector;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\Migration\Util\SchemaFields;
 use Crustum\Mongo\ODM\BaseCollection;
 
 /**
@@ -17,6 +20,13 @@ use Crustum\Mongo\ODM\BaseCollection;
 class MongoCollectionContext
 {
     /**
+     * The plugin being baked into, when any.
+     *
+     * @var string|null
+     */
+    public ?string $plugin = null;
+
+    /**
      * Builds the context array.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
@@ -24,16 +34,13 @@ class MongoCollectionContext
      */
     public function build(BaseCollection $collection): array
     {
-        $described = $collection->describeSchema();
-        $schema = $described instanceof CollectionSchema ? $described : null;
-        if (!$schema instanceof CollectionSchema) {
-            $appSchema = $collection->getSchema();
-            $schema = $appSchema instanceof CollectionSchema ? $appSchema : null;
-        }
+        $schema = $this->resolveSchema($collection);
 
         $filter = new MongoAssociationFilter();
         $associations = $filter->filterAssociations($collection);
         $associationInfo = $this->associationInfo($collection);
+        $embedded = $schema instanceof CollectionSchema ? $this->embeddedAssociations($schema, $collection) : [];
+        $embeddedImports = array_values(array_filter(array_column($embedded, 'documentClassFqn')));
 
         $primaryKey = (array)$collection->getPrimaryKey();
         $displayField = $this->displayField($collection, $schema);
@@ -44,7 +51,91 @@ class MongoCollectionContext
         $hidden = $this->hiddenFields($schema);
         $table = $collection->getCollection();
 
-        return ['associations' => $associations, 'associationInfo' => $associationInfo, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'table' => $table, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden];
+        return ['associations' => $associations, 'associationInfo' => $associationInfo, 'embedded' => $embedded, 'embeddedImports' => $embeddedImports, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'table' => $table, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden];
+    }
+
+    /**
+     * Resolves the schema to bake from, preferring the live-described schema
+     * but falling back to the collection's set schema when the live schema is
+     * empty (e.g. the collection has no validator yet).
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
+     * @return \Crustum\Mongo\Database\Schema\CollectionSchema|null
+     */
+    protected function resolveSchema(BaseCollection $collection): ?CollectionSchema
+    {
+        $described = $collection->describeSchema();
+        if ($described instanceof CollectionSchema && $described->columns() !== []) {
+            return $described;
+        }
+
+        $appSchema = $collection->getSchema();
+        if ($appSchema instanceof CollectionSchema && $appSchema->columns() !== []) {
+            return $appSchema;
+        }
+
+        return $described instanceof CollectionSchema ? $described : null;
+    }
+
+    /**
+     * Detects embedded associations from the collection schema.
+     *
+     * Reuses `SchemaFields::fromSchema()` on the live validator so the rule
+     * matches `bake document`: `array` + `items.properties` → embedMany,
+     * `object` + `properties` → embedOne.
+     *
+     * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema The schema.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection (for the document class name).
+     * @return list<array{property: string, type: string, documentClass: string, documentClassFqn: string, many: bool}>
+     */
+    protected function embeddedAssociations(CollectionSchema $schema, BaseCollection $collection): array
+    {
+        $dump = [
+            'collection' => [
+                'validator' => $schema->validator()->toArray(),
+            ],
+        ];
+        $fields = SchemaFields::fromSchema($dump, 'collection');
+
+        $embedded = [];
+        foreach ($fields as $name => $definition) {
+            if (empty($definition['embedded'])) {
+                continue;
+            }
+
+            $info = $definition['embedded'];
+            [$shortName, $fqn] = $this->embeddedDocumentClass($collection, $name);
+
+            $embedded[] = [
+                'property' => $name,
+                'type' => $info['many'] ? 'EmbedMany' : 'EmbedOne',
+                'documentClass' => $shortName,
+                'documentClassFqn' => $fqn,
+                'many' => $info['many'],
+            ];
+        }
+
+        return $embedded;
+    }
+
+    /**
+     * Resolves the embedded document class for a field.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection.
+     * @param string $fieldName The embedded field name.
+     * @return array{string, string} [short name, fully qualified name].
+     */
+    protected function embeddedDocumentClass(BaseCollection $collection, string $fieldName): array
+    {
+        $singular = Inflector::camelize(Inflector::singularize($fieldName));
+        $namespace = Configure::read('App.namespace');
+        if ($this->plugin) {
+            $namespace = str_replace('/', '\\', trim((string)$this->plugin, '\\'));
+        }
+
+        $fqn = sprintf('%s\Model\Document\%s', $namespace, $singular);
+
+        return [$singular, $fqn];
     }
 
     /**

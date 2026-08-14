@@ -1,0 +1,1 @@
+a:1:{s:10:"bake_users";a:1:{s:9:"validator";a:1:{s:11:"$jsonSchema";a:1:{s:10:"properties";a:2:{s:8:"username";a:1:{s:8:"bsonType";s:6:"string";}s:9:"addresses";a:2:{s:8:"bsonType";s:5:"array";s:5:"items";a:2:{s:8:"bsonType";s:6:"object";s:10:"properties";a:2:{s:6:"street";a:1:{s:8:"bsonType";s:6:"string";}s:4:"city";a:1:{s:8:"bsonType";s:6:"string";}}}}}}}}}

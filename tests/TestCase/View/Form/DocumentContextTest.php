@@ -94,9 +94,9 @@ class DocumentContextTest extends TestCase
             'collection' => new UsersCollection(),
         ]);
 
-        // Schema is populated via introspection/SchemaGenerator; without it the
-        // context must degrade gracefully instead of throwing.
-        $this->assertSame([], $context->fieldNames());
+        // Schema is lazily introspected from the database (cake6 parity):
+        // fieldNames() returns the live collection columns.
+        $this->assertSame(['username', 'password', '_id'], $context->fieldNames());
         $this->assertNull($context->type('name'));
         $this->assertSame([], $context->attributes('name'));
     }

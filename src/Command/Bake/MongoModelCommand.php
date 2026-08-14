@@ -24,6 +24,7 @@ use Crustum\Mongo\Bake\MongoCollectionContext;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\Migration\Util\SchemaFields;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
@@ -151,7 +152,9 @@ class MongoModelCommand extends BakeCommand
         $associations = $this->getAssociations($collectionObject, $collection, $args, $io);
         $this->applyAssociations($collectionObject, $associations);
 
-        $context = (new MongoCollectionContext())->build($collectionObject);
+        $contextBuilder = new MongoCollectionContext();
+        $contextBuilder->plugin = $this->plugin;
+        $context = $contextBuilder->build($collectionObject);
         $associationInfo = $this->getAssociationInfo($collectionObject);
 
         $schema = $collectionObject->getSchema();
@@ -166,7 +169,7 @@ class MongoModelCommand extends BakeCommand
         $rulesChecker = $args->getOption('no-rules') ? [] : $context['rulesChecker'];
         $behaviors = $args->getOption('no-associations') ? [] : $context['behaviors'];
 
-        return ['associationInfo' => $associationInfo, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'collection' => $collection, 'propertySchema' => $propertySchema, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden, 'schema' => $schema, 'associations' => $associations];
+        return ['associationInfo' => $associationInfo, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'collection' => $collection, 'propertySchema' => $propertySchema, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden, 'schema' => $schema, 'associations' => $associations, 'embedded' => $context['embedded'] ?? [], 'embeddedImports' => $context['embeddedImports'] ?? []];
     }
 
     /**
@@ -1071,6 +1074,7 @@ class MongoModelCommand extends BakeCommand
         }
 
         $fields = [];
+        $embedded = $this->embeddedFields($schema);
         foreach ($schema->columns() as $fieldName) {
             $type = $this->canonicalType((string)$schema->getFieldType($fieldName));
             $fields[] = [
@@ -1079,8 +1083,11 @@ class MongoModelCommand extends BakeCommand
                 'constant' => $this->typeConstant($type),
                 'nullable' => $schema->isNullable($fieldName),
                 'primaryKey' => $fieldName === '_id',
+                'embedded' => $embedded[$fieldName] ?? null,
             ];
         }
+
+        $fields = $this->resolveEmbedded($name, $fields);
 
         $fieldNames = array_values(array_diff(array_column($fields, 'name'), ['_id']));
         $useConstants = array_any($fields, fn(array $field): bool => $field['constant'] !== null);
@@ -1105,8 +1112,145 @@ class MongoModelCommand extends BakeCommand
 
         $this->writeFile($io, $filename, $contents, $this->force);
 
+        $this->bakeEmbeddedDocuments($name, $fields, $args, $io);
+
         $emptyFile = $path . 'Document' . DS . '.gitkeep';
         $this->deleteEmptyFile($emptyFile, $io);
+    }
+
+    /**
+     * Detects embedded field definitions from a live CollectionSchema.
+     *
+     * Reuses `SchemaFields::fromSchema()` on the validator so `bake mongo_model`
+     * and `bake document` agree on the embedded detection rule.
+     *
+     * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema The schema.
+     * @return array<string, array<string, mixed>>
+     */
+    protected function embeddedFields(CollectionSchema $schema): array
+    {
+        $dump = [
+            'collection' => [
+                'validator' => $schema->validator()->toArray(),
+            ],
+        ];
+        $fields = SchemaFields::fromSchema($dump, 'collection');
+
+        return array_column($fields, 'embedded', 'name');
+    }
+
+    /**
+     * Resolves embedded fields to their generated document class names.
+     *
+     * @param string $parentName The parent document class name.
+     * @param list<array<string, mixed>> $fields Schema fields.
+     * @return list<array<string, mixed>>
+     */
+    protected function resolveEmbedded(string $parentName, array $fields): array
+    {
+        foreach ($fields as &$field) {
+            if (empty($field['embedded'])) {
+                continue;
+            }
+
+            $embedded = $field['embedded'];
+            $field['embeddedClass'] = $parentName . Inflector::camelize(
+                Inflector::singularize((string)$embedded['key']),
+            );
+            $field['embeddedMany'] = $embedded['many'];
+            $field['embeddedKey'] = $embedded['key'];
+        }
+        unset($field);
+
+        return $fields;
+    }
+
+    /**
+     * Generates an embedded Document class for every embedded field.
+     *
+     * @param string $parentName The parent document class name.
+     * @param list<array<string, mixed>> $fields Schema fields.
+     * @param \Cake\Console\Arguments $args CLI arguments.
+     * @param \Cake\Console\ConsoleIo $io Console io.
+     * @return void
+     */
+    protected function bakeEmbeddedDocuments(string $parentName, array $fields, Arguments $args, ConsoleIo $io): void
+    {
+        foreach ($fields as $field) {
+            if (empty($field['embedded'])) {
+                continue;
+            }
+
+            $embedded = $field['embedded'];
+            $embeddedName = (string)$field['embeddedClass'];
+            $io->out("\n" . sprintf('Baking embedded document class for %s...', $embeddedName));
+
+            $path = $this->getPath($args);
+            $filename = $path . 'Document' . DS . $embeddedName . '.php';
+
+            $namespace = Configure::read('App.namespace');
+            if ($this->plugin) {
+                $namespace = $this->_pluginNamespace($this->plugin);
+            }
+
+            $fields2 = [];
+            foreach ($embedded['fields'] as $nested) {
+                $fields2[] = [
+                    'name' => $nested['name'],
+                    'type' => $nested['type'],
+                    'constant' => $this->typeConstant($nested['type']),
+                    'nullable' => $nested['nullable'],
+                    'primaryKey' => $nested['primaryKey'],
+                    'enum' => null,
+                ];
+            }
+
+            $data = [
+                'name' => $embeddedName,
+                'namespace' => $namespace,
+                'plugin' => $this->plugin,
+                'fields' => $fields2,
+                'fieldNames' => array_values(array_diff(array_column($fields2, 'name'), ['_id'])),
+                'propertySchema' => $this->embeddedPropertySchema($fields2),
+                'primaryKey' => ['_id'],
+                'hidden' => [],
+                'collection' => null,
+                'useConstants' => array_any($fields2, fn(array $f): bool => $f['constant'] !== null),
+                'enumTypes' => [],
+                'embedded' => [
+                    'many' => $embedded['many'],
+                    'key' => $embedded['key'],
+                ],
+                'fileBuilder' => new FileBuilder($io, "{$namespace}\Model\Document"),
+            ];
+
+            $contents = $this->createTemplateRenderer()
+                ->set($data)
+                ->generate('Crustum/Mongo.Document/embedded');
+            $contents = str_replace("\r\n", "\n", $contents);
+
+            $this->writeFile($io, $filename, $contents, $this->force);
+        }
+    }
+
+    /**
+     * Builds the property schema map for an embedded document.
+     *
+     * @param list<array<string, mixed>> $fields Embedded fields.
+     * @return array<string, array{kind: string, type: string, null: bool}>
+     */
+    protected function embeddedPropertySchema(array $fields): array
+    {
+        $schema = [];
+        foreach ($fields as $field) {
+            $schema[$field['name']] = [
+                'kind' => 'column',
+                'type' => $field['type'],
+                'null' => $field['nullable'],
+            ];
+        }
+
+        return $schema;
     }
 
     /**

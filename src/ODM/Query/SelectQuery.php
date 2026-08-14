@@ -456,7 +456,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function toArray(): array
     {
-        return array_values($this->all()->toArray());
+        return $this->all()->toArray();
     }
 
     /**
