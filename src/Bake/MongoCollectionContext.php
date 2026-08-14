@@ -148,7 +148,7 @@ class MongoCollectionContext
             $nullable = $schema->isNullable($fieldName);
             $field = $schema->getField($fieldName);
             $isForeignKey = in_array($fieldName, $foreignKeys, true);
-            $rules = $this->fieldValidation($fieldName, $type, $nullable, $isForeignKey, $field, $schema);
+            $rules = $this->fieldValidation($fieldName, $this->canonicalType($type), $nullable, $isForeignKey, $field, $schema);
 
             if ($rules !== []) {
                 $validate[$fieldName] = $rules;
@@ -224,6 +224,32 @@ class MongoCollectionContext
         }
 
         return $rules;
+    }
+
+    /**
+     * Maps a raw Mongo schema type to the canonical TypeFactory name.
+     *
+     * `CollectionSchema::getColumnType()` may return raw bson spellings
+     * (`int`, `bool`, `objectId`) which `fieldValidation()` only knows in
+     * their canonical form (`integer`, `boolean`, `objectid`).
+     *
+     * @param string|null $type The schema type name.
+     * @return string|null The canonical type name.
+     */
+    protected function canonicalType(?string $type): ?string
+    {
+        return match ($type) {
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'objectId' => 'objectid',
+            'long' => 'int64',
+            'double' => 'float',
+            'decimal' => 'decimal128',
+            'binData' => 'binary',
+            'object' => 'hash',
+            'array' => 'collection',
+            default => $type,
+        };
     }
 
     /**

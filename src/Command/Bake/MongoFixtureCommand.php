@@ -129,10 +129,32 @@ class MongoFixtureCommand extends BakeCommand
                 continue;
             }
 
-            $record[$field] = $this->sampleValue($schema->getFieldType($field) ?? 'string');
+            $record[$field] = $this->sampleValue($this->canonicalType($schema->getFieldType($field) ?? 'string'));
         }
 
         return $record === [] ? [] : [$record];
+    }
+
+    /**
+     * Maps a raw Mongo schema type to the canonical TypeFactory name.
+     *
+     * @param string $type The schema type name.
+     * @return string The canonical type name.
+     */
+    protected function canonicalType(string $type): string
+    {
+        return match ($type) {
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'objectId' => 'objectid',
+            'long' => 'int64',
+            'double' => 'float',
+            'decimal' => 'decimal128',
+            'binData' => 'binary',
+            'object' => 'hash',
+            'array' => 'collection',
+            default => $type,
+        };
     }
 
     /**

@@ -133,6 +133,11 @@ class CollectionCommand extends BakeCommand
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
+        $parser->addOption('connection', [
+            'default' => 'mongo',
+            'help' => 'The datasource connection to get data from.',
+        ]);
+
         $parser->setDescription(static::getDescription())
             ->addArgument('name', [
                 'help' => 'Name of the collection class to bake (e.g., Articles). "Collection" suffix is added automatically.',

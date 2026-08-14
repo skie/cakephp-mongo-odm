@@ -17,6 +17,10 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   the query eager loader so `$lookup` stages build and results nest (doc 32).
 
 ### Tests
+- Ported the reference `bake` command tests into `tests/TestCase/Command/`
+  (enum, document, mongo_model, fixture, controller, template, test, collection)
+  with a dedicated `TestApp\BakeTestApplication` console harness. Run with
+  `php vendor/bin/phpunit tests/TestCase/Command` (doc 35).
 - Rewrote `BelongsToTest::testAttachTo*` to the ODM shape (assert the `$lookup`
   pipeline, not SQL `clause('join')`/`clause('select')`); added
   `testAttachToEndToEnd`. SQL-only cases (multi-column primary keys, target
@@ -26,6 +30,21 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   `CollectionImplementedEventsTest` (cake6 `TableImplementedEventsTest`).
 - `tools/port-test.php`: now rewrites `TableEventsTrait` → `CollectionEventsTrait`,
   all `Model.*` event names, and drops same-namespace base-test imports.
+
+### Fixed
+- **`bake mongo_enum`**: int enum cases without an explicit value now
+  auto-increment (`foo,bar,bar_baz:9 -i` → `Foo=0, Bar=1, BarBaz=9`), matching
+  `Bake\Utility\Model\EnumParser`.
+- **`bake mongo_model` / `bake collection` / `bake mongofixture`**: field types
+  are now canonicalized (`int`→`integer`, `bool`→`boolean`, `objectId`→`objectid`,
+  `array`→`collection`, …) before `#[Field]` constant mapping, validation rules,
+  and fixture sample values — matching `bake document` (was emitting raw `'int'`
+  and skipping the `integer` rule).
+- **`bake document` / `bake collection`**: `--connection` now defaults to
+  `mongo` (was `default` from the bake common options), matching the ODM default
+  `BaseCollection::defaultConnectionName()`.
+- **`bake mongo_model`**: `getCollectionObject()` passes `collection` (was
+  `table`, which `BaseCollection` ignores) so `--collection` is honored.
 
 ### Fixed
 - **`SelectQuery::count()`** honors `group`/`having`/`distinct`/in-pipeline loads

@@ -189,7 +189,7 @@ class MongoModelCommand extends BakeCommand
 
         $collectionObject = new BaseCollection([
             'alias' => $className,
-            'table' => $collection,
+            'collection' => $collection,
             'connectionName' => $this->connection,
         ]);
         $collectionObject->setConnection($connection);
@@ -799,7 +799,7 @@ class MongoModelCommand extends BakeCommand
             return [];
         }
 
-        $type = (string)($metaData['type'] ?? 'string');
+        $type = $this->canonicalType((string)($metaData['type'] ?? 'string'));
         $rules = [];
         if ($fieldName === 'email') {
             $rules['email'] = [];
@@ -1072,7 +1072,7 @@ class MongoModelCommand extends BakeCommand
 
         $fields = [];
         foreach ($schema->columns() as $fieldName) {
-            $type = (string)$schema->getFieldType($fieldName);
+            $type = $this->canonicalType((string)$schema->getFieldType($fieldName));
             $fields[] = [
                 'name' => $fieldName,
                 'type' => $type,
@@ -1252,6 +1252,32 @@ class MongoModelCommand extends BakeCommand
         }
 
         return false;
+    }
+
+    /**
+     * Maps a raw Mongo schema type to the canonical TypeFactory name.
+     *
+     * `CollectionSchema::getFieldType()` may return raw bson spellings
+     * (`int`, `bool`, `objectId`) which the `typeConstant()`/`fieldValidation()`
+     * maps only know in their canonical form (`integer`, `boolean`, `objectid`).
+     *
+     * @param string $type The schema type name.
+     * @return string The canonical type name.
+     */
+    protected function canonicalType(string $type): string
+    {
+        return match ($type) {
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'objectId' => 'objectid',
+            'long' => 'int64',
+            'double' => 'float',
+            'decimal' => 'decimal128',
+            'binData' => 'binary',
+            'object' => 'hash',
+            'array' => 'collection',
+            default => $type,
+        };
     }
 
     /**

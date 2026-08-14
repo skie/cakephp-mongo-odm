@@ -107,7 +107,7 @@ class MongoEnumCommand extends SimpleBakeCommand
         }
 
         $cases = [];
-        foreach (explode(',', $definition) as $case) {
+        foreach (explode(',', $definition) as $k => $case) {
             $case = trim($case);
             if ($case === '') {
                 continue;
@@ -117,7 +117,7 @@ class MongoEnumCommand extends SimpleBakeCommand
                 [$name, $value] = explode(':', $case, 2);
                 $cases[trim($name)] = $isInt ? (int)trim($value) : trim($value);
             } else {
-                $cases[$case] = $isInt ? 0 : $case;
+                $cases[$case] = $isInt ? $k : $case;
             }
         }
 
