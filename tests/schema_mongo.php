@@ -173,7 +173,7 @@ return [
     'counter_cache_comments' => [
         'fields' => [
             'title' => ['bsonType' => 'string'],
-            'user_id' => ['bsonType' => 'objectId'],
+            'user_id' => ['bsonType' => ['objectId', 'null']],
         ],
         'indexes' => [
             'counter_cache_comments_user_id' => ['key' => ['user_id' => 1]],
@@ -182,8 +182,8 @@ return [
     'counter_cache_posts' => [
         'fields' => [
             'title' => ['bsonType' => 'string'],
-            'user_id' => ['bsonType' => 'objectId'],
-            'category_id' => ['bsonType' => 'objectId'],
+            'user_id' => ['bsonType' => ['objectId', 'null']],
+            'category_id' => ['bsonType' => ['objectId', 'null']],
             'published' => ['bsonType' => 'int'],
         ],
         'indexes' => [
@@ -192,8 +192,8 @@ return [
     ],
     'counter_cache_user_category_posts' => [
         'fields' => [
-            'category_id' => ['bsonType' => 'objectId'],
-            'user_id' => ['bsonType' => 'objectId'],
+            'category_id' => ['bsonType' => ['objectId', 'null']],
+            'user_id' => ['bsonType' => ['objectId', 'null']],
             'post_count' => ['bsonType' => 'int'],
         ],
         'indexes' => [

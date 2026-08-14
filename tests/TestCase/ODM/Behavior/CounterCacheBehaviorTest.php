@@ -188,7 +188,6 @@ class CounterCacheBehaviorTest extends TestCase
 
     public function testSaveWithNullForeignKey(): void
     {
-        $this->markTestSkipped('ODM save validation gap: null FK save fails: F35');
         $this->comment->belongsTo('Users');
 
         $this->comment->addBehavior('CounterCache', [
@@ -255,7 +254,6 @@ class CounterCacheBehaviorTest extends TestCase
      */
     public function testUpdate(): void
     {
-        $this->markTestSkipped('ODM save validation gap: FK change save fails: F35');
         $this->post->belongsTo('Users');
         $this->post->belongsTo('Categories');
 
@@ -508,7 +506,6 @@ class CounterCacheBehaviorTest extends TestCase
      */
     public function testBindingKey(): void
     {
-        $this->markTestSkipped('ODM save validation gap: composite binding key save: F35');
         $this->post->hasMany('UserCategoryPosts', [
             'bindingKey' => ['category_id', 'user_id'],
             'foreignKey' => ['category_id', 'user_id'],
@@ -521,7 +518,7 @@ class CounterCacheBehaviorTest extends TestCase
         $before = $this->userCategoryPosts->find()
             ->where(['user_id' => '000000000000000000000001', 'category_id' => '000000000000000000000002'])
             ->first();
-        $document = $this->getEntity()->set('category_id', 2);
+        $document = $this->getEntity()->set('category_id', '000000000000000000000002');
         $this->post->save($document);
         $after = $this->userCategoryPosts->find()
             ->where(['user_id' => '000000000000000000000001', 'category_id' => '000000000000000000000002'])
