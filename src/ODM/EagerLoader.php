@@ -154,7 +154,7 @@ class EagerLoader
      */
     public function getMatching(): array
     {
-        return $this->matching ? $this->matching->getContain() : [];
+        return $this->matching instanceof EagerLoader ? $this->matching->getContain() : [];
     }
 
     /**
@@ -429,7 +429,7 @@ class EagerLoader
     {
         $this->normalized = null;
         $this->external = [];
-        $this->matching = $this->matching ? clone $this->matching : null;
+        $this->matching = $this->matching instanceof EagerLoader ? clone $this->matching : null;
     }
 
     /**

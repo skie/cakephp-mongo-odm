@@ -95,6 +95,7 @@ class EagerLoaderTest extends TestCase
         ];
         $this->collection = $this->getCollectionLocator()->get('foo', ['schema' => $schema]);
         $collection = $this->collection;
+
         $clients = $this->getCollectionLocator()->get('clients', ['schema' => $schema1]);
         $orders = $this->getCollectionLocator()->get('orders', ['schema' => $schema2]);
         $companies = $this->getCollectionLocator()->get('companies', ['schema' => $schema, 'collection' => 'organizations']);
@@ -106,8 +107,10 @@ class EagerLoaderTest extends TestCase
         $collection->belongsTo('clients');
         $clients->hasOne('orders');
         $clients->belongsTo('companies');
+
         $orders->belongsTo('orderTypes');
         $orders->hasOne('stuff');
+
         $stuff->belongsTo('stuffTypes');
         $companies->belongsTo('categories');
 
@@ -375,14 +378,10 @@ class EagerLoaderTest extends TestCase
     {
         $loader = new EagerLoader();
         $loader->contain([
-            'clients' => function ($query) {
-                return $query->select(['a']);
-            },
+            'clients' => fn($query) => $query->select(['a']),
         ]);
         $loader->contain([
-            'clients' => function ($query) {
-                return $query->select(['b']);
-            },
+            'clients' => fn($query) => $query->select(['b']),
         ]);
         $builder = $loader->getContain()['clients']['queryBuilder'];
         $collection = $this->getCollectionLocator()->get('foo');
@@ -410,8 +409,9 @@ class EagerLoaderTest extends TestCase
         $query = new SelectQuery($collection);
         $loader = new EagerLoader();
         $loader->contain($contains);
+
         $query->select('foo.id');
-        $loader->attachAssociations($query, $collection, true);
+        $loader->attachAssociations($query, $collection);
 
         $select = $query->clause('select');
         $expected = [
@@ -495,6 +495,7 @@ class EagerLoaderTest extends TestCase
 
         $loader = new EagerLoader();
         $loader->contain($contains);
+
         $normalized = $loader->normalized($this->collection);
         $this->assertSame('clients', $normalized['clients']->aliasPath());
         $this->assertSame('client', $normalized['clients']->propertyPath());
@@ -527,6 +528,7 @@ class EagerLoaderTest extends TestCase
     {
         $loader = new EagerLoader();
         $loader->setMatching('clients');
+
         $assocs = $loader->attachableAssociations($this->collection);
 
         $this->assertSame('clients', $assocs['clients']->aliasPath());
@@ -540,6 +542,7 @@ class EagerLoaderTest extends TestCase
     {
         $loader = new EagerLoader();
         $loader->setMatching('clients.orders');
+
         $assocs = $loader->attachableAssociations($this->collection);
 
         $this->assertSame('clients', $assocs['clients']->aliasPath());
@@ -572,6 +575,7 @@ class EagerLoaderTest extends TestCase
         $loader->setMatching('clients.addresses');
 
         $loader->clearContain();
+
         $result = $loader->normalized($this->collection);
         $this->assertEquals([], $result);
         $this->assertArrayHasKey('clients', $loader->getMatching());
@@ -599,9 +603,7 @@ class EagerLoaderTest extends TestCase
     protected function quoteArray($elements): array
     {
         if ($this->connection->getDriver()->isAutoQuotingEnabled()) {
-            $quoter = function ($e) {
-                return $this->connection->getDriver()->quoteIdentifier($e);
-            };
+            $quoter = (fn($e) => $this->connection->getDriver()->quoteIdentifier($e));
 
             return array_combine(
                 array_map($quoter, array_keys($elements)),
