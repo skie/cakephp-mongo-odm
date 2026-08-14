@@ -8,6 +8,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\Db\Collection;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -264,5 +265,59 @@ class CollectionTest extends TestCase
         $drop->create();
 
         $this->assertFalse($this->adapter->hasCollection($name));
+    }
+
+    /**
+     * Test a create() recorded through the RecordingAdapter reverses to a drop.
+     *
+     * The plan records a `createCollection` command by intent (not by live
+     * existence), so re-running the same create() in the down direction and
+     * executing the inverted commands drops the collection — even though it
+     * already exists.
+     *
+     * @return void
+     */
+    public function testCreateIsReversedThroughRecordingAdapter(): void
+    {
+        $name = 'mig_col_reverse';
+        $this->created[] = $name;
+
+        $collection = new Collection($name, [], $this->adapter);
+        $collection->addField('name', 'string');
+        $collection->create();
+        $this->assertTrue($this->adapter->hasCollection($name));
+
+        $recording = new RecordingAdapter($this->adapter);
+        $replay = new Collection($name, [], $recording);
+        $replay->addField('name', 'string');
+        $replay->create();
+        $recording->executeInvertedCommands();
+
+        $this->assertFalse($this->adapter->hasCollection($name));
+    }
+
+    /**
+     * Test a field removal on update is applied to the validator.
+     *
+     * @return void
+     */
+    public function testUpdateRemovesField(): void
+    {
+        $name = 'mig_col_remove_field';
+        $this->created[] = $name;
+
+        $collection = new Collection($name, [], $this->adapter);
+        $collection->addField('name', 'string');
+        $collection->addField('email', 'string');
+        $collection->create();
+
+        $update = new Collection($name, [], $this->adapter);
+        $update->removeField('email');
+        $update->update();
+
+        $validator = $this->manager->getValidator($name);
+        $properties = $validator['$jsonSchema']['properties'];
+        $this->assertArrayHasKey('name', $properties);
+        $this->assertArrayNotHasKey('email', $properties);
     }
 }

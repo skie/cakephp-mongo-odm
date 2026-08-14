@@ -10,16 +10,26 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Migration\Db;
 
+use Crustum\Mongo\Migration\Db\Action\AddField;
+use Crustum\Mongo\Migration\Db\Action\AddIndex;
+use Crustum\Mongo\Migration\Db\Action\CreateCollection;
+use Crustum\Mongo\Migration\Db\Action\DropCollection;
+use Crustum\Mongo\Migration\Db\Action\DropIndex;
+use Crustum\Mongo\Migration\Db\Action\RemoveField;
+use Crustum\Mongo\Migration\Db\Action\RenameCollection;
+use Crustum\Mongo\Migration\Db\Action\SetValidator;
 use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
-use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
+use Crustum\Mongo\Migration\Db\Plan\Intent;
+use Crustum\Mongo\Migration\Db\Plan\Plan;
 use Crustum\Mongo\Migration\Util\ColumnParser;
 use RuntimeException;
 
 /**
  * Fluent collection builder for migrations.
  *
- * Mirrors `Migrations\Db\Table` for MongoDB. Actions accumulate on the object
- * and are applied to the database when `create()` or `update()` runs:
+ * Mirrors `Migrations\Db\Table` for MongoDB: pending changes accumulate on the
+ * object and are turned into an `Intent` + `Plan` when `create()` or `update()`
+ * runs:
  *
  * ```php
  * $this->collection('users')
@@ -72,6 +82,20 @@ class Collection
      * @var array<string, mixed>|null
      */
     protected ?array $validator = null;
+
+    /**
+     * Fields marked for removal (update).
+     *
+     * @var array<string, true>
+     */
+    protected array $removedFields = [];
+
+    /**
+     * Indexes marked for removal (update).
+     *
+     * @var array<string, true>
+     */
+    protected array $droppedIndexes = [];
 
     /**
      * Whether the collection is being dropped.
@@ -159,7 +183,12 @@ class Collection
      */
     public function hasPendingActions(): bool
     {
-        return $this->drop || $this->fields !== [] || $this->indexes !== [] || $this->validator !== null;
+        return $this->drop
+            || $this->fields !== []
+            || $this->removedFields !== []
+            || $this->indexes !== []
+            || $this->droppedIndexes !== []
+            || $this->validator !== null;
     }
 
     /**
@@ -195,7 +224,7 @@ class Collection
     public function update(): void
     {
         $this->updating = true;
-        $this->executeActions();
+        $this->execute($this->buildUpdateIntent());
         $this->reset();
     }
 
@@ -254,12 +283,15 @@ class Collection
     /**
      * Removes a field definition.
      *
+     * When applied via `update()`, the field is dropped from the validator.
+     *
      * @param string $name Field name
      * @return $this
      */
     public function removeField(string $name): static
     {
         unset($this->fields[$name]);
+        $this->removedFields[$name] = true;
 
         return $this;
     }
@@ -304,12 +336,15 @@ class Collection
     /**
      * Removes an index.
      *
+     * When applied via `update()`, the index is dropped.
+     *
      * @param string $indexName Index name
      * @return $this
      */
     public function removeIndex(string $indexName): static
     {
         unset($this->indexes[$indexName]);
+        $this->droppedIndexes[$indexName] = true;
 
         return $this;
     }
@@ -328,13 +363,13 @@ class Collection
     }
 
     /**
-     * Creates the collection (or updates it) with all pending actions.
+     * Creates the collection (or drops it) with all pending actions.
      *
      * @return void
      */
     public function create(): void
     {
-        $this->executeActions();
+        $this->execute($this->buildCreateIntent());
         $this->reset();
     }
 
@@ -348,126 +383,90 @@ class Collection
         $this->drop = false;
         $this->updating = false;
         $this->fields = [];
+        $this->removedFields = [];
         $this->indexes = [];
+        $this->droppedIndexes = [];
         $this->validator = null;
     }
 
     /**
-     * Applies all pending actions to the database.
+     * Builds the intent for a create operation.
      *
-     * When the adapter is a `RecordingAdapter` (i.e. a `change()` migration is
-     * being reversed for the `down` direction), `create()` must record a
-     * `createCollection` command even if the collection already exists in the
-     * database — otherwise the recorded command would be a `setValidator` whose
-     * inverse cannot drop the collection, and the rollback would silently leak
-     * the DDL.
-     *
-     * @return void
+     * @return \Crustum\Mongo\Migration\Db\Plan\Intent
      */
-    protected function executeActions(): void
+    protected function buildCreateIntent(): Intent
     {
-        $adapter = $this->getAdapter();
+        $intent = new Intent();
 
         if ($this->drop) {
-            $adapter->dropCollection($this->getName());
+            $intent->addAction(new DropCollection($this->getName()));
 
-            return;
+            return $intent;
         }
 
-        if (!$this->updating && (!$this->exists() || $adapter instanceof RecordingAdapter)) {
-            $options = $this->options;
-            $validator = $this->buildValidator();
-            if ($validator !== null) {
-                $options['validator'] = $validator;
-            }
-
-            $adapter->createCollection($this->getName(), $options);
-        } elseif ($this->validator !== null || $this->fields !== []) {
-            $validator = $this->buildValidator();
-            $adapter->setValidator($this->getName(), $validator);
-        }
-
-        foreach ($this->indexes as $indexName => $index) {
-            $options = $index['options'];
-            $options['name'] = $indexName;
-            $adapter->createIndex($this->getName(), $index['key'], $options);
-        }
-    }
-
-    /**
-     * Builds the `$jsonSchema` validator from declared fields, merging any
-     * explicitly set validator.
-     *
-     * @return array<string, mixed>|null
-     */
-    protected function buildValidator(): ?array
-    {
-        if ($this->validator !== null) {
-            return $this->validator;
-        }
-
-        if ($this->fields === []) {
-            return null;
-        }
-
-        $properties = [];
-        if ($this->updating) {
-            $existing = $this->getExistingValidator();
-            if (isset($existing['$jsonSchema']['properties'])) {
-                $properties = $existing['$jsonSchema']['properties'];
-            }
-        }
+        $intent->addAction(new CreateCollection($this->getName(), $this->options));
 
         foreach ($this->fields as $name => $field) {
-            $properties[$name] = ['bsonType' => $this->bsonType($field['type'])];
+            $intent->addAction(new AddField($this->getName(), $name, $field['type']));
         }
 
-        return [
-            '$jsonSchema' => [
-                'bsonType' => 'object',
-                'properties' => $properties,
-                'additionalProperties' => true,
-            ],
-        ];
+        $this->collectIndexAdds($intent);
+
+        return $intent;
     }
 
     /**
-     * Reads the current validator of the collection from the database.
+     * Builds the intent for an update operation.
      *
-     * Used when updating an existing collection so new fields are merged into
-     * the existing validator instead of replacing it.
-     *
-     * @return array<string, mixed>
+     * @return \Crustum\Mongo\Migration\Db\Plan\Intent
      */
-    protected function getExistingValidator(): array
+    protected function buildUpdateIntent(): Intent
     {
-        $validator = $this->getAdapter()->getSchemaManager()->getValidator($this->getName());
+        $intent = new Intent();
 
-        return is_array($validator) ? $validator : [];
+        if ($this->validator !== null) {
+            $intent->addAction(new SetValidator($this->getName(), $this->validator));
+        } else {
+            foreach ($this->fields as $name => $field) {
+                $intent->addAction(new AddField($this->getName(), $name, $field['type']));
+            }
+
+            foreach (array_keys($this->removedFields) as $name) {
+                $intent->addAction(new RemoveField($this->getName(), $name));
+            }
+        }
+
+        $this->collectIndexAdds($intent);
+
+        foreach (array_keys($this->droppedIndexes) as $indexName) {
+            $intent->addAction(new DropIndex($this->getName(), $indexName));
+        }
+
+        return $intent;
     }
 
     /**
-     * Maps a canonical Mongo type to a BSON type spelling for `$jsonSchema`.
+     * Collects AddIndex actions for the pending index definitions.
      *
-     * @param string $type Canonical type name
-     * @return string BSON type spelling
+     * @param \Crustum\Mongo\Migration\Db\Plan\Intent $intent The intent
+     * @return void
      */
-    protected function bsonType(string $type): string
+    protected function collectIndexAdds(Intent $intent): void
     {
-        return match ($type) {
-            'objectid' => 'objectId',
-            'integer', 'int' => 'int',
-            'int64' => 'long',
-            'float' => 'double',
-            'decimal128' => 'decimal',
-            'boolean', 'bool' => 'bool',
-            'date', 'datetime' => 'date',
-            'timestamp' => 'timestamp',
-            'binary' => 'binData',
-            'hash', 'object' => 'object',
-            'array', 'collection' => 'array',
-            default => 'string',
-        };
+        foreach ($this->indexes as $indexName => $index) {
+            $intent->addAction(new AddIndex($this->getName(), $indexName, $index['key'], $index['options']));
+        }
+    }
+
+    /**
+     * Executes an intent through a resolved plan against the adapter.
+     *
+     * @param \Crustum\Mongo\Migration\Db\Plan\Intent $intent The intent
+     * @return void
+     */
+    protected function execute(Intent $intent): void
+    {
+        (new Plan($intent))->execute($this->getAdapter());
     }
 
     /**

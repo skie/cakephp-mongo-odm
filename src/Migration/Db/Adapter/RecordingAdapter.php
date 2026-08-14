@@ -10,95 +10,24 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Migration\Db\Adapter;
 
-use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Migration\IrreversibleMigrationException;
-use Crustum\Mongo\Migration\MigrationInterface;
-use Crustum\Mongo\Migration\SeedInterface;
-use MongoDB\Collection;
 
 /**
  * Recording proxy adapter.
  *
- * Wraps a migration adapter and records DDL commands so `change()` migrations
- * can be reversed for the `down` direction. Inverse commands are executed in
- * reverse order.
+ * Extends the `AdapterWrapper` (like the reference `RecordingAdapter`) and
+ * records DDL commands so `change()` migrations can be reversed for the `down`
+ * direction. Inverse commands are executed in reverse order; all other methods
+ * are delegated to the wrapped adapter.
  */
-class RecordingAdapter implements AdapterInterface
+class RecordingAdapter extends AdapterWrapper
 {
-    /**
-     * The decorated adapter.
-     *
-     * @var \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
-     */
-    protected AdapterInterface $adapter;
-
     /**
      * Recorded commands, each `[method, args]`.
      *
      * @var list<array{string, array<int, mixed>}>
      */
     protected array $commands = [];
-
-    /**
-     * Constructor.
-     *
-     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface $adapter The decorated adapter
-     */
-    public function __construct(AdapterInterface $adapter)
-    {
-        $this->adapter = $adapter;
-    }
-
-    /**
-     * Returns the decorated adapter.
-     *
-     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
-     */
-    public function getAdapter(): AdapterInterface
-    {
-        return $this->adapter;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getConnection(): Connection
-    {
-        return $this->adapter->getConnection();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getSchemaManager(): SchemaManager
-    {
-        return $this->adapter->getSchemaManager();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getCollection(string $name): Collection
-    {
-        return $this->adapter->getCollection($name);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function listCollections(): array
-    {
-        return $this->adapter->listCollections();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function hasCollection(string $name): bool
-    {
-        return $this->adapter->hasCollection($name);
-    }
 
     /**
      * @inheritDoc
@@ -156,144 +85,6 @@ class RecordingAdapter implements AdapterInterface
     }
 
     /**
-     * @inheritDoc
-     */
-    public function getVersions(): array
-    {
-        return $this->adapter->getVersions();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getVersionLog(): array
-    {
-        return $this->adapter->getVersionLog();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function migrated(
-        MigrationInterface $migration,
-        string $direction,
-        string $startTime,
-        string $endTime,
-    ): static {
-        $this->adapter->migrated($migration, $direction, $startTime, $endTime);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function unmigrated(MigrationInterface $migration): static
-    {
-        $this->adapter->unmigrated($migration);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function toggleBreakpoint(MigrationInterface $migration): static
-    {
-        $this->adapter->toggleBreakpoint($migration);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function setBreakpoint(MigrationInterface $migration): static
-    {
-        $this->adapter->setBreakpoint($migration);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function unsetBreakpoint(MigrationInterface $migration): static
-    {
-        $this->adapter->unsetBreakpoint($migration);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function resetAllBreakpoints(): int
-    {
-        return $this->adapter->resetAllBreakpoints();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function beginTransaction(): void
-    {
-        $this->adapter->beginTransaction();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function commitTransaction(): void
-    {
-        $this->adapter->commitTransaction();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function rollbackTransaction(): void
-    {
-        $this->adapter->rollbackTransaction();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function hasTransactions(): bool
-    {
-        return $this->adapter->hasTransactions();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getSeedLog(): array
-    {
-        return $this->adapter->getSeedLog();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function seedExecuted(SeedInterface $seed, string $executedTime): static
-    {
-        $this->adapter->seedExecuted($seed, $executedTime);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function removeSeedFromLog(SeedInterface $seed): static
-    {
-        $this->adapter->removeSeedFromLog($seed);
-
-        return $this;
-    }
-
-    /**
      * Executes the recorded commands in reverse.
      *
      * @throws \Crustum\Mongo\Migration\Migration\IrreversibleMigrationException When a recorded command cannot be reversed.
@@ -303,7 +94,7 @@ class RecordingAdapter implements AdapterInterface
     {
         foreach (array_reverse($this->commands) as [$method, $args]) {
             $inverse = $this->inverseMethod($method);
-            $this->adapter->{$inverse}(...$this->invertArgs($method, $args));
+            $this->getAdapter()->{$inverse}(...$this->invertArgs($method, $args));
         }
     }
 
