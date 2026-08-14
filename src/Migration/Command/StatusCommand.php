@@ -15,7 +15,7 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
-use Crustum\Mongo\Migration\ManagerFactory;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Status command prints the migration status.

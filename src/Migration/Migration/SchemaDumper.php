@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\CollectionSchema;

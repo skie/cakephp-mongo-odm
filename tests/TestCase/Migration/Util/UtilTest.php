@@ -6,7 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\Migration\Util;
 use Cake\TestSuite\TestCase;
 use DateTime;
 use DateTimeZone;
-use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Util\Util;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 

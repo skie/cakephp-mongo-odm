@@ -13,6 +13,8 @@ namespace Crustum\Mongo\Migration;
 use Cake\Console\ConsoleIo;
 use Crustum\Mongo\Migration\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\Migration\Manager;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use MongoDB\Collection;
 use RuntimeException;
 

@@ -7,7 +7,7 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\SchemaDumper;
+use Crustum\Mongo\Migration\Migration\SchemaDumper;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
@@ -27,7 +27,7 @@ class SchemaDumperTest extends TestCase
     protected SchemaManager $manager;
 
     /**
-     * @var \Crustum\Mongo\Migration\SchemaDumper
+     * @var \Crustum\Mongo\Migration\Migration\SchemaDumper
      */
     protected SchemaDumper $dumper;
 

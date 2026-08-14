@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 /**
  * Compares a desired schema (from documents or a dumped file) against the

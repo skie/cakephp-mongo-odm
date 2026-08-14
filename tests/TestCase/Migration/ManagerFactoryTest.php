@@ -8,7 +8,7 @@ use Cake\Console\TestSuite\StubConsoleInput;
 use Cake\Console\TestSuite\StubConsoleOutput;
 use Crustum\Mongo\Migration\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Config\Config;
-use Crustum\Mongo\Migration\ManagerFactory;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

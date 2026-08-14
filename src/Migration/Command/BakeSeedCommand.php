@@ -16,7 +16,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
-use Crustum\Mongo\Migration\ManagerFactory;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use RuntimeException;
 
 /**

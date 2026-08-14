@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Util;
 
 use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Migration\SchemaDumper;
+use Crustum\Mongo\Migration\Migration\SchemaDumper;
 
 /**
  * Extracts field definitions from a schema (live or lock file) so they can be

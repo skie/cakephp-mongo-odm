@@ -8,13 +8,15 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\ConsoleIo;
 use Crustum\Mongo\Migration\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use RuntimeException;
+use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
 
 /**
  * Migration environment.

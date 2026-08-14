@@ -12,7 +12,7 @@ use Crustum\Mongo\Migration\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
 use Crustum\Mongo\Migration\BaseSeed;
 use Crustum\Mongo\Migration\Config\Config;
-use Crustum\Mongo\Migration\Environment;
+use Crustum\Mongo\Migration\Migration\Environment;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,7 +29,7 @@ use RuntimeException;
 class EnvironmentTest extends TestCase
 {
     /**
-     * @var \Crustum\Mongo\Migration\Environment
+     * @var \Crustum\Mongo\Migration\Migration\Environment
      */
     protected Environment $environment;
 

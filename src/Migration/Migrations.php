@@ -10,6 +10,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Migration;
 
+use Crustum\Mongo\Migration\Migration\BackendInterface;
+use Crustum\Mongo\Migration\Migration\BuiltinBackend;
+
 /**
  * The Migrations class is responsible for handling migration operations
  * within a non-shell application.
@@ -42,7 +45,7 @@ class Migrations
     /**
      * Get the Migrations interface backend.
      *
-     * @return \Crustum\Mongo\Migration\BackendInterface
+     * @return \Crustum\Mongo\Migration\Migration\BackendInterface
      */
     protected function getBackend(): BackendInterface
     {

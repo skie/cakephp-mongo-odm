@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Migration;
 
 use Cake\TestSuite\TestCase;
-use Crustum\Mongo\Migration\SchemaDiff;
+use Crustum\Mongo\Migration\Migration\SchemaDiff;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 class SchemaDiffTest extends TestCase
 {
     /**
-     * @var \Crustum\Mongo\Migration\SchemaDiff
+     * @var \Crustum\Mongo\Migration\Migration\SchemaDiff
      */
     protected SchemaDiff $diff;
 

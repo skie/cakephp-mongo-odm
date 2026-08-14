@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\ConsoleIo;
 use Cake\Core\Plugin;
@@ -100,7 +100,7 @@ class ManagerFactory
      *
      * @param \Cake\Console\ConsoleIo $io The command io
      * @param \Crustum\Mongo\Migration\Config\ConfigInterface|null $config A config instance. Providing null will create a new Config
-     * @return \Crustum\Mongo\Migration\Manager
+     * @return \Crustum\Mongo\Migration\Migration\Manager
      */
     public function createManager(ConsoleIo $io, ?ConfigInterface $config = null): Manager
     {

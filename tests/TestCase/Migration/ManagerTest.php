@@ -10,8 +10,8 @@ use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Config\Config;
-use Crustum\Mongo\Migration\Environment;
-use Crustum\Mongo\Migration\Manager;
+use Crustum\Mongo\Migration\Migration\Environment;
+use Crustum\Mongo\Migration\Migration\Manager;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
 use DateTime;
@@ -50,7 +50,7 @@ class ManagerTest extends TestCase
     protected StubConsoleInput $in;
 
     /**
-     * @var \Crustum\Mongo\Migration\Manager|null
+     * @var \Crustum\Mongo\Migration\Migration\Manager|null
      */
     private ?Manager $manager = null;
 

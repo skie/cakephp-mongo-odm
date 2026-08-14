@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
@@ -18,6 +18,9 @@ use Exception;
 use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
+use Crustum\Mongo\Migration\Util\Util;
 
 /**
  * Migration manager.
@@ -729,7 +732,7 @@ class Manager
     /**
      * Gets the manager class for the given environment.
      *
-     * @return \Crustum\Mongo\Migration\Environment
+     * @return \Crustum\Mongo\Migration\Migration\Environment
      */
     public function getEnvironment(): Environment
     {
@@ -773,7 +776,7 @@ class Manager
     /**
      * Replace the environment.
      *
-     * @param \Crustum\Mongo\Migration\Environment $environment Environment
+     * @param \Crustum\Mongo\Migration\Migration\Environment $environment Environment
      * @return $this
      */
     public function setEnvironment(Environment $environment): static

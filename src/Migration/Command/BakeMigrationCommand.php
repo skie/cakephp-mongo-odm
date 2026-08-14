@@ -16,8 +16,8 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
-use Crustum\Mongo\Migration\ManagerFactory;
-use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
+use Crustum\Mongo\Migration\Util\Util;
 use Crustum\Mongo\Migration\Util\ColumnParser;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
@@ -249,7 +249,7 @@ PHP;
             return Inflector::underscore($matches[1]);
         }
 
-        if (preg_match('/^(?:Add|Remove|Alter)(?:Field|Fields|Column|Columns)?(?:From)?(.*)$/', $className, $matches)) {
+        if (preg_match('/^(?:Add|Remove|Alter)(?:Fields|Field|Columns|Column)?(?:From)?(.*)$/', $className, $matches)) {
             return Inflector::underscore($matches[1]);
         }
 

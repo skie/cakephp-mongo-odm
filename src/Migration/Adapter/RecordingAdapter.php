@@ -12,7 +12,7 @@ namespace Crustum\Mongo\Migration\Adapter;
 
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\IrreversibleMigrationException;
+use Crustum\Mongo\Migration\Migration\IrreversibleMigrationException;
 use Crustum\Mongo\Migration\MigrationInterface;
 use MongoDB\Collection;
 
@@ -267,7 +267,7 @@ class RecordingAdapter implements AdapterInterface
     /**
      * Executes the recorded commands in reverse.
      *
-     * @throws \Crustum\Mongo\Migration\IrreversibleMigrationException When a recorded command cannot be reversed.
+     * @throws \Crustum\Mongo\Migration\Migration\IrreversibleMigrationException When a recorded command cannot be reversed.
      * @return void
      */
     public function executeInvertedCommands(): void
@@ -282,7 +282,7 @@ class RecordingAdapter implements AdapterInterface
      * Maps a recorded method to its inverse.
      *
      * @param string $method Recorded method
-     * @throws \Crustum\Mongo\Migration\IrreversibleMigrationException
+     * @throws \Crustum\Mongo\Migration\Migration\IrreversibleMigrationException
      * @return string The inverse method
      */
     protected function inverseMethod(string $method): string

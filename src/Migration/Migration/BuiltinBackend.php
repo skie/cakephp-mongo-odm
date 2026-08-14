@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Migration;
+namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
@@ -29,7 +29,7 @@ class BuiltinBackend implements BackendInterface
     /**
      * Manager instance.
      *
-     * @var \Crustum\Mongo\Migration\Manager|null
+     * @var \Crustum\Mongo\Migration\Migration\Manager|null
      */
     protected ?Manager $manager = null;
 
@@ -144,7 +144,7 @@ class BuiltinBackend implements BackendInterface
      * Returns an instance of Manager.
      *
      * @param array<string, mixed> $options The options for manager creation
-     * @return \Crustum\Mongo\Migration\Manager
+     * @return \Crustum\Mongo\Migration\Migration\Manager
      */
     public function getManager(array $options): Manager
     {

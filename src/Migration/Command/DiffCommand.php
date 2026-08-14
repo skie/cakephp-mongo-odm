@@ -10,10 +10,10 @@ use Cake\Console\ConsoleOptionParser;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
-use Crustum\Mongo\Migration\ManagerFactory;
-use Crustum\Mongo\Migration\SchemaDiff;
-use Crustum\Mongo\Migration\SchemaDumper;
-use Crustum\Mongo\Migration\Util;
+use Crustum\Mongo\Migration\Migration\ManagerFactory;
+use Crustum\Mongo\Migration\Migration\SchemaDiff;
+use Crustum\Mongo\Migration\Migration\SchemaDumper;
+use Crustum\Mongo\Migration\Util\Util;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
 
