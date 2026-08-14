@@ -211,7 +211,7 @@ abstract class Association
     public function __construct(string $alias, BaseCollection $source, array $options = [])
     {
         [, $this->name] = pluginSplit($alias);
-        $this->className = $options['className'] ?? $this->name;
+        $this->className = $options['className'] ?? $alias;
         $this->propertyName = $options['propertyName'] ?? null;
         $this->foreignKey = $options['foreignKey'] ?? null;
         $this->bindingKey = $options['bindingKey'] ?? null;
@@ -755,11 +755,7 @@ abstract class Association
 
         if ($sort instanceof OrderClauseExpression) {
             $field = $sort->getField();
-            if (is_string($field)) {
-                $sort = [$field => $this->orderDirection($sort)];
-            } else {
-                $sort = [];
-            }
+            $sort = is_string($field) ? [$field => $this->orderDirection($sort)] : [];
         }
 
         if (is_string($sort)) {

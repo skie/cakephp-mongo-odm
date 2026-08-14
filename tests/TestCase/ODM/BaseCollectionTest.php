@@ -672,7 +672,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllConditionAutoTypes(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// DateTime condition casting in where() is not applied for datetime fields (F16); see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -709,7 +709,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindBeforeFindEventMutateQuery(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind); see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -731,7 +731,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindBeforeFindEventOverrideReturn(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind/setResult); see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -756,7 +756,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAssociationDotSyntax(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $sections = $this->getCollectionLocator()->get('Sections');
         $members = $this->getCollectionLocator()->get('Members');
         $sectionsMembers = $this->getCollectionLocator()->get('SectionsMembers');
@@ -777,7 +776,6 @@ class BaseCollectionTest extends TestCase
 
     public function testGetAssociationWithIncorrectCasing(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "The `authors` association is not defined on `Articles`.\n"
@@ -794,7 +792,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetAssociationNonExistent(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The `FooBar` association is not defined on `Sections`.');
 
@@ -822,7 +819,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasOne(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection(['collection' => 'users']);
         $hasOne = $table->hasOne('profile', ['conditions' => ['b' => 'c']]);
         $this->assertInstanceOf(HasOne::class, $hasOne);
@@ -882,7 +878,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSelfJoinAssociations(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Eager loader FK-selection check: select() must auto-include the binding key for contained associations (F17); see 18-orm-tests-port-plan.md.');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $options = ['className' => 'Categories'];
         $Categories->hasMany('Children', ['foreignKey' => 'parent_id'] + $options);
@@ -936,7 +932,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $options = [
             'conditions' => ['b' => 'c'],
             'sort' => ['foo' => 'asc'],
@@ -957,7 +952,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasManyWithClassName(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Eager loader FK-selection check: select() must auto-include the binding key for contained associations (F17); see 18-orm-tests-port-plan.md.');
         $table = $this->getCollectionLocator()->get('Articles');
         $table->hasMany('Comments', [
             'conditions' => ['published' => 'Y'],
@@ -1014,7 +1009,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasManyPluginOverlap(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->getCollectionLocator()->get('Comments');
         $this->loadPlugins(['TestPlugin']);
 
@@ -1120,7 +1114,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testUpdateAll(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Mongo projection semantics gap (F16): select() must exclude `_id` from results; see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1149,7 +1143,7 @@ class BaseCollectionTest extends TestCase
 
     public function testUpdateExpression(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// SQL `field = field + 1` expression needs $inc mapping in ODM update compiler; see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'counter_cache_users',
             'connection' => $this->connection,
@@ -1304,7 +1298,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindApplyOptions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery', 'findAll'])
             ->setConstructorArgs([['collection' => 'users', 'connection' => $this->connection]])
@@ -1335,7 +1328,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindTypedParameters(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Finder filters `where([\'id\' => $id])` but Mongo documents store identity in `_id` (no id→_id automap); see 18-orm-tests-port-plan.md.');
         $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', 2)->first();
         $this->assertSame(2, $author->getId());
 
@@ -1348,7 +1341,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testChangedFindWithOverlappingArgs(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $query = $this->getCollectionLocator()->get('Authors')
             ->find('withIdArgument', 2)
             ->find('custom', id: [1, 2], second: false);
@@ -1359,7 +1351,7 @@ class BaseCollectionTest extends TestCase
             ->find('withIdArgument', id: 2)
             ->find('custom', second: true);
 
-        $this->assertSame(['_id' => '000000000000000000000002', 'second' => true], $query->getOptions());
+        $this->assertSame(['id' => 2, 'second' => true], $query->getOptions());
 
         $query = $this->getCollectionLocator()->get('Authors')
             ->find('withIdArgument', id: 2)

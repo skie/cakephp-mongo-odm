@@ -64,8 +64,22 @@ class HasMany extends Association
     public function __construct(string $alias, BaseCollection $source, array $options = [])
     {
         parent::__construct($alias, $source, $options);
+    }
+
+    /**
+     * Handles HasMany-specific constructor options.
+     *
+     * @param array<string, mixed> $options Association configuration.
+     * @return void
+     */
+    protected function options(array $options): void
+    {
         if (isset($options['saveStrategy'])) {
             $this->setSaveStrategy((string)$options['saveStrategy']);
+        }
+
+        if (isset($options['sort'])) {
+            $this->setSort($options['sort']);
         }
     }
 
