@@ -1699,13 +1699,13 @@ class BaseCollectionTest extends TestCase
 
         $query = $articles->find('list', valueField: 'author.name')
             ->contain(['Authors'])
-            ->orderBy('articles.id');
+            ->orderBy('_id');
         $this->assertEmpty($query->clause('select'));
 
         $expected = [
-            1 => 'mariano',
-            2 => 'larry',
-            3 => 'mariano',
+            '000000000000000000000001' => 'mariano',
+            '000000000000000000000002' => 'larry',
+            '000000000000000000000003' => 'mariano',
         ];
         $this->assertSame($expected, $query->toArray());
     }

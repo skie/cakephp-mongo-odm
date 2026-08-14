@@ -283,11 +283,42 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             $target = $instance->getTarget();
-            if ($instance instanceof HasMany || $instance instanceof BelongsToMany) {
+            if ($instance instanceof HasMany) {
                 $results[$propertyName] = array_map(
                     fn(mixed $item): EntityInterface => $this->hydrateRow((array)$item, $target),
                     (array)$row[$propertyName],
                 );
+            } elseif ($instance instanceof BelongsToMany) {
+                $junctionKey = '_join_' . $propertyName;
+                $junctionRows = (array)($row[$junctionKey] ?? []);
+                $junction = $instance->junction();
+
+                $targetFk = $instance->getTargetForeignKey();
+                $junctionProperty = $instance->getJunctionProperty();
+                $junctionMap = [];
+                foreach ($junctionRows as $junctionRow) {
+                    $joinKey = (string)($junctionRow[$targetFk] ?? $junctionRow['_id'] ?? '');
+                    if ($joinKey === '') {
+                        continue;
+                    }
+
+                    $junctionMap[$joinKey] = $this->hydrateRow((array)$junctionRow, $junction);
+                }
+
+                $results[$propertyName] = array_map(
+                    function (mixed $item) use ($target, $junctionMap, $junctionProperty): EntityInterface {
+                        $tag = $this->hydrateRow((array)$item, $target);
+                        $joinKey = $tag->get('_id');
+                        if ($joinKey !== null && isset($junctionMap[(string)$joinKey])) {
+                            $tag->set($junctionProperty, $junctionMap[(string)$joinKey], ['guard' => false]);
+                        }
+
+                        return $tag;
+                    },
+                    (array)$row[$propertyName],
+                );
+
+                unset($row[$junctionKey]);
             } else {
                 $results[$propertyName] = $this->hydrateRow((array)$row[$propertyName], $target);
             }

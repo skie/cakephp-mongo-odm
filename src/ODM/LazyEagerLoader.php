@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use Cake\Datasource\EntityInterface;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 
 /**
  * Contains methods that are capable of injecting eagerly loaded associations into
@@ -36,12 +37,49 @@ class LazyEagerLoader
             $returnSingle = true;
         }
 
-        $associations = array_keys($contain);
-        $associations = array_values(array_filter($associations, is_string(...)));
+        $query = $this->getQuery($entities, $contain, $source);
+        $associations = array_values(array_filter(
+            array_keys($query->getContain()),
+            is_string(...),
+        ));
 
-        $entities = $this->injectResults($entities, $contain, $associations, $source);
+        $entities = $this->injectResults($entities, $query, $associations, $source);
 
         return $returnSingle ? array_shift($entities) : $entities;
+    }
+
+    /**
+     * Builds a query that loads the passed documents plus the requested
+     * associations, mirroring cake60 `LazyEagerLoader::getQuery()`.
+     *
+     * @param array<\Cake\Datasource\EntityInterface> $entities The original documents.
+     * @param array<int|string, mixed> $contain The associations to be loaded.
+     * @param \Crustum\Mongo\ODM\BaseCollection $source The collection the documents came from.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery
+     */
+    protected function getQuery(array $entities, array $contain, BaseCollection $source): SelectQuery
+    {
+        $primaryKey = $source->getPrimaryKey();
+        $method = is_string($primaryKey) ? 'get' : 'extract';
+
+        $keys = [];
+        foreach ($entities as $entity) {
+            $keys[] = $entity->{$method}($primaryKey);
+        }
+
+        return $source
+            ->find()
+            ->select((array)$primaryKey)
+            ->where(function ($exp) use ($primaryKey, $keys, $source): mixed {
+                if (is_array($primaryKey) && count($primaryKey) === 1) {
+                    $primary = current($primaryKey);
+                } else {
+                    $primary = is_string($primaryKey) ? $primaryKey : (string)current($primaryKey);
+                }
+
+                return $exp->in($source->aliasField($primary), $keys);
+            })
+            ->contain($contain);
     }
 
     /**
@@ -70,14 +108,14 @@ class LazyEagerLoader
      * documents.
      *
      * @param array<\Cake\Datasource\EntityInterface> $entities The original list of documents
-     * @param array<int|string, mixed> $contain The associations to be loaded
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The eager-loading query
      * @param array<string> $associations The top level associations that were loaded
      * @param \Crustum\Mongo\ODM\BaseCollection $source The collection where the documents came from
      * @return array<\Cake\Datasource\EntityInterface>
      */
     protected function injectResults(
         array $entities,
-        array $contain,
+        SelectQuery $query,
         array $associations,
         BaseCollection $source,
     ): array {
@@ -85,13 +123,6 @@ class LazyEagerLoader
         $properties = $this->getPropertyMap($source, $associations);
         $primaryKey = (array)$source->getPrimaryKey();
         $indexBy = static fn(EntityInterface $entity): string => implode(';', $entity->extract($primaryKey));
-
-        $primary = current($primaryKey);
-        assert(is_string($primary));
-        $query = $source
-            ->find()
-            ->where(fn($exp) => $exp->in($source->aliasField($primary), $this->collectKeys($entities, $source)))
-            ->contain($contain);
 
         $results = [];
         foreach ($query->toArray() as $entity) {
@@ -118,24 +149,5 @@ class LazyEagerLoader
         }
 
         return $injected;
-    }
-
-    /**
-     * Collects the primary key values from the passed documents.
-     *
-     * @param array<\Cake\Datasource\EntityInterface> $entities The documents.
-     * @param \Crustum\Mongo\ODM\BaseCollection $source The source collection.
-     * @return array<int, mixed>
-     */
-    protected function collectKeys(array $entities, BaseCollection $source): array
-    {
-        $primaryKey = $source->getPrimaryKey();
-        $method = is_string($primaryKey) ? 'get' : 'extract';
-        $keys = [];
-        foreach ($entities as $entity) {
-            $keys[] = $entity->{$method}($primaryKey);
-        }
-
-        return $keys;
     }
 }

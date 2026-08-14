@@ -336,11 +336,7 @@ class EagerLoader
                     ? $instance->getForeignKey()
                     : $instance->getBindingKey();
                 $keyField = is_array($keyField) ? ($keyField[0] ?? null) : $keyField;
-                if ($keyField !== null && $keyField !== false) {
-                    if ($isManyToOne) {
-                        continue;
-                    }
-
+                if ($keyField !== null && $keyField !== false && !$isManyToOne) {
                     $found = false;
                     foreach ($results as $result) {
                         if ($result instanceof Document && $result->has($keyField)) {

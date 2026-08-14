@@ -87,10 +87,13 @@ class SelectLoader implements LoaderInterface
                 : ($options['foreignKey'] ?? '_id'));
             $conditions = $options['conditions'] ?? [];
             if ($conditions instanceof Closure) {
-                $conditions = $conditions($query);
+                // Let the query layer invoke the closure with (expression, query)
+                // so association conditions match the `where()` contract.
+                $query->where($conditions);
+                $conditions = null;
             }
 
-            $conditions = is_array($conditions) ? $conditions : [];
+            $conditions = $conditions === null ? [] : (is_array($conditions) ? $conditions : []);
             if ($targetKey !== '') {
                 $conditions[$targetKey . ' IN'] = array_values($keys);
             }
