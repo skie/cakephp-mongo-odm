@@ -234,7 +234,7 @@ class ResultSetFactoryTest extends TestCase
         $messages = Log::engine('queries')->read();
         $this->assertNotEmpty($messages, 'The query should have been logged.');
         $message = (string)array_pop($messages);
-        $this->assertStringContainsString('"operation": "aggregate"', $message);
+        $this->assertStringContainsString('"operation": "find"', $message);
         $this->assertStringContainsString('"collection": "articles"', $message);
 
         Log::reset();

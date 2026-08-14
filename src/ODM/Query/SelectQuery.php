@@ -359,7 +359,15 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             return 0;
         }
 
-        if ($this->getEagerLoader()->hasInPipelineLoads()) {
+        $builder = $this->getBuilder();
+        $complex = (
+            $builder->getGroup() !== [] ||
+            $builder->getHaving() !== [] ||
+            $builder->getDistinct() !== [] ||
+            $this->getEagerLoader()->hasInPipelineLoads()
+        );
+
+        if ($complex) {
             $clone = clone $this;
             $clone->addDefaultFields();
             if ($clone->repository instanceof BaseCollection) {
@@ -380,7 +388,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             return (int)($first['total'] ?? 0);
         }
 
-        return $connection->getCollection($this->getCollection())->countDocuments($this->getBuilder()->getFilter());
+        return $connection->getCollection($this->getCollection())->countDocuments($builder->getFilter());
     }
 
     /**

@@ -27,6 +27,17 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 - `tools/port-test.php`: now rewrites `TableEventsTrait` → `CollectionEventsTrait`,
   all `Model.*` event names, and drops same-namespace base-test imports.
 
+### Fixed
+- **`SelectQuery::count()`** honors `group`/`having`/`distinct`/in-pipeline loads
+  by routing through the `$count` aggregation pipeline; simple queries still use
+  `countDocuments(filter)` (total, mirroring cake6 `performCount`).
+- **`ResultSet::count()`** counts buffered rows (cake `BufferedIterator`
+  semantics) instead of delegating to the query's total count — so
+  `count($query->all())` matches the limit, while pagination totals stay on
+  `SelectQuery::count()`. F21 (`testFindEmptyConditions`) unskipped.
+- `ResultSetFactoryTest::testQueryLoggingForSelectsWithZeroRows` aligned to
+  cake6 (asserts the query ran as `find`, not the pre-fix `aggregate`).
+
 ### Added
 - **Connection read/write roles (doc 30)** — dual-driver `Connection`
   (`getReadDriver()`/`getWriteDriver()`/`getDriver($role)`, `createDrivers()`

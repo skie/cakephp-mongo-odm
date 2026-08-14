@@ -53,7 +53,6 @@ class AssociationProxyTest extends TestCase
      */
     public function testFindEmptyConditions(): void
     {
-        $this->markTestSkipped('ODM missing `list` finder + limit named-arg routing on association proxy — see F21');
         $collection = $this->getCollectionLocator()->get('Users');
         $collection->hasMany('Articles', [
             'foreignKey' => 'author_id',

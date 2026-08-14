@@ -7,6 +7,7 @@ use Cake\Collection\CollectionTrait;
 use Cake\Collection\Iterator\BufferedIterator;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
+use Countable;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -323,17 +324,19 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     }
 
     /**
-     * Returns the total number of documents.
+     * Returns the number of rows buffered in this result set.
      *
-     * Delegates to the query's count so lazy Mongo cursors are never consumed
-     * just to count.
+     * Counts the buffered rows (mirroring cake's BufferedIterator::count), not
+     * the total documents matching the query — the latter is available via
+     * `SelectQuery::count()`. Counting the buffer avoids re-hitting Mongo.
      *
      * @return int
      */
     public function count(): int
     {
-        if ($this->query instanceof SelectQuery) {
-            return $this->query->count();
+        $inner = $this->getInnerIterator();
+        if ($inner instanceof Countable) {
+            return $inner->count();
         }
 
         return count($this->toArray());
