@@ -6,7 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\Migration\Stub;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\MigrationInterface;
 use MongoDB\Collection;
 

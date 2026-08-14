@@ -7,7 +7,7 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\Adapter\CakeMongoAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
 use Crustum\Mongo\Migration\MigrationInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,7 +31,7 @@ class CakeMongoAdapterTest extends TestCase
     protected SchemaManager $manager;
 
     /**
-     * @var \Crustum\Mongo\Migration\Adapter\CakeMongoAdapter
+     * @var \Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter
      */
     protected CakeMongoAdapter $adapter;
 

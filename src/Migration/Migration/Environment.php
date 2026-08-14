@@ -11,8 +11,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\ConsoleIo;
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
-use Crustum\Mongo\Migration\Adapter\RecordingAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use RuntimeException;
 use Crustum\Mongo\Migration\MigrationInterface;
@@ -64,7 +64,7 @@ class Environment
     /**
      * The adapter.
      *
-     * @var \Crustum\Mongo\Migration\Adapter\AdapterInterface|null
+     * @var \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface|null
      */
     protected ?AdapterInterface $adapter = null;
 
@@ -292,7 +292,7 @@ class Environment
     /**
      * Sets the database adapter.
      *
-     * @param \Crustum\Mongo\Migration\Adapter\AdapterInterface $adapter Database adapter
+     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface $adapter Database adapter
      * @return $this
      */
     public function setAdapter(AdapterInterface $adapter): static
@@ -306,7 +306,7 @@ class Environment
      * Gets the database adapter.
      *
      * @throws \RuntimeException
-     * @return \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     public function getAdapter(): AdapterInterface
     {

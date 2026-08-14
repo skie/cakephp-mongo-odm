@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Migration\Adapter;
 
 use Cake\TestSuite\TestCase;
-use Crustum\Mongo\Migration\Adapter\RecordingAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
@@ -26,7 +26,7 @@ class RecordingAdapterTest extends TestCase
     protected FakeAdapter $fake;
 
     /**
-     * @var \Crustum\Mongo\Migration\Adapter\RecordingAdapter
+     * @var \Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter
      */
     protected RecordingAdapter $recording;
 

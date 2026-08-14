@@ -10,8 +10,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Migration\Db;
 
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
-use Crustum\Mongo\Migration\Adapter\RecordingAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\Util\ColumnParser;
 use RuntimeException;
 
@@ -48,7 +48,7 @@ class Collection
     /**
      * The adapter.
      *
-     * @var \Crustum\Mongo\Migration\Adapter\AdapterInterface|null
+     * @var \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface|null
      */
     protected ?AdapterInterface $adapter = null;
 
@@ -92,7 +92,7 @@ class Collection
      *
      * @param string $name Collection name
      * @param array<string, mixed> $options Collection creation options
-     * @param \Crustum\Mongo\Migration\Adapter\AdapterInterface|null $adapter Database adapter
+     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface|null $adapter Database adapter
      */
     public function __construct(string $name, array $options = [], ?AdapterInterface $adapter = null)
     {
@@ -127,7 +127,7 @@ class Collection
     /**
      * Sets the database adapter.
      *
-     * @param \Crustum\Mongo\Migration\Adapter\AdapterInterface $adapter Database adapter
+     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface $adapter Database adapter
      * @return $this
      */
     public function setAdapter(AdapterInterface $adapter): static
@@ -141,7 +141,7 @@ class Collection
      * Gets the database adapter.
      *
      * @throws \RuntimeException
-     * @return \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     public function getAdapter(): AdapterInterface
     {

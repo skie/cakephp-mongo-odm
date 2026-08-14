@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration;
 
 use Cake\Console\ConsoleIo;
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use MongoDB\Collection;
 
@@ -47,7 +47,7 @@ interface SeedInterface
     /**
      * Sets the database adapter.
      *
-     * @param \Crustum\Mongo\Migration\Adapter\AdapterInterface $adapter Database adapter
+     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface $adapter Database adapter
      * @return $this
      */
     public function setAdapter(AdapterInterface $adapter): static;
@@ -55,7 +55,7 @@ interface SeedInterface
     /**
      * Gets the database adapter.
      *
-     * @return \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     public function getAdapter(): AdapterInterface;
 

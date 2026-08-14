@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration;
 
 use Cake\Console\ConsoleIo;
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Db\Collection;
 use ReflectionClass;
@@ -29,7 +29,7 @@ class BaseMigration implements MigrationInterface
     /**
      * The adapter instance.
      *
-     * @var \Crustum\Mongo\Migration\Adapter\AdapterInterface|null
+     * @var \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface|null
      */
     protected ?AdapterInterface $adapter = null;
 

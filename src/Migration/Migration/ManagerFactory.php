@@ -14,8 +14,8 @@ use Cake\Console\ConsoleIo;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Migration\Adapter\AdapterInterface;
-use Crustum\Mongo\Migration\Adapter\CakeMongoAdapter;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Config\Config;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use RuntimeException;
@@ -113,7 +113,7 @@ class ManagerFactory
      * Builds the migration adapter from the environment options.
      *
      * @param array<string, mixed> $options Environment options
-     * @return \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     public function createAdapter(array $options): AdapterInterface
     {

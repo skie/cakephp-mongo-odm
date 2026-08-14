@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @license https://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-namespace Crustum\Mongo\Migration\Adapter;
+namespace Crustum\Mongo\Migration\Db\Adapter;
 
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
@@ -28,7 +28,7 @@ class RecordingAdapter implements AdapterInterface
     /**
      * The decorated adapter.
      *
-     * @var \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @var \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     protected AdapterInterface $adapter;
 
@@ -42,7 +42,7 @@ class RecordingAdapter implements AdapterInterface
     /**
      * Constructor.
      *
-     * @param \Crustum\Mongo\Migration\Adapter\AdapterInterface $adapter The decorated adapter
+     * @param \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface $adapter The decorated adapter
      */
     public function __construct(AdapterInterface $adapter)
     {
@@ -52,7 +52,7 @@ class RecordingAdapter implements AdapterInterface
     /**
      * Returns the decorated adapter.
      *
-     * @return \Crustum\Mongo\Migration\Adapter\AdapterInterface
+     * @return \Crustum\Mongo\Migration\Db\Adapter\AdapterInterface
      */
     public function getAdapter(): AdapterInterface
     {
