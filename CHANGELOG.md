@@ -84,12 +84,35 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 - **`BaseCollection::getAssociation()` throws on missing** (cake60
   `InvalidArgumentException`) instead of returning null; added `findAssociation()`
   helper; `Marshaller`/`CounterCacheBehavior` use `hasAssociation()` guards.
+- **`BaseCollection` reordered to mirror cake60 `Table.php`** — same method
+  order (with ODM-only methods placed next to their cake analog and marked
+  "ODM extension"), full docblocks adapted for Collection/Document/Mongo, and a
+  class-level `@template TDocument` generic used in find/query signatures.
+  `$queryFactory` property moved next to `$registryAlias`; `find()` is now a
+  one-liner via `selectQuery()`.
+- **`Document` id → `_id` read fallback** — `__get('id')`/`get('id')`/`has('id')`
+  map to `_id` so cake-style `$doc->id` works after hydration/save; a plain
+  `id` field still wins when present.
+- **`LinkConstraint::countLinks()`** routes through the association `find()`
+  (applies conditions/finder) for HasOne/HasMany/HasOne, and through `matching()`
+  for BelongsToMany — F34 link-count tests unskipped (25/35 in LinkConstraintTest).
+- **`QueryExpression::eq()/notEq()` accept `IdentifierExpression`** (field-to-field
+  `$expr`) in addition to plain field names; `not(equalFields(...))` composes
+  field-to-field negation.
 
 ### Tests
 - Ported `Rule\ExistsInNullableTest` + `Rule\LinkConstraintTest` (cake60) via
   `tools/port-test.php`; composite-FK (`ExistsIn` `array_combine`) and SQL-only
   subquery tests marked skip (F32/F33/F34).
-- Ported `Behavior\CounterCacheBehaviorTest` (15 pass / 4 skip F35) and
+- **F34 dive** — `LinkConstraintTest` 21 → 26 passing: save-orphan ids now use
+  the persisted document id (`get($orphan->getId())`), field-to-field conditions
+  rewritten as `not(equalFields(...))`, association conditions/finder respected
+  by `countLinks()`. Remaining 9 skip = F32 composite-FK (2), F33 subquery (2),
+  F34 link-count residual (5).
+- **F35 dive** — `CounterCacheBehaviorTest` 15 → 18 passing: nullable
+  `counter_cache_*` FK schema (`bsonType ['objectId','null']`) fixes the null-FK
+  save, `testUpdate`/`testBindingKey` unskipped; 1 residual skip = subquery.
+- Ported `Behavior\CounterCacheBehaviorTest` (18 pass / 1 skip F35) and
   `Behavior\TimestampBehaviorTest` (19/19).
 - Ported `Locator` suite (46/46): `CollectionLocatorTest` (expanded),
   `LocatorAwareTraitTest`, `CollectionContainerTest`.
