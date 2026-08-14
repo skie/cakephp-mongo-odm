@@ -5,7 +5,10 @@ namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\CollectionEventsTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(CollectionEventsTrait::class)]
+#[CoversClass(BaseCollection::class)]
 class CollectionImplementedEventsTest extends TestCase
 {
     /**
