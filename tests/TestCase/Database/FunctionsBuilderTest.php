@@ -258,4 +258,64 @@ class FunctionsBuilderTest extends TestCase
             $func->nor([$func->eq('$$item.a', 1)])->getConditions(),
         );
     }
+
+    /**
+     * Test string/conversion/math operators render their $-operator documents.
+     *
+     * @return void
+     */
+    public function testStringConversionAndMathOperators(): void
+    {
+        $func = $this->functions;
+
+        $this->assertSame(['$toString' => '$_id'], $func->toString('$_id')->getConditions());
+        $this->assertSame(['$toInt' => '$digit'], $func->toInt('$digit')->getConditions());
+        $this->assertSame(
+            ['$substrCP' => ['$name', 0, 3]],
+            $func->substr('$name', 0, 3)->getConditions(),
+        );
+        $this->assertSame(['$strLenCP' => '$name'], $func->strLenCP('$name')->getConditions());
+        $this->assertSame(['$subtract' => ['$a', '$b']], $func->subtract('$a', '$b')->getConditions());
+        $this->assertSame(
+            ['$add' => ['$a', '$b', 1]],
+            $func->add('$a', '$b', 1)->getConditions(),
+        );
+        $this->assertSame(
+            ['$multiply' => ['$price', '$qty']],
+            $func->multiply('$price', '$qty')->getConditions(),
+        );
+        $this->assertSame(['$mod' => ['$n', 2]], $func->mod('$n', 2)->getConditions());
+    }
+
+    /**
+     * Test nested operator composition resolves recursively.
+     *
+     * Models the SQL `id % 2` parity rewrite: the last hex digit of `_id`
+     * (string -> length -> last char -> int -> mod) must render as nested
+     * `$`-operator documents with no raw arrays on the caller side.
+     *
+     * @return void
+     */
+    public function testNestedOperatorComposition(): void
+    {
+        $func = $this->functions;
+        $str = $func->toString('$_id');
+        $lastIndex = $func->subtract($func->strLenCP($str), 1);
+        $lastChar = $func->toInt($func->substr($str, $lastIndex, 1));
+        $odd = $func->mod($lastChar, 2);
+
+        $this->assertSame(
+            ['$mod' => [
+                ['$toInt' => [
+                    '$substrCP' => [
+                        ['$toString' => '$_id'],
+                        ['$subtract' => [['$strLenCP' => ['$toString' => '$_id']], 1]],
+                        1,
+                    ],
+                ]],
+                2,
+            ]],
+            $odd->getConditions(),
+        );
+    }
 }

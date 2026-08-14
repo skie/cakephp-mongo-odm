@@ -1414,29 +1414,39 @@ class BaseCollectionTest extends TestCase
     }
 
     /**
-     * Tests find('list') with a group field (SQL `id % 2` expression — ODM gap).
+     * Tests find('list') with a group field computed from the `_id` parity.
+     *
+     * The cake original used SQL `id % 2`; Mongo has no `%` in projections, so
+     * the parity is derived with a nested expression pipeline:
+     * `$toString` -> `$strLenCP` -> `$subtract` -> `$substrCP` -> `$toInt` -> `$mod`.
      */
     public function testFindListGroupField(): void
     {
-        $this->markTestSkipped('// SQL `id % 2` QueryExpression has no ODM $mod-projection analog (F16); see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $table->setDisplayField('username');
 
+        $query = $table->find('all');
+        $func = $query->func();
+        $str = $func->toString('$_id');
+        $lastIndex = $func->subtract($func->strLenCP($str), 1);
+        $lastChar = $func->toInt($func->substr($str, $lastIndex, 1));
+        $odd = $func->mod($lastChar, 2);
+
         $query = $table->find('list', groupField: 'odd')
-            ->select(['_id', 'username', 'odd' => new QueryExpression('id % 2')])
+            ->select(['_id', 'username', 'odd' => $odd])
             ->enableHydration(false)
             ->orderBy('_id');
         $expected = [
             1 => [
-                1 => 'mariano',
-                3 => 'larry',
+                '000000000000000000000001' => 'mariano',
+                '000000000000000000000003' => 'larry',
             ],
             0 => [
-                2 => 'nate',
-                4 => 'garrett',
+                '000000000000000000000002' => 'nate',
+                '000000000000000000000004' => 'garrett',
             ],
         ];
         $this->assertSame($expected, $query->toArray());
@@ -1454,7 +1464,7 @@ class BaseCollectionTest extends TestCase
         $expected = [
             [
                 '_id' => '000000000000000000000001',
-                'parent_id' => '000000000000000000000000',
+                'parent_id' => '0',
                 'name' => 'Category 1',
                 'children' => [
                     [
@@ -1470,7 +1480,7 @@ class BaseCollectionTest extends TestCase
                             ],
                             [
                                 '_id' => '000000000000000000000008',
-                                'parent_id' => '2',
+                                'parent_id' => '000000000000000000000002',
                                 'name' => 'Category 1.1.2',
                                 'children' => [],
                             ],
@@ -1478,7 +1488,7 @@ class BaseCollectionTest extends TestCase
                     ],
                     [
                         '_id' => '000000000000000000000003',
-                        'parent_id' => '1',
+                        'parent_id' => '000000000000000000000001',
                         'name' => 'Category 1.2',
                         'children' => [],
                     ],
@@ -1486,18 +1496,18 @@ class BaseCollectionTest extends TestCase
             ],
             [
                 '_id' => '000000000000000000000004',
-                'parent_id' => '000000000000000000000000',
+                'parent_id' => '0',
                 'name' => 'Category 2',
                 'children' => [],
             ],
             [
                 '_id' => '000000000000000000000005',
-                'parent_id' => '000000000000000000000000',
+                'parent_id' => '0',
                 'name' => 'Category 3',
                 'children' => [
                     [
-                        'id' => '6',
-                        'parent_id' => '5',
+                        '_id' => '000000000000000000000006',
+                        'parent_id' => '000000000000000000000005',
                         'name' => 'Category 3.1',
                         'children' => [],
                     ],
@@ -1554,10 +1564,10 @@ class BaseCollectionTest extends TestCase
         ]);
         $results = $table->find('all')
             ->find('threaded')
-            ->select(['id', 'parent_id', 'name'])
+            ->select(['_id', 'parent_id', 'name'])
             ->toArray();
 
-        $this->assertSame(1, $results[0]->getId());
+        $this->assertSame('000000000000000000000001', $results[0]->getId());
         $expected = [
             '_id' => '000000000000000000000008',
             'parent_id' => '000000000000000000000002',
@@ -1579,29 +1589,13 @@ class BaseCollectionTest extends TestCase
         $table->setDisplayField('username');
 
         $query = $table
-            ->find('list', fields: ['id', 'username'])
-            ->orderBy('id');
+            ->find('list', fields: ['_id', 'username'])
+            ->orderBy('_id');
         $expected = [
-            1 => 'mariano',
-            2 => 'nate',
-            3 => 'larry',
-            4 => 'garrett',
-        ];
-        $this->assertSame($expected, $query->toArray());
-
-        $query = $table->find('list', groupField: 'odd')
-            ->select(['id', 'username', 'odd' => new QueryExpression('id % 2')])
-            ->enableHydration(true)
-            ->orderBy('id');
-        $expected = [
-            1 => [
-                1 => 'mariano',
-                3 => 'larry',
-            ],
-            0 => [
-                2 => 'nate',
-                4 => 'garrett',
-            ],
+            '000000000000000000000001' => 'mariano',
+            '000000000000000000000002' => 'nate',
+            '000000000000000000000003' => 'larry',
+            '000000000000000000000004' => 'garrett',
         ];
         $this->assertSame($expected, $query->toArray());
     }
@@ -1618,14 +1612,16 @@ class BaseCollectionTest extends TestCase
         $table->setDisplayField('username');
 
         $query = $table->find('list');
-        $expected = ['id', 'username'];
+        // ODM clause('select') is the Mongo projection map {field: 1}.
+        $expected = ['_id' => 1, 'username' => 1];
         $this->assertSame($expected, $query->clause('select'));
 
         $query = $table->find('list', valueField: fn($row) => $row->username);
         $this->assertEmpty($query->clause('select'));
 
-        $expected = ['odd' => new QueryExpression('id % 2'), 'id', 'username'];
-        $query = $table->find('list', fields: $expected, groupField: 'odd');
+        $oddExpression = new QueryExpression('id % 2');
+        $expected = ['odd' => $oddExpression, '_id' => 1, 'username' => 1];
+        $query = $table->find('list', fields: ['odd' => $oddExpression, '_id', 'username'], groupField: 'odd');
         $this->assertSame($expected, $query->clause('select'));
 
         $articles = new BaseCollection([
@@ -1634,28 +1630,28 @@ class BaseCollectionTest extends TestCase
         ]);
 
         $query = $articles->find('list', groupField: 'author_id');
-        $expected = ['id', 'title', 'author_id'];
+        $expected = ['_id' => 1, 'title' => 1, 'author_id' => 1];
         $this->assertSame($expected, $query->clause('select'));
 
         $query = $articles->find('list', valueField: ['author_id', 'title'])
-            ->orderBy('id');
-        $expected = ['id', 'author_id', 'title'];
+            ->orderBy('_id');
+        $expected = ['_id' => 1, 'author_id' => 1, 'title' => 1];
         $this->assertSame($expected, $query->clause('select'));
 
         $expected = [
-            1 => '1 First Article',
-            2 => '3 Second Article',
-            3 => '1 Third Article',
+            '000000000000000000000001' => '000000000000000000000001 First Article',
+            '000000000000000000000002' => '000000000000000000000003 Second Article',
+            '000000000000000000000003' => '000000000000000000000001 Third Article',
         ];
         $this->assertSame($expected, $query->toArray());
 
-        $query = $articles->find('list', valueField: ['id', 'title'], valueSeparator: ' : ')
-            ->orderBy('id');
+        $query = $articles->find('list', valueField: ['_id', 'title'], valueSeparator: ' : ')
+            ->orderBy('_id');
 
         $expected = [
-            1 => '1 : First Article',
-            2 => '2 : Second Article',
-            3 => '3 : Third Article',
+            '000000000000000000000001' => '000000000000000000000001 : First Article',
+            '000000000000000000000002' => '000000000000000000000002 : Second Article',
+            '000000000000000000000003' => '000000000000000000000003 : Third Article',
         ];
         $this->assertSame($expected, $query->toArray());
     }
@@ -1674,14 +1670,14 @@ class BaseCollectionTest extends TestCase
 
         $query = $table
             ->find('list')
-            ->orderBy('id');
+            ->orderBy('_id');
         $this->assertEmpty($query->clause('select'));
 
         $expected = [
-            1 => 'bonus',
-            2 => 'bonus',
-            3 => 'bonus',
-            4 => 'bonus',
+            '000000000000000000000001' => 'bonus',
+            '000000000000000000000002' => 'bonus',
+            '000000000000000000000003' => 'bonus',
+            '000000000000000000000004' => 'bonus',
         ];
         $this->assertSame($expected, $query->toArray());
 

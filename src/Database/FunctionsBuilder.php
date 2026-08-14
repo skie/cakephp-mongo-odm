@@ -353,6 +353,98 @@ class FunctionsBuilder
     }
 
     /**
+     * Converts a value to a string.
+     *
+     * @param mixed $expression The input expression
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function toString(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$toString', [$expression]);
+    }
+
+    /**
+     * Converts a value to an integer.
+     *
+     * @param mixed $expression The input expression
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function toInt(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$toInt', [$expression]);
+    }
+
+    /**
+     * Returns a substring of a string expression.
+     *
+     * @param mixed $string The string expression
+     * @param mixed $start The start index (0-based; must be non-negative)
+     * @param mixed $length The number of characters to return
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function substr(mixed $string, mixed $start, mixed $length): FunctionExpression
+    {
+        return new FunctionExpression('$substrCP', [$string, $start, $length]);
+    }
+
+    /**
+     * Returns the number of characters in a string expression.
+     *
+     * @param mixed $expression The string expression
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function strLenCP(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$strLenCP', [$expression]);
+    }
+
+    /**
+     * Subtracts numbers.
+     *
+     * @param mixed $first The first number
+     * @param mixed $second The number to subtract
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function subtract(mixed $first, mixed $second): FunctionExpression
+    {
+        return new FunctionExpression('$subtract', [$first, $second]);
+    }
+
+    /**
+     * Adds numbers.
+     *
+     * @param mixed ...$values The numbers to add
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function add(mixed ...$values): FunctionExpression
+    {
+        return new FunctionExpression('$add', $values);
+    }
+
+    /**
+     * Multiplies numbers.
+     *
+     * @param mixed ...$values The numbers to multiply
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function multiply(mixed ...$values): FunctionExpression
+    {
+        return new FunctionExpression('$multiply', $values);
+    }
+
+    /**
+     * Returns the remainder of dividing the first number by the second.
+     *
+     * @param mixed $first The dividend
+     * @param mixed $second The divisor
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function mod(mixed $first, mixed $second): FunctionExpression
+    {
+        return new FunctionExpression('$mod', [$first, $second]);
+    }
+
+    /**
      * Builds an arbitrary operator expression.
      *
      * @param string $name The operator name (with or without the leading `$`)
