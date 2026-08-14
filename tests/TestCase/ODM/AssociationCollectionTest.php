@@ -122,7 +122,6 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Clients', 'collection' => 'clients']);
         $collection->setSchemaFromArray([]);
-
         $belongsTo = new BelongsTo('Users', $collection);
         $this->assertSame('user', $belongsTo->getProperty());
         $this->associations->add('Users', $belongsTo);
@@ -178,7 +177,7 @@ class AssociationCollectionTest extends TestCase
      * @param string $belongsToManyStr
      */
     #[DataProvider('associationCollectionType')]
-    public function testGetByType(string $belongsToStr, string $belongsToManyStr): void
+    public function testGetByType($belongsToStr, $belongsToManyStr): void
     {
         $belongsTo = new BelongsTo('', new BaseCollection());
         $this->associations->add('Users', $belongsTo);
@@ -210,22 +209,22 @@ class AssociationCollectionTest extends TestCase
         $mockOne = Mockery::mock(new BelongsTo('', $collection))->makePartial();
         $mockTwo = Mockery::mock(new HasMany('', $collection))->makePartial();
 
-        $entity = new Document();
+        $document = new Document();
         $options = ['option' => 'value'];
         $this->associations->add('One', $mockOne);
         $this->associations->add('Two', $mockTwo);
 
         $mockOne->shouldReceive('cascadeDelete')
             ->once()
-            ->with($entity, $options)
+            ->with($document, $options)
             ->andReturn(true);
 
         $mockTwo->shouldReceive('cascadeDelete')
             ->once()
-            ->with($entity, $options)
+            ->with($document, $options)
             ->andReturn(true);
 
-        $result = $this->associations->cascadeDelete($entity, $options);
+        $result = $this->associations->cascadeDelete($document, $options);
         $this->assertTrue($result);
     }
 
@@ -236,29 +235,28 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
-
         $mockOne = Mockery::mock(new BelongsTo('Parent', $collection))->makePartial();
         $mockTwo = Mockery::mock(new HasMany('Child', $collection))->makePartial();
 
         $this->associations->add('Parent', $mockOne);
         $this->associations->add('Child', $mockTwo);
 
-        $entity = new Document();
-        $entity->set('parent', ['key' => 'value']);
-        $entity->set('child', ['key' => 'value']);
+        $document = new Document();
+        $document->set('parent', ['key' => 'value']);
+        $document->set('child', ['key' => 'value']);
 
         $options = ['option' => 'value'];
 
         $mockOne->shouldReceive('saveAssociated')
             ->once()
-            ->with($entity, $options)
-            ->andReturn($entity);
+            ->with($document, $options)
+            ->andReturn($document);
 
         $mockTwo->shouldReceive('saveAssociated')->never();
 
         $result = $this->associations->saveParents(
             $collection,
-            $entity,
+            $document,
             ['Parent', 'Child'],
             $options,
         );
@@ -272,29 +270,28 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
-
         $mockOne = Mockery::mock(new BelongsTo('Parents', $collection))->makePartial();
         $mockTwo = Mockery::mock(new BelongsTo('Categories', $collection))->makePartial();
 
         $this->associations->add('Parents', $mockOne);
         $this->associations->add('Categories', $mockTwo);
 
-        $entity = new Document();
-        $entity->set('parent', ['key' => 'value']);
-        $entity->set('category', ['key' => 'value']);
+        $document = new Document();
+        $document->set('parent', ['key' => 'value']);
+        $document->set('category', ['key' => 'value']);
 
         $options = ['atomic' => true];
 
         $mockOne->shouldReceive('saveAssociated')
             ->once()
-            ->with($entity, ['atomic' => true, 'associated' => ['Others']])
-            ->andReturn($entity);
+            ->with($document, ['atomic' => true, 'associated' => ['Others']])
+            ->andReturn($document);
 
         $mockTwo->shouldReceive('saveAssociated')->never();
 
         $result = $this->associations->saveParents(
             $collection,
-            $entity,
+            $document,
             ['Parents' => ['associated' => ['Others']]],
             $options,
         );
@@ -308,29 +305,28 @@ class AssociationCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
         $collection->setSchemaFromArray([]);
-
         $mockOne = Mockery::mock(new HasMany('Comments', $collection))->makePartial();
         $mockTwo = Mockery::mock(new HasOne('Profiles', $collection))->makePartial();
 
         $this->associations->add('Comments', $mockOne);
         $this->associations->add('Profiles', $mockTwo);
 
-        $entity = new Document();
-        $entity->set('comments', ['key' => 'value']);
-        $entity->set('profile', ['key' => 'value']);
+        $document = new Document();
+        $document->set('comments', ['key' => 'value']);
+        $document->set('profile', ['key' => 'value']);
 
         $options = ['atomic' => true];
 
         $mockOne->shouldReceive('saveAssociated')
             ->once()
-            ->with($entity, $options + ['associated' => ['Other']])
-            ->andReturn($entity);
+            ->with($document, $options + ['associated' => ['Other']])
+            ->andReturn($document);
 
         $mockTwo->shouldReceive('saveAssociated')->never();
 
         $result = $this->associations->saveChildren(
             $collection,
-            $entity,
+            $document,
             ['Comments' => ['associated' => ['Other']]],
             $options,
         );
@@ -346,12 +342,12 @@ class AssociationCollectionTest extends TestCase
         $this->expectExceptionMessage('Cannot save `Profiles`, it is not associated to `Users`');
         $collection = new BaseCollection(['alias' => 'Users', 'collection' => 'users']);
 
-        $entity = new Document();
-        $entity->set('profile', ['key' => 'value']);
+        $document = new Document();
+        $document->set('profile', ['key' => 'value']);
 
         $this->associations->saveChildren(
             $collection,
-            $entity,
+            $document,
             ['Profiles'],
             ['atomic' => true],
         );
@@ -376,7 +372,6 @@ class AssociationCollectionTest extends TestCase
         $belongsTo = new BelongsTo('', new BaseCollection());
         $this->associations->add('users', $belongsTo);
         $this->associations->add('categories', $belongsTo);
-
         $expected = ['users' => [], 'categories' => []];
         $this->assertSame($expected, $this->associations->normalizeKeys(true));
     }

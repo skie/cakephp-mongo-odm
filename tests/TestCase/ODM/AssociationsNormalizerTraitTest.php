@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
 use Crustum\Mongo\ODM\AssociationsNormalizerTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Tests AssociationsNormalizerTrait.
  */
+#[CoversClass(AssociationsNormalizerTrait::class)]
 class AssociationsNormalizerTraitTest extends TestCase
 {
     /**
@@ -60,10 +62,10 @@ class AssociationsNormalizerTraitTest extends TestCase
                 ],
             ],
             'mixed options and associations' => [
-                ['Comments' => ['fields' => ['_id', 'body'], 'Users']],
+                ['Comments' => ['fields' => ['id', 'body'], 'Users']],
                 [
                     'Comments' => [
-                        'fields' => ['_id', 'body'],
+                        'fields' => ['id', 'body'],
                         'associated' => [
                             'Users' => [],
                         ],
