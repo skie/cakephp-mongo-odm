@@ -10,10 +10,15 @@ use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Config\Config;
+use Crustum\Mongo\Migration\Environment;
 use Crustum\Mongo\Migration\Manager;
+use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
 use DateTime;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * Tests the migration Manager against a real Mongo database.
@@ -336,6 +341,431 @@ class ManagerTest extends TestCase
 
         $this->assertTrue($this->manager->isMigrated(20260811000000));
         $this->assertTrue($this->manager->isMigrated(20260812000000));
+    }
+
+    /**
+     * Test getEnvironment returns an Environment instance.
+     *
+     * @return void
+     */
+    public function testGettingAValidEnvironment(): void
+    {
+        $this->assertInstanceOf(Environment::class, $this->manager->getEnvironment());
+    }
+
+    /**
+     * Test printStatus in json format.
+     *
+     * @return void
+     */
+    public function testPrintStatusMethodJsonFormat(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->once())
+            ->method('getVersionLog')
+            ->willReturn([
+                '20260811000000' => [
+                    'version' => '20260811000000',
+                    'start_time' => '2026-08-11 00:00:00',
+                    'end_time' => '2026-08-11 00:00:01',
+                    'migration_name' => '',
+                    'breakpoint' => '0',
+                ],
+                '20260812000000' => [
+                    'version' => '20260812000000',
+                    'start_time' => '2026-08-12 00:00:00',
+                    'end_time' => '2026-08-12 00:00:01',
+                    'migration_name' => '',
+                    'breakpoint' => '0',
+                ],
+            ]);
+        $this->manager->setEnvironment($envStub);
+
+        $return = $this->manager->printStatus('json');
+
+        $this->assertSame([
+            ['status' => 'up', 'id' => 20260811000000, 'name' => 'CreateProducts'],
+            ['status' => 'up', 'id' => 20260812000000, 'name' => 'AddTagsIndex'],
+        ], $return);
+    }
+
+    /**
+     * Test printStatus with a breakpoint set on the journal.
+     *
+     * @return void
+     */
+    public function testPrintStatusMethodWithBreakpointSet(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->once())
+            ->method('getVersionLog')
+            ->willReturn([
+                '20260811000000' => [
+                    'version' => '20260811000000',
+                    'start_time' => '2026-08-11 00:00:00',
+                    'end_time' => '2026-08-11 00:00:01',
+                    'migration_name' => '',
+                    'breakpoint' => '1',
+                ],
+                '20260812000000' => [
+                    'version' => '20260812000000',
+                    'start_time' => '2026-08-12 00:00:00',
+                    'end_time' => '2026-08-12 00:00:01',
+                    'migration_name' => '',
+                    'breakpoint' => '0',
+                ],
+            ]);
+        $this->manager->setEnvironment($envStub);
+
+        $return = $this->manager->printStatus();
+
+        $this->assertSame([
+            ['status' => 'up', 'id' => 20260811000000, 'name' => 'CreateProducts'],
+            ['status' => 'up', 'id' => 20260812000000, 'name' => 'AddTagsIndex'],
+        ], $return);
+    }
+
+    /**
+     * Test printStatus with an empty migrations directory.
+     *
+     * @return void
+     */
+    public function testPrintStatusMethodWithNoMigrations(): void
+    {
+        $configArray = $this->getConfigArray();
+        $configArray['paths']['migrations'] = ROOT . '/tests/test_app/TestApp/config/Nomigrations';
+        $config = new Config($configArray);
+
+        $this->manager->setConfig($config);
+        $this->manager->setEnvironment($this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock());
+
+        $this->assertSame([], $this->manager->printStatus());
+    }
+
+    /**
+     * Test printStatus flags migrations recorded in the journal but missing
+     * from the migration files.
+     *
+     * @return void
+     */
+    public function testPrintStatusMethodWithMissingMigrations(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->once())
+            ->method('getVersionLog')
+            ->willReturn([
+                '20260101000000' => [
+                    'version' => '20260101000000',
+                    'start_time' => '2026-01-01 00:00:00',
+                    'end_time' => '2026-01-01 00:00:01',
+                    'migration_name' => 'GhostMigration',
+                    'breakpoint' => '0',
+                ],
+            ]);
+        $this->manager->setEnvironment($envStub);
+
+        $return = $this->manager->printStatus();
+
+        $this->assertCount(3, $return);
+        $this->assertSame(['missing' => true, 'status' => 'up', 'id' => 20260101000000, 'name' => 'GhostMigration'], $return[0]);
+        $this->assertSame('down', $return[1]['status']);
+        $this->assertSame('down', $return[2]['status']);
+    }
+
+    /**
+     * Test getMigrations throws on duplicate migration versions.
+     *
+     * @return void
+     */
+    public function testGetMigrationsWithDuplicateMigrationVersions(): void
+    {
+        $config = new Config(['paths' => ['migrations' => ROOT . '/tests/test_app/TestApp/config/Duplicateversions']]);
+        $manager = new Manager($config, $this->io);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Duplicate migration/');
+        $this->expectExceptionMessageMatches('/has the same version as/');
+
+        $manager->getMigrations();
+    }
+
+    /**
+     * Test getMigrations throws on duplicate migration class names.
+     *
+     * @return void
+     */
+    public function testGetMigrationsWithDuplicateMigrationNames(): void
+    {
+        $config = new Config(['paths' => ['migrations' => ROOT . '/tests/test_app/TestApp/config/Duplicatenames']]);
+        $manager = new Manager($config, $this->io);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Migration "20120111235331_duplicate_migration_name.php" has the same name as "20120111235330_duplicate_migration_name.php"');
+
+        $manager->getMigrations();
+    }
+
+    /**
+     * Test getMigrations throws when the file class name does not match.
+     *
+     * @return void
+     */
+    public function testGetMigrationsWithInvalidMigrationClassName(): void
+    {
+        $config = new Config(['paths' => ['migrations' => ROOT . '/tests/test_app/TestApp/config/Invalidclassname']]);
+        $manager = new Manager($config, $this->io);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/Could not find class/');
+        $this->expectExceptionMessageMatches('/20120111235330_invalid_class.php/');
+
+        $manager->getMigrations();
+    }
+
+    /**
+     * Test getMigrations throws for legacy `Migrations\AbstractMigration` files.
+     *
+     * @return void
+     */
+    public function testGetMigrationsWithLegacyAbstractMigrationClass(): void
+    {
+        $config = new Config(['paths' => ['migrations' => ROOT . '/tests/test_app/TestApp/config/LegacyAbstractMigration']]);
+        $manager = new Manager($config, $this->io);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/legacy/');
+        $this->expectExceptionMessageMatches('/20260327000000_LegacyAbstractMigration.php/');
+
+        $manager->getMigrations();
+    }
+
+    /**
+     * Test getMigrations supports anonymous-class migration files.
+     *
+     * @return void
+     */
+    public function testGetMigrationsWithAnonymousClass(): void
+    {
+        $config = new Config(['paths' => ['migrations' => ROOT . '/tests/test_app/TestApp/config/AnonymousMigrations']]);
+        $manager = new Manager($config, $this->io);
+
+        $migrations = $manager->getMigrations();
+
+        $this->assertCount(1, $migrations);
+        $migration = reset($migrations);
+        $this->assertInstanceOf(MigrationInterface::class, $migration);
+        $this->assertSame(20241208150000, $migration->getVersion());
+    }
+
+    /**
+     * Test seed() runs every seeder.
+     *
+     * @return void
+     */
+    public function testExecuteSeedWorksAsExpected(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->any())
+            ->method('getAdapter')
+            ->willReturn(new FakeAdapter());
+        $this->manager->setEnvironment($envStub);
+
+        $this->manager->seed();
+
+        $output = $this->getOutput();
+        $this->assertStringContainsString('UserSeeder seed', $output);
+        $this->assertStringContainsString('GSeeder seed', $output);
+        $this->assertStringContainsString('PostSeeder seed', $output);
+    }
+
+    /**
+     * Test seed() runs a single named seeder.
+     *
+     * @return void
+     */
+    public function testExecuteASingleSeedWorksAsExpected(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->any())
+            ->method('getAdapter')
+            ->willReturn(new FakeAdapter());
+        $this->manager->setEnvironment($envStub);
+
+        $this->manager->seed('UserSeeder');
+
+        $output = $this->getOutput();
+        $this->assertStringContainsString('UserSeeder seed', $output);
+    }
+
+    /**
+     * Test seed() throws for an unknown seeder name.
+     *
+     * @return void
+     */
+    public function testExecuteANonExistentSeedWorksAsExpected(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $this->manager->setEnvironment($envStub);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The seed `NonExistentSeeder` does not exist');
+
+        $this->manager->seed('NonExistentSeeder');
+    }
+
+    /**
+     * Test getSeeds orders seeds by their dependencies.
+     *
+     * @return void
+     */
+    public function testOrderSeeds(): void
+    {
+        $seeds = array_values($this->manager->getSeeds());
+
+        $this->assertSame('UserSeeder', $seeds[0]->getName());
+        $this->assertSame('GSeeder', $seeds[1]->getName());
+        $this->assertSame('PostSeeder', $seeds[2]->getName());
+    }
+
+    /**
+     * Test a seeder whose shouldExecute() returns false is skipped.
+     *
+     * @return void
+     */
+    public function testSeedWillNotBeExecuted(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->any())
+            ->method('getAdapter')
+            ->willReturn(new FakeAdapter());
+        $this->manager->setEnvironment($envStub);
+
+        $this->manager->seed('UserSeederNotExecuted');
+
+        $output = $this->getOutput();
+        $this->assertStringContainsString('skipped', $output);
+    }
+
+    /**
+     * Test migrations and seeds receive the ConsoleIo instance.
+     *
+     * @return void
+     */
+    public function testGettingIo(): void
+    {
+        $migrations = $this->manager->getMigrations();
+        $seeds = $this->manager->getSeeds();
+        $io = $this->manager->getIo();
+
+        $this->assertInstanceOf(ConsoleIo::class, $io);
+
+        foreach ($migrations as $migration) {
+            $this->assertInstanceOf(ConsoleIo::class, $migration->getIo());
+        }
+        foreach ($seeds as $seed) {
+            $this->assertInstanceOf(ConsoleIo::class, $seed->getIo());
+        }
+    }
+
+    /**
+     * Test setting a breakpoint on an invalid version prints a warning.
+     *
+     * @return void
+     */
+    public function testInvalidVersionBreakpoint(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $envStub->expects($this->once())
+            ->method('getVersionLog')
+            ->willReturn([
+                '20120111235330' => [
+                    'version' => '20120111235330',
+                    'start_time' => '2012-01-11 23:53:36',
+                    'end_time' => '2012-01-11 23:53:37',
+                    'migration_name' => '',
+                    'breakpoint' => '0',
+                ],
+            ]);
+        $this->manager->setEnvironment($envStub);
+
+        $this->manager->setBreakpoint(20120133235330);
+
+        $output = implode("\n", $this->out->messages());
+        $this->assertStringContainsString('20120133235330 is not a valid version', $output);
+    }
+
+    /**
+     * Test a migration whose shouldExecute() returns false is not run.
+     *
+     * @return void
+     */
+    public function testMigrationWillNotBeExecuted(): void
+    {
+        $configArray = $this->getConfigArray();
+        $configArray['paths']['migrations'] = ROOT . '/tests/test_app/TestApp/config/ShouldExecute';
+        $this->manager->setConfig(new Config($configArray));
+
+        $this->connection->getDatabase()->dropCollection('should_execute_info');
+        $this->connection->getCollection('_migrations')->deleteMany([]);
+
+        $this->manager->migrate(20201207205056);
+        $this->assertFalse(in_array('should_execute_info', $this->connection->getSchemaCollection()->listCollections(), true));
+
+        $this->manager->migrate(20201207205057);
+        $this->assertTrue(in_array('should_execute_info', $this->connection->getSchemaCollection()->listCollections(), true));
+
+        $this->connection->getDatabase()->dropCollection('should_execute_info');
+        $this->connection->getCollection('_migrations')->deleteMany([]);
+    }
+
+    /**
+     * Test change()-based migrations are reversed by rollback (end to end).
+     *
+     * @return void
+     */
+    public function testReversibleMigrationsWorkAsExpected(): void
+    {
+        $configArray = $this->getConfigArray();
+        $configArray['paths']['migrations'] = ROOT . '/tests/test_app/TestApp/config/ReversibleMigrations';
+        $this->manager->setConfig(new Config($configArray));
+
+        $this->connection->getDatabase()->dropCollection('info');
+        $this->connection->getDatabase()->dropCollection('users');
+        $this->connection->getCollection('_migrations')->deleteMany([]);
+
+        $manager = new SchemaManager($this->connection);
+
+        $this->manager->migrate();
+        $this->assertTrue(in_array('info', $manager->listCollections(), true));
+        $this->assertTrue(in_array('users', $manager->listCollections(), true));
+
+        $this->manager->rollback('20260813000000');
+        $this->assertTrue(in_array('info', $manager->listCollections(), true));
+        $this->assertFalse(in_array('users', $manager->listCollections(), true));
+
+        $this->manager->rollback('0');
+        $this->assertFalse(in_array('info', $manager->listCollections(), true));
+        $this->assertFalse(in_array('users', $manager->listCollections(), true));
+
+        $this->connection->getCollection('_migrations')->deleteMany([]);
     }
 }
 

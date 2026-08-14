@@ -859,26 +859,37 @@ class Manager
                     $origDisplayErrors = ini_get('display_errors');
                     ini_set('display_errors', 'On');
 
-                    require_once $filePath;
+                    // Anonymous-class files return the migration instance from
+                    // `require`; named classes are required once and constructed.
+                    $migrationInstance = null;
+                    if (!class_exists($class)) {
+                        $migrationInstance = require $filePath;
+                    } else {
+                        require_once $filePath;
+                    }
 
                     ini_set('display_errors', $origDisplayErrors);
 
-                    if (!class_exists($class)) {
+                    if ($migrationInstance instanceof MigrationInterface) {
+                        $io->verbose(sprintf('Using anonymous class from <info>%s</info>.', $filePath));
+                        $migration = $migrationInstance;
+                        $migration->setVersion($version);
+                    } elseif (class_exists($class)) {
+                        $io->verbose(sprintf('Constructing <info>%s</info>.', $class));
+                        $migration = new $class($version);
+
+                        if (!$migration instanceof MigrationInterface) {
+                            throw new InvalidArgumentException(sprintf(
+                                'Migration class `%s` must implement %s.',
+                                $class,
+                                MigrationInterface::class,
+                            ));
+                        }
+                    } else {
                         throw new InvalidArgumentException(sprintf(
-                            'Could not find class `%s` in file `%s`.',
+                            'Could not find class `%s` in file `%s` and file did not return a migration instance',
                             $class,
                             $filePath,
-                        ));
-                    }
-
-                    $io->verbose(sprintf('Constructing <info>%s</info>.', $class));
-                    $migration = new $class($version);
-
-                    if (!$migration instanceof MigrationInterface) {
-                        throw new InvalidArgumentException(sprintf(
-                            'Migration class `%s` must implement %s.',
-                            $class,
-                            MigrationInterface::class,
                         ));
                     }
 

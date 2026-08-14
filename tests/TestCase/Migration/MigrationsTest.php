@@ -133,4 +133,27 @@ class MigrationsTest extends TestCase
 
         $this->assertFalse(in_array('articles', $this->manager->listCollections(), true));
     }
+
+    /**
+     * Test seed runs a named seeder against the database.
+     *
+     * @return void
+     */
+    public function testSeed(): void
+    {
+        $this->connection->getDatabase()->dropCollection('seed_products');
+
+        $seeds = new Migrations([
+            'connection' => 'test_mongo',
+            'source' => 'MongoSeeds',
+        ]);
+
+        $this->assertTrue($seeds->seed(['seed' => 'ProductsSeed', 'force' => true]));
+
+        $doc = $this->connection->getCollection('seed_products')->findOne(['name' => 'widget']);
+        $this->assertNotNull($doc);
+        $this->assertSame(1, $doc['qty']);
+
+        $this->connection->getDatabase()->dropCollection('seed_products');
+    }
 }
