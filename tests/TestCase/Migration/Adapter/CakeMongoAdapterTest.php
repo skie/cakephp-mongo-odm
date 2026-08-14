@@ -282,4 +282,49 @@ class CakeMongoAdapterTest extends TestCase
             $this->assertSame(0, $entry['breakpoint']);
         }
     }
+
+    /**
+     * Test the journal records and filters by plugin (unified-ledger behavior).
+     *
+     * Entries written under one plugin context are invisible to another, so a
+     * plugin's migration history does not pollute the app's (or another
+     * plugin's) status, mirrors the reference `cake_migrations` plugin column.
+     *
+     * @return void
+     */
+    public function testPluginIsolation(): void
+    {
+        $pluginAdapter = new CakeMongoAdapter($this->connection, 'Migrator');
+        $appAdapter = new CakeMongoAdapter($this->connection, null);
+
+        $pluginMigration = new class (20260811000000) extends BaseMigration {
+        };
+        $appMigration = new class (20260811000001) extends BaseMigration {
+        };
+
+        $pluginAdapter->migrated($pluginMigration, MigrationInterface::UP, 'a', 'b');
+        $appAdapter->migrated($appMigration, MigrationInterface::UP, 'a', 'b');
+
+        $this->assertSame([20260811000000], $pluginAdapter->getVersions());
+        $this->assertSame([20260811000001], $appAdapter->getVersions());
+
+        $pluginLog = $pluginAdapter->getVersionLog();
+        $this->assertArrayHasKey(20260811000000, $pluginLog);
+        $this->assertSame('Migrator', $pluginLog[20260811000000]['plugin']);
+
+        $appLog = $appAdapter->getVersionLog();
+        $this->assertArrayHasKey(20260811000001, $appLog);
+        $this->assertNull($appLog[20260811000001]['plugin']);
+
+        // A plugin adapter cannot breakpoint or remove the app entry.
+        $pluginAdapter->setBreakpoint($appMigration);
+        $this->assertSame(0, $appLog[20260811000001]['breakpoint']);
+
+        $pluginAdapter->unmigrated($appMigration);
+        $this->assertSame([20260811000001], $appAdapter->getVersions());
+
+        // And vice versa.
+        $appAdapter->unmigrated($pluginMigration);
+        $this->assertSame([20260811000000], $pluginAdapter->getVersions());
+    }
 }

@@ -86,6 +86,7 @@ class ManagerFactory
                 'adapter' => 'mongo',
                 'connection' => $connectionName,
                 'migration_table' => CakeMongoAdapter::MIGRATION_TABLE,
+                'plugin' => $plugin,
             ],
             'plugin' => $plugin,
             'source' => $folder,
@@ -130,6 +131,6 @@ class ManagerFactory
             ));
         }
 
-        return new CakeMongoAdapter($connection);
+        return new CakeMongoAdapter($connection, $options['plugin'] ?? null);
     }
 }

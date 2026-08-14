@@ -12,7 +12,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests the Migrations facade (status/migrate/rollback/markMigrated) end to end
- * against the `MongoMigrations` fixture folder.
+ * against the `MigrationsFacade` fixture folder (a dedicated folder so tests
+ * never collide with the default `MongoMigrations` bake target).
  *
  * Adapted from cakephp/migrations `MigrationsTest`.
  */
@@ -46,7 +47,7 @@ class MigrationsTest extends TestCase
         $this->manager = new SchemaManager($this->connection);
         $this->migrations = new Migrations([
             'connection' => 'test_mongo',
-            'source' => 'MongoMigrations',
+            'source' => 'MigrationsFacade',
         ]);
 
         $this->cleanup();
