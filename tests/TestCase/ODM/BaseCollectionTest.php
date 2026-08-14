@@ -25,6 +25,7 @@ use Cake\Utility\Hash;
 use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
+use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
@@ -307,7 +308,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetAlias(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection(['alias' => 'users']);
         $this->assertSame('users', $table->getAlias());
 
@@ -330,9 +330,8 @@ class BaseCollectionTest extends TestCase
 
     public function testGetAliasException(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(CakeException::class);
-        $this->expectExceptionMessage('You must specify either the `alias` or the `table` option for the constructor.');
+        $this->expectExceptionMessage('You must specify either the `alias` or the `collection` option for the constructor.');
 
         $table = new BaseCollection();
         $table->getAlias();
@@ -340,9 +339,8 @@ class BaseCollectionTest extends TestCase
 
     public function testGetTableException(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(CakeException::class);
-        $this->expectExceptionMessage('You must specify either the `alias` or the `table` option for the constructor.');
+        $this->expectExceptionMessage('You must specify either the `alias` or the `collection` option for the constructor.');
 
         $table = new BaseCollection();
         $table->getCollection();
@@ -375,7 +373,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetPrimaryKey(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection([
             'collection' => 'users',
             'schema' => [
@@ -383,7 +380,8 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('id', $table->getPrimaryKey());
+        // Mongo identity is always `_id`; the schema `primary` constraint is SQL-only.
+        $this->assertSame('_id', $table->getPrimaryKey());
         $this->assertSame($table, $table->setPrimaryKey('thingID'));
         $this->assertSame('thingID', $table->getPrimaryKey());
 
@@ -540,25 +538,16 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetSchema(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $schema = $this->connection->getSchemaCollection()->describe('users');
-        $table = new BaseCollection([
-            'collection' => 'users',
-            'connection' => $this->connection,
-        ]);
-        $this->assertEquals($schema, $table->getSchema());
-
         $table = new BaseCollection(['collection' => 'stuff']);
-        $table->setSchema($schema);
-        $this->assertSame($schema, $table->getSchema());
+        $table->setSchemaFromArray(['id' => ['type' => 'integer']]);
+        $schema = $table->getSchema();
+        $this->assertInstanceOf(CollectionSchema::class, $schema);
+        $this->assertSame(['id'], $schema->columns());
 
         $table = new BaseCollection(['collection' => 'another']);
         $schema = ['id' => ['type' => 'integer']];
-        $table->setSchema($schema);
-        $this->assertEquals(
-            new TableSchema('another', $schema),
-            $table->getSchema(),
-        );
+        $table->setSchemaFromArray($schema);
+        $this->assertSame('integer', $table->getSchema()->getColumnType('id'));
     }
 
     /**
@@ -566,7 +555,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetSchemaLongIdentifiers(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// SQL-only: driver max-alias-length check (checkAliasLengths) — Mongo has no alias limits, see 18-orm-tests-port-plan.md.');
         $schema = new TableSchema('long_identifiers', [
             'this_is_invalid_because_it_is_very_very_very_long' => [
                 'type' => 'string',
@@ -611,15 +600,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllNoFieldsAndNoHydration(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Unhydrated results return raw strings for datetime fields (F16, needs unhydrated type casting); see 18-orm-tests-port-plan.md.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $results = $table
             ->find('all')
-            ->where(['id IN' => [1, 2]])
-            ->orderBy('id')
+            ->where(['_id IN' => ['000000000000000000000001', '000000000000000000000002']])
+            ->orderBy('_id')
             ->enableHydration(false)
             ->toArray();
         $expected = [
@@ -646,7 +635,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllSomeFieldsNoHydration(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Mongo projection semantics gap (F16): ODM select() must exclude `_id` and alias fields without leaking into the Database QueryCompiler layer.');
         $table = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,

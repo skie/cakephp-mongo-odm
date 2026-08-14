@@ -400,6 +400,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($this->alias === null) {
             $alias = namespaceSplit(static::class);
             $alias = substr(end($alias), 0, -10) ?: $this->collection;
+            if (!$alias || $alias === 'Base') {
+                $alias = $this->collection;
+            }
             if (!$alias) {
                 throw new CakeException(
                     'You must specify either the `alias` or the `collection` option for the constructor.',
