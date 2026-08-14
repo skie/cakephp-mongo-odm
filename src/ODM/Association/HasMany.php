@@ -343,10 +343,12 @@ class HasMany extends Association
         $foreignKey = array_keys($foreignKeyReference);
         if ($this->getDependent() || !$this->foreignKeyAcceptsNull($target, $foreignKey)) {
             if ($this->getCascadeCallbacks()) {
-                foreach ($target->find('all')->where($conditions)->toArray() as $related) {
-                    if (!$target->delete($related, $options)) {
-                        return false;
-                    }
+                $related = array_filter(
+                    $target->find('all')->where($conditions)->toArray(),
+                    static fn(mixed $entity): bool => $entity instanceof EntityInterface,
+                );
+                if ($target->deleteMany($related, $options) === false) {
+                    return false;
                 }
 
                 return true;
@@ -400,11 +402,13 @@ class HasMany extends Association
             $currentEntities = $targetEntities;
         } else {
             $pkFields = (array)$this->getTarget()->getPrimaryKey();
+            // Keep every new (unsaved) target; drop only persisted targets that
+            // already exist in the current set (cake60 reject semantics).
             $targetEntities = array_values(array_filter(
                 $targetEntities,
                 function (mixed $entity) use ($currentEntities, $pkFields): bool {
                     if (!$entity instanceof EntityInterface || $entity->isNew()) {
-                        return false;
+                        return true;
                     }
 
                     return !array_any(
@@ -445,9 +449,16 @@ class HasMany extends Association
      * @param array<string, mixed> $options Save options.
      * @return bool
      */
-    public function unlink(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
+    public function unlink(EntityInterface $sourceEntity, array $targetEntities, array|bool $options = []): bool
     {
+        if (is_bool($options)) {
+            $options = ['cleanProperty' => $options];
+        } else {
+            $options += ['cleanProperty' => true];
+        }
+
         $property = $this->getProperty();
+        $originalProperty = $sourceEntity->get($property);
         $currentEntities = (array)$sourceEntity->get($property);
         $targetIds = [];
         foreach ($targetEntities as $targetEntity) {
@@ -469,6 +480,15 @@ class HasMany extends Association
 
         $sourceEntity->set($property, $remaining);
         $saved = $this->saveAssociated($sourceEntity, $options);
+        if ($saved instanceof EntityInterface) {
+            if (!$options['cleanProperty']) {
+                $sourceEntity->set($property, $originalProperty, ['guard' => false]);
+            } else {
+                $sourceEntity->set($property, $saved->get($property));
+            }
+
+            $sourceEntity->setDirty($property, false);
+        }
 
         return $saved instanceof EntityInterface;
     }
@@ -483,10 +503,20 @@ class HasMany extends Association
      */
     public function replace(EntityInterface $sourceEntity, array $targetEntities, array $options = []): bool
     {
-        $sourceEntity->set($this->getProperty(), $targetEntities);
+        $property = $this->getProperty();
+        $sourceEntity->set($property, $targetEntities);
+        $saveStrategy = $this->getSaveStrategy();
+        $this->setSaveStrategy(self::SAVE_REPLACE);
         $saved = $this->saveAssociated($sourceEntity, $options + ['replace' => true]);
+        $ok = $saved instanceof EntityInterface;
+        $this->setSaveStrategy($saveStrategy);
 
-        return $saved instanceof EntityInterface;
+        if ($ok) {
+            $sourceEntity->set($property, $saved->get($property));
+            $sourceEntity->setDirty($property, false);
+        }
+
+        return $ok;
     }
 
     /**
