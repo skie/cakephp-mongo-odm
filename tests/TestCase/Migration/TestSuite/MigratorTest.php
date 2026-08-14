@@ -1,0 +1,321 @@
+<?php
+declare(strict_types=1);
+
+namespace Crustum\Mongo\Test\TestCase\Migration\TestSuite;
+
+use Cake\Datasource\ConnectionManager;
+use Cake\TestSuite\TestCase;
+use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Schema\SchemaManager;
+use Crustum\Mongo\Migration\Migrations;
+use Crustum\Mongo\Migration\TestSuite\Migrator;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Depends;
+
+/**
+ * Tests the TestSuite Migrator helper.
+ *
+ * Ported from cakephp/migrations `MigratorTest`: the SQL table/query
+ * primitives are replaced by Mongo collections and `countDocuments()`. The
+ * Migrator owns the test connection and intentionally drops/truncates every
+ * non-journal collection, exactly as in the reference.
+ */
+#[CoversClass(Migrator::class)]
+class MigratorTest extends TestCase
+{
+    /**
+     * The value to restore for the PHPUnit bootstrap guard.
+     *
+     * @var mixed
+     */
+    protected mixed $restore = null;
+
+    /**
+     * @var \Crustum\Mongo\Database\Connection
+     */
+    protected Connection $connection;
+
+    /**
+     * @var \Crustum\Mongo\Database\Schema\SchemaManager
+     */
+    protected SchemaManager $manager;
+
+    /**
+     * Collections the fixtures may create, cleaned between tests.
+     *
+     * @var list<string>
+     */
+    protected array $clean = ['migrator', 'migrator2', 'skipme', 'sample_collection'];
+
+    /**
+     * Set up before each test.
+     *
+     * @return void
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (isset($GLOBALS['__PHPUNIT_BOOTSTRAP'])) {
+            $this->restore = $GLOBALS['__PHPUNIT_BOOTSTRAP'];
+            unset($GLOBALS['__PHPUNIT_BOOTSTRAP']);
+        }
+
+        $this->connection = ConnectionManager::get('test_mongo');
+        $this->manager = new SchemaManager($this->connection);
+
+        $this->cleanup();
+    }
+
+    /**
+     * Tear down after each test.
+     *
+     * @return void
+     */
+    protected function tearDown(): void
+    {
+        if ($this->restore !== null) {
+            $GLOBALS['__PHPUNIT_BOOTSTRAP'] = $this->restore;
+            $this->restore = null;
+        }
+
+        $this->cleanup();
+        parent::tearDown();
+    }
+
+    /**
+     * Drops the fixture collections and clears the migration journal.
+     *
+     * @return void
+     */
+    protected function cleanup(): void
+    {
+        foreach ($this->clean as $name) {
+            if (in_array($name, $this->manager->listCollections(), true)) {
+                $this->manager->dropCollection($name);
+            }
+        }
+        $this->connection->getCollection('_migrations')->deleteMany([]);
+    }
+
+    /**
+     * Builds an inspectable Migrator exposing the protected collection helpers.
+     *
+     * @return \Crustum\Mongo\Migration\TestSuite\Migrator
+     */
+    protected function makeInspectableMigrator(): Migrator
+    {
+        return new class () extends Migrator {
+            /**
+             * @param string $connection Connection name
+             * @return array<int, string>
+             */
+            public function exposedGetJournalCollections(string $connection): array
+            {
+                return array_values($this->getJournalCollections($connection));
+            }
+
+            /**
+             * @param string $connection Connection name
+             * @param array<int, string> $skip Skip patterns
+             * @return array<int, string>
+             */
+            public function exposedGetNonJournalCollections(string $connection, array $skip = []): array
+            {
+                return array_values($this->getNonJournalCollections($connection, $skip));
+            }
+        };
+    }
+
+    /**
+     * Test run() migrates, drops and truncates on repeat runs.
+     *
+     * @return void
+     */
+    public function testMigrateDropTruncate(): void
+    {
+        $migrator = new Migrator();
+        $migrator->run(['connection' => 'test_mongo', 'source' => 'MigratorMigrations']);
+
+        $this->assertContains('migrator', $this->manager->listCollections());
+
+        $migrator->run(['connection' => 'test_mongo', 'source' => 'MigratorMigrations']);
+
+        $this->assertContains('migrator', $this->manager->listCollections());
+        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+    }
+
+    /**
+     * Test run() with truncate disabled keeps the seeded document.
+     *
+     * @return void
+     */
+    public function testMigrateDropNoTruncate(): void
+    {
+        $migrator = new Migrator();
+        $migrator->run(['connection' => 'test_mongo', 'source' => 'MigratorMigrations'], false);
+
+        $this->assertContains('migrator', $this->manager->listCollections());
+        $this->assertSame(1, $this->connection->getCollection('migrator')->countDocuments());
+    }
+
+    /**
+     * Test truncate() clears migrated data after the fact.
+     *
+     * @return void
+     */
+    #[Depends('testMigrateDropNoTruncate')]
+    public function testTruncateAfterMigrations(): void
+    {
+        $this->testMigrateDropNoTruncate();
+
+        $migrator = new Migrator();
+        $migrator->truncate('test_mongo');
+
+        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+    }
+
+    /**
+     * Test run() honours the skip patterns.
+     *
+     * @return void
+     */
+    public function testMigrateSkipTables(): void
+    {
+        $this->connection->getCollection('skipme')->insertOne(['name' => 'Ron']);
+
+        $migrator = new Migrator();
+        $migrator->run([
+            'connection' => 'test_mongo',
+            'source' => 'MigratorMigrations',
+            'skip' => ['skipme'],
+        ]);
+
+        $this->assertContains('migrator', $this->manager->listCollections());
+        $this->assertContains('skipme', $this->manager->listCollections());
+        $this->assertSame(1, $this->connection->getCollection('skipme')->countDocuments());
+    }
+
+    /**
+     * Test runMany() migrates multiple source folders and truncates.
+     *
+     * @return void
+     */
+    public function testRunManyDropTruncate(): void
+    {
+        $migrator = new Migrator();
+        $migrator->runMany([
+            ['connection' => 'test_mongo', 'source' => 'MigratorMigrations'],
+            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+        ]);
+
+        $this->assertContains('migrator', $this->manager->listCollections());
+        $this->assertContains('migrator2', $this->manager->listCollections());
+        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+        $this->assertSame(2, $this->connection->getCollection('_migrations')->countDocuments());
+    }
+
+    /**
+     * Test the journal/non-journal collection helpers.
+     *
+     * @return void
+     */
+    public function testGetJournalAndNonJournalCollections(): void
+    {
+        $this->connection->getCollection('sample_collection')->insertOne(['x' => 1]);
+        $this->connection->getCollection('_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
+
+        $migrator = $this->makeInspectableMigrator();
+
+        $this->assertContains('_migrations', $migrator->exposedGetJournalCollections('test_mongo'));
+
+        $nonJournal = $migrator->exposedGetNonJournalCollections('test_mongo');
+        $this->assertContains('sample_collection', $nonJournal);
+        $this->assertNotContains('_migrations', $nonJournal);
+        $this->assertNotContains('_seeds', $nonJournal);
+
+        $skipped = $migrator->exposedGetNonJournalCollections('test_mongo', ['sample*']);
+        $this->assertNotContains('sample_collection', $skipped);
+    }
+
+    /**
+     * Test up-only migrations are not dropped and re-run on repeat runs.
+     *
+     * @return void
+     */
+    public function testSkipMigrationDroppingIfOnlyUpMigrations(): void
+    {
+        $migrator = new Migrator();
+        $migrator->run(['connection' => 'test_mongo', 'source' => 'MigratorMigrations']);
+
+        $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
+        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+
+        $migrator->run(['connection' => 'test_mongo', 'source' => 'MigratorMigrations']);
+
+        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20211001000000]);
+        $this->assertNotNull($entry);
+        $this->assertSame($yesterday, $entry['end_time']);
+    }
+
+    /**
+     * Test two source folders with a shared journal.
+     *
+     * Known port difference (reference doc 33 §3.5): the port keeps a single
+     * shared `_migrations` journal without a `plugin` column (doc 27 §3
+     * simplification). Re-checking source A therefore sees source B's journal
+     * entries as "missing" and re-runs the migrations, whereas the reference
+     * filters by plugin and skips. This locks in the port behavior.
+     *
+     * @return void
+     */
+    public function testSkipMigrationDroppingIfOnlyUpMigrationsWithTwoSetsOfMigrations(): void
+    {
+        $options = [
+            ['connection' => 'test_mongo', 'source' => 'MigratorMigrations'],
+            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+        ];
+
+        $migrator = new Migrator();
+        $migrator->runMany($options, false);
+
+        $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
+        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+
+        $migrator->runMany($options, false);
+
+        foreach ([20211001000000, 20211002000000] as $version) {
+            $entry = $this->connection->getCollection('_migrations')->findOne(['version' => $version]);
+            $this->assertNotNull($entry);
+            $this->assertNotSame($yesterday, $entry['end_time']);
+        }
+    }
+
+    /**
+     * Test down migrations force a drop and re-apply.
+     *
+     * @return void
+     */
+    public function testDropMigrationsIfDownMigrations(): void
+    {
+        $options = [
+            ['connection' => 'test_mongo', 'source' => 'MigratorMigrations'],
+            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+        ];
+
+        $migrator = new Migrator();
+        $migrator->runMany($options, false);
+
+        $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
+        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+
+        // Roll back the second set so its migration is down again.
+        (new Migrations(['connection' => 'test_mongo']))->rollback(['source' => 'Migrations2']);
+
+        $migrator->runMany($options, false);
+
+        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20211002000000]);
+        $this->assertNotNull($entry);
+        $this->assertNotSame($yesterday, $entry['end_time']);
+    }
+}
