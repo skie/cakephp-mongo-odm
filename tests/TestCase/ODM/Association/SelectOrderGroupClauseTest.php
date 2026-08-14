@@ -13,7 +13,7 @@ use Crustum\Mongo\Test\TestCase\ODM\TestCase;
  * and eager-loaded associations (belongsTo / hasOne / hasMany).
  *
  * The Database layer stays array-based; the ODM query translates
- * `Alias.field` в†’ bare field and `OrderClauseExpression` в†’ `[field => dir]`
+ * `Alias.field`’ bare field and `OrderClauseExpression’ `[field => dir]`
  * before the compiler sees them.
  */
 class SelectOrderGroupClauseTest extends TestCase
