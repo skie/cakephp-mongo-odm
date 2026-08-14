@@ -7,8 +7,9 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
+use Crustum\Mongo\Migration\BaseSeed;
+use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\MigrationInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 
@@ -54,6 +55,7 @@ class CakeMongoAdapterTest extends TestCase
         $this->manager = new SchemaManager($this->connection);
         $this->adapter = new CakeMongoAdapter($this->connection);
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**
@@ -69,6 +71,7 @@ class CakeMongoAdapterTest extends TestCase
             }
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
     }
 
@@ -326,5 +329,67 @@ class CakeMongoAdapterTest extends TestCase
         // And vice versa.
         $appAdapter->unmigrated($pluginMigration);
         $this->assertSame([20260811000000], $pluginAdapter->getVersions());
+    }
+
+    /**
+     * Test the seed execution log records and removes entries.
+     *
+     * @return void
+     */
+    public function testSeedLog(): void
+    {
+        $seed = new SeedLogSeed();
+
+        $this->adapter->seedExecuted($seed, '2026-08-14 12:00:00');
+
+        $log = $this->adapter->getSeedLog();
+        $this->assertCount(1, $log);
+        $this->assertSame($seed->getName(), $log[0]['seed_name']);
+        $this->assertNull($log[0]['plugin']);
+        $this->assertSame('2026-08-14 12:00:00', $log[0]['executed_at']);
+
+        $this->adapter->removeSeedFromLog($seed);
+        $this->assertSame([], $this->adapter->getSeedLog());
+    }
+
+    /**
+     * Test the seed log is recorded per plugin.
+     *
+     * The raw log contains every entry (plugin filtering happens in
+     * `Manager::isSeedExecuted` via `Util::matchesSeedPlugin`), each carrying
+     * its own plugin.
+     *
+     * @return void
+     */
+    public function testSeedLogPluginIsolation(): void
+    {
+        $pluginAdapter = new CakeMongoAdapter($this->connection, 'Migrator');
+        $appAdapter = new CakeMongoAdapter($this->connection, null);
+        $seed = new SeedLogSeed();
+
+        $pluginAdapter->seedExecuted($seed, 'a');
+        $appAdapter->seedExecuted($seed, 'b');
+
+        $log = $this->adapter->getSeedLog();
+        $this->assertCount(2, $log);
+        $plugins = array_column($log, 'plugin');
+        sort($plugins);
+        $this->assertSame([null, 'Migrator'], $plugins);
+
+        // App context (plugin null) only removes its own entry.
+        $appAdapter->removeSeedFromLog($seed);
+        $log = $this->adapter->getSeedLog();
+        $this->assertCount(1, $log);
+        $this->assertSame('Migrator', $log[0]['plugin']);
+    }
+}
+
+/**
+ * Named seed used by the adapter seed-log tests.
+ */
+class SeedLogSeed extends BaseSeed
+{
+    public function run(): void
+    {
     }
 }

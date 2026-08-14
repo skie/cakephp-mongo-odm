@@ -14,6 +14,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Migration\IrreversibleMigrationException;
 use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
 use MongoDB\Collection;
 
 /**
@@ -262,6 +263,34 @@ class RecordingAdapter implements AdapterInterface
     public function hasTransactions(): bool
     {
         return $this->adapter->hasTransactions();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSeedLog(): array
+    {
+        return $this->adapter->getSeedLog();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function seedExecuted(SeedInterface $seed, string $executedTime): static
+    {
+        $this->adapter->seedExecuted($seed, $executedTime);
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeSeedFromLog(SeedInterface $seed): static
+    {
+        $this->adapter->removeSeedFromLog($seed);
+
+        return $this;
     }
 
     /**

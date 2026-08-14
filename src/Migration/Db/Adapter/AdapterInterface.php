@@ -13,6 +13,7 @@ namespace Crustum\Mongo\Migration\Db\Adapter;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
 use MongoDB\Collection;
 
 /**
@@ -28,6 +29,14 @@ interface AdapterInterface
      * The name of the migration journal collection.
      */
     public const MIGRATION_TABLE = '_migrations';
+
+    /**
+     * The name of the seed execution log collection.
+     *
+     * Analog of the reference `cake_seeds` table: `{ seed_name, plugin,
+     * executed_at }` with a unique `(seed_name, plugin)` index.
+     */
+    public const SEED_TABLE = '_seeds';
 
     /**
      * Returns the underlying Mongo connection.
@@ -224,4 +233,31 @@ interface AdapterInterface
      * @return bool
      */
     public function hasTransactions(): bool;
+
+    /**
+     * Returns the seed execution log, ordered by execution time.
+     *
+     * Each entry: `['seed_name' => string, 'plugin' => ?string,
+     * 'executed_at' => string]`.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getSeedLog(): array;
+
+    /**
+     * Records a seed as executed in the `_seeds` log.
+     *
+     * @param \Crustum\Mongo\Migration\SeedInterface $seed Seed
+     * @param string $executedTime Execution timestamp (Y-m-d H:i:s)
+     * @return $this
+     */
+    public function seedExecuted(SeedInterface $seed, string $executedTime): static;
+
+    /**
+     * Removes the execution record of a seed from the `_seeds` log.
+     *
+     * @param \Crustum\Mongo\Migration\SeedInterface $seed Seed
+     * @return $this
+     */
+    public function removeSeedFromLog(SeedInterface $seed): static;
 }

@@ -164,6 +164,14 @@ class Environment
 
         $seed->{SeedInterface::RUN}();
 
+        // Record the seed execution. Idempotent seeds always run and re-record
+        // their timestamp; non-idempotent seeds run once (the manager skips
+        // already-executed ones) and keep their first record.
+        if ($seed->isIdempotent()) {
+            $adapter->removeSeedFromLog($seed);
+        }
+        $adapter->seedExecuted($seed, date('Y-m-d H:i:s'));
+
         if ($atomic) {
             $adapter->commitTransaction();
         }

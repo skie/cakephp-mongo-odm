@@ -8,6 +8,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
 use MongoDB\Collection;
 
 /**
@@ -46,6 +47,13 @@ class FakeAdapter implements AdapterInterface
      * @var array<int, array<string, mixed>>
      */
     public array $versionLog = [];
+
+    /**
+     * Seed execution log entries.
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    public array $seedLog = [];
 
     /**
      * Breakpoint state per version.
@@ -347,5 +355,44 @@ class FakeAdapter implements AdapterInterface
         $this->record('hasTransactions', func_get_args());
 
         return $this->transactionSupport;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSeedLog(): array
+    {
+        $this->record('getSeedLog', func_get_args());
+
+        return $this->seedLog;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function seedExecuted(SeedInterface $seed, string $executedTime): static
+    {
+        $this->record('seedExecuted', func_get_args());
+        $this->seedLog[] = [
+            'seed_name' => $seed->getName(),
+            'plugin' => null,
+            'executed_at' => $executedTime,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeSeedFromLog(SeedInterface $seed): static
+    {
+        $this->record('removeSeedFromLog', func_get_args());
+        $this->seedLog = array_values(array_filter(
+            $this->seedLog,
+            fn(array $entry): bool => $entry['seed_name'] !== $seed->getName(),
+        ));
+
+        return $this;
     }
 }

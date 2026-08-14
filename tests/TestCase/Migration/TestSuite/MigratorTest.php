@@ -123,6 +123,7 @@ class MigratorTest extends TestCase
             }
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**

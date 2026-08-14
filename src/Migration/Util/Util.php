@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Util;
 
 use Cake\Utility\Inflector;
+use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\SeedInterface;
 use DateTime;
 use DateTimeZone;
 use RuntimeException;
@@ -193,5 +195,43 @@ class Util
         $files = static::globAll(array_map(fn(string $path): string => $path . DIRECTORY_SEPARATOR . '*.php', (array)$paths));
 
         return array_unique($files);
+    }
+
+    /**
+     * Resolves the plugin a seed belongs to from its config.
+     *
+     * Seed classes are not namespaced, so the plugin comes from the config set
+     * on the seed by the manager (null for application seeds).
+     *
+     * @param \Crustum\Mongo\Migration\SeedInterface $seed Seed
+     * @return string|null
+     */
+    public static function getSeedPlugin(SeedInterface $seed): ?string
+    {
+        $config = $seed->getConfig();
+        if (!$config instanceof ConfigInterface || !isset($config['plugin'])) {
+            return null;
+        }
+
+        return (string)$config['plugin'] ?: null;
+    }
+
+    /**
+     * Checks whether a seed-log entry's plugin matches the given plugin.
+     *
+     * A plugin entry matches a null plugin check too (entries logged before
+     * plugin attribution existed).
+     *
+     * @param string|null $entryPlugin Plugin stored in the log
+     * @param string|null $plugin The plugin to match
+     * @return bool
+     */
+    public static function matchesSeedPlugin(?string $entryPlugin, ?string $plugin): bool
+    {
+        if ($entryPlugin === $plugin) {
+            return true;
+        }
+
+        return $plugin !== null && $entryPlugin === null;
     }
 }

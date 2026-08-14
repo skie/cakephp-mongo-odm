@@ -13,6 +13,8 @@ namespace Crustum\Mongo\Migration\Db\Adapter;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
+use Crustum\Mongo\Migration\Util\Util;
 use MongoDB\Collection;
 
 /**
@@ -62,6 +64,13 @@ class CakeMongoAdapter implements AdapterInterface
      * @var bool
      */
     protected bool $journalIndexEnsured = false;
+
+    /**
+     * Whether the seed-log index has been ensured.
+     *
+     * @var bool
+     */
+    protected bool $seedIndexEnsured = false;
 
     /**
      * Constructor.
@@ -359,6 +368,97 @@ class CakeMongoAdapter implements AdapterInterface
         }
 
         return $this->transactions;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSeedLog(): array
+    {
+        $log = [];
+        foreach ($this->seedLog()->find([], ['sort' => ['executed_at' => 1]]) as $entry) {
+            $entry = (array)$entry;
+            $log[] = [
+                'seed_name' => (string)($entry['seed_name'] ?? ''),
+                'plugin' => isset($entry['plugin']) ? (string)$entry['plugin'] : null,
+                'executed_at' => (string)($entry['executed_at'] ?? ''),
+            ];
+        }
+
+        return $log;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function seedExecuted(SeedInterface $seed, string $executedTime): static
+    {
+        $this->seedLog()->insertOne([
+            'seed_name' => substr($seed->getName(), 0, 100),
+            'plugin' => $this->resolveSeedPlugin($seed),
+            'executed_at' => $executedTime,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function removeSeedFromLog(SeedInterface $seed): static
+    {
+        $plugin = $this->resolveSeedPlugin($seed);
+        $conditions = ['seed_name' => $seed->getName()];
+
+        // Also remove entries logged before plugin attribution was fixed.
+        $conditions['$or'] = $plugin !== null
+            ? [['plugin' => $plugin], ['plugin' => null]]
+            : [['plugin' => null]];
+
+        $this->seedLog()->deleteMany($conditions);
+
+        return $this;
+    }
+
+    /**
+     * Resolves the plugin a seed belongs to.
+     *
+     * Seed classes are not namespaced, so the seed's config (set from the
+     * manager config) is preferred, falling back to the adapter's own plugin
+     * context — matching the reference `resolveSeedPlugin()`.
+     *
+     * @param \Crustum\Mongo\Migration\SeedInterface $seed The seed
+     * @return string|null
+     */
+    protected function resolveSeedPlugin(SeedInterface $seed): ?string
+    {
+        $plugin = Util::getSeedPlugin($seed);
+        if ($plugin !== null) {
+            return $plugin;
+        }
+
+        return $this->plugin;
+    }
+
+    /**
+     * Returns the seed execution log collection, ensuring the
+     * `(seed_name, plugin)` unique index.
+     *
+     * @return \MongoDB\Collection
+     */
+    protected function seedLog(): Collection
+    {
+        $collection = $this->connection->getCollection(self::SEED_TABLE);
+
+        if (!$this->seedIndexEnsured) {
+            $collection->createIndex(
+                ['seed_name' => 1, 'plugin' => 1],
+                ['unique' => true],
+            );
+            $this->seedIndexEnsured = true;
+        }
+
+        return $collection;
     }
 
     /**

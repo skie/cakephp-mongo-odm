@@ -201,14 +201,26 @@ class Manager
     /**
      * Check if a seed has been executed.
      *
-     * Seeds are not persisted to a separate log in the Mongo adapter; the
-     * journal tracks migrations only. Seeds run per invocation.
+     * Reads the `_seeds` log through the adapter and matches by seed name and
+     * plugin, mirroring the reference `cake_seeds` check.
      *
      * @param \Crustum\Mongo\Migration\SeedInterface $seed Seed to check
      * @return bool
      */
     public function isSeedExecuted(SeedInterface $seed): bool
     {
+        $adapter = $this->getEnvironment()->getAdapter();
+        $seedLog = $adapter->getSeedLog();
+
+        $plugin = Util::getSeedPlugin($seed);
+        $seedName = $seed->getName();
+
+        foreach ($seedLog as $entry) {
+            if ($entry['seed_name'] === $seedName && Util::matchesSeedPlugin($entry['plugin'] ?? null, $plugin)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

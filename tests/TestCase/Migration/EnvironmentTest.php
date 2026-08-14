@@ -68,6 +68,7 @@ class EnvironmentTest extends TestCase
         $this->manager = new SchemaManager($this->connection);
         $this->adapter = new CakeMongoAdapter($this->connection);
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**
@@ -83,6 +84,7 @@ class EnvironmentTest extends TestCase
             }
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
     }
 
@@ -501,6 +503,41 @@ class EnvironmentTest extends TestCase
     }
 
     /**
+     * Test executeSeed records the execution in the `_seeds` log.
+     *
+     * @return void
+     */
+    public function testExecuteSeedRecordsExecution(): void
+    {
+        $this->environment->setAdapter($this->adapter);
+
+        $seed = new RecordedSeed();
+
+        $this->environment->executeSeed($seed);
+
+        $log = $this->adapter->getSeedLog();
+        $this->assertCount(1, $log);
+        $this->assertSame($seed->getName(), $log[0]['seed_name']);
+    }
+
+    /**
+     * Test an idempotent seed re-records its execution instead of duplicating.
+     *
+     * @return void
+     */
+    public function testExecuteSeedIdempotentReRecords(): void
+    {
+        $this->environment->setAdapter($this->adapter);
+
+        $seed = new IdempotentRecordedSeed();
+
+        $this->environment->executeSeed($seed);
+        $this->environment->executeSeed($seed);
+
+        $this->assertCount(1, $this->adapter->getSeedLog());
+    }
+
+    /**
      * Test getting the io object.
      *
      * @return void
@@ -511,5 +548,26 @@ class EnvironmentTest extends TestCase
         $this->environment->setIo($mock);
 
         $this->assertInstanceOf(ConsoleIo::class, $this->environment->getIo());
+    }
+}
+
+/**
+ * Named seed used by the environment seed-recording tests.
+ */
+class RecordedSeed extends BaseSeed
+{
+    public function run(): void
+    {
+    }
+}
+
+/**
+ * Named idempotent seed used by the environment seed-recording tests.
+ */
+class IdempotentRecordedSeed extends RecordedSeed
+{
+    public function isIdempotent(): bool
+    {
+        return true;
     }
 }

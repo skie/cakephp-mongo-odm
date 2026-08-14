@@ -75,6 +75,7 @@ class MigrationsTest extends TestCase
             $this->manager->dropCollection('articles');
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**

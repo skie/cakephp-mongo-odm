@@ -109,6 +109,7 @@ class ManagerTest extends TestCase
             $this->connection->getDatabase()->dropCollection('products');
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**
@@ -725,6 +726,7 @@ class ManagerTest extends TestCase
 
         $this->connection->getDatabase()->dropCollection('should_execute_info');
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $this->manager->migrate(20201207205056);
         $this->assertFalse(in_array('should_execute_info', $this->connection->getSchemaCollection()->listCollections(), true));
@@ -734,6 +736,7 @@ class ManagerTest extends TestCase
 
         $this->connection->getDatabase()->dropCollection('should_execute_info');
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
     /**
@@ -750,6 +753,7 @@ class ManagerTest extends TestCase
         $this->connection->getDatabase()->dropCollection('info');
         $this->connection->getDatabase()->dropCollection('users');
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $manager = new SchemaManager($this->connection);
 
@@ -766,6 +770,69 @@ class ManagerTest extends TestCase
         $this->assertFalse(in_array('users', $manager->listCollections(), true));
 
         $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('_seeds')->deleteMany([]);
+    }
+
+    /**
+     * Test isSeedExecuted reads the seed execution log.
+     *
+     * @return void
+     */
+    public function testIsSeedExecuted(): void
+    {
+        $envStub = $this->getMockBuilder(Environment::class)
+            ->setConstructorArgs(['mockenv', []])
+            ->getMock();
+        $fake = new FakeAdapter();
+        $envStub->expects($this->any())
+            ->method('getAdapter')
+            ->willReturn($fake);
+        $this->manager->setEnvironment($envStub);
+
+        $seeds = $this->manager->getSeeds();
+        $seed = $seeds['UserSeeder'];
+
+        $this->assertFalse($this->manager->isSeedExecuted($seed));
+
+        $fake->seedExecuted($seed, '2026-08-14 12:00:00');
+
+        $this->assertTrue($this->manager->isSeedExecuted($seed));
+    }
+
+    /**
+     * Test a non-idempotent seed runs once and is skipped on the second run.
+     *
+     * @return void
+     */
+    public function testNonIdempotentSeedRunsOnce(): void
+    {
+        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getCollection('_seeds')->deleteMany([]);
+
+        $this->manager->seed('UserSeeder');
+        $this->manager->seed('UserSeeder');
+
+        $this->assertSame(2, $this->connection->getCollection('seed_users')->countDocuments());
+
+        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getCollection('_seeds')->deleteMany([]);
+    }
+
+    /**
+     * Test a seed whose shouldExecute() returns false is not recorded.
+     *
+     * @return void
+     */
+    public function testSeedWithShouldExecuteFalseIsNotRecorded(): void
+    {
+        $this->connection->getCollection('_seeds')->deleteMany([]);
+
+        $this->manager->seed('UserSeederNotExecuted', true);
+
+        $log = $this->connection->getCollection('_seeds')->find()->toArray();
+        $this->assertSame([], $log);
+
+        $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 }
 
