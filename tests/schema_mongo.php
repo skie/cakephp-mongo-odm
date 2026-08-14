@@ -48,6 +48,8 @@ return [
         'fields' => [
             'username' => ['bsonType' => 'string'],
             'password' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'users_username' => ['key' => ['username' => 1]],

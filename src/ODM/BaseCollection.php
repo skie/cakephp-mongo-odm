@@ -408,6 +408,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             if (!$alias || $alias === 'Base') {
                 $alias = $this->collection;
             }
+
             if (!$alias) {
                 throw new CakeException(
                     'You must specify either the `alias` or the `collection` option for the constructor.',
@@ -508,7 +509,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function getSchema(): SchemaInterface
     {
-        if ($this->schema === null) {
+        if (!$this->schema instanceof \Cake\Datasource\SchemaInterface) {
             $this->schema = $this->describeSchema();
         }
 
@@ -2043,8 +2044,15 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 return false;
             }
 
-            if (!$result instanceof EntityInterface) {
-                return false;
+            if ($result !== false) {
+                assert(
+                    $result instanceof EntityInterface,
+                    sprintf(
+                        'The result for the `Collection.beforeSave` event must be `false` or `EntityInterface` instance.'
+                        . ' Got `%s` instead.',
+                        get_debug_type($result),
+                    ),
+                );
             }
 
             return $result;
@@ -2055,8 +2063,21 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             return false;
         }
 
+        $columns = $this->getSchema()->columns();
+        foreach ($this->associations as $association) {
+            if ($association instanceof Embedded) {
+                $columns[] = $association->getProperty();
+            }
+        }
+
+        $columns = array_values(array_unique($columns));
+        $schemaColumns = $this->getSchema()->columns();
+        // Mongo is schemaless: when the schema declares no columns beyond `_id`,
+        // persist every document field instead of filtering everything away.
+        $data = count($schemaColumns) <= 1 ? $entity->toArray() : $entity->extract($columns, true);
+
         $isNew = $entity->isNew();
-        $success = $isNew ? $this->insert($entity) : $this->update($entity);
+        $success = $isNew ? $this->insert($entity, $data) : $this->update($entity, $data);
 
         if ($success) {
             $success = $this->onSaveSuccess($entity, $options);
@@ -2112,13 +2133,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * cake analog is `Table::_insert()`.
      *
      * @param \Cake\Datasource\EntityInterface $entity The document to insert.
+     * @param array<string, mixed> $data The data to insert (already filtered to schema columns).
      * @return \Cake\Datasource\EntityInterface|false
      * @throws \Cake\Core\Exception\CakeException When the document is missing some of the primary keys.
      */
-    protected function insert(EntityInterface $entity): EntityInterface|false
+    protected function insert(EntityInterface $entity, array $data): EntityInterface|false
     {
         $primaryKey = (array)$this->getPrimaryKey();
-        $data = $entity->toArray();
 
         foreach ($this->associationProperties() as $property) {
             unset($data[$property]);
@@ -2185,10 +2206,11 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * fields are skipped. ODM extension — the cake analog is `Table::_update()`.
      *
      * @param \Cake\Datasource\EntityInterface $entity The document to update.
+     * @param array<string, mixed> $data The dirty data (already filtered to schema columns).
      * @return \Cake\Datasource\EntityInterface|false
      * @throws \InvalidArgumentException When the document is missing primary key values.
      */
-    protected function update(EntityInterface $entity): EntityInterface|false
+    protected function update(EntityInterface $entity, array $data): EntityInterface|false
     {
         $primaryKey = (array)$this->getPrimaryKey();
         if (!$entity->has($primaryKey)) {
@@ -2204,6 +2226,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
 
             if (in_array($field, $associationProperties, true)) {
+                continue;
+            }
+
+            if (!array_key_exists($field, $data)) {
                 continue;
             }
 

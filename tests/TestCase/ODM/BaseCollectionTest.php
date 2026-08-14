@@ -2103,7 +2103,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveNewDocument(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'username' => 'superuser',
             'password' => 'root',
@@ -2112,21 +2111,24 @@ class BaseCollectionTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->getId(), self::$nextUserId);
+        $this->assertNotEmpty($document->getId());
+        $this->assertFalse($document->isNew());
 
-        $row = $table->find()->where(['id' => self::$nextUserId])->first();
+        $row = $table->find()->where(['_id' => $document->getId()])->first();
         $this->assertEquals($document->toArray(), $row->toArray());
     }
 
     /**
-     * Test that saving a new empty entity does nothing.
+     * Test that saving a new empty entity persists a bare document (Mongo always
+     * assigns `_id`, so unlike SQL there is nothing to skip).
      */
     public function testSaveNewEmptyDocument(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document();
         $table = $this->getCollectionLocator()->get('users');
-        $this->assertFalse($table->save($document));
+        $saved = $table->save($document);
+        $this->assertNotFalse($saved);
+        $this->assertNotEmpty($document->getId());
     }
 
     /**
@@ -2201,7 +2203,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveDocumentOnlySchemaFields(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'username' => 'superuser',
             'password' => 'root',
@@ -2211,9 +2212,9 @@ class BaseCollectionTest extends TestCase
         ]);
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->getId(), self::$nextUserId);
+        $this->assertNotEmpty($document->getId());
 
-        $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
+        $row = $table->find('all')->where(['_id' => $document->getId()])->first();
         $document->unset('crazyness');
         $this->assertEquals($document->toArray(), $row->toArray());
     }
@@ -2223,7 +2224,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveModifyData(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
@@ -2236,8 +2236,8 @@ class BaseCollectionTest extends TestCase
         };
         $table->getEventManager()->on('Collection.beforeSave', $listener);
         $this->assertSame($data, $table->save($data));
-        $this->assertEquals($data->getId(), self::$nextUserId);
-        $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
+        $this->assertNotEmpty($data->getId());
+        $row = $table->find('all')->where(['_id' => $data->getId()])->first();
         $this->assertSame('foo', $row->get('password'));
     }
 
@@ -2246,7 +2246,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveModifyOptions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
@@ -2254,18 +2253,18 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $listener1 = function ($event, $document, array $options): void {
+        $listener1 = function ($event, $document, ArrayObject $options): void {
             $options['crazy'] = true;
         };
-        $listener2 = function ($event, $document, array $options): void {
+        $listener2 = function ($event, $document, ArrayObject $options): void {
             $this->assertTrue($options['crazy']);
         };
         $table->getEventManager()->on('Collection.beforeSave', $listener1);
         $table->getEventManager()->on('Collection.beforeSave', $listener2);
         $this->assertSame($data, $table->save($data));
-        $this->assertEquals($data->getId(), self::$nextUserId);
+        $this->assertNotEmpty($data->getId());
 
-        $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
+        $row = $table->find('all')->where(['_id' => $data->getId()])->first();
         $this->assertEquals($data->toArray(), $row->toArray());
     }
 
@@ -2313,9 +2312,8 @@ class BaseCollectionTest extends TestCase
 
     public function testBeforeSaveException(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(AssertionError::class);
-        $this->expectExceptionMessage('The result for the `Model.beforeSave` event must be `false` or `EntityInterface` instance. Got `int` instead.');
+        $this->expectExceptionMessage('The result for the `Collection.beforeSave` event must be `false` or `EntityInterface` instance. Got `int` instead.');
 
         $table = $this->getCollectionLocator()->get('users');
         $data = new Document([
@@ -2336,7 +2334,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSave(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
         $data = $table->get('000000000000000000000001');
 
@@ -2357,7 +2354,7 @@ class BaseCollectionTest extends TestCase
             $this->assertNotSame($data->get('username'), $data->getOriginal('username'));
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listenerAfterCommit);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
         $this->assertSame($data, $table->save($data));
         $this->assertTrue($called);
@@ -2369,7 +2366,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveCommitForNonAtomic(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
@@ -2388,10 +2384,10 @@ class BaseCollectionTest extends TestCase
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listenerAfterCommit);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
         $this->assertSame($data, $table->save($data, ['atomic' => false]));
-        $this->assertEquals($data->getId(), self::$nextUserId);
+        $this->assertNotEmpty($data->getId());
         $this->assertTrue($called);
         $this->assertTrue($calledAfterCommit);
     }
