@@ -62,3 +62,7 @@ redis.stub.php
 
 #Repowise
 .repowise
+.claude
+.opencode
+.mcp.json
+mcp.json
