@@ -61,3 +61,36 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   `BelongsToManyTest`/`HasManyTest::testEagerLoaderConnectionRole` rewritten
   for Mongo. `read`/`write` sub-configs follow cake60 precedence (role options
   replace shared options on the top level).
+
+### Added
+- **`CollectionLocator` expanded to cake60 `TableLocator` parity** — `locations`
+  + `addLocation()` (custom `Model/Collection` paths), `setConfig()`/`getConfig()`
+  with "already constructed" guard, `setFallbackClassName()`/`allowFallbackClass()`,
+  `genericInstances()`, shared `QueryFactory`, and `createInstance()` wiring
+  (config merge, connection/connectionName, fallback collection-name
+  derivation, `AssociationCollection`/`queryFactory` injection).
+- **`MongoTestTrait::getMockForCollection()`** — Mockery partial mock of a
+  collection registered in the locator (ODM analog of Cake `mockModel`).
+- **`CounterCacheBehavior` ported to cake60 level** — `beforeSave` ignoreDirty
+  tracking, `afterSave`/`afterDelete` recalc, `processAssociation` with
+  original-value conditions, closure `($event, $entity, $collection, $isOriginal)`
+  support, `updateCounterCache()` batch recalc, `getCount()` with finder +
+  conditions. `updateAll`/`deleteAll` from an association now apply its
+  configured conditions/finder (F20).
+- **`TimestampBehavior` returns `Cake\I18n\DateTime`** (was `UTCDateTime`) and
+  `DateType`/`DateImmutableType` hydration returns `Cake\I18n\DateTime` /
+  `DateTimeImmutable` (was native `DateTime`) — cake60 parity for datetime
+  fields; `tests/bootstrap.php` sets `date_default_timezone_set('UTC')`.
+- **`BaseCollection::getAssociation()` throws on missing** (cake60
+  `InvalidArgumentException`) instead of returning null; added `findAssociation()`
+  helper; `Marshaller`/`CounterCacheBehavior` use `hasAssociation()` guards.
+
+### Tests
+- Ported `Rule\ExistsInNullableTest` + `Rule\LinkConstraintTest` (cake60) via
+  `tools/port-test.php`; composite-FK (`ExistsIn` `array_combine`) and SQL-only
+  subquery tests marked skip (F32/F33/F34).
+- Ported `Behavior\CounterCacheBehaviorTest` (15 pass / 4 skip F35) and
+  `Behavior\TimestampBehaviorTest` (19/19).
+- Ported `Locator` suite (46/46): `CollectionLocatorTest` (expanded),
+  `LocatorAwareTraitTest`, `CollectionContainerTest`.
+- `DateTypeTest` aligned to `Cake\I18n\DateTime` hydration.
