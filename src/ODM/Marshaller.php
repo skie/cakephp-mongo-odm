@@ -179,6 +179,7 @@ class Marshaller
     {
         $class = $this->collection->getDocumentClass();
         $entity = new $class();
+        assert($entity instanceof Document);
         $entity->setSource($this->collection->getRegistryAlias());
 
         if (array_key_exists('markNew', $options) && $options['markNew'] !== null) {

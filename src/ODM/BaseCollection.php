@@ -172,7 +172,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * The name of the class that represents a single document for this collection.
      *
-     * @var class-string<\Crustum\Mongo\ODM\Document>|null
+     * @var class-string<TDocument>|null
      */
     protected ?string $documentClass = null;
 
@@ -278,21 +278,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
         }
 
-        $this->eventManager = isset($options['eventManager']) && $options['eventManager'] instanceof EventManagerInterface
-            ? $options['eventManager']
-            : new EventManager();
-        $this->behaviors = isset($options['behaviors']) && $options['behaviors'] instanceof BehaviorRegistry
-            ? $options['behaviors']
-            : new BehaviorRegistry();
+        $this->eventManager = $options['eventManager'] ?? new EventManager();
+        $this->behaviors = $options['behaviors'] ?? new BehaviorRegistry();
         $this->behaviors->setCollection($this);
 
-        $this->associations = isset($options['associations']) && $options['associations'] instanceof AssociationCollection
-            ? $options['associations']
-            : new AssociationCollection();
-
-        $this->queryFactory = isset($options['queryFactory']) && $options['queryFactory'] instanceof QueryFactory
-            ? $options['queryFactory']
-            : new QueryFactory();
+        $this->associations = $options['associations'] ?? new AssociationCollection();
+        $this->queryFactory = $options['queryFactory'] ?? new QueryFactory();
 
         $this->initialize($options);
 
@@ -693,7 +684,47 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Sets the document class used for hydrated documents.
+     * Returns the class used to hydrate documents for this collection.
+     *
+     * When unset, the class is derived from the collection class name (the
+     * `App\Model\Document\<Alias>` convention), falling back to the generic
+     * `Crustum\Mongo\ODM\Document`. ODM extension — the cake analog is
+     * `Table::getEntityClass()`.
+     *
+     * @return class-string<TDocument>
+     */
+    public function getDocumentClass(): string
+    {
+        if ($this->documentClass === null) {
+            /** @var class-string<TDocument> $default */
+            $default = Document::class;
+            $self = static::class;
+            $parts = explode('\\', $self);
+
+            if ($self === self::class || count($parts) < 3) {
+                return $this->documentClass = $default;
+            }
+
+            $alias = Inflector::classify(Inflector::underscore(substr(array_pop($parts), 0, -10)));
+            $name = implode('\\', array_slice($parts, 0, -1)) . '\\Document\\' . $alias;
+            if (!class_exists($name)) {
+                return $this->documentClass = $default;
+            }
+
+            /** @var class-string<TDocument>|null $class */
+            $class = App::className($name, 'Model/Document');
+            if ($class === null) {
+                return $this->documentClass = $default;
+            }
+
+            $this->documentClass = $class;
+        }
+
+        return $this->documentClass;
+    }
+
+    /**
+     * Sets the class used to hydrate documents for this collection.
      *
      * The name can be a short reference (`Model/Document` resolution) or a
      * fully-qualified class name. ODM extension — the cake analog is
@@ -705,7 +736,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function setDocumentClass(string $name): static
     {
-        /** @var class-string<\Crustum\Mongo\ODM\Document>|null $class */
+        /** @var class-string<TDocument>|null $class */
         $class = App::className($name, 'Model/Document');
         if ($class === null) {
             throw new MissingDocumentException([$name]);
@@ -714,44 +745,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $this->documentClass = $class;
 
         return $this;
-    }
-
-    /**
-     * Returns the document class used for hydrated documents.
-     *
-     * When unset, the class is derived from the collection class name (the
-     * `App\Model\Document\<Alias>` convention), falling back to the generic
-     * `Crustum\Mongo\ODM\Document`. ODM extension — the cake analog is
-     * `Table::getEntityClass()`.
-     *
-     * @return class-string<\Crustum\Mongo\ODM\Document>
-     */
-    public function getDocumentClass(): string
-    {
-        if ($this->documentClass === null) {
-            $self = static::class;
-            $parts = explode('\\', $self);
-
-            if ($self === self::class || count($parts) < 3) {
-                return $this->documentClass = Document::class;
-            }
-
-            $alias = Inflector::classify(Inflector::underscore(substr(array_pop($parts), 0, -10)));
-            $name = implode('\\', array_slice($parts, 0, -1)) . '\\Document\\' . $alias;
-            if (!class_exists($name)) {
-                return $this->documentClass = Document::class;
-            }
-
-            /** @var class-string<\Crustum\Mongo\ODM\Document>|null $class */
-            $class = App::className($name, 'Model/Document');
-            if ($class === null) {
-                return $this->documentClass = Document::class;
-            }
-
-            $this->documentClass = $class;
-        }
-
-        return $this->documentClass;
     }
 
     /**
@@ -835,11 +828,27 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Adds a behavior to this collection's behavior registry.
+     * Add a behavior.
+     *
+     * Adds a behavior to this collection's behavior registry. Behaviors
+     * provide an easy way to create horizontally re-usable features that can
+     * provide trait-like functionality and allow for events to be listened to.
+     *
+     * Example:
+     *
+     * Load a behavior, with some settings.
+     *
+     * ```
+     * $this->addBehavior('Timestamp', ['events' => ['Collection.beforeSave' => ['created' => 'new']]]);
+     * ```
+     *
+     * Behaviors are generally loaded during `Collection::initialize()`.
      *
      * @param string $name The name of the behavior. Can be a short class reference.
      * @param array<string, mixed> $options The options for the behavior to use.
      * @return $this
+     * @throws \Cake\Core\Exception\CakeException If a behavior is being reloaded.
+     * @see \Crustum\Mongo\ODM\Behavior
      */
     public function addBehavior(string $name, array $options = []): static
     {
@@ -850,6 +859,15 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
     /**
      * Adds an array of behaviors to the collection's behavior registry.
+     *
+     * Example:
+     *
+     * ```
+     * $this->addBehaviors([
+     *     'Timestamp',
+     *     'CounterCache' => ['Users' => ['post_count']],
+     * ]);
+     * ```
      *
      * @param array<int|string, mixed> $behaviors All the behaviors to load.
      * @return $this
@@ -870,6 +888,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
     /**
      * Removes a behavior from this collection's behavior registry.
+     *
+     * Example:
+     *
+     * ```
+     * $this->removeBehavior('Tree');
+     * ```
      *
      * @param string $name The alias that the behavior was added with.
      * @return $this
@@ -893,6 +917,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
     /**
      * Gets a behavior from the registry.
+     *
+     * The returned behavior instance can be used to interact with the loaded
+     * behavior directly (e.g. call its public methods).
      *
      * @param string $name The behavior alias.
      * @return \Crustum\Mongo\ODM\Behavior
@@ -1033,10 +1060,34 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Creates a new BelongsTo association between this collection and a target.
+     * Creates a new BelongsTo association between this collection and a target
+     * collection. A "belongs to" association is a N-1 relationship.
      *
-     * @param string $associated The alias for the target collection.
-     * @param array<string, mixed> $options Association options.
+     * The target collection can be inferred by its name, which is provided in
+     * the first argument, or you can pass the class name to be instantiated or
+     * an instance of it directly.
+     *
+     * The options array accepts the following keys:
+     *
+     * - className: The class name of the target collection object.
+     * - target: An instance of a collection object to be used as the target.
+     * - foreignKey: The name of the field to use as foreign key, if false none
+     *   will be used.
+     * - bindingKey: The field on the target collection that the foreign key
+     *   references (defaults to the target's primary key).
+     * - conditions: array with a list of conditions to filter the lookup with.
+     * - strategy: The loading strategy to use. 'select', 'lookup' and 'embed'
+     *   are supported (ODM loading strategies; there are no SQL joins).
+     * - finder: The finder method to use when loading documents from this
+     *   association. Defaults to 'all'.
+     * - propertyName: The property name used to store the associated document
+     *   in the parent (defaults to the underscored alias).
+     *
+     * This method will return the association object that was built.
+     *
+     * @param string $associated The alias for the target collection. This is used to
+     *   uniquely identify the association.
+     * @param array<string, mixed> $options List of options to configure the association definition.
      * @return \Crustum\Mongo\ODM\Association\BelongsTo
      */
     public function belongsTo(string $associated, array $options = []): BelongsTo
@@ -1045,10 +1096,38 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Creates a new HasOne association between this collection and a target.
+     * Creates a new HasOne association between this collection and a target
+     * collection. A "has one" association is a 1-1 relationship.
      *
-     * @param string $associated The alias for the target collection.
-     * @param array<string, mixed> $options Association options.
+     * The target collection can be inferred by its name, which is provided in
+     * the first argument, or you can pass the class name to be instantiated or
+     * an instance of it directly.
+     *
+     * The options array accepts the following keys:
+     *
+     * - className: The class name of the target collection object.
+     * - target: An instance of a collection object to be used as the target.
+     * - foreignKey: The name of the field to use as foreign key, if false none
+     *   will be used.
+     * - bindingKey: The field on the source collection that the foreign key
+     *   references (defaults to the source's primary key).
+     * - dependent: Set to true if you want cascade deletes to the associated
+     *   collection when a document is removed on this collection.
+     * - cascadeCallbacks: Set to true if you want callbacks fired on cascaded
+     *   deletes. If false the ORM will use deleteAll() to remove data.
+     * - conditions: array with a list of conditions to filter the lookup with.
+     * - strategy: The loading strategy to use. 'select', 'lookup' and 'embed'
+     *   are supported.
+     * - finder: The finder method to use when loading documents from this
+     *   association. Defaults to 'all'.
+     * - propertyName: The property name used to store the associated document
+     *   in the parent.
+     *
+     * This method will return the association object that was built.
+     *
+     * @param string $associated The alias for the target collection. This is used to
+     *   uniquely identify the association.
+     * @param array<string, mixed> $options List of options to configure the association definition.
      * @return \Crustum\Mongo\ODM\Association\HasOne
      */
     public function hasOne(string $associated, array $options = []): HasOne
@@ -1057,10 +1136,42 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Creates a new HasMany association between this collection and a target.
+     * Creates a new HasMany association between this collection and a target
+     * collection. A "has many" association is a 1-N relationship.
      *
-     * @param string $associated The alias for the target collection.
-     * @param array<string, mixed> $options Association options.
+     * The target collection can be inferred by its name, which is provided in
+     * the first argument, or you can pass the class name to be instantiated or
+     * an instance of it directly.
+     *
+     * The options array accepts the following keys:
+     *
+     * - className: The class name of the target collection object.
+     * - target: An instance of a collection object to be used as the target.
+     * - foreignKey: The name of the field to use as foreign key, if false none
+     *   will be used.
+     * - bindingKey: The field on the source collection that the foreign key
+     *   references (defaults to the source's primary key).
+     * - dependent: Set to true if you want cascade deletes to the associated
+     *   collection when a document is removed on this collection.
+     * - cascadeCallbacks: Set to true if you want callbacks fired on cascaded
+     *   deletes. If false the ORM will use deleteAll() to remove data.
+     * - conditions: array with a list of conditions to filter the lookup with.
+     * - sort: The order in which results for this association should be returned.
+     * - saveStrategy: Either 'append' or 'replace'. When 'append' the current
+     *   documents are appended to any documents in the database. When 'replace'
+     *   associated documents not in the current set will be removed.
+     * - strategy: The loading strategy to use. 'select', 'lookup' and 'embed'
+     *   are supported.
+     * - finder: The finder method to use when loading documents from this
+     *   association. Defaults to 'all'.
+     * - propertyName: The property name used to store the associated documents
+     *   in the parent.
+     *
+     * This method will return the association object that was built.
+     *
+     * @param string $associated The alias for the target collection. This is used to
+     *   uniquely identify the association.
+     * @param array<string, mixed> $options List of options to configure the association definition.
      * @return \Crustum\Mongo\ODM\Association\HasMany
      */
     public function hasMany(string $associated, array $options = []): HasMany
@@ -1069,10 +1180,43 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Creates a new BelongsToMany association between this collection and a target.
+     * Creates a new BelongsToMany association between this collection and a
+     * target collection. A "belongs to many" association is a M-N relationship.
      *
-     * @param string $associated The alias for the target collection.
-     * @param array<string, mixed> $options Association options.
+     * The target collection can be inferred by its name, which is provided in
+     * the first argument, or you can pass the class name to be instantiated or
+     * an instance of it directly.
+     *
+     * The options array accepts the following keys:
+     *
+     * - className: The class name of the target collection object.
+     * - target: An instance of a collection object to be used as the target.
+     * - foreignKey: The name of the field to use as foreign key.
+     * - targetForeignKey: The name of the field to use as the target foreign key.
+     * - through: If you choose to use an already instantiated link collection,
+     *   set this key to a configured collection instance containing associations
+     *   to both the source and target collections in this association.
+     * - dependent: Set to false if you do not want junction records removed
+     *   when an owning document is removed.
+     * - cascadeCallbacks: Set to true if you want callbacks fired on cascaded
+     *   deletes. If false the ORM will use deleteAll() to remove data.
+     * - conditions: array with a list of conditions to filter the lookup with.
+     * - sort: The order in which results for this association should be returned.
+     * - saveStrategy: Either 'append' or 'replace'. The former will only create
+     *   new links between both sides of the relation; the latter will do a wipe
+     *   and replace to create the links between the passed documents when saving.
+     * - strategy: The loading strategy to use. 'select', 'lookup' and 'embed'
+     *   are supported.
+     * - finder: The finder method to use when loading documents from this
+     *   association. Defaults to 'all'.
+     * - propertyName: The property name used to store the associated documents
+     *   in the parent.
+     *
+     * This method will return the association object that was built.
+     *
+     * @param string $associated The alias for the target collection. This is used to
+     *   uniquely identify the association.
+     * @param array<string, mixed> $options List of options to configure the association definition.
      * @return \Crustum\Mongo\ODM\Association\BelongsToMany
      */
     public function belongsToMany(string $associated, array $options = []): BelongsToMany
@@ -1464,7 +1608,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * - defaults: Whether to use the search criteria as default values for the
      *   new document (default: true).
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
      * @param callable|array<string, mixed>|null $callback An array of data key/value pairs or a callback that will
      *   be invoked for newly created documents. This callback will be called *before* the document is persisted.
      * @param array<string, mixed> $options The options to use when saving.
@@ -1496,7 +1640,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Performs the actual find and/or create of a document based on the passed options.
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find an existing document by, or a callable that will customize the find query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find an existing document by, or a callable that will customize the find query.
      * @param callable|array<string, mixed>|null $callback Data or a callback that will be invoked for newly created documents.
      * @param array<string, mixed> $options The options to use when saving.
      * @return \Cake\Datasource\EntityInterface|array<string, mixed> A document.
@@ -1521,6 +1665,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $callback = null;
         }
 
+        /** @var \Cake\Datasource\EntityInterface $document */
         $document = $this->newEmptyDocument();
         if ($options['defaults'] && is_array($data)) {
             $patchableFields = array_combine(array_keys($data), array_fill(0, count($data), true));
@@ -1546,8 +1691,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Gets the query object for findOrCreate().
      *
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
-     * @return \Crustum\Mongo\ODM\Query\SelectQuery<\Crustum\Mongo\ODM\TDocument|array<string, mixed>>
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>|callable|array<string, mixed> $search The criteria to find existing documents by.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array<string, mixed>>
      */
     protected function getFindOrCreateQuery(SelectQuery|callable|array $search): SelectQuery
     {
@@ -1570,7 +1715,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function query(): SelectQuery
     {
-        return $this->queryFactory->select($this);
+        return $this->selectQuery();
     }
 
     /**
@@ -1635,13 +1780,14 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Updates matching documents.
+     * Updates all documents matching the provided conditions.
      *
-     * This method does not fire beforeSave/afterSave events.
+     * This method will *not* trigger beforeSave/afterSave events. If you need
+     * those, first load a collection of documents and save them.
      *
-     * @param \Closure|array<string, mixed>|string $fields Update specification.
-     * @param \Closure|array<string, mixed>|string|null $conditions Filter conditions.
-     * @return int The number of modified documents.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string $fields Update specification, accepts anything `UpdateQuery::set()` can take.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Conditions to be used, accepts anything `Query::where()` can take.
+     * @return int Count Returns the affected rows.
      */
     public function updateAll(
         ExpressionInterface|Closure|array|string $fields,
@@ -1661,12 +1807,17 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Deletes matching documents.
+     * Deletes all documents matching the provided conditions.
      *
-     * This method does not fire beforeDelete/afterDelete events.
+     * This method will *not* trigger beforeDelete/afterDelete events. If you
+     * need those, first load a collection of documents and delete them.
      *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Filter conditions.
-     * @return int The number of deleted documents.
+     * This method will *not* execute on associations' `cascade` attribute. You
+     * should use the association's dependent/cascade settings if you need
+     * cascading deletes combined with this method.
+     *
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Conditions to be used, accepts anything `Query::where()` can take.
+     * @return int Returns the number of affected rows.
      */
     public function deleteAll(ExpressionInterface|Closure|array|string|null $conditions): int
     {
@@ -1679,9 +1830,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Whether any document matches the conditions.
+     * Whether any document matches the given conditions.
      *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Filter conditions.
+     * @param \Cake\Database\ExpressionInterface|\Closure|array<string, mixed>|string|null $conditions Conditions to be used, accepts anything `Query::where()` can take.
      * @return bool
      */
     public function exists(ExpressionInterface|Closure|array|string|null $conditions): bool
@@ -1769,10 +1920,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Saves a document or throws when the save fails.
+     * Try to save a document or throw a PersistenceFailedException if the
+     * application rules checks failed, the document contains errors, or the
+     * save was aborted by a callback.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
-     * @param array<string, mixed> $options Save options.
+     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param array<string, mixed> $options The options to use when saving.
      * @return \Cake\Datasource\EntityInterface
      * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException When the document could not be saved.
      */
@@ -1787,11 +1940,14 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Performs the actual saving of a document.
+     * Performs the actual saving of a document based on the passed options.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
-     * @param \ArrayObject<string, mixed> $options Save options.
+     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param \ArrayObject<string, mixed> $options The options to use for the save operation.
      * @return \Cake\Datasource\EntityInterface|false
+     * @throws \Cake\Core\Exception\CakeException When the document is missing some of the primary keys.
+     * @throws \Crustum\Mongo\ODM\Exception\RolledbackTransactionException If the transaction
+     *   is aborted in the afterSave event.
      */
     protected function processSave(EntityInterface $entity, ArrayObject $options): EntityInterface|false
     {
@@ -1879,10 +2035,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Inserts a new document into the collection.
+     * Auxiliary function to handle the insert of a document's data in the
+     * collection.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
+     * Referenced-association properties are stripped before writing so they
+     * never leak into the parent document; embedded documents are serialized
+     * by the driver. When the document lacks a primary key and the configured
+     * type can generate one, `_id` is assigned up front. ODM extension — the
+     * cake analog is `Table::_insert()`.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to insert.
      * @return \Cake\Datasource\EntityInterface|false
+     * @throws \Cake\Core\Exception\CakeException When the document is missing some of the primary keys.
      */
     protected function insert(EntityInterface $entity): EntityInterface|false
     {
@@ -1946,10 +2110,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Updates a dirty document using $set/$unset diffs.
+     * Auxiliary function to handle the update of a dirty document in the
+     * collection.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
+     * Only dirty scalar fields are written: present values become `$set`,
+     * absent ones `$unset`. Referenced-association properties and primary-key
+     * fields are skipped. ODM extension — the cake analog is `Table::_update()`.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to update.
      * @return \Cake\Datasource\EntityInterface|false
+     * @throws \InvalidArgumentException When the document is missing primary key values.
      */
     protected function update(EntityInterface $entity): EntityInterface|false
     {
@@ -2165,9 +2335,21 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Deletes a document.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
-     * @param array<string, mixed> $options Delete options.
-     * @return bool
+     * The document is deleted within a transaction when `atomic` is true, and
+     * the `Collection.beforeDelete` / `Collection.afterDelete` /
+     * `Collection.afterDeleteCommit` events are dispatched around the write.
+     * Dependent associations cascade through their configured `dependent` /
+     * `cascadeCallbacks` settings.
+     *
+     * ### Options
+     *
+     * - atomic: Whether to execute delete and callbacks inside a database
+     *   transaction (default: true).
+     * - checkRules: Whether to run the rules checker (default: true).
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The document to remove.
+     * @param array<string, mixed> $options The options for the delete.
+     * @return bool Success.
      */
     public function delete(EntityInterface $entity, array $options = []): bool
     {
@@ -2462,11 +2644,17 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Dispatches a named finder.
      *
+     * A finder can be implemented as a method on the collection
+     * (`findPublished()`) or provided by a behavior.
+     *
      * @param string $type The finder name.
-     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The query to modify.
-     * @param mixed ...$args Finder arguments.
-     * @return \Crustum\Mongo\ODM\Query\SelectQuery
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array> $query The query to modify.
+     * @param mixed ...$args Arguments that match up to finder-specific parameters.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<TDocument|array>
      * @throws \BadMethodCallException When the finder is unknown.
+     * @uses findAll()
+     * @uses findList()
+     * @uses findThreaded()
      */
     public function callFinder(string $type, SelectQuery $query, mixed ...$args): SelectQuery
     {
@@ -2692,11 +2880,52 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Marshals one document from input data.
+     * Creates a new document from input data.
      *
-     * @param array<string, mixed> $data Input data.
-     * @param array<string, mixed> $options Marshalling options.
+     * By default, all the associations on this collection will be hydrated. You
+     * can limit which associations are built, or include deeper associations,
+     * using the options parameter:
+     *
+     * ```
+     * $user = $this->Users->newDocument(
+     *   $this->request->getData(),
+     *   ['associated' => ['Tags', 'Comments.Users']]
+     * );
+     * ```
+     *
+     * The `fields` option lets you remove or restrict input data from ending up
+     * in the document. If you'd like to relax the document's default patchable
+     * fields, you can use the `patchableFields` option:
+     *
+     * ```
+     * $user = $this->Users->newDocument(
+     *   $this->request->getData(),
+     *   ['patchableFields' => ['protected_field' => true]]
+     * );
+     * ```
+     *
+     * By default, the data is validated before being passed to the new document.
+     * In the case of invalid fields, those will not be present in the resulting
+     * object. The `validate` option can be used to disable validation on the
+     * passed data:
+     *
+     * ```
+     * $user = $this->Users->newDocument(
+     *   $this->request->getData(),
+     *   ['validate' => false]
+     * );
+     * ```
+     *
+     * You can also pass the name of the validator to use in the `validate`
+     * option. If `null` is passed, no validation will be performed.
+     *
+     * You can use the `Collection.beforeMarshal` event to modify request data
+     * before it is converted into a document.
+     *
+     * @param array<string, mixed> $data The data to build a document with.
+     * @param array<string, mixed> $options A list of options for the object hydration.
      * @return \Cake\Datasource\EntityInterface
+     * @see \Crustum\Mongo\ODM\Marshaller::one()
      */
     public function newDocument(array $data, array $options = []): EntityInterface
     {
@@ -2706,11 +2935,36 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     }
 
     /**
-     * Marshals multiple documents from input data.
+     * Creates multiple documents from input data.
      *
-     * @param array<int, mixed> $data Input rows.
-     * @param array<string, mixed> $options Marshalling options.
-     * @return array<int, \Cake\Datasource\EntityInterface>
+     * By default all the associations on this collection will be hydrated. You
+     * can limit which associations are built, or include deeper associations,
+     * using the options parameter:
+     *
+     * ```
+     * $users = $this->Users->newDocuments(
+     *   $this->request->getData(),
+     *   ['associated' => ['Tags', 'Comments.Users']]
+     * );
+     * ```
+     *
+     * You can limit fields that will be present in the constructed documents by
+     * passing the `fields` option, which is also accepted for associations:
+     *
+     * ```
+     * $users = $this->Users->newDocuments($this->request->getData(), [
+     *  'fields' => ['title', 'body', 'tags', 'comments'],
+     *  'associated' => ['Tags', 'Comments.Users' => ['fields' => 'username']]
+     *  ]
+     * );
+     * ```
+     *
+     * You can use the `Collection.beforeMarshal` event to modify request data
+     * before it is converted into documents.
+     *
+     * @param array<int, mixed> $data The data to build documents with.
+     * @param array<string, mixed> $options A list of options for the objects hydration.
+     * @return array<int, \Cake\Datasource\EntityInterface> An array of hydrated documents.
      */
     public function newDocuments(array $data, array $options = []): array
     {
@@ -2722,10 +2976,34 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Merges input data into an existing document.
      *
-     * @param \Cake\Datasource\EntityInterface $document The document.
-     * @param array<string, mixed> $data Input data.
-     * @param array<string, mixed> $options Marshalling options.
+     * When merging HasMany or BelongsToMany associations, all the documents in
+     * the `$data` array will appear; those that can be matched by primary key
+     * will get the data merged, but those that cannot will be discarded.
+     *
+     * You can limit fields that will be present in the merged document by
+     * passing the `fields` option, which is also accepted for associations:
+     *
+     * ```
+     * $user = $this->Users->patchDocument($user, $this->request->getData(), [
+     *  'fields' => ['name', 'email', 'tags', 'comments'],
+     *  'associated' => ['Tags', 'Comments.Users' => ['fields' => 'username']]
+     *  ]
+     * );
+     * ```
+     *
+     * By default, the data is validated before being merged. Invalid fields
+     * will not be present in the resulting object. The `validate` option can
+     * be used to disable validation on the passed data. You can also pass the
+     * name of the validator to use in the `validate` option.
+     *
+     * You can use the `Collection.beforeMarshal` event to modify request data
+     * before it is merged into the document.
+     *
+     * @param \Cake\Datasource\EntityInterface $document The document to merge data into.
+     * @param array<string, mixed> $data The data to merge.
+     * @param array<string, mixed> $options A list of options for the merge.
      * @return \Cake\Datasource\EntityInterface
+     * @see \Crustum\Mongo\ODM\Marshaller::merge()
      */
     public function patchDocument(EntityInterface $document, array $data, array $options = []): EntityInterface
     {
