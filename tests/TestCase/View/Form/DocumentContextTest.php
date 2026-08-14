@@ -96,7 +96,7 @@ class DocumentContextTest extends TestCase
 
         // Schema is lazily introspected from the database (cake6 parity):
         // fieldNames() returns the live collection columns.
-        $this->assertSame(['username', 'password', '_id'], $context->fieldNames());
+        $this->assertSame(['username', 'password', 'created', 'updated', '_id'], $context->fieldNames());
         $this->assertNull($context->type('name'));
         $this->assertSame([], $context->attributes('name'));
     }
