@@ -234,4 +234,19 @@ class Util
 
         return $plugin !== null && $entryPlugin === null;
     }
+
+    /**
+     * Strips the `Seed` suffix for display.
+     *
+     * @param string $seedName Seed class name
+     * @return string Display name
+     */
+    public static function getSeedDisplayName(string $seedName): string
+    {
+        if (str_ends_with($seedName, 'Seed')) {
+            return substr($seedName, 0, -4);
+        }
+
+        return $seedName;
+    }
 }

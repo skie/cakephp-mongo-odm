@@ -87,6 +87,7 @@ class ManagerFactory
                 'connection' => $connectionName,
                 'migration_table' => CakeMongoAdapter::MIGRATION_TABLE,
                 'plugin' => $plugin,
+                'dryrun' => $this->getOption('dry-run'),
             ],
             'plugin' => $plugin,
             'source' => $folder,

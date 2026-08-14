@@ -24,6 +24,8 @@ use Crustum\Mongo\Migration\Command\MigrateCommand;
 use Crustum\Mongo\Migration\Command\ResetCommand;
 use Crustum\Mongo\Migration\Command\RollbackCommand;
 use Crustum\Mongo\Migration\Command\SeedCommand;
+use Crustum\Mongo\Migration\Command\SeedResetCommand;
+use Crustum\Mongo\Migration\Command\SeedStatusCommand;
 use Crustum\Mongo\Migration\Command\StatusCommand;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
@@ -106,6 +108,8 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
         $commands->add('mongo migrations mark_migrated', MarkMigratedCommand::class);
         $commands->add('mongo migrations reset', ResetCommand::class);
         $commands->add('mongo migrations seed', SeedCommand::class);
+        $commands->add('mongo migrations seed_status', SeedStatusCommand::class);
+        $commands->add('mongo migrations seed_reset', SeedResetCommand::class);
         $commands->add('mongo migrations diff', DiffCommand::class);
         $commands->add('mongo schema dump', DumpCommand::class);
         $commands->add('bake mongo_migration', BakeMigrationCommand::class);
