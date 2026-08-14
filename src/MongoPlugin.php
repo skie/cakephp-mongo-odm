@@ -17,6 +17,7 @@ use Crustum\Mongo\Migration\Command\BakeMigrationCommand;
 use Crustum\Mongo\Migration\Command\BakeMigrationDiffCommand;
 use Crustum\Mongo\Migration\Command\BakeMigrationSnapshotCommand;
 use Crustum\Mongo\Migration\Command\BakeSeedCommand;
+use Crustum\Mongo\Migration\Command\BakeSimpleMigrationCommand;
 use Crustum\Mongo\Migration\Command\DiffCommand;
 use Crustum\Mongo\Migration\Command\DumpCommand;
 use Crustum\Mongo\Migration\Command\MarkMigratedCommand;
@@ -27,6 +28,7 @@ use Crustum\Mongo\Migration\Command\SeedCommand;
 use Crustum\Mongo\Migration\Command\SeedResetCommand;
 use Crustum\Mongo\Migration\Command\SeedStatusCommand;
 use Crustum\Mongo\Migration\Command\StatusCommand;
+use Crustum\Mongo\Migration\Command\UpgradeCommand;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
 use Crustum\Mongo\View\Form\DocumentContext;
@@ -111,10 +113,12 @@ class MongoPlugin extends BasePlugin implements ManifestInterface
         $commands->add('mongo migrations seed_status', SeedStatusCommand::class);
         $commands->add('mongo migrations seed_reset', SeedResetCommand::class);
         $commands->add('mongo migrations diff', DiffCommand::class);
+        $commands->add('mongo migrations upgrade', UpgradeCommand::class);
         $commands->add('mongo schema dump', DumpCommand::class);
         $commands->add('bake mongo_migration', BakeMigrationCommand::class);
         $commands->add('bake mongo_migration_diff', BakeMigrationDiffCommand::class);
         $commands->add('bake mongo_migration_snapshot', BakeMigrationSnapshotCommand::class);
+        $commands->add('bake mongo_migration_simple', BakeSimpleMigrationCommand::class);
         $commands->add('bake mongo_seed', BakeSeedCommand::class);
 
         return parent::console($commands);

@@ -14,32 +14,26 @@ use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
-use Cake\Datasource\ConnectionManager;
 use Cake\Utility\Inflector;
-use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
-use Crustum\Mongo\Migration\Migration\SchemaDumper;
 use Crustum\Mongo\Migration\Util\Util;
-use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use RuntimeException;
 
 /**
- * Bakes a migration snapshot that recreates the current Mongo schema.
+ * Bakes a plain, empty migration file.
  *
- * The generated migration captures every collection (validator + indexes) so
- * it can be applied to an empty database to reproduce the current state.
+ * Mirrors the reference `BakeSimpleMigrationCommand` for the Mongo migration
+ * shape (a `change()` with no operations).
  */
-class BakeMigrationSnapshotCommand extends Command
+class BakeSimpleMigrationCommand extends Command
 {
-    use SnapshotTrait;
-
     /**
      * @inheritDoc
      */
     public static function getDescription(): string
     {
-        return 'Bake a Mongo migration snapshot of the current schema.';
+        return 'Bake a plain Mongo migration file.';
     }
 
     /**
@@ -49,7 +43,7 @@ class BakeMigrationSnapshotCommand extends Command
      */
     public static function defaultName(): string
     {
-        return 'bake mongo_migration_snapshot';
+        return 'bake mongo_migration_simple';
     }
 
     /**
@@ -61,11 +55,9 @@ class BakeMigrationSnapshotCommand extends Command
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([
-            'Bake a Mongo migration snapshot of the current schema',
+            'Bake a plain Mongo migration file',
             '',
-            'The generated migration recreates every collection with its validator and indexes',
-            '',
-            '<info>bin/cake bake mongo_migration_snapshot InitialSchema</info>',
+            '<info>bin/cake bake mongo_migration_simple CreateReports</info>',
         ])->addArgument('name', [
             'help' => 'The migration class name in CamelCase',
             'required' => true,
@@ -80,12 +72,6 @@ class BakeMigrationSnapshotCommand extends Command
             'short' => 's',
             'default' => ConfigInterface::DEFAULT_MIGRATION_FOLDER,
             'help' => 'The folder where your migrations are',
-        ])->addOption('generate-only', [
-            'help' => 'Only generate the migration file; do not mark it as migrated',
-            'boolean' => true,
-        ])->addOption('no-lock', [
-            'help' => 'Do not refresh the schema dump after baking',
-            'boolean' => true,
         ]);
 
         return $parser;
@@ -106,23 +92,10 @@ class BakeMigrationSnapshotCommand extends Command
             $this->abort();
         }
 
-        $connectionName = (string)$args->getOption('connection');
-        $connection = ConnectionManager::get($connectionName);
-        if (!$connection instanceof Connection) {
-            throw new RuntimeException(sprintf(
-                'Connection `%s` is not a %s instance.',
-                $connectionName,
-                Connection::class,
-            ));
-        }
-
-        $dumper = new SchemaDumper($connection);
-        $schema = $dumper->dumpAll();
-
         $factory = new ManagerFactory([
             'plugin' => $args->getOption('plugin'),
             'source' => $args->getOption('source'),
-            'connection' => $connectionName,
+            'connection' => $args->getOption('connection'),
         ]);
         $config = $factory->createConfig();
         $path = $config->getMigrationPath();
@@ -135,60 +108,25 @@ class BakeMigrationSnapshotCommand extends Command
         $version = Util::getCurrentTimestamp();
         $file = $path . DIRECTORY_SEPARATOR . $version . '_' . Inflector::underscore($className) . '.php';
 
-        $content = $this->buildSnapshot($className, $schema);
+        $content = $this->buildMigration($className);
 
         if (file_put_contents($file, $content) === false) {
             throw new RuntimeException(sprintf('Could not write migration file `%s`.', $file));
         }
 
-        $io->success(sprintf('Baked snapshot `%s` (%d collections) to `%s`.', $className, count($schema), $file));
-
-        if (!$args->getOption('generate-only')) {
-            $this->markSnapshotApplied($file, $args, $io);
-
-            if (!$args->getOption('no-lock')) {
-                $this->refreshDump($args, $io);
-            }
-        }
+        $io->success(sprintf('Baked migration `%s` to `%s`.', $className, $file));
 
         return self::CODE_SUCCESS;
     }
 
     /**
-     * Builds the snapshot migration content.
+     * Builds the plain migration content.
      *
      * @param string $className Migration class name
-     * @param array<string, array<string, mixed>> $schema The dumped schema
      * @return string PHP file content
      */
-    protected function buildSnapshot(string $className, array $schema): string
+    protected function buildMigration(string $className): string
     {
-        $printer = new PhpArrayPrinter();
-        $lines = [];
-        foreach ($schema as $name => $definition) {
-            $lines[] = sprintf("        \$this->collection('%s')", $name);
-
-            $validator = $definition['validator'] ?? null;
-            if ($validator !== null) {
-                $lines[] = '            ->setValidator(' . $printer->print($validator, 2) . ')';
-            }
-
-            foreach ($definition['indexes'] ?? [] as $indexName => $indexDef) {
-                $key = $indexDef['key'] ?? [];
-                $options = $indexDef['options'] ?? [];
-                $options['name'] ??= $indexName;
-                $lines[] = sprintf(
-                    '            ->addIndex(%s, %s)',
-                    $printer->print($key, 2),
-                    $printer->print($options, 2),
-                );
-            }
-
-            $lines[] = '            ->create();';
-        }
-
-        $body = $lines !== [] ? implode("\n", $lines) : '        // No collections to create.';
-
         return <<<PHP
 <?php
 declare(strict_types=1);
@@ -197,15 +135,9 @@ use Crustum\Mongo\Migration\BaseMigration;
 
 class {$className} extends BaseMigration
 {
-    public function up(): void
+    public function change(): void
     {
-{$body}
-    }
-
-    public function down(): void
-    {
-        // Collections are not dropped by default; add explicit dropCollection()
-        // calls if this snapshot must be reversible.
+        // Write your migration here.
     }
 }
 
