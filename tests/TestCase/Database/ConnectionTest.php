@@ -175,12 +175,13 @@ class ConnectionTest extends TestCase
     }
 
     /**
-     * Test that a read sub-config merges nested options with the shared config
-     * (TLS in the shared options must survive a read-only readPreference).
+     * Test that a read sub-config's options fully replace the shared options
+     * (cake6 behaviour: the role sub-config wins on the top level, so TLS must
+     * be declared per role when a role sets its own options).
      *
      * @return void
      */
-    public function testReadWriteSplitMergesNestedOptions(): void
+    public function testReadWriteSplitOptionsOverrideShared(): void
     {
         $connection = new Connection([
             'name' => 'split_options',
@@ -201,14 +202,10 @@ class ConnectionTest extends TestCase
         ]);
 
         $readOptions = $connection->getReadDriver()->getOptions();
-        $this->assertSame('true', $readOptions['tls']);
-        $this->assertSame('/path/to/bundle.pem', $readOptions['tlsCAFile']);
-        $this->assertFalse($readOptions['retryWrites']);
-        $this->assertSame('secondaryPreferred', $readOptions['readPreference']);
+        $this->assertSame(['readPreference' => 'secondaryPreferred'], $readOptions);
 
         $writeOptions = $connection->getWriteDriver()->getOptions();
-        $this->assertSame('true', $writeOptions['tls']);
-        $this->assertSame('primary', $writeOptions['readPreference']);
+        $this->assertSame(['readPreference' => 'primary'], $writeOptions);
     }
 
     /**

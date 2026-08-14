@@ -175,8 +175,8 @@ class Connection implements ConnectionInterface
             'write',
         ]));
 
-        $writeConfig = array_replace_recursive($sharedConfig, $config['write'] ?? []);
-        $readConfig = array_replace_recursive($sharedConfig, $config['read'] ?? []);
+        $writeConfig = ($config['write'] ?? []) + $sharedConfig;
+        $readConfig = ($config['read'] ?? []) + $sharedConfig;
         if (array_key_exists('write', $config) || array_key_exists('read', $config)) {
             $readDriver = new $driverClass(['_role' => self::ROLE_READ] + $readConfig);
             $writeDriver = new $driverClass(['_role' => self::ROLE_WRITE] + $writeConfig);
