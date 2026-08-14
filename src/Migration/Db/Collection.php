@@ -16,7 +16,6 @@ use Crustum\Mongo\Migration\Db\Action\CreateCollection;
 use Crustum\Mongo\Migration\Db\Action\DropCollection;
 use Crustum\Mongo\Migration\Db\Action\DropIndex;
 use Crustum\Mongo\Migration\Db\Action\RemoveField;
-use Crustum\Mongo\Migration\Db\Action\RenameCollection;
 use Crustum\Mongo\Migration\Db\Action\SetValidator;
 use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Db\Plan\Intent;
@@ -247,6 +246,7 @@ class Collection
         $this->fields[$name] = [
             'type' => $parser->mapType($type),
             'null' => (bool)($options['null'] ?? false),
+            'options' => $options,
         ];
 
         if (array_key_exists('default', $options)) {
@@ -407,7 +407,7 @@ class Collection
         $intent->addAction(new CreateCollection($this->getName(), $this->options));
 
         foreach ($this->fields as $name => $field) {
-            $intent->addAction(new AddField($this->getName(), $name, $field['type']));
+            $intent->addAction(new AddField($this->getName(), $name, $field['type'], $field['options'] ?? []));
         }
 
         $this->collectIndexAdds($intent);
@@ -428,7 +428,7 @@ class Collection
             $intent->addAction(new SetValidator($this->getName(), $this->validator));
         } else {
             foreach ($this->fields as $name => $field) {
-                $intent->addAction(new AddField($this->getName(), $name, $field['type']));
+                $intent->addAction(new AddField($this->getName(), $name, $field['type'], $field['options'] ?? []));
             }
 
             foreach (array_keys($this->removedFields) as $name) {

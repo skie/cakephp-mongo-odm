@@ -177,6 +177,39 @@ class CollectionTest extends TestCase
     }
 
     /**
+     * Test create() with an embedded (nested) field declared via options.
+     *
+     * `items` (array of objects → embedMany) and `properties` (object →
+     * embedOne) are carried into the validator verbatim so migrations can
+     * declare embedded documents without hand-writing setValidator().
+     *
+     * @return void
+     */
+    public function testCreateWithEmbeddedFieldAgainstFakeAdapter(): void
+    {
+        $fake = new FakeAdapter();
+        $collection = new Collection('mig_users', [], $fake);
+        $collection->addField('username', 'string');
+        $collection->addField('addresses', 'collection', [
+            'items' => [
+                'bsonType' => 'object',
+                'properties' => [
+                    'street' => ['bsonType' => 'string'],
+                    'city' => ['bsonType' => 'string'],
+                ],
+            ],
+        ]);
+
+        $collection->create();
+
+        $this->assertArrayHasKey('mig_users', $fake->collections);
+        $properties = $fake->collections['mig_users']['validator']['$jsonSchema']['properties'];
+        $this->assertSame('array', $properties['addresses']['bsonType']);
+        $this->assertSame('object', $properties['addresses']['items']['bsonType']);
+        $this->assertSame('string', $properties['addresses']['items']['properties']['street']['bsonType']);
+    }
+
+    /**
      * Test drop() against the fake adapter drops the collection.
      *
      * @return void

@@ -125,7 +125,7 @@ class Plan
             }
         }
 
-        foreach ($this->indexCreates as $key => $action) {
+        foreach ($this->indexCreates as $action) {
             $options = $action->getOptions();
             $options['name'] = $action->getIndexName();
             $executor->createIndex($action->getCollectionName(), $action->getKey(), $options);
@@ -215,7 +215,20 @@ class Plan
         }
 
         foreach ($this->fields[$collection] ?? [] as $field) {
-            $properties[$field->getFieldName()] = ['bsonType' => $this->bsonType($field->getType())];
+            $definition = ['bsonType' => $this->bsonType($field->getType())];
+            $options = $field->getOptions();
+
+            // Nested shape: `items` (array of objects → embedMany) and
+            // `properties` (object → embedOne) are carried through verbatim so
+            // migrations can declare embedded documents without hand-writing
+            // setValidator().
+            foreach (['items', 'properties', 'enum'] as $key) {
+                if (isset($options[$key]) && is_array($options[$key])) {
+                    $definition[$key] = $options[$key];
+                }
+            }
+
+            $properties[$field->getFieldName()] = $definition;
         }
 
         return [

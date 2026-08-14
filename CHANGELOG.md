@@ -19,14 +19,34 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   Document as embedded inside a parent (`many`/`key`/`localKey`), with
   `Embedded::read()` reflection. `Collection::embedOne()/embedMany()` now derive
   `localKey` from the attribute automatically.
+- **Migrations layer alignment (doc 36, P1–P6)** — reference structure parity:
+  unified-ledger journal (`plugin` column + `(version, plugin)` unique index,
+  analog of `cake_migrations`), engine namespace realignment
+  (`Migration\Migration\`, `Util\Util\`), adapter under `Db/Adapter`,
+  `Db\Plan`+`Db\Action` engine with conflict resolution, seed execution log
+  `_seeds` (analog of `cake_seeds`), `seed_status`/`seed_reset`/`upgrade`
+  commands, `bake mongo_migration_simple`, and the adapter wrapper hierarchy
+  (`WrapperInterface`/`AdapterWrapper`/`TimedOutputAdapter`,
+  `RecordingAdapter extends AdapterWrapper`).
 - **Embedded bake (doc 36)** — `SchemaFields` detects nested validator shapes
   (`array` + `items.properties` → embedMany, `object` + `properties` →
   embedOne); `bake document`/`bake mongo_model` emit `#[Embedded]` on the parent
   and generate the embedded Document class; `bake collection`/`bake mongo_model`
   emit `embedOne()`/`embedMany(['documentClass' => ...])`. Plain arrays/hashes
   stay `TYPE_COLLECTION`/`TYPE_HASH`.
+- **Migration `addField()` nested options (doc 36 §5)** — `Db\Collection::addField()`
+  carries `items`/`properties`/`enum` into the validator field definition via
+  `Db\Plan\Plan::validatorFor()`, so migrations can declare embedded shapes
+  without hand-writing `setValidator()`.
 
 ### Tests
+- Ported the reference `migrations` tests into `tests/TestCase/Migration/`
+  (**191 tests**, doc 33): engine core (Config/Util/ColumnParser/Manager/
+  Environment/facade), Mongo adapter journal + seed log + plugin isolation,
+  `Db\Plan` conflict resolution, `Db\Collection` round-trips, SchemaDiff/Dumper,
+  seed status/reset/upgrade commands, and `MigratorTest` against a dedicated
+  `test_migrator` database. All collections are `mig_*`-namespaced and cleaned
+  symmetrically so the shared `test_mongo_db` is never polluted (doc 37).
 - Ported the reference `bake` + `migrations` bake command tests into
   `tests/TestCase/Command/` (enum 4, document 7, mongo_model 28, association
   detection 6, fixture 4, controller 11, template 13, test 7, collection 4,
