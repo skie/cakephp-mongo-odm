@@ -1667,7 +1667,7 @@ class BelongsToMany extends Association
      * loaded property array via a `$map` expression.
      *
      * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
-     * @param array<string, mixed>|list<string>|null $fields Containment fields/select options.
+     * @param list<string>|array<string, mixed>|null $fields Containment fields/select options.
      * @return void
      */
     protected function applyFieldsProjection(AggregationBuilder $builder, mixed $fields): void
