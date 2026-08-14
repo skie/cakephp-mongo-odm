@@ -41,6 +41,13 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   the association `find()` (conditions + finder applied); `AssociationProxyTest`
   now 10/10 (was 5/10). The `updateAllFromAssociationFinder` test was SQL-only
   (`'?'` placeholder + `'1=1'`) — rewritten to Mongo values.
+- **EagerLoader matching separated from containments (cake6 structure)** —
+  `setMatching()` stores matching in its own loader; `normalized()` returns only
+  containments; `attachAssociations()`/`associationsMap()`/`attachableAssociations()`
+  include matching; `clearContain()` keeps matching joins. Matching property
+  paths are `_matchingData.<alias>` (cake6 parity). Ported
+  `EagerLoaderTest` (cake60) to `tests/TestCase/ODM/EagerLoaderTest.php`;
+  SQL-only cases (join/select-alias/auto-fields) marked skip (F25).
 
 ### Added
 - **Connection read/write roles (doc 30)** — dual-driver `Connection`

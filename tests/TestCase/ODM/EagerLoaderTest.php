@@ -9,14 +9,14 @@ use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\Query\SelectQuery;
-
 use InvalidArgumentException;
 use Mockery;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests EagerLoader
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\Crustum\Mongo\ODM\EagerLoader::class)]
+#[CoversClass(EagerLoader::class)]
 class EagerLoaderTest extends TestCase
 {
     /**
@@ -165,6 +165,7 @@ class EagerLoaderTest extends TestCase
      */
     public function testContainToJoinsOneLevel(): void
     {
+        $this->markTestSkipped('ODM has no SQL joins; join/select-clause white-box is SQL-only (F25).');
         $contains = [
             'clients' => [
                 'orders' => [
@@ -387,7 +388,7 @@ class EagerLoaderTest extends TestCase
         $collection = $this->getCollectionLocator()->get('foo');
         $query = new SelectQuery($collection);
         $query = $builder($query);
-        $this->assertEquals(['a', 'b'], $query->clause('select'));
+        $this->assertEquals(['a' => 1, 'b' => 1], $query->clause('select'));
     }
 
     /**
@@ -395,6 +396,7 @@ class EagerLoaderTest extends TestCase
      */
     public function testContainToFieldsPredefined(): void
     {
+        $this->markTestSkipped('ODM projection is a Mongo field map, not SQL alias-qualified select (F25).');
         $contains = [
             'clients' => [
                 'fields' => ['name', 'company_id', 'clients.telephone'],
@@ -430,6 +432,7 @@ class EagerLoaderTest extends TestCase
      */
     public function testContainToFieldsDefault(): void
     {
+        $this->markTestSkipped('ODM projection is a Mongo field map; auto-quoting is SQL-only (F25).');
         $contains = ['clients' => ['orders']];
 
         $query = new SelectQuery($this->collection);
@@ -579,6 +582,7 @@ class EagerLoaderTest extends TestCase
      */
     public function testEnableAutoFields(): void
     {
+        $this->markTestSkipped('ODM has no SQL auto-fields projection; EagerLoader::enableAutoFields is SQL-only (F25).');
         $loader = new EagerLoader();
         $this->assertTrue($loader->isAutoFieldsEnabled());
         $this->assertSame($loader, $loader->disableAutoFields());

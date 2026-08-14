@@ -32,6 +32,17 @@ class EagerLoader
     private ?array $normalized = null;
 
     /**
+     * Matching loader (stored separately from containments, as in cake60).
+     *
+     * `matching()` / `notMatching()` filter the result rows through the lookup
+     * pipeline and land in `_matchingData`; they are a distinct concern from
+     * containment and survive `clearContain()`.
+     *
+     * @var \Crustum\Mongo\ODM\EagerLoader|null
+     */
+    private ?EagerLoader $matching = null;
+
+    /**
      * Associations that require external queries.
      *
      * @var list<\Crustum\Mongo\ODM\EagerLoadable>
@@ -120,6 +131,7 @@ class EagerLoader
      */
     public function setMatching(string $associationPath, ?callable $builder = null, array $options = []): static
     {
+        $this->matching ??= new static();
         $sharedOptions = ['negateMatch' => false, 'matching' => true] + $options;
 
         $contains = [];
@@ -130,7 +142,7 @@ class EagerLoader
         }
 
         $nested = ['matching' => true, 'queryBuilder' => $builder ?? fn($q) => $q] + $options;
-        $this->contain($contains);
+        $this->matching->contain($contains);
 
         return $this;
     }
@@ -142,33 +154,7 @@ class EagerLoader
      */
     public function getMatching(): array
     {
-        $matching = [];
-        foreach ($this->containments as $alias => $options) {
-            $this->collectMatching((string)$alias, $options, $matching);
-        }
-
-        return $matching;
-    }
-
-    /**
-     * Collects matching associations from the containment tree.
-     *
-     * @param string $alias The association alias.
-     * @param array<int|string, mixed> $options The association options.
-     * @param array<int|string, mixed> $output The output tree, filled by reference.
-     * @return void
-     */
-    private function collectMatching(string $alias, array $options, array &$output): void
-    {
-        if (($options['matching'] ?? false) === true) {
-            $output[$alias] = $options;
-        }
-
-        foreach ($options as $nestedAlias => $nestedOptions) {
-            if (is_string($nestedAlias) && is_array($nestedOptions)) {
-                $this->collectMatching($nestedAlias, $nestedOptions, $output);
-            }
-        }
+        return $this->matching ? $this->matching->getContain() : [];
     }
 
     /**
@@ -204,17 +190,7 @@ class EagerLoader
      */
     public function hasInPipelineLoads(): bool
     {
-        if ($this->getMatching() !== []) {
-            return true;
-        }
-
-        foreach ($this->containments as $options) {
-            if (is_array($options) && ($options['matching'] ?? false) === true) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->getMatching() !== [];
     }
 
     /**
@@ -233,6 +209,12 @@ class EagerLoader
 
         foreach ($this->normalized($repository) as $loadable) {
             $this->dispatch($loadable, $query);
+        }
+
+        if ($this->matching instanceof EagerLoader) {
+            foreach ($this->matching->normalized($repository) as $loadable) {
+                $this->dispatch($loadable, $query);
+            }
         }
 
         $this->ensureKeyFieldsSelected($query, $repository);
@@ -395,6 +377,9 @@ class EagerLoader
     {
         $map = [];
         $this->map($this->normalized($repository), $map);
+        if ($this->matching instanceof EagerLoader) {
+            $this->map($this->matching->normalized($repository), $map);
+        }
 
         return $map;
     }
@@ -411,7 +396,14 @@ class EagerLoader
      */
     public function attachableAssociations(BaseCollection $repository): array
     {
-        return $this->normalized($repository);
+        $assocs = $this->normalized($repository);
+        if ($this->matching instanceof EagerLoader) {
+            foreach ($this->matching->normalized($repository) as $alias => $loadable) {
+                $assocs[$alias] = $loadable;
+            }
+        }
+
+        return $assocs;
     }
 
     /**
@@ -421,14 +413,7 @@ class EagerLoader
      */
     public function clearContain(): void
     {
-        $matching = [];
-        foreach ($this->containments as $alias => $options) {
-            if (is_array($options) && ($options['matching'] ?? false) === true) {
-                $matching[$alias] = $options;
-            }
-        }
-
-        $this->containments = $matching;
+        $this->containments = [];
         $this->normalized = null;
         $this->external = [];
     }
@@ -444,6 +429,7 @@ class EagerLoader
     {
         $this->normalized = null;
         $this->external = [];
+        $this->matching = $this->matching ? clone $this->matching : null;
     }
 
     /**
@@ -472,6 +458,8 @@ class EagerLoader
 
             if (is_callable($value)) {
                 $value = ['queryBuilder' => $value];
+            } elseif (is_string($value)) {
+                $value = [$value => []];
             } elseif (!is_array($value)) {
                 $value = [];
             }
@@ -499,6 +487,10 @@ class EagerLoader
         foreach ($options as $key => $value) {
             if (is_int($key)) {
                 $result[(string)$value] = [];
+            } elseif ($key === 'queryBuilder' && is_callable($value) && isset($result['queryBuilder']) && is_callable($result['queryBuilder'])) {
+                $first = $result['queryBuilder'];
+                $second = $value;
+                $result['queryBuilder'] = static fn($query) => $second($first($query));
             } elseif (isset($this->containOptions[$key])) {
                 $result[$key] = $value;
             } elseif (is_array($value)) {
@@ -543,10 +535,6 @@ class EagerLoader
         foreach ($options as $nestedAlias => $nestedOptions) {
             if (!isset($this->containOptions[$nestedAlias])) {
                 $nestedOptions = is_array($nestedOptions) ? $nestedOptions : [];
-                $nestedAssociation = $target->getAssociation($nestedAlias);
-                $nestedProperty = $nestedAssociation instanceof Association
-                    ? $nestedAssociation->getProperty()
-                    : strtolower((string)$nestedAlias);
                 $loadable->addAssociation(
                     $nestedAlias,
                     $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
