@@ -51,7 +51,7 @@ class MigratorTest extends TestCase
      *
      * @var list<string>
      */
-    protected array $clean = ['migrator', 'migrator2', 'skipme', 'sample_collection'];
+    protected array $clean = ['mig_migrator', 'mig_migrator2', 'mig_skipme', 'mig_sample'];
 
     /**
      * Set up before each test.
@@ -69,7 +69,7 @@ class MigratorTest extends TestCase
 
         $this->registerMigratorPlugin();
 
-        $this->connection = ConnectionManager::get('test_mongo');
+        $this->connection = ConnectionManager::get('migrator');
         $this->manager = new SchemaManager($this->connection);
 
         $this->cleanup();
@@ -163,14 +163,14 @@ class MigratorTest extends TestCase
     public function testMigrateDropTruncate(): void
     {
         $migrator = new Migrator();
-        $migrator->run(['plugin' => 'Migrator', 'connection' => 'test_mongo']);
+        $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
-        $this->assertContains('migrator', $this->manager->listCollections());
+        $this->assertContains('mig_migrator', $this->manager->listCollections());
 
-        $migrator->run(['plugin' => 'Migrator', 'connection' => 'test_mongo']);
+        $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
-        $this->assertContains('migrator', $this->manager->listCollections());
-        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+        $this->assertContains('mig_migrator', $this->manager->listCollections());
+        $this->assertSame(0, $this->connection->getCollection('mig_migrator')->countDocuments());
     }
 
     /**
@@ -181,10 +181,10 @@ class MigratorTest extends TestCase
     public function testMigrateDropNoTruncate(): void
     {
         $migrator = new Migrator();
-        $migrator->run(['plugin' => 'Migrator', 'connection' => 'test_mongo'], false);
+        $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator'], false);
 
-        $this->assertContains('migrator', $this->manager->listCollections());
-        $this->assertSame(1, $this->connection->getCollection('migrator')->countDocuments());
+        $this->assertContains('mig_migrator', $this->manager->listCollections());
+        $this->assertSame(1, $this->connection->getCollection('mig_migrator')->countDocuments());
     }
 
     /**
@@ -198,9 +198,9 @@ class MigratorTest extends TestCase
         $this->testMigrateDropNoTruncate();
 
         $migrator = new Migrator();
-        $migrator->truncate('test_mongo');
+        $migrator->truncate('migrator');
 
-        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+        $this->assertSame(0, $this->connection->getCollection('mig_migrator')->countDocuments());
     }
 
     /**
@@ -210,18 +210,18 @@ class MigratorTest extends TestCase
      */
     public function testMigrateSkipTables(): void
     {
-        $this->connection->getCollection('skipme')->insertOne(['name' => 'Ron']);
+        $this->connection->getCollection('mig_skipme')->insertOne(['name' => 'Ron']);
 
         $migrator = new Migrator();
         $migrator->run([
             'plugin' => 'Migrator',
-            'connection' => 'test_mongo',
-            'skip' => ['skipme'],
+            'connection' => 'migrator',
+            'skip' => ['mig_skipme'],
         ]);
 
-        $this->assertContains('migrator', $this->manager->listCollections());
-        $this->assertContains('skipme', $this->manager->listCollections());
-        $this->assertSame(1, $this->connection->getCollection('skipme')->countDocuments());
+        $this->assertContains('mig_migrator', $this->manager->listCollections());
+        $this->assertContains('mig_skipme', $this->manager->listCollections());
+        $this->assertSame(1, $this->connection->getCollection('mig_skipme')->countDocuments());
     }
 
     /**
@@ -233,13 +233,13 @@ class MigratorTest extends TestCase
     {
         $migrator = new Migrator();
         $migrator->runMany([
-            ['plugin' => 'Migrator', 'connection' => 'test_mongo'],
-            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+            ['plugin' => 'Migrator', 'connection' => 'migrator'],
+            ['connection' => 'migrator', 'source' => 'Migrations2'],
         ]);
 
-        $this->assertContains('migrator', $this->manager->listCollections());
-        $this->assertContains('migrator2', $this->manager->listCollections());
-        $this->assertSame(0, $this->connection->getCollection('migrator')->countDocuments());
+        $this->assertContains('mig_migrator', $this->manager->listCollections());
+        $this->assertContains('mig_migrator2', $this->manager->listCollections());
+        $this->assertSame(0, $this->connection->getCollection('mig_migrator')->countDocuments());
         $this->assertSame(2, $this->connection->getCollection('_migrations')->countDocuments());
     }
 
@@ -250,20 +250,20 @@ class MigratorTest extends TestCase
      */
     public function testGetJournalAndNonJournalCollections(): void
     {
-        $this->connection->getCollection('sample_collection')->insertOne(['x' => 1]);
+        $this->connection->getCollection('mig_sample')->insertOne(['x' => 1]);
         $this->connection->getCollection('_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
 
         $migrator = $this->makeInspectableMigrator();
 
-        $this->assertContains('_migrations', $migrator->exposedGetJournalCollections('test_mongo'));
+        $this->assertContains('_migrations', $migrator->exposedGetJournalCollections('migrator'));
 
-        $nonJournal = $migrator->exposedGetNonJournalCollections('test_mongo');
-        $this->assertContains('sample_collection', $nonJournal);
+        $nonJournal = $migrator->exposedGetNonJournalCollections('migrator');
+        $this->assertContains('mig_sample', $nonJournal);
         $this->assertNotContains('_migrations', $nonJournal);
         $this->assertNotContains('_seeds', $nonJournal);
 
-        $skipped = $migrator->exposedGetNonJournalCollections('test_mongo', ['sample*']);
-        $this->assertNotContains('sample_collection', $skipped);
+        $skipped = $migrator->exposedGetNonJournalCollections('migrator', ['mig_sample*']);
+        $this->assertNotContains('mig_sample', $skipped);
     }
 
     /**
@@ -274,12 +274,12 @@ class MigratorTest extends TestCase
     public function testSkipMigrationDroppingIfOnlyUpMigrations(): void
     {
         $migrator = new Migrator();
-        $migrator->run(['plugin' => 'Migrator', 'connection' => 'test_mongo']);
+        $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
         $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
         $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
 
-        $migrator->run(['plugin' => 'Migrator', 'connection' => 'test_mongo']);
+        $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
         $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20211001000000]);
         $this->assertNotNull($entry);
@@ -299,8 +299,8 @@ class MigratorTest extends TestCase
     public function testSkipMigrationDroppingIfOnlyUpMigrationsWithTwoSetsOfMigrations(): void
     {
         $options = [
-            ['plugin' => 'Migrator', 'connection' => 'test_mongo'],
-            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+            ['plugin' => 'Migrator', 'connection' => 'migrator'],
+            ['connection' => 'migrator', 'source' => 'Migrations2'],
         ];
 
         $migrator = new Migrator();
@@ -326,8 +326,8 @@ class MigratorTest extends TestCase
     public function testDropMigrationsIfDownMigrations(): void
     {
         $options = [
-            ['plugin' => 'Migrator', 'connection' => 'test_mongo'],
-            ['connection' => 'test_mongo', 'source' => 'Migrations2'],
+            ['plugin' => 'Migrator', 'connection' => 'migrator'],
+            ['connection' => 'migrator', 'source' => 'Migrations2'],
         ];
 
         $migrator = new Migrator();
@@ -337,7 +337,7 @@ class MigratorTest extends TestCase
         $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
 
         // Roll back the second set (no plugin) so its migration is down again.
-        (new Migrations(['connection' => 'test_mongo']))->rollback(['source' => 'Migrations2']);
+        (new Migrations(['connection' => 'migrator']))->rollback(['source' => 'Migrations2']);
 
         $migrator->runMany($options, false);
 

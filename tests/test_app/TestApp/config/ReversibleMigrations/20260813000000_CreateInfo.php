@@ -7,7 +7,7 @@ class CreateInfo extends BaseMigration
 {
     public function change(): void
     {
-        $this->collection('info')
+        $this->collection('mig_info')
             ->addField('title', 'string')
             ->addIndex(['title'])
             ->create();

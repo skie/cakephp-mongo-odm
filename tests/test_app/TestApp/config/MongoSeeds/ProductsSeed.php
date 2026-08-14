@@ -7,7 +7,7 @@ class ProductsSeed extends BaseSeed
 {
     public function run(): void
     {
-        $this->insert('seed_products', [
+        $this->insert('mig_seed_products', [
             'name' => 'widget',
             'qty' => 1,
         ]);

@@ -7,7 +7,7 @@ class CreateProducts extends BaseMigration
 {
     public function up(): void
     {
-        $this->collection('products')
+        $this->collection('mig_products')
             ->addField('name', 'string')
             ->addField('price', 'decimal128')
             ->addIndex(['name'], ['unique' => true])
@@ -16,6 +16,6 @@ class CreateProducts extends BaseMigration
 
     public function down(): void
     {
-        $this->collection('products')->drop()->create();
+        $this->collection('mig_products')->drop()->create();
     }
 }

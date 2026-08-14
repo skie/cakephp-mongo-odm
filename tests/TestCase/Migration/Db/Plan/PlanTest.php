@@ -28,8 +28,8 @@ class PlanTest extends TestCase
     public function testAddThenDropIndexIsNoop(): void
     {
         $intent = new Intent();
-        $intent->addAction(new AddIndex('articles', 'author_id_1', ['author_id' => 1]));
-        $intent->addAction(new DropIndex('articles', 'author_id_1'));
+        $intent->addAction(new AddIndex('mig_articles', 'author_id_1', ['author_id' => 1]));
+        $intent->addAction(new DropIndex('mig_articles', 'author_id_1'));
 
         $fake = new FakeAdapter();
         (new Plan($intent))->execute($fake);
@@ -47,8 +47,8 @@ class PlanTest extends TestCase
     public function testDropThenAddIndexIsNoop(): void
     {
         $intent = new Intent();
-        $intent->addAction(new DropIndex('articles', 'author_id_1'));
-        $intent->addAction(new AddIndex('articles', 'author_id_1', ['author_id' => 1]));
+        $intent->addAction(new DropIndex('mig_articles', 'author_id_1'));
+        $intent->addAction(new AddIndex('mig_articles', 'author_id_1', ['author_id' => 1]));
 
         $fake = new FakeAdapter();
         (new Plan($intent))->execute($fake);
@@ -66,10 +66,10 @@ class PlanTest extends TestCase
     public function testDropCollectionCancelsOthers(): void
     {
         $intent = new Intent();
-        $intent->addAction(new CreateCollection('articles', []));
-        $intent->addAction(new AddField('articles', 'name', 'string'));
-        $intent->addAction(new AddIndex('articles', 'author_id_1', ['author_id' => 1]));
-        $intent->addAction(new DropCollection('articles'));
+        $intent->addAction(new CreateCollection('mig_articles', []));
+        $intent->addAction(new AddField('mig_articles', 'name', 'string'));
+        $intent->addAction(new AddIndex('mig_articles', 'author_id_1', ['author_id' => 1]));
+        $intent->addAction(new DropCollection('mig_articles'));
 
         $fake = new FakeAdapter();
         (new Plan($intent))->execute($fake);
@@ -86,14 +86,14 @@ class PlanTest extends TestCase
     public function testFieldsBuildValidator(): void
     {
         $intent = new Intent();
-        $intent->addAction(new CreateCollection('articles', []));
-        $intent->addAction(new AddField('articles', 'name', 'string'));
-        $intent->addAction(new AddField('articles', 'author_id', 'objectid'));
+        $intent->addAction(new CreateCollection('mig_articles', []));
+        $intent->addAction(new AddField('mig_articles', 'name', 'string'));
+        $intent->addAction(new AddField('mig_articles', 'author_id', 'objectid'));
 
         $fake = new FakeAdapter();
         (new Plan($intent))->execute($fake);
 
-        $validator = $fake->collections['articles']['validator'];
+        $validator = $fake->collections['mig_articles']['validator'];
         $this->assertSame('object', $validator['$jsonSchema']['bsonType']);
         $this->assertSame('string', $validator['$jsonSchema']['properties']['name']['bsonType']);
         $this->assertSame('objectId', $validator['$jsonSchema']['properties']['author_id']['bsonType']);

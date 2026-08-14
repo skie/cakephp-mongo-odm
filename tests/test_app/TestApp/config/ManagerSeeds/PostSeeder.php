@@ -7,7 +7,7 @@ class PostSeeder extends BaseSeed
 {
     public function run(): void
     {
-        $this->insert('seed_posts', [
+        $this->insert('mig_seed_posts', [
             'body' => 'foo',
             'created' => date('Y-m-d H:i:s'),
         ]);

@@ -38,7 +38,7 @@ class SchemaDiffTest extends TestCase
     protected function articlesDefinition(): array
     {
         return [
-            'articles' => [
+            'mig_articles' => [
                 'validator' => [
                     '$jsonSchema' => [
                         'bsonType' => 'object',
@@ -87,8 +87,8 @@ class SchemaDiffTest extends TestCase
         $this->assertCount(2, $operations);
 
         $this->assertSame('createCollection', $operations[0]['type']);
-        $this->assertSame('articles', $operations[0]['collection']);
-        $this->assertSame($desired['articles']['validator'], $operations[0]['options']['validator']);
+        $this->assertSame('mig_articles', $operations[0]['collection']);
+        $this->assertSame($desired['mig_articles']['validator'], $operations[0]['options']['validator']);
 
         $this->assertSame('createIndex', $operations[1]['type']);
         $this->assertSame('author_id_1', $operations[1]['name']);
@@ -126,14 +126,14 @@ class SchemaDiffTest extends TestCase
     {
         $desired = $this->articlesDefinition();
         $actual = $desired;
-        $actual['articles']['validator']['$jsonSchema']['properties']['slug'] = ['bsonType' => 'string'];
+        $actual['mig_articles']['validator']['$jsonSchema']['properties']['slug'] = ['bsonType' => 'string'];
 
         $operations = $this->diff->diff($desired, $actual);
 
         $this->assertCount(1, $operations);
         $this->assertSame('setValidator', $operations[0]['type']);
-        $this->assertSame('articles', $operations[0]['collection']);
-        $this->assertSame($desired['articles']['validator'], $operations[0]['validator']);
+        $this->assertSame('mig_articles', $operations[0]['collection']);
+        $this->assertSame($desired['mig_articles']['validator'], $operations[0]['validator']);
     }
 
     /**
@@ -145,13 +145,13 @@ class SchemaDiffTest extends TestCase
     {
         $desired = $this->articlesDefinition();
         $actual = $desired;
-        unset($actual['articles']['indexes']['author_id_1']);
+        unset($actual['mig_articles']['indexes']['author_id_1']);
 
         $operations = $this->diff->diff($desired, $actual);
 
         $this->assertCount(1, $operations);
         $this->assertSame('createIndex', $operations[0]['type']);
-        $this->assertSame('articles', $operations[0]['collection']);
+        $this->assertSame('mig_articles', $operations[0]['collection']);
         $this->assertSame('author_id_1', $operations[0]['name']);
         $this->assertSame(['author_id' => 1], $operations[0]['key']);
     }
@@ -165,7 +165,7 @@ class SchemaDiffTest extends TestCase
     {
         $desired = $this->articlesDefinition();
         $actual = $desired;
-        $actual['articles']['indexes']['legacy_slug_1'] = [
+        $actual['mig_articles']['indexes']['legacy_slug_1'] = [
             'key' => ['slug' => 1],
             'options' => [],
         ];
@@ -174,7 +174,7 @@ class SchemaDiffTest extends TestCase
 
         $this->assertCount(1, $operations);
         $this->assertSame('dropIndex', $operations[0]['type']);
-        $this->assertSame('articles', $operations[0]['collection']);
+        $this->assertSame('mig_articles', $operations[0]['collection']);
         $this->assertSame('legacy_slug_1', $operations[0]['name']);
     }
 
@@ -209,8 +209,8 @@ class SchemaDiffTest extends TestCase
             'indexes' => [],
         ];
         $actual = $this->articlesDefinition();
-        unset($actual['articles']['indexes']['author_id_1']);
-        $actual['articles']['validator'] = null;
+        unset($actual['mig_articles']['indexes']['author_id_1']);
+        $actual['mig_articles']['validator'] = null;
         $actual['legacy'] = ['validator' => null, 'indexes' => []];
 
         $operations = $this->diff->diff($desired, $actual);

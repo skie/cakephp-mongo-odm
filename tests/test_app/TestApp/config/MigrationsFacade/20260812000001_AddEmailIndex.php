@@ -7,13 +7,13 @@ class AddEmailIndex extends BaseMigration
 {
     public function up(): void
     {
-        $this->collection('articles')
+        $this->collection('mig_articles')
             ->addIndex(['title'], ['name' => 'title_index'])
             ->update();
     }
 
     public function down(): void
     {
-        $this->dropIndex('articles', 'title_index');
+        $this->dropIndex('mig_articles', 'title_index');
     }
 }

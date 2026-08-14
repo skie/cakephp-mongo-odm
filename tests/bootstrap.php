@@ -138,6 +138,17 @@ ConnectionManager::setConfig('test_mongo', [
     'port' => 27017,
     'database' => 'test_mongo_db',
 ]);
+// Dedicated throwaway database for the Migrator test-suite helper, whose
+// contract wipes every non-journal collection (doc 37 R5: never drop the
+// shared bootstrap-owned collections). Named with the `test_` prefix so
+// `addTestAliases()` maps the app name `migrator` to it during tests.
+ConnectionManager::setConfig('test_migrator', [
+    'className' => Connection::class,
+    'driver' => MongoDriver::class,
+    'host' => '127.0.0.1',
+    'port' => 27017,
+    'database' => 'test_migrator_db',
+]);
 ConnectionManager::alias('test_mongo', 'mongo');
 
 Plugin::getCollection()->add(new MongoPlugin([

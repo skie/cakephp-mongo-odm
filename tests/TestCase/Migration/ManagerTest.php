@@ -105,8 +105,8 @@ class ManagerTest extends TestCase
         }
 
         $collections = $this->connection->getSchemaCollection()->listCollections();
-        if (in_array('products', $collections, true)) {
-            $this->connection->getDatabase()->dropCollection('products');
+        if (in_array('mig_products', $collections, true)) {
+            $this->connection->getDatabase()->dropCollection('mig_products');
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
@@ -184,8 +184,8 @@ class ManagerTest extends TestCase
         $this->assertSame([20260811000000, 20260812000000], $this->manager->getEnvironment()->getVersions());
 
         $manager = new SchemaManager($this->connection);
-        $this->assertContains('products', $manager->listCollections());
-        $indexes = $manager->listIndexes('products');
+        $this->assertContains('mig_products', $manager->listCollections());
+        $indexes = $manager->listIndexes('mig_products');
         $this->assertArrayHasKey('tags_index', $indexes);
 
         $status = $this->manager->printStatus();
@@ -276,7 +276,7 @@ class ManagerTest extends TestCase
 
         $this->assertSame([20260811000000], $this->manager->getEnvironment()->getVersions());
         $this->assertFalse(
-            in_array('products', $this->connection->getSchemaCollection()->listCollections(), true),
+            in_array('mig_products', $this->connection->getSchemaCollection()->listCollections(), true),
         );
     }
 
@@ -724,17 +724,17 @@ class ManagerTest extends TestCase
         $configArray['paths']['migrations'] = ROOT . '/tests/test_app/TestApp/config/ShouldExecute';
         $this->manager->setConfig(new Config($configArray));
 
-        $this->connection->getDatabase()->dropCollection('should_execute_info');
+        $this->connection->getDatabase()->dropCollection('mig_should_execute');
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $this->manager->migrate(20201207205056);
-        $this->assertFalse(in_array('should_execute_info', $this->connection->getSchemaCollection()->listCollections(), true));
+        $this->assertFalse(in_array('mig_should_execute', $this->connection->getSchemaCollection()->listCollections(), true));
 
         $this->manager->migrate(20201207205057);
-        $this->assertTrue(in_array('should_execute_info', $this->connection->getSchemaCollection()->listCollections(), true));
+        $this->assertTrue(in_array('mig_should_execute', $this->connection->getSchemaCollection()->listCollections(), true));
 
-        $this->connection->getDatabase()->dropCollection('should_execute_info');
+        $this->connection->getDatabase()->dropCollection('mig_should_execute');
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
@@ -750,24 +750,24 @@ class ManagerTest extends TestCase
         $configArray['paths']['migrations'] = ROOT . '/tests/test_app/TestApp/config/ReversibleMigrations';
         $this->manager->setConfig(new Config($configArray));
 
-        $this->connection->getDatabase()->dropCollection('info');
-        $this->connection->getDatabase()->dropCollection('users');
+        $this->connection->getDatabase()->dropCollection('mig_info');
+        $this->connection->getDatabase()->dropCollection('mig_users');
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $manager = new SchemaManager($this->connection);
 
         $this->manager->migrate();
-        $this->assertTrue(in_array('info', $manager->listCollections(), true));
-        $this->assertTrue(in_array('users', $manager->listCollections(), true));
+        $this->assertTrue(in_array('mig_info', $manager->listCollections(), true));
+        $this->assertTrue(in_array('mig_users', $manager->listCollections(), true));
 
         $this->manager->rollback('20260813000000');
-        $this->assertTrue(in_array('info', $manager->listCollections(), true));
-        $this->assertFalse(in_array('users', $manager->listCollections(), true));
+        $this->assertTrue(in_array('mig_info', $manager->listCollections(), true));
+        $this->assertFalse(in_array('mig_users', $manager->listCollections(), true));
 
         $this->manager->rollback('0');
-        $this->assertFalse(in_array('info', $manager->listCollections(), true));
-        $this->assertFalse(in_array('users', $manager->listCollections(), true));
+        $this->assertFalse(in_array('mig_info', $manager->listCollections(), true));
+        $this->assertFalse(in_array('mig_users', $manager->listCollections(), true));
 
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
@@ -806,15 +806,15 @@ class ManagerTest extends TestCase
      */
     public function testNonIdempotentSeedRunsOnce(): void
     {
-        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_users');
         $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $this->manager->seed('UserSeeder');
         $this->manager->seed('UserSeeder');
 
-        $this->assertSame(2, $this->connection->getCollection('seed_users')->countDocuments());
+        $this->assertSame(2, $this->connection->getCollection('mig_seed_users')->countDocuments());
 
-        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_users');
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 

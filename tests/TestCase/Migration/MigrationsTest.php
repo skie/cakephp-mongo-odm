@@ -71,8 +71,8 @@ class MigrationsTest extends TestCase
      */
     protected function cleanup(): void
     {
-        if (in_array('articles', $this->manager->listCollections(), true)) {
-            $this->manager->dropCollection('articles');
+        if (in_array('mig_articles', $this->manager->listCollections(), true)) {
+            $this->manager->dropCollection('mig_articles');
         }
         $this->connection->getCollection('_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
@@ -101,7 +101,7 @@ class MigrationsTest extends TestCase
     {
         $this->assertTrue($this->migrations->migrate());
 
-        $this->assertContains('articles', $this->manager->listCollections());
+        $this->assertContains('mig_articles', $this->manager->listCollections());
 
         $status = $this->migrations->status(['format' => 'json']);
         $this->assertSame(['up', 'up'], array_column($status, 'status'));
@@ -133,7 +133,7 @@ class MigrationsTest extends TestCase
         $status = $this->migrations->status(['format' => 'json']);
         $this->assertSame(['up', 'up'], array_column($status, 'status'));
 
-        $this->assertFalse(in_array('articles', $this->manager->listCollections(), true));
+        $this->assertFalse(in_array('mig_articles', $this->manager->listCollections(), true));
     }
 
     /**
@@ -143,7 +143,7 @@ class MigrationsTest extends TestCase
      */
     public function testSeed(): void
     {
-        $this->connection->getDatabase()->dropCollection('seed_products');
+        $this->connection->getDatabase()->dropCollection('mig_seed_products');
 
         $seeds = new Migrations([
             'connection' => 'test_mongo',
@@ -152,10 +152,10 @@ class MigrationsTest extends TestCase
 
         $this->assertTrue($seeds->seed(['seed' => 'ProductsSeed', 'force' => true]));
 
-        $doc = $this->connection->getCollection('seed_products')->findOne(['name' => 'widget']);
+        $doc = $this->connection->getCollection('mig_seed_products')->findOne(['name' => 'widget']);
         $this->assertNotNull($doc);
         $this->assertSame(1, $doc['qty']);
 
-        $this->connection->getDatabase()->dropCollection('seed_products');
+        $this->connection->getDatabase()->dropCollection('mig_seed_products');
     }
 }

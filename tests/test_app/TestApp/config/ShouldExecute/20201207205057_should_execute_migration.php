@@ -12,6 +12,6 @@ class ShouldExecuteMigration extends BaseMigration
 
     public function change(): void
     {
-        $this->collection('should_execute_info')->addField('name', 'string')->create();
+        $this->collection('mig_should_execute')->addField('name', 'string')->create();
     }
 }

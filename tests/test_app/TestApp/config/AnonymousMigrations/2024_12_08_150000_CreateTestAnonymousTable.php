@@ -7,7 +7,7 @@ return new class extends BaseMigration
 {
     public function change(): void
     {
-        $this->collection('test_anonymous')
+        $this->collection('mig_anonymous')
             ->addField('name', 'string')
             ->create();
     }

@@ -7,13 +7,13 @@ class AddTagsIndex extends BaseMigration
 {
     public function up(): void
     {
-        $this->collection('products')
+        $this->collection('mig_products')
             ->addIndex(['tags'], ['name' => 'tags_index'])
             ->update();
     }
 
     public function down(): void
     {
-        $this->dropIndex('products', 'tags_index');
+        $this->dropIndex('mig_products', 'tags_index');
     }
 }

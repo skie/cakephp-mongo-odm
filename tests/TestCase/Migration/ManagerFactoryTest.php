@@ -6,11 +6,11 @@ namespace Crustum\Mongo\Test\TestCase\Migration;
 use Cake\Console\ConsoleIo;
 use Cake\Console\TestSuite\StubConsoleInput;
 use Cake\Console\TestSuite\StubConsoleOutput;
+use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Config\Config;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**

@@ -7,12 +7,12 @@ class Migrator extends BaseMigration
 {
     public function up(): void
     {
-        $this->collection('migrator')->addField('name', 'string')->create();
-        $this->getAdapter()->getCollection('migrator')->insertOne(['name' => 'migrated']);
+        $this->collection('mig_migrator')->addField('name', 'string')->create();
+        $this->getAdapter()->getCollection('mig_migrator')->insertOne(['name' => 'migrated']);
     }
 
     public function down(): void
     {
-        $this->collection('migrator')->drop()->create();
+        $this->collection('mig_migrator')->drop()->create();
     }
 }

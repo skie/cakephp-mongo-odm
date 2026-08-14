@@ -7,7 +7,7 @@ class CreateUsers extends BaseMigration
 {
     public function change(): void
     {
-        $this->collection('users')
+        $this->collection('mig_users')
             ->addField('name', 'string')
             ->addField('email', 'string')
             ->create();

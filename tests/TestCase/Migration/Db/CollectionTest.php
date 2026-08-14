@@ -80,7 +80,7 @@ class CollectionTest extends TestCase
      */
     public function testGetAdapterThrows(): void
     {
-        $collection = new Collection('articles');
+        $collection = new Collection('mig_articles');
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('There is no database adapter set yet, cannot proceed');
@@ -95,7 +95,7 @@ class CollectionTest extends TestCase
      */
     public function testHasPendingActions(): void
     {
-        $collection = new Collection('articles', [], new FakeAdapter());
+        $collection = new Collection('mig_articles', [], new FakeAdapter());
 
         $this->assertFalse($collection->hasPendingActions());
 
@@ -124,7 +124,7 @@ class CollectionTest extends TestCase
      */
     public function testFieldBookkeeping(): void
     {
-        $collection = new Collection('articles', [], new FakeAdapter());
+        $collection = new Collection('mig_articles', [], new FakeAdapter());
 
         $collection->addField('name', 'string');
         $collection->addColumn('author_id', 'objectid');
@@ -145,19 +145,19 @@ class CollectionTest extends TestCase
     public function testCreateWithFieldsAgainstFakeAdapter(): void
     {
         $fake = new FakeAdapter();
-        $collection = new Collection('articles', [], $fake);
+        $collection = new Collection('mig_articles', [], $fake);
         $collection->addField('name', 'string');
         $collection->addField('author_id', 'objectid');
         $collection->addIndex(['author_id']);
 
         $collection->create();
 
-        $this->assertArrayHasKey('articles', $fake->collections);
-        $validator = $fake->collections['articles']['validator'];
+        $this->assertArrayHasKey('mig_articles', $fake->collections);
+        $validator = $fake->collections['mig_articles']['validator'];
         $this->assertSame('object', $validator['$jsonSchema']['bsonType']);
         $this->assertSame('string', $validator['$jsonSchema']['properties']['name']['bsonType']);
         $this->assertSame('objectId', $validator['$jsonSchema']['properties']['author_id']['bsonType']);
-        $this->assertArrayHasKey('author_id_1', $fake->collections['articles']['indexes']);
+        $this->assertArrayHasKey('author_id_1', $fake->collections['mig_articles']['indexes']);
     }
 
     /**
@@ -169,11 +169,11 @@ class CollectionTest extends TestCase
     {
         $fake = new FakeAdapter();
         $validator = ['$jsonSchema' => ['bsonType' => 'object', 'properties' => ['x' => ['bsonType' => 'int']]]];
-        $collection = new Collection('articles', ['validator' => $validator], $fake);
+        $collection = new Collection('mig_articles', ['validator' => $validator], $fake);
 
         $collection->create();
 
-        $this->assertSame($validator, $fake->collections['articles']['validator']);
+        $this->assertSame($validator, $fake->collections['mig_articles']['validator']);
     }
 
     /**
@@ -184,13 +184,13 @@ class CollectionTest extends TestCase
     public function testDropAgainstFakeAdapter(): void
     {
         $fake = new FakeAdapter();
-        $fake->createCollection('articles');
+        $fake->createCollection('mig_articles');
 
-        $collection = new Collection('articles', [], $fake);
+        $collection = new Collection('mig_articles', [], $fake);
         $collection->drop();
         $collection->create();
 
-        $this->assertArrayNotHasKey('articles', $fake->collections);
+        $this->assertArrayNotHasKey('mig_articles', $fake->collections);
     }
 
     /**

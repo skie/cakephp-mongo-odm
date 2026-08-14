@@ -49,14 +49,14 @@ class RecordingAdapterTest extends TestCase
      */
     public function testCreateCollectionIsReversedToDrop(): void
     {
-        $this->recording->createCollection('articles');
+        $this->recording->createCollection('mig_articles');
 
         $this->assertSame([], array_keys($this->fake->collections));
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['dropCollection', ['articles', []]], $this->fake->calls[0]);
-        $this->assertArrayNotHasKey('articles', $this->fake->collections);
+        $this->assertSame(['dropCollection', ['mig_articles', []]], $this->fake->calls[0]);
+        $this->assertArrayNotHasKey('mig_articles', $this->fake->collections);
     }
 
     /**
@@ -66,13 +66,13 @@ class RecordingAdapterTest extends TestCase
      */
     public function testDropCollectionIsReversedToCreate(): void
     {
-        $this->fake->createCollection('articles');
-        $this->recording->dropCollection('articles');
+        $this->fake->createCollection('mig_articles');
+        $this->recording->dropCollection('mig_articles');
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['createCollection', ['articles', []]], $this->fake->calls[1]);
-        $this->assertArrayHasKey('articles', $this->fake->collections);
+        $this->assertSame(['createCollection', ['mig_articles', []]], $this->fake->calls[1]);
+        $this->assertArrayHasKey('mig_articles', $this->fake->collections);
     }
 
     /**
@@ -82,13 +82,13 @@ class RecordingAdapterTest extends TestCase
      */
     public function testRenameCollectionIsReversed(): void
     {
-        $this->fake->createCollection('articles');
-        $this->recording->renameCollection('articles', 'posts');
+        $this->fake->createCollection('mig_articles');
+        $this->recording->renameCollection('mig_articles', 'posts');
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['renameCollection', ['posts', 'articles', false]], $this->fake->calls[1]);
-        $this->assertArrayHasKey('articles', $this->fake->collections);
+        $this->assertSame(['renameCollection', ['posts', 'mig_articles', false]], $this->fake->calls[1]);
+        $this->assertArrayHasKey('mig_articles', $this->fake->collections);
         $this->assertArrayNotHasKey('posts', $this->fake->collections);
     }
 
@@ -99,13 +99,13 @@ class RecordingAdapterTest extends TestCase
      */
     public function testCreateIndexIsReversedToDropIndex(): void
     {
-        $indexName = $this->recording->createIndex('articles', ['author_id' => 1]);
+        $indexName = $this->recording->createIndex('mig_articles', ['author_id' => 1]);
 
         $this->assertSame('author_id_1', $indexName);
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['dropIndex', ['articles', 'author_id_1']], $this->fake->calls[0]);
+        $this->assertSame(['dropIndex', ['mig_articles', 'author_id_1']], $this->fake->calls[0]);
     }
 
     /**
@@ -115,13 +115,13 @@ class RecordingAdapterTest extends TestCase
      */
     public function testCreateIndexUsesExplicitName(): void
     {
-        $indexName = $this->recording->createIndex('articles', ['author_id' => 1], ['name' => 'author_idx']);
+        $indexName = $this->recording->createIndex('mig_articles', ['author_id' => 1], ['name' => 'author_idx']);
 
         $this->assertSame('author_idx', $indexName);
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['dropIndex', ['articles', 'author_idx']], $this->fake->calls[0]);
+        $this->assertSame(['dropIndex', ['mig_articles', 'author_idx']], $this->fake->calls[0]);
     }
 
     /**
@@ -132,11 +132,11 @@ class RecordingAdapterTest extends TestCase
     public function testSetValidatorIsReversedToSetValidator(): void
     {
         $validator = ['$jsonSchema' => ['bsonType' => 'object', 'properties' => []]];
-        $this->recording->setValidator('articles', $validator);
+        $this->recording->setValidator('mig_articles', $validator);
 
         $this->recording->executeInvertedCommands();
 
-        $this->assertSame(['setValidator', ['articles', $validator, null, null]], $this->fake->calls[0]);
+        $this->assertSame(['setValidator', ['mig_articles', $validator, null, null]], $this->fake->calls[0]);
     }
 
     /**
@@ -146,13 +146,13 @@ class RecordingAdapterTest extends TestCase
      */
     public function testCommandsExecuteInReverseOrder(): void
     {
-        $this->recording->createCollection('articles');
+        $this->recording->createCollection('mig_articles');
         $this->recording->createCollection('posts');
 
         $this->recording->executeInvertedCommands();
 
         $this->assertSame(['dropCollection', ['posts', []]], $this->fake->calls[0]);
-        $this->assertSame(['dropCollection', ['articles', []]], $this->fake->calls[1]);
+        $this->assertSame(['dropCollection', ['mig_articles', []]], $this->fake->calls[1]);
     }
 
     /**

@@ -7,7 +7,7 @@ class CreateArticles extends BaseMigration
 {
     public function up(): void
     {
-        $this->collection('articles')
+        $this->collection('mig_articles')
             ->addField('title', 'string')
             ->addField('author_id', 'objectid')
             ->create();
@@ -15,6 +15,6 @@ class CreateArticles extends BaseMigration
 
     public function down(): void
     {
-        $this->collection('articles')->drop()->create();
+        $this->collection('mig_articles')->drop()->create();
     }
 }

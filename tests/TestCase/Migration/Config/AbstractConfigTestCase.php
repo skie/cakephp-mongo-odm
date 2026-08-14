@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\Migration\Config;
 
-use PHPUnit\Framework\TestCase;
+use Cake\TestSuite\TestCase;
 
 /**
  * Class AbstractConfigTest

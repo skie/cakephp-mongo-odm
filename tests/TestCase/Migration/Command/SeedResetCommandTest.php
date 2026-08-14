@@ -34,7 +34,8 @@ class SeedResetCommandTest extends TestCase
         parent::setUp();
         $this->connection = ConnectionManager::get('test_mongo');
         $this->connection->getCollection('_seeds')->deleteMany([]);
-        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_posts');
     }
 
     /**
@@ -45,7 +46,8 @@ class SeedResetCommandTest extends TestCase
     protected function tearDown(): void
     {
         $this->connection->getCollection('_seeds')->deleteMany([]);
-        $this->connection->getDatabase()->dropCollection('seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_users');
+        $this->connection->getDatabase()->dropCollection('mig_seed_posts');
         parent::tearDown();
     }
 

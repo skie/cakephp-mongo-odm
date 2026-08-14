@@ -68,12 +68,12 @@ class TimedOutputAdapterTest extends TestCase
     {
         $this->adapter->setIo($this->buildVerboseIo());
 
-        $this->adapter->createCollection('articles');
+        $this->adapter->createCollection('mig_articles');
 
         $output = implode("\n", $this->out->messages());
-        $this->assertStringContainsString(' -- createCollection(\'articles\')', $output);
+        $this->assertStringContainsString(' -- createCollection(\'mig_articles\')', $output);
 
-        $this->assertArrayHasKey('articles', $this->fake->collections);
+        $this->assertArrayHasKey('mig_articles', $this->fake->collections);
     }
 
     /**
@@ -85,10 +85,10 @@ class TimedOutputAdapterTest extends TestCase
     {
         $this->adapter->setIo($this->buildVerboseIo());
 
-        $name = $this->adapter->createIndex('articles', ['author_id' => 1]);
+        $name = $this->adapter->createIndex('mig_articles', ['author_id' => 1]);
 
         $this->assertSame('author_id_1', $name);
-        $this->assertArrayHasKey('author_id_1', $this->fake->collections['articles']['indexes']);
+        $this->assertArrayHasKey('author_id_1', $this->fake->collections['mig_articles']['indexes']);
     }
 
     /**
@@ -100,10 +100,10 @@ class TimedOutputAdapterTest extends TestCase
     {
         $this->adapter->setIo(new ConsoleIo($this->out, $this->out, new StubConsoleInput([])));
 
-        $this->adapter->createCollection('articles');
+        $this->adapter->createCollection('mig_articles');
 
         $this->assertSame([], $this->out->messages());
-        $this->assertArrayHasKey('articles', $this->fake->collections);
+        $this->assertArrayHasKey('mig_articles', $this->fake->collections);
     }
 
     /**
