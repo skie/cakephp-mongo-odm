@@ -75,10 +75,10 @@ class CounterCacheBehavior extends Behavior
                 continue;
             }
 
-            $association = $collection->getAssociation($associationName);
-            if (!$association instanceof Association) {
+            if (!$collection->hasAssociation($associationName)) {
                 continue;
             }
+            $association = $collection->getAssociation($associationName);
 
             $foreignKeys = (array)$association->getForeignKey();
             $bindingKeys = (array)$association->getBindingKey();

@@ -364,6 +364,10 @@ class Marshaller
      */
     private function resolveAssociation(string $name): ?Association
     {
+        if (!$this->collection->hasAssociation($name)) {
+            return null;
+        }
+
         return $this->collection->getAssociation($name);
     }
 

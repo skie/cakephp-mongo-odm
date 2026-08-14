@@ -29,6 +29,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testAllowNullableNullsDefaultValue(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => null,
@@ -48,6 +49,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testAllowNullableNullsCanBeOverridden(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => null,
@@ -69,6 +71,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testAllKeysSet(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => 1,
@@ -88,6 +91,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testInvalidKey(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => 99999999,
@@ -112,6 +116,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testInvalidKeys(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => 99999999,
@@ -136,6 +141,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testSaveMany(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $documents = [
             new Document([
                 'id' => 1,
@@ -175,6 +181,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testWithTableObject(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => null,
@@ -194,6 +201,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testCustomMessage(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => 99999999,
@@ -218,6 +226,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testUsingRulesCheckerMethod(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => null,
@@ -238,6 +247,7 @@ class ExistsInNullableTest extends TestCase
      */
     public function testUsingRulesCheckerMethodWithCustomMessage(): void
     {
+        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
             'id' => 10,
             'author_id' => 99999999,

@@ -1415,11 +1415,23 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * Gets an association by alias.
      *
      * @param string $name The association alias.
-     * @return \Crustum\Mongo\ODM\Association|null The association or null when not registered.
+     * @return \Crustum\Mongo\ODM\Association The association.
+     * @throws \InvalidArgumentException When no association with the given alias is registered.
      */
-    public function getAssociation(string $name): ?Association
+    public function getAssociation(string $name): Association
     {
-        return $this->associations->get($name);
+        $association = $this->findAssociation($name);
+        if (!$association instanceof Association) {
+            $associations = $this->associations()->keys();
+
+            $message = "The `{$name}` association is not defined on `{$this->getAlias()}`.";
+            if ($associations !== []) {
+                $message .= "\nValid associations are: " . implode(', ', $associations);
+            }
+            throw new InvalidArgumentException($message);
+        }
+
+        return $association;
     }
 
     /**
