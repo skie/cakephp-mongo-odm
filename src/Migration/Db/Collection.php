@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Db;
 
 use Crustum\Mongo\Migration\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\Util\ColumnParser;
 use RuntimeException;
 
@@ -354,6 +355,13 @@ class Collection
     /**
      * Applies all pending actions to the database.
      *
+     * When the adapter is a `RecordingAdapter` (i.e. a `change()` migration is
+     * being reversed for the `down` direction), `create()` must record a
+     * `createCollection` command even if the collection already exists in the
+     * database — otherwise the recorded command would be a `setValidator` whose
+     * inverse cannot drop the collection, and the rollback would silently leak
+     * the DDL.
+     *
      * @return void
      */
     protected function executeActions(): void
@@ -366,7 +374,7 @@ class Collection
             return;
         }
 
-        if (!$this->exists() && !$this->updating) {
+        if (!$this->updating && (!$this->exists() || $adapter instanceof RecordingAdapter)) {
             $options = $this->options;
             $validator = $this->buildValidator();
             if ($validator !== null) {

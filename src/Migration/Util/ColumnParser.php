@@ -117,6 +117,7 @@ class ColumnParser
             if ($length !== null) {
                 if (is_array($length)) {
                     $definition['precision'] = $length[0];
+                    $definition['scale'] = $length[1];
                 } else {
                     $definition['length'] = $length;
                 }

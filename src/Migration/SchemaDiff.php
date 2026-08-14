@@ -37,7 +37,11 @@ class SchemaDiff
 
         foreach ($desired as $name => $definition) {
             if (!isset($actual[$name])) {
-                $operations[] = $this->createCollectionOp($name, $definition);
+                $operations = [
+                    ...$operations,
+                    $this->createCollectionOp($name, $definition),
+                    ...$this->desiredIndexOps($name, $definition),
+                ];
 
                 continue;
             }
@@ -59,13 +63,7 @@ class SchemaDiff
 
             foreach ($desiredIndexes as $indexName => $indexDef) {
                 if (!isset($actualIndexes[$indexName])) {
-                    $operations[] = [
-                        'type' => 'createIndex',
-                        'collection' => $name,
-                        'name' => $indexName,
-                        'key' => $indexDef['key'] ?? [],
-                        'options' => $indexDef['options'] ?? [],
-                    ];
+                    $operations[] = $this->createIndexOp($name, $indexName, $indexDef);
                 }
             }
 
@@ -110,6 +108,43 @@ class SchemaDiff
             'type' => 'createCollection',
             'collection' => $name,
             'options' => $options,
+        ];
+    }
+
+    /**
+     * Returns the createIndex operations for the indexes declared on a
+     * collection definition.
+     *
+     * @param string $name Collection name
+     * @param array<string, mixed> $definition Collection definition
+     * @return list<array<string, mixed>>
+     */
+    protected function desiredIndexOps(string $name, array $definition): array
+    {
+        $ops = [];
+        foreach ($this->desiredIndexes($definition) as $indexName => $indexDef) {
+            $ops[] = $this->createIndexOp($name, $indexName, $indexDef);
+        }
+
+        return $ops;
+    }
+
+    /**
+     * Returns a single createIndex operation.
+     *
+     * @param string $name Collection name
+     * @param string $indexName Index name
+     * @param array<string, mixed> $indexDef Index definition
+     * @return array<string, mixed>
+     */
+    protected function createIndexOp(string $name, string $indexName, array $indexDef): array
+    {
+        return [
+            'type' => 'createIndex',
+            'collection' => $name,
+            'name' => $indexName,
+            'key' => $indexDef['key'] ?? [],
+            'options' => $indexDef['options'] ?? [],
         ];
     }
 
