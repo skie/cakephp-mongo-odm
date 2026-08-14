@@ -68,17 +68,21 @@ class HasOne extends Association
             return $entity;
         }
 
-        $saved = $this->getTarget()->save($targetEntity, $options);
-        if (!$saved instanceof EntityInterface) {
-            return false;
-        }
-
-        $foreignKey = array_values(array_filter(
+        $foreignKeys = array_values(array_filter(
             (array)$this->getForeignKey(),
             is_string(...),
         ));
-        $reference = $saved->extract((array)$this->getBindingKey());
-        $entity->patch(array_combine($foreignKey, $reference), ['guard' => false]);
+        $properties = array_combine(
+            $foreignKeys,
+            $entity->extract((array)$this->getBindingKey()),
+        );
+        $targetEntity->patch($properties, ['guard' => false]);
+
+        if (!$this->getTarget()->save($targetEntity, $options)) {
+            $targetEntity->unset(array_keys($properties));
+
+            return false;
+        }
 
         return $entity;
     }

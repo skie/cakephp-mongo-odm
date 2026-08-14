@@ -3809,7 +3809,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsTo(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
@@ -3819,12 +3818,11 @@ class BaseCollectionTest extends TestCase
         ]);
 
         $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
         $this->assertSame($document, $table->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->author->isNew());
-        $this->assertSame(5, $document->author->getId());
-        $this->assertSame(5, $document->get('author_id'));
+        $this->assertNotEmpty($document->author->getId());
+        $this->assertSame($document->author->getId(), $document->get('author_id'));
     }
 
     /**
@@ -3832,7 +3830,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveHasOne(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'name' => 'Jose',
         ]);
@@ -3847,8 +3844,8 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($document, $table->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->article->isNew());
-        $this->assertSame(4, $document->article->getId());
-        $this->assertSame(5, $document->article->get('author_id'));
+        $this->assertNotEmpty($document->article->getId());
+        $this->assertSame($document->getId(), $document->article->get('author_id'));
         $this->assertFalse($document->article->isDirty('author_id'));
     }
 
@@ -3881,7 +3878,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveHasMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'name' => 'Jose',
         ]);
@@ -3901,10 +3897,10 @@ class BaseCollectionTest extends TestCase
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->articles[0]->isNew());
         $this->assertFalse($document->articles[1]->isNew());
-        $this->assertSame(4, $document->articles[0]->getId());
-        $this->assertSame(5, $document->articles[1]->getId());
-        $this->assertSame(5, $document->articles[0]->author_id);
-        $this->assertSame(5, $document->articles[1]->author_id);
+        $this->assertNotEmpty($document->articles[0]->getId());
+        $this->assertNotEmpty($document->articles[1]->getId());
+        $this->assertSame($document->getId(), $document->articles[0]->author_id);
+        $this->assertSame($document->getId(), $document->articles[1]->author_id);
     }
 
     /**
@@ -3937,7 +3933,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsToMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
@@ -3955,12 +3950,12 @@ class BaseCollectionTest extends TestCase
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->tags[0]->isNew());
         $this->assertFalse($document->tags[1]->isNew());
-        $this->assertSame(4, $document->tags[0]->getId());
-        $this->assertSame(5, $document->tags[1]->getId());
-        $this->assertSame(4, $document->tags[0]->_joinData->article_id);
-        $this->assertSame(4, $document->tags[1]->_joinData->article_id);
-        $this->assertSame(4, $document->tags[0]->_joinData->tag_id);
-        $this->assertSame(5, $document->tags[1]->_joinData->tag_id);
+        $this->assertNotEmpty($document->tags[0]->getId());
+        $this->assertNotEmpty($document->tags[1]->getId());
+        $this->assertSame($document->getId(), $document->tags[0]->_joinData->article_id);
+        $this->assertSame($document->getId(), $document->tags[1]->_joinData->article_id);
+        $this->assertSame($document->tags[0]->getId(), $document->tags[0]->_joinData->tag_id);
+        $this->assertSame($document->tags[1]->getId(), $document->tags[1]->_joinData->tag_id);
     }
 
     /**
@@ -3968,7 +3963,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsToManyJoinDataOnExistingRecord(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $tags = $this->getCollectionLocator()->get('Tags');
         $table = $this->getCollectionLocator()->get('Articles');
 
@@ -4013,7 +4007,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testPolymorphicBelongsToManySave(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->Tags->setThrough('PolymorphicTagged')
             ->setForeignKey('foreign_key')
@@ -4154,7 +4147,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testBelongsToManyIntegration(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $tags = $article->tags;
@@ -4165,9 +4157,9 @@ class BaseCollectionTest extends TestCase
         $tags = $article->tags;
         $this->assertCount(3, $tags);
         $this->assertFalse($tags[2]->isNew());
-        $this->assertSame(4, $tags[2]->getId());
-        $this->assertSame(1, $tags[2]->_joinData->article_id);
-        $this->assertSame(4, $tags[2]->_joinData->tag_id);
+        $this->assertNotEmpty($tags[2]->getId());
+        $this->assertSame('000000000000000000000001', $tags[2]->_joinData->article_id);
+        $this->assertSame($tags[2]->getId(), $tags[2]->_joinData->tag_id);
     }
 
     /**
@@ -4176,7 +4168,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveDeepAssociationOptions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insert'])
             ->setConstructorArgs([['collection' => 'articles', 'connection' => $this->connection]])
@@ -4250,7 +4241,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveDeepAssociationContainStyleOptions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insert'])
             ->setConstructorArgs([['collection' => 'articles', 'connection' => $this->connection]])
@@ -4424,7 +4414,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLinkBelongsToMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
         $tagsCollection = $this->getCollectionLocator()->get('Tags');
         $source = ['source' => 'Tags'];
@@ -4437,7 +4426,6 @@ class BaseCollectionTest extends TestCase
         $newTag = new Tag([
             'name' => 'Foo',
             'description' => 'Foo desc',
-            'created' => null,
         ], $source);
         $tags[] = new Tag([
             '_id' => '000000000000000000000003',
@@ -4495,7 +4483,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLinkHasManyReplaceSaveStrategy(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $this->getCollectionLocator()->get('Articles');
 
@@ -4543,7 +4530,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLinkHasManyExisting(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $this->getCollectionLocator()->get('Articles');
 
@@ -4594,7 +4580,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkHasManyCleanProperty(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $this->getCollectionLocator()->get('Articles');
 
@@ -4638,7 +4623,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkHasManyNotCleanProperty(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $this->getCollectionLocator()->get('Articles');
 
@@ -4698,7 +4682,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplaceHasManyOnErrorDependentCascadeCallbacks(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['deleteMany'])
             ->setConstructorArgs([[
@@ -4785,7 +4768,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplaceHasManyEmptyList(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = new BaseCollection([
             'connection' => $this->connection,
             'alias' => 'Authors',
@@ -4922,7 +4904,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
 
         $article = $table->find('all')
@@ -4931,7 +4912,7 @@ class BaseCollectionTest extends TestCase
 
         $table->getAssociation('Tags')->unlink($article, [$article->tags[0]]);
         $this->assertCount(1, $article->tags);
-        $this->assertSame(2, $article->tags[0]->get('id'));
+        $this->assertSame('000000000000000000000002', $article->tags[0]->get('_id'));
         $this->assertFalse($article->isDirty('tags'));
     }
 
@@ -4958,7 +4939,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToManyPassingJoint(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
@@ -4981,7 +4961,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplacelinksBelongsToMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
@@ -4991,15 +4970,15 @@ class BaseCollectionTest extends TestCase
         $tags[] = new Tag(['name' => 'foo']);
 
         $table->getAssociation('Tags')->replaceLinks($article, $tags);
-        $this->assertSame(2, $article->tags[0]->getId());
-        $this->assertSame(3, $article->tags[1]->getId());
-        $this->assertSame(4, $article->tags[2]->getId());
+        $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
+        $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
+        $this->assertNotEmpty($article->tags[2]->getId());
 
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(3, $article->tags);
-        $this->assertSame(2, $article->tags[0]->getId());
-        $this->assertSame(3, $article->tags[1]->getId());
-        $this->assertSame(4, $article->tags[2]->getId());
+        $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
+        $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
+        $this->assertNotEmpty($article->tags[2]->getId());
         $this->assertSame('foo', $article->tags[2]->name);
     }
 
@@ -5026,7 +5005,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplacelinksBelongsToManyWithJoint(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
@@ -5044,8 +5022,8 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($tags, $article->tags);
         $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(2, $article->tags);
-        $this->assertSame(2, $article->tags[0]->getId());
-        $this->assertSame(3, $article->tags[1]->getId());
+        $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
+        $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
     }
 
     /**
@@ -5053,7 +5031,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToImplicitBelongsToManyDeletesUsingSaveReplace(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
 
         $tags = $articles->Tags;
@@ -5092,7 +5069,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToInternalSaveCallsUsingBelongsToManyLink(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $articles->Tags;
 
