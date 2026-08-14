@@ -21,6 +21,11 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   pipeline, not SQL `clause('join')`/`clause('select')`); added
   `testAttachToEndToEnd`. SQL-only cases (multi-column primary keys, target
   `beforeFind`) marked skip (F25).
+- Aligned `BehaviorRegistryTest` event-listener counts with cake6 (the
+  collection no longer subscribes to its own conventional hooks) and ported
+  `CollectionImplementedEventsTest` (cake6 `TableImplementedEventsTest`).
+- `tools/port-test.php`: now rewrites `TableEventsTrait` → `CollectionEventsTrait`,
+  all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Added
 - **Connection read/write roles (doc 30)** — dual-driver `Connection`

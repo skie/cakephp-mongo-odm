@@ -74,7 +74,6 @@ use function Cake\Core\namespaceSplit;
  */
 class BaseCollection implements RepositoryInterface, EventListenerInterface, EventDispatcherInterface, ValidatorAwareInterface
 {
-    use CollectionEventsTrait;
     use EventDispatcherTrait;
     use LocatorAwareTrait;
     use OrmLocatorAwareTrait;

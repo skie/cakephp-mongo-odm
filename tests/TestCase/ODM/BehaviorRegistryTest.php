@@ -73,25 +73,23 @@ class BehaviorRegistryTest extends TestCase
     public function testLoadBindEvents(): void
     {
         $eventManager = $this->Collection->getEventManager();
-        // The collection subscribes itself to its own conventional hooks.
         $result = $eventManager->listeners('Collection.beforeFind');
-        $this->assertCount(1, $result);
+        $this->assertCount(0, $result);
 
         $sluggable = $this->Behaviors->load('Sluggable');
         $result = $eventManager->listeners('Collection.beforeFind');
-        $this->assertCount(2, $result);
-        $this->assertEquals($sluggable->beforeFind(...), $result[1]['callable']);
+        $this->assertEquals([['callable' => $sluggable->beforeFind(...)]], $result);
     }
 
     public function testLoadEnabledFalse(): void
     {
         $eventManager = $this->Collection->getEventManager();
         $result = $eventManager->listeners('Collection.beforeFind');
-        $this->assertCount(1, $result);
+        $this->assertCount(0, $result);
 
         $this->Behaviors->load('Sluggable', ['enabled' => false]);
         $result = $eventManager->listeners('Collection.beforeFind');
-        $this->assertCount(1, $result);
+        $this->assertCount(0, $result);
     }
 
     public function testLoadPlugin(): void
@@ -195,7 +193,7 @@ class BehaviorRegistryTest extends TestCase
         $this->Behaviors->unload('Sluggable');
 
         $this->assertEmpty($this->Behaviors->loaded());
-        $this->assertCount(1, $this->Collection->getEventManager()->listeners('Collection.beforeFind'));
+        $this->assertCount(0, $this->Collection->getEventManager()->listeners('Collection.beforeFind'));
         $this->assertFalse($this->Behaviors->hasFinder('noSlug'));
         $this->assertFalse($this->Behaviors->hasFinder('noslug'));
     }

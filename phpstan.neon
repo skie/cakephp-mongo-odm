@@ -59,5 +59,12 @@ parameters:
             identifier: trait.unused
             path: src/Orm/Bridge/Orm/OrmAssociationsTrait.php
             reportUnmatched: false
+        -
+            # Public library trait: consumed by app collections that opt into
+            # conventional Collection.* event callbacks (mirrors cake6
+            # TableEventsTrait, which cake Table also does not mix in itself).
+            identifier: trait.unused
+            path: src/ODM/CollectionEventsTrait.php
+            reportUnmatched: false
 
 services:
