@@ -10,6 +10,7 @@ use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\ExpressionInterface;
+use Cake\Database\StatementInterface;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
@@ -20,7 +21,6 @@ use Cake\Event\EventDispatcherInterface;
 use Cake\Event\EventDispatcherTrait;
 use Cake\Event\EventListenerInterface;
 use Cake\Event\EventManager;
-use Cake\Event\EventManagerInterface;
 use Cake\ORM\Locator\LocatorAwareTrait as OrmLocatorAwareTrait;
 use Cake\Utility\Inflector;
 use Cake\Validation\Validator;
@@ -186,13 +186,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     protected bool $assertDocumentClass = true;
 
     /**
-     * Event manager for model events.
-     *
-     * @var \Cake\Event\EventManagerInterface
-     */
-    protected EventManagerInterface $eventManager;
-
-    /**
      * Collection schema.
      *
      * @var \Cake\Datasource\SchemaInterface|null
@@ -283,7 +276,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
         }
 
-        $this->eventManager = $options['eventManager'] ?? new EventManager();
+        $this->setEventManager($options['eventManager'] ?? new EventManager());
         $this->behaviors = $options['behaviors'] ?? new BehaviorRegistry();
         $this->behaviors->setCollection($this);
 
@@ -509,7 +502,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function getSchema(): SchemaInterface
     {
-        if (!$this->schema instanceof \Cake\Datasource\SchemaInterface) {
+        if (!$this->schema instanceof SchemaInterface) {
             $this->schema = $this->describeSchema();
         }
 
@@ -2153,10 +2146,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
         }
 
-        $query = $this->queryFactory->insert($this);
+        $query = $this->insertQuery();
         $query->values($data);
 
         $ids = $query->execute();
+        if ($ids instanceof StatementInterface) {
+            if ($ids->rowCount() === 0) {
+                return false;
+            }
+
+            return $entity;
+        }
+
         $ids = is_array($ids) ? $ids : [];
         if ($ids === []) {
             return false;

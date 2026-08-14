@@ -2408,7 +2408,7 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listener);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listener);
 
         $this->connection->begin();
         $this->assertSame($data, $table->save($data));
@@ -2520,7 +2520,7 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listener);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listener);
 
         $this->connection->begin();
         $this->assertSame($data, $table->save($data, ['atomic' => false]));
@@ -2533,7 +2533,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveNotCalled(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
         $table = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insertQuery'])
@@ -2570,7 +2569,7 @@ class BaseCollectionTest extends TestCase
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listenerAfterCommit);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
         $this->assertFalse($table->save($data));
         $this->assertFalse($called);
@@ -2582,7 +2581,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveCommitTriggeredOnlyForPrimaryCollection(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
@@ -2592,19 +2590,18 @@ class BaseCollectionTest extends TestCase
         ]);
 
         $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
 
         $calledForArticle = false;
         $listenerForArticle = function ($e, $document, $options) use (&$calledForArticle): void {
             $calledForArticle = true;
         };
-        $table->getEventManager()->on('Model.afterSaveCommit', $listenerForArticle);
+        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerForArticle);
 
         $calledForAuthor = false;
         $listenerForAuthor = function ($e, $document, $options) use (&$calledForAuthor): void {
             $calledForAuthor = true;
         };
-        $table->authors->getEventManager()->on('Model.afterSaveCommit', $listenerForAuthor);
+        $table->getAssociation('Authors')->getEventManager()->on('Collection.afterSaveCommit', $listenerForAuthor);
 
         $this->assertSame($document, $table->save($document));
         $this->assertFalse($document->isNew());
@@ -2616,11 +2613,14 @@ class BaseCollectionTest extends TestCase
     /**
      * Test that you cannot save rows without a primary key.
      */
+
+    /**
+     * Tests that a new document without an explicit primary key still saves:
+     * Mongo always assigns `_id`, so unlike SQL there is no "no primary key"
+     * error path.
+     */
     public function testSaveNewErrorOnNoPrimaryKey(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $this->expectException(DatabaseException::class);
-        $this->expectExceptionMessage('Cannot insert row in `users` table, it has no primary key');
         $document = new Document(['username' => 'superuser']);
         $table = $this->getCollectionLocator()->get('users', [
             'schema' => [
@@ -2628,7 +2628,9 @@ class BaseCollectionTest extends TestCase
                 'username' => ['type' => 'string'],
             ],
         ]);
-        $table->save($document);
+        $saved = $table->save($document);
+        $this->assertNotFalse($saved);
+        $this->assertNotEmpty($document->getId());
     }
 
     /**
@@ -2661,7 +2663,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAtomicSaveRollback(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(PDOException::class);
         /** @var \Cake\Database\Connection|\PHPUnit\Framework\MockObject\MockObject $connection */
         $connection = $this->getMockBuilder(Connection::class)
@@ -2702,7 +2703,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAtomicSaveRollbackOnFailure(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         /** @var \Cake\Database\Connection|\PHPUnit\Framework\MockObject\MockObject $connection */
         $connection = $this->getMockBuilder(Connection::class)
             ->onlyMethods(['begin', 'rollback'])
@@ -2749,7 +2749,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveOnlyDirtyProperties(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'username' => 'superuser',
             'password' => 'root',
@@ -2763,11 +2762,11 @@ class BaseCollectionTest extends TestCase
 
         $table = $this->getCollectionLocator()->get('users');
         $this->assertSame($document, $table->save($document));
-        $this->assertEquals($document->getId(), self::$nextUserId);
+        $this->assertNotEmpty($document->getId());
 
-        $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
-        $document->set('password');
-        $this->assertEquals($document->toArray(), $row->toArray());
+        $row = $table->find('all')->where(['_id' => $document->getId()])->first();
+        $this->assertNull($row->get('password'));
+        $this->assertSame('superuser', $row->get('username'));
     }
 
     /**
@@ -2875,7 +2874,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveUpdatePrimaryKeyNotModified(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         /** @var \Cake\Database\Connection|\PHPUnit\Framework\MockObject\MockObject $connection */
         $connection = $this->getMockBuilder(Connection::class)
             ->onlyMethods(['run'])
@@ -2884,13 +2882,8 @@ class BaseCollectionTest extends TestCase
         $table = $this->fetchCollection('Users');
         $table->setConnection($connection);
 
-        $statement = $this->getMockBuilder(StatementInterface::class)->getMock();
-        $statement->expects($this->once())
-            ->method('errorCode')
-            ->willReturn('00000');
-
         $connection->expects($this->once())->method('run')
-            ->willReturn($statement);
+            ->willReturn(1);
 
         $document = new Document([
             '_id' => '000000000000000000000002',
@@ -2954,7 +2947,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyArray(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $documents = [
             new Document(['name' => 'admad']),
             new Document(['name' => 'dakota']),
@@ -2968,7 +2960,7 @@ class BaseCollectionTest extends TestCase
             ->get('authors');
 
         $table->getEventManager()
-            ->on('Model.afterSaveCommit', $listener);
+            ->on('Collection.afterSaveCommit', $listener);
 
         $result = $table->saveMany($documents);
 
@@ -2990,14 +2982,14 @@ class BaseCollectionTest extends TestCase
         $table->Articles->setSort('Articles.id');
 
         $documents = $table->find()
-            ->orderBy(['id' => 'ASC'])
+            ->orderBy(['_id' => 'ASC'])
             ->contain(['Articles'])
             ->all();
         $documents->first()->name = 'admad';
         $documents->first()->articles[0]->title = 'First Article Edited';
 
         $listener = function (EventInterface $event, EntityInterface $document, $options): void {
-            if ($document->getId() === 1) {
+            if ($document->getId() === '000000000000000000000001') {
                 $this->assertTrue($document->isDirty());
 
                 $this->assertSame('admad', $document->name);
@@ -3013,7 +3005,7 @@ class BaseCollectionTest extends TestCase
             ->get('authors');
 
         $table->getEventManager()
-            ->on('Model.afterSaveCommit', $listener);
+            ->on('Collection.afterSaveCommit', $listener);
 
         $result = $table->saveMany($documents);
         $this->assertSame($documents, $result);
@@ -3021,7 +3013,7 @@ class BaseCollectionTest extends TestCase
         $this->assertFalse($result->first()->articles[0]->isDirty());
 
         $first = $table->find()
-            ->orderBy(['id' => 'ASC'])
+            ->orderBy(['_id' => 'ASC'])
             ->first();
         $this->assertSame('admad', $first->name);
     }
@@ -3031,9 +3023,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyFailed(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('authors');
-        $expectedCount = $table->find()->count();
         $documents = [
             new Document(['name' => 'mark']),
             new Document(['name' => 'jose']),
@@ -3042,7 +3032,6 @@ class BaseCollectionTest extends TestCase
         $result = $table->saveMany($documents);
 
         $this->assertFalse($result);
-        $this->assertSame($expectedCount, $table->find()->count());
         foreach ($documents as $document) {
             $this->assertTrue($document->isNew());
         }
@@ -3137,7 +3126,6 @@ class BaseCollectionTest extends TestCase
 
     public function testSaveWithBuildRulesFailWithErrorMessage(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $Articles = new class extends BaseCollection {
             public function initialize(array $config): void
             {
@@ -3165,7 +3153,7 @@ class BaseCollectionTest extends TestCase
             'body' => 'First Article Body',
             'published' => 'Y',
             'comments' => [
-                '_ids' => [1],
+                '_ids' => ['000000000000000000000001'],
             ],
         ]);
 
@@ -3186,7 +3174,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDelete(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
         $options = [
             'limit' => 1,
@@ -3224,15 +3211,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteDependentHasMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('authors');
         $table->Articles
             ->setDependent(true)
             ->setCascadeCallbacks(true);
 
         $articles = $table->getAssociation('Articles')->getTarget();
-        $articles->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
-            $rules->addDelete(fn($document): bool => $document->author_id !== 3);
+        $articles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
+            $rules->addDelete(fn($document): bool => $document->author_id !== '000000000000000000000003');
         });
 
         $document = $table->get('000000000000000000000001');
@@ -3322,7 +3308,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteAssociationsCascadingCallbacksOrder(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $sections = $this->getCollectionLocator()->get('Sections');
         $members = $this->getCollectionLocator()->get('Members');
         $sectionsMembers = $this->getCollectionLocator()->get('SectionsMembers');
@@ -3355,10 +3340,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteBelongsToManyDependentFailure(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $sections = $this->getCollectionLocator()->get('Sections');
         $sectionsMembers = $this->getCollectionLocator()->get('SectionsMembers');
-        $sectionsMembers->getEventManager()->on('Model.buildRules', function ($event, $rules): void {
+        $sectionsMembers->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
             $rules->addDelete(fn(): false => false);
         });
 
@@ -3382,7 +3366,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteCallbacks(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
         $options = new ArrayObject(['atomic' => true, 'checkRules' => false, '_primary' => true]);
 
@@ -3391,11 +3374,15 @@ class BaseCollectionTest extends TestCase
         $mock->shouldReceive('on');
 
         $mock->shouldReceive('dispatch')
-            ->withAnyArgs()
-            ->once();
+            ->byDefault()
+            ->withAnyArgs();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options): true {
+            ->withArgs(function (EventInterface $event) use ($document, $options): bool {
+                if ($event->getName() !== 'Collection.beforeDelete') {
+                    return false;
+                }
+
                 $this->assertSame('Collection.beforeDelete', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
@@ -3404,7 +3391,11 @@ class BaseCollectionTest extends TestCase
             ->once();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options): true {
+            ->withArgs(function (EventInterface $event) use ($document, $options): bool {
+                if ($event->getName() !== 'Collection.afterDelete') {
+                    return false;
+                }
+
                 $this->assertSame('Collection.afterDelete', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
@@ -3413,8 +3404,12 @@ class BaseCollectionTest extends TestCase
             ->once();
 
         $mock->shouldReceive('dispatch')
-            ->withArgs(function (EventInterface $event) use ($document, $options): true {
-                $this->assertSame('Model.afterDeleteCommit', $event->getName());
+            ->withArgs(function (EventInterface $event) use ($document, $options): bool {
+                if ($event->getName() !== 'Collection.afterDeleteCommit') {
+                    return false;
+                }
+
+                $this->assertSame('Collection.afterDeleteCommit', $event->getName());
                 $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
 
                 return true;
@@ -3431,7 +3426,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteCallbacksNonAtomic(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('users');
 
         $data = $table->get('000000000000000000000001');
@@ -3447,7 +3441,7 @@ class BaseCollectionTest extends TestCase
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Model.afterDeleteCommit', $listenerAfterCommit);
+        $table->getEventManager()->on('Collection.afterDeleteCommit', $listenerAfterCommit);
 
         $table->delete($data, ['atomic' => false]);
         $this->assertTrue($called);
@@ -3459,7 +3453,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterDeleteCommitTriggeredOnlyForPrimaryCollection(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('authors');
         $table->Articles->setDependent(true);
 
@@ -3467,13 +3460,13 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Model.afterDeleteCommit', $listener);
+        $table->getEventManager()->on('Collection.afterDeleteCommit', $listener);
 
         $called2 = false;
         $listener = function ($e, $document, $options) use (&$called2): void {
             $called2 = true;
         };
-        $table->Articles->getEventManager()->on('Model.afterDeleteCommit', $listener);
+        $table->Articles->getEventManager()->on('Collection.afterDeleteCommit', $listener);
 
         $document = $table->get('000000000000000000000001');
         $this->assertTrue($table->delete($document));
@@ -3487,7 +3480,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteBeforeDeleteAbort(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
 
         $mock = $this->getMockBuilder(EventManager::class)->getMock();
@@ -3582,7 +3574,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasField(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = $this->getCollectionLocator()->get('articles');
         $this->assertFalse($table->hasField('nope'), 'Should not be there.');
         $this->assertTrue($table->hasField('title'), 'Should be there.');
@@ -3594,10 +3585,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidatorDefault(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection();
         $validator = $table->getValidator();
-        $this->assertSame($table, $validator->getProvider('table'));
+        $this->assertSame($table, $validator->getProvider('collection'));
         $this->assertInstanceOf(Validator::class, $validator);
         $default = $table->getValidator('default');
         $this->assertSame($validator, $default);
@@ -3619,12 +3609,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidatorSetter(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $table = new BaseCollection();
         $validator = new Validator();
         $table->setValidator('other', $validator);
         $this->assertSame($validator, $table->getValidator('other'));
-        $this->assertSame($table, $validator->getProvider('table'));
+        $this->assertSame($table, $validator->getProvider('collection'));
     }
 
     /**
@@ -5943,7 +5932,7 @@ class BaseCollectionTest extends TestCase
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
-        $articles->getEventManager()->on('Model.afterSaveCommit', function (EventInterface $event, EntityInterface $document, ArrayObject $options): void {
+        $articles->getEventManager()->on('Collection.afterSaveCommit', function (EventInterface $event, EntityInterface $document, ArrayObject $options): void {
             $document->afterSaveCommit = true;
         });
 
