@@ -186,7 +186,7 @@ class EagerLoader
         $this->normalized = [];
         foreach ($this->containments as $alias => $options) {
             $alias = (string)$alias;
-            $this->normalized[$alias] = $this->normalize($repository, $alias, $options, $alias, strtolower($alias));
+            $this->normalized[$alias] = $this->normalize($repository, $alias, $options, $alias, '');
         }
 
         return $this->normalized;
@@ -400,13 +400,35 @@ class EagerLoader
     }
 
     /**
-     * Clears all configured containment state.
+     * Returns the normalized attachable associations (contain + matching).
+     *
+     * ODM analog of cake60 `EagerLoader::attachableAssociations()`: the
+     * normalized tree of associations the query can attach (in-pipeline lookup)
+     * or load externally. Matching is folded into the same containment list.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The collection.
+     * @return array<string, \Crustum\Mongo\ODM\EagerLoadable>
+     */
+    public function attachableAssociations(BaseCollection $repository): array
+    {
+        return $this->normalized($repository);
+    }
+
+    /**
+     * Clears all configured containment state but keeps matching joins.
      *
      * @return void
      */
     public function clearContain(): void
     {
-        $this->containments = [];
+        $matching = [];
+        foreach ($this->containments as $alias => $options) {
+            if (is_array($options) && ($options['matching'] ?? false) === true) {
+                $matching[$alias] = $options;
+            }
+        }
+
+        $this->containments = $matching;
         $this->normalized = null;
         $this->external = [];
     }
@@ -506,6 +528,12 @@ class EagerLoader
             throw new InvalidArgumentException(sprintf('Association `%s` not found.', $alias));
         }
 
+        if (($options['matching'] ?? false) === true) {
+            $propertyPath = '_matchingData.' . $alias;
+        } else {
+            $propertyPath = trim($propertyPath . '.' . $association->getProperty(), '.');
+        }
+
         $target = $association->getTarget();
         $config = array_intersect_key($options, $this->containOptions);
         $config += ['strategy' => $this->defaultStrategy($association)];
@@ -521,7 +549,7 @@ class EagerLoader
                     : strtolower((string)$nestedAlias);
                 $loadable->addAssociation(
                     $nestedAlias,
-                    $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath . '.' . $nestedProperty),
+                    $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
                 );
             }
         }
