@@ -14,7 +14,6 @@ use Closure;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\RulesChecker;
-use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use stdClass;
 
 /**
