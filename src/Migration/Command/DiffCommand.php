@@ -23,6 +23,8 @@ use RuntimeException;
  */
 class DiffCommand extends Command
 {
+    use SnapshotTrait;
+
     /**
      * @inheritDoc
      */
@@ -71,6 +73,12 @@ class DiffCommand extends Command
             'help' => 'The folder where your migrations are',
         ])->addOption('schema-file', [
             'help' => 'The desired schema lock file (default: <migrations folder>/schema-dump-mongo.lock)',
+        ])->addOption('generate-only', [
+            'help' => 'Only generate the migration file; do not mark it as migrated',
+            'boolean' => true,
+        ])->addOption('no-lock', [
+            'help' => 'Do not refresh the schema dump after baking',
+            'boolean' => true,
         ]);
 
         return $parser;
@@ -238,5 +246,13 @@ PHP;
         }
 
         $io->success(sprintf('Baked `%s` (%d operations) to `%s`.', $className, $operationCount, $file));
+
+        if (!$args->getOption('generate-only')) {
+            $this->markSnapshotApplied($file, $args, $io);
+
+            if (!$args->getOption('no-lock')) {
+                $this->refreshDump($args, $io);
+            }
+        }
     }
 }

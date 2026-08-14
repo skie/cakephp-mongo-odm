@@ -68,6 +68,12 @@ class BakeMigrationDiffCommand extends Command
             'help' => 'The folder where your migrations are',
         ])->addOption('schema-file', [
             'help' => 'The desired schema lock file',
+        ])->addOption('generate-only', [
+            'help' => 'Only generate the migration file; do not mark it as migrated',
+            'boolean' => true,
+        ])->addOption('no-lock', [
+            'help' => 'Do not refresh the schema dump after baking',
+            'boolean' => true,
         ]);
 
         return $parser;
@@ -89,7 +95,7 @@ class BakeMigrationDiffCommand extends Command
             $argv[] = $name;
         }
 
-        $optionNames = ['plugin', 'connection', 'source', 'schema-file'];
+        $optionNames = ['plugin', 'connection', 'source', 'schema-file', 'generate-only', 'no-lock'];
         foreach ($optionNames as $option) {
             $value = $args->getOption($option);
             if (!in_array($value, [null, '', false], true)) {
