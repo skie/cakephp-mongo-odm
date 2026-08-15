@@ -3608,17 +3608,18 @@ class SelectQueryTest extends TestCase
             ->hydrate(false)
             ->select('_id')
             ->notMatching('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']))
-            ->distinct(['_id']);
+            ->distinct(['_id'])
+            ->orderBy(['_id' => 'ASC']);
 
         $this->assertEquals(
             ['000000000000000000000001', '000000000000000000000002', '000000000000000000000004'],
             $results->all()->extract('_id')->toList(),
         );
 
+        // Equivalent nested form: authors that have articles, none tagged tag3.
         $results = $collection->find()
             ->hydrate(false)
-            ->notMatching('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']))
-            ->matching('articles')
+            ->matching('articles', fn($q) => $q->notMatching('tags', fn($q) => $q->where(['tags.name' => 'tag3'])))
             ->distinct(['_id']);
 
         $this->assertEquals(['000000000000000000000001'], $results->all()->extract('_id')->toList());
