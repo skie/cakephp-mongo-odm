@@ -70,6 +70,14 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Aliased select fields cast + computed projection (doc 40, G4)** —
+  `SelectQuery::select()` registers schema types for aliased fields
+  (`select(['updated_time' => 'updated'])` → `updated_time` casts as `date`);
+  `ResultSet::convertRowWith()` falls back to the query type map (and
+  `bsonToArray` handles `UTCDateTime`); `QueryCompiler::compile()` switches to
+  an aggregation `$project` when the projection contains computed (`$field`)
+  values (find can't mix include + computed); `applySelectClause()` keeps
+  computed aliases. `testSelectTypeInferSimpleAliases` green.
 - **SelectQuery implements JsonSerializable (doc 40, G4)** —
   `SelectQuery` now implements `JsonSerializable` (cake60 ORM parity) and
   `jsonSerialize()` returns `all()`, so `json_encode($query)` yields the

@@ -177,11 +177,16 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         foreach ($row as $field => $value) {
             $typeName = $schema->getColumnType((string)$field);
+            if ($typeName === null && $this->query !== null) {
+                $typeName = $this->query->getTypeMap()->type((string)$field);
+            }
             if ($typeName === null) {
                 if ($value instanceof BSONDocument || $value instanceof BSONArray) {
                     $row[$field] = self::bsonToArray($value);
                 } elseif ($value instanceof ObjectId) {
                     $row[$field] = (string)$value;
+                } elseif ($value instanceof UTCDateTime) {
+                    $row[$field] = new CakeDateTime($value->toDateTime());
                 }
 
                 continue;
@@ -288,6 +293,8 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         $keep = [];
         foreach ($projection as $key => $value) {
             if ((int)$value === 1) {
+                $keep[] = (string)$key;
+            } elseif (is_string($value) && str_starts_with($value, '$')) {
                 $keep[] = (string)$key;
             } elseif (is_string($value) && !str_starts_with($value, '$')) {
                 $keep[] = $value;

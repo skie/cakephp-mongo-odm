@@ -380,7 +380,48 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
         ExpressionInterface|Closure|array|string|float|int $fields = [],
         bool $overwrite = false,
     ): static {
+        if (is_array($fields)) {
+            $this->registerSelectAliasTypes($fields);
+        }
+
         return parent::select($fields, $overwrite);
+    }
+
+    /**
+     * Registers schema types for aliased select fields.
+     *
+     * `select(['updated_time' => 'updated'])` projects the source field under a
+     * new name; the alias inherits the source field's schema type so results
+     * cast (e.g. `updated` date → `updated_time` DateTime).
+     *
+     * @param array<int|string, mixed> $fields The select fields.
+     * @return void
+     */
+    protected function registerSelectAliasTypes(array $fields): void
+    {
+        if ($this->repository === null) {
+            return;
+        }
+
+        $schema = $this->repository->getSchema();
+        foreach ($fields as $key => $value) {
+            if (!is_string($key) || !is_string($value) || str_starts_with($value, '$')) {
+                continue;
+            }
+
+            $source = $value;
+            if (str_contains($source, '.')) {
+                $source = substr($source, (int)strrpos($source, '.') + 1);
+            }
+            if ($source === 'id') {
+                $source = '_id';
+            }
+
+            $type = $schema->getColumnType($source);
+            if ($type !== null) {
+                $this->getTypeMap()->addDefaults([(string)$key => $type]);
+            }
+        }
     }
 
     /**

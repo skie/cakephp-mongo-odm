@@ -622,11 +622,31 @@ class QueryCompiler
      */
     public function compile(): array
     {
-        if ($this->pipeline !== [] || $this->group !== [] || $this->having !== [] || $this->distinct !== []) {
+        if ($this->pipeline !== [] || $this->group !== [] || $this->having !== [] || $this->distinct !== [] || $this->hasComputedProjection()) {
             return $this->compileAggregate();
         }
 
         return $this->compileFind();
+    }
+
+    /**
+     * Whether the projection contains computed (field-path) values.
+     *
+     * A projection value of the form `$field` (e.g. `select(['extra' => '_id'])`)
+     * cannot be expressed in a find() projection alongside include fields, so
+     * the query must compile as an aggregation `$project` stage.
+     *
+     * @return bool
+     */
+    protected function hasComputedProjection(): bool
+    {
+        foreach ($this->projection as $value) {
+            if (is_string($value) && str_starts_with($value, '$')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
