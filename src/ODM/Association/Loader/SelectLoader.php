@@ -147,14 +147,18 @@ class SelectLoader implements LoaderInterface
             if ($disabledKey) {
                 $map['*'] = $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
             } else {
-                foreach ($rows as $row) {
+                foreach ($rows as $rowKey => $row) {
                     $value = $row instanceof EntityInterface ? $row->get($targetKey) : ($row[$targetKey] ?? null);
                     if ($value === null) {
                         continue;
                     }
 
                     if ($many) {
-                        $map[(string)$value][] = $row;
+                        if (is_int($rowKey)) {
+                            $map[(string)$value][] = $row;
+                        } else {
+                            $map[(string)$value][$rowKey] = $row;
+                        }
                     } else {
                         $map[(string)$value] = $row;
                     }

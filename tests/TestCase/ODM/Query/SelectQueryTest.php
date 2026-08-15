@@ -2477,7 +2477,7 @@ class SelectQueryTest extends TestCase
         ]);
         $result = $collection->find()->contain('Articles');
         $this->assertCount(4, $result->all()->extract('article')->filter()->toArray());
-        $collection->Articles->updateAll(['published' => 'N'], ['1 = 1']);
+        $collection->Articles->updateAll(['published' => 'N'], []);
 
         $result = $collection->find()->contain('Articles');
         $this->assertCount(0, $result->all()->extract('article')->filter()->toArray());

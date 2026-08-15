@@ -70,6 +70,13 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Contain finders + association finder wiring (doc 40, G8)** —
+  `HasMany::eagerLoader()` honors the containment `finder` option (custom
+  finders like `published`/`slugged` apply to the target query); `SelectLoader`
+  preserves non-integer row keys when injecting one-to-many results, so
+  finder `indexBy` keys (slug) survive eager loading. `testContainFinderHasMany*`
+  and `testCustomFinderInBelongsTo` green; `updateAll` test condition rewritten
+  (`['1 = 1']` → `[]`).
 - **QueryCompiler merge + contain closure queryBuilder (doc 40, G4)** —
   `where()`/`having()` merge conditions per-field instead of
   `array_merge_recursive` (which coerced `ObjectId` values to

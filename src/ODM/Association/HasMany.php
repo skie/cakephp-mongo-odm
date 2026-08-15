@@ -559,7 +559,7 @@ class HasMany extends Association
     public function eagerLoader(array $options): Closure
     {
         $loaderOptions = [
-            'finder' => fn(): QueryInterface => $this->getTarget()->find(),
+            'finder' => $options['finder'] ?? fn(): QueryInterface => $this->getTarget()->find(),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),
