@@ -370,12 +370,14 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 $junctionProperty = $instance->getJunctionProperty();
                 $junctionMap = [];
                 foreach ($junctionRows as $junctionRow) {
+                    $junctionRow = (array)$junctionRow;
                     $joinKey = (string)($junctionRow[$targetFk] ?? $junctionRow['_id'] ?? '');
                     if ($joinKey === '') {
                         continue;
                     }
 
-                    $junctionMap[$joinKey] = $this->hydrateRow((array)$junctionRow, $junction);
+                    unset($junctionRow['_id']);
+                    $junctionMap[$joinKey] = $this->hydrateRow($junctionRow, $junction);
                 }
 
                 $results[$propertyName] = array_map(
@@ -446,7 +448,21 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
             $instance = $assoc['instance'];
             $propertyName = $instance->getProperty();
+            $junctionKey = $instance instanceof BelongsToMany ? '_join_' . $propertyName : null;
+            $negateMatch = (bool)($assoc['config']['negateMatch'] ?? false);
+
             if (!array_key_exists($propertyName, $row)) {
+                if ($junctionKey !== null && array_key_exists($junctionKey, $row)) {
+                    unset($row[$junctionKey]);
+                }
+                continue;
+            }
+
+            if ($negateMatch) {
+                if ($junctionKey !== null) {
+                    unset($row[$junctionKey]);
+                }
+                unset($row[$propertyName]);
                 continue;
             }
 
@@ -454,33 +470,30 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             $row['_matchingData'][$matchingKey] = $row[$propertyName];
             unset($row[$propertyName]);
 
-            if ($instance instanceof BelongsToMany) {
-                $junctionKey = '_join_' . $propertyName;
-                if (isset($row[$junctionKey])) {
-                    $junction = $instance->junction();
-                    $junctionRows = (array)$row[$junctionKey];
-                    $targetFk = $instance->getTargetForeignKey();
-                    $matched = (array)$row['_matchingData'][$matchingKey];
-                    $matchedId = (string)($matched['_id'] ?? '');
-                    $selected = null;
-                    foreach ($junctionRows as $junctionRow) {
-                        $junctionRow = (array)$junctionRow;
-                        if ($matchedId !== '' && (string)($junctionRow[$targetFk] ?? '') === $matchedId) {
-                            $selected = $junctionRow;
-                            break;
-                        }
+            if ($instance instanceof BelongsToMany && $junctionKey !== null && isset($row[$junctionKey])) {
+                $junction = $instance->junction();
+                $junctionRows = (array)$row[$junctionKey];
+                $targetFk = $instance->getTargetForeignKey();
+                $matched = (array)$row['_matchingData'][$matchingKey];
+                $matchedId = (string)($matched['_id'] ?? '');
+                $selected = null;
+                foreach ($junctionRows as $junctionRow) {
+                    $junctionRow = (array)$junctionRow;
+                    if ($matchedId !== '' && (string)($junctionRow[$targetFk] ?? '') === $matchedId) {
+                        $selected = $junctionRow;
+                        break;
                     }
-
-                    if ($selected === null && isset($junctionRows[0])) {
-                        $selected = (array)$junctionRows[0];
-                    }
-                    if (is_array($selected)) {
-                        unset($selected['_id']);
-                    }
-
-                    $row['_matchingData'][$junction->getAlias()] = $selected;
-                    unset($row[$junctionKey]);
                 }
+
+                if ($selected === null && isset($junctionRows[0])) {
+                    $selected = (array)$junctionRows[0];
+                }
+                if (is_array($selected)) {
+                    unset($selected['_id']);
+                }
+
+                $row['_matchingData'][$junction->getAlias()] = $selected;
+                unset($row[$junctionKey]);
             }
         }
 

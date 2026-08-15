@@ -820,7 +820,7 @@ abstract class Association
     protected function applyPipelineOptions(AggregationBuilder $builder, array $options): void
     {
         if (!empty($options['conditions'])) {
-            $builder->match($this->normalizePipelineConditions($options['conditions']));
+            $builder->match($this->normalizePipelineConditions($options['conditions'], (bool)($options['matching'] ?? false)));
         }
         if (!empty($options['fields'])) {
             $fields = (array)$options['fields'];
@@ -866,20 +866,20 @@ abstract class Association
      * @param array<string, mixed> $conditions The raw conditions.
      * @return array<string, mixed>
      */
-    protected function normalizePipelineConditions(array $conditions): array
+    protected function normalizePipelineConditions(array $conditions, bool $preservePrefix = false): array
     {
         $alias = $this->getAlias() . '.';
         $normalized = [];
         foreach ($conditions as $field => $value) {
-            if (str_starts_with($field, $alias)) {
+            if (!$preservePrefix && str_starts_with($field, $alias)) {
                 $field = substr($field, strlen($alias));
             }
 
             if (is_array($value) && in_array(strtoupper($field), ['OR', 'AND', 'NOT', '$OR', '$AND', '$NOT'], true)) {
-                $value = array_map(fn(array $group): array => $this->normalizePipelineConditions($group), $value);
+                $value = array_map(fn(array $group): array => $this->normalizePipelineConditions($group, $preservePrefix), $value);
             } elseif (is_array($value) && array_is_list($value)) {
                 $value = array_map(
-                    fn(mixed $item): mixed => is_array($item) ? $this->normalizePipelineConditions($item) : $item,
+                    fn(mixed $item): mixed => is_array($item) ? $this->normalizePipelineConditions($item, $preservePrefix) : $item,
                     $value,
                 );
             } else {

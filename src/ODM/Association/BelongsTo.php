@@ -153,13 +153,33 @@ class BelongsTo extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
-        $builder
+        $localKey = $this->fieldName($this->getForeignKey());
+        if (!empty($options['lookupPrefix'])) {
+            $localKey = $options['lookupPrefix'] . '.' . $localKey;
+        }
+        $negateMatch = !empty($options['negateMatch']);
+        $pipeline = [];
+        if ($negateMatch && !empty($options['conditions'])) {
+            $pipeline[] = ['$match' => $this->normalizePipelineConditions($options['conditions'])];
+        }
+        $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
-            ->localField($this->fieldName($this->getForeignKey()))
+            ->localField($localKey)
             ->foreignField($this->fieldName($this->getBindingKey()))
             ->alias($this->getProperty());
+        if ($pipeline !== []) {
+            $lookup->pipeline($pipeline);
+        }
         $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
-        $this->applyPipelineOptions($builder, $options);
+
+        if ($negateMatch) {
+            $builder->match([$this->getProperty() => null]);
+        } else {
+            if (!empty($options['matching']) && !empty($options['conditions'])) {
+                $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
+            }
+            $this->applyPipelineOptions($builder, $options);
+        }
 
         return $builder->getPipeline();
     }

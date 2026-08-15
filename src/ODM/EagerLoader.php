@@ -571,6 +571,8 @@ class EagerLoader
             $config['finder'] = fn(): QueryInterface => $association->find($finderName);
         }
         $config = $this->applyQueryBuilder($config, $target);
+        $nestedMatching = $config['_matching'] ?? [];
+        unset($config['_matching']);
         $loadable = new EagerLoadable($alias, $association, $config, $aliasPath, $propertyPath, false, $config['matching'] ?? null, $alias);
 
         foreach ($options as $nestedAlias => $nestedOptions) {
@@ -581,6 +583,15 @@ class EagerLoader
                     $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
                 );
             }
+        }
+
+        foreach ($nestedMatching as $nestedAlias => $nestedOptions) {
+            $nestedOptions = is_array($nestedOptions) ? $nestedOptions : [];
+            $nestedOptions['matching'] = true;
+            $loadable->addAssociation(
+                $nestedAlias,
+                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
+            );
         }
 
         return $loadable;
@@ -623,6 +634,11 @@ class EagerLoader
         $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
         $config['sort'] ??= $compiled['options']['sort'] ?? [];
 
+        $nestedMatching = $query->getEagerLoader()->getMatching();
+        if ($nestedMatching !== []) {
+            $config['_matching'] = $nestedMatching;
+        }
+
         return $config;
     }
 
@@ -633,7 +649,7 @@ class EagerLoader
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
      * @return void
      */
-    private function dispatch(EagerLoadable $loadable, SelectQuery $query): void
+    private function dispatch(EagerLoadable $loadable, SelectQuery $query, ?string $parentProperty = null): void
     {
         $association = $loadable->instance();
         if (!$association instanceof Association) {
@@ -652,7 +668,11 @@ class EagerLoader
         } elseif (!$matching && ($strategy === 'select' || $strategy === 'reference' || $isNested)) {
             $this->external[] = $loadable;
         } else {
-            $stages = $association->buildPipeline($loadable->getConfig());
+            $config = $loadable->getConfig();
+            if ($matching && $parentProperty !== null) {
+                $config['lookupPrefix'] = $parentProperty;
+            }
+            $stages = $association->buildPipeline($config);
             if ($stages !== []) {
                 $query->pipeline($stages);
                 $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
@@ -660,7 +680,7 @@ class EagerLoader
         }
 
         foreach ($loadable->associations() as $nested) {
-            $this->dispatch($nested, $query);
+            $this->dispatch($nested, $query, $association->getProperty());
         }
     }
 
@@ -681,7 +701,7 @@ class EagerLoader
                 'strategy' => $loadable->getConfig()['strategy'],
                 'instance' => $loadable->instance(),
                 'config' => $loadable->getConfig(),
-                'nestKey' => $loadable->aliasPath(),
+                'nestKey' => $loadable->name(),
                 'matching' => (bool)($loadable->getConfig()['matching'] ?? false),
             ];
             $this->map($loadable->associations(), $map);

@@ -585,9 +585,13 @@ class HasMany extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
+        $localKey = $this->fieldName($this->getBindingKey());
+        if (!empty($options['lookupPrefix'])) {
+            $localKey = $options['lookupPrefix'] . '.' . $localKey;
+        }
         $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
-            ->localField($this->fieldName($this->getBindingKey()))
+            ->localField($localKey)
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
 
@@ -598,6 +602,14 @@ class HasMany extends Association
         }
 
         $pipelineOptions = $options;
+        if (!empty($options['matching']) && !empty($options['negateMatch'])) {
+            $lookup->pipeline($this->buildLookupPipeline($options));
+            $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
+            $builder->match([$this->getProperty() => null]);
+
+            return $builder->getPipeline();
+        }
+
         if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
             $property = $this->getProperty();
             $pipelineOptions['conditions'] = $this->prefixMatchConditions(

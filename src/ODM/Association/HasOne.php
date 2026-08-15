@@ -140,12 +140,20 @@ class HasOne extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
+        $localKey = $this->fieldName($this->getBindingKey());
+        if (!empty($options['lookupPrefix'])) {
+            $localKey = $options['lookupPrefix'] . '.' . $localKey;
+        }
         $builder
             ->lookup($this->getTarget()->getCollection())
-            ->localField($this->fieldName($this->getBindingKey()))
+            ->localField($localKey)
             ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
         $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
+
+        if (!empty($options['matching']) && !empty($options['conditions'])) {
+            $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
+        }
         $this->applyPipelineOptions($builder, $options);
 
         return $builder->getPipeline();

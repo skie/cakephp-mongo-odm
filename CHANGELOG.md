@@ -70,6 +70,28 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Deep/nested matching pipelines (doc 40, G3)** — `matching()`/`notMatching()`
+  with dot-notation paths now build correct `$lookup` chains: each nested
+  matching stage prefixes its lookup `localField` with the **unwound parent
+  property** (`articles._id`, `articles_tags.tag_id`), passed through the
+  dispatch recursion; match conditions stay property-prefixed after `$unwind`
+  (`tags._id`/`tag.name`) instead of being alias-stripped back to the root row.
+  `_matchingData` is keyed by the association **alias**, not the alias path.
+  A `matching()` call inside a matching query builder (e.g.
+  `matching('articles.articlesTags', fn($q) => $q->matching('tags', ...))`)
+  now surfaces as nested matching loadables (`_matching` config carried by
+  `applyQueryBuilder`). `testMatchingDotNotation`, `testContainInAssociationMatching`,
+  `testNotMatchingNested` green.
+- **`negateMatch` anti-join with conditions (doc 40, G9)** —
+  `notMatching()` with a builder now inverts correctly: conditions land inside
+  the `$lookup` pipeline and the row survives via `$match [<property> => null]`
+  (BelongsTo/HasMany/BelongsToMany), instead of `$match` on the prefixed
+  conditions wiping out the non-matching rows. `testNotMatching`,
+  `testNotMatchingBelongsToMany` green. `applyMatchingData` drops `_join_*` and
+  skips `_matchingData` for negated matches.
+- **BelongsToMany `_joinData` drops `_id` (doc 40, G9)** —
+  hydrated `groupResult()` junction hydration unsets the junction `_id` before
+  attaching as `_joinData`, matching cake. `testHydrateBelongsToMany` green.
 - **Contain finders + association finder wiring (doc 40, G8)** —
   `HasMany::eagerLoader()` honors the containment `finder` option (custom
   finders like `published`/`slugged` apply to the target query); `SelectLoader`

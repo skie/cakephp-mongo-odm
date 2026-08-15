@@ -1702,21 +1702,34 @@ class BelongsToMany extends Association
 
         $builder = $this->buildAggregation();
         $join = '_join_' . $this->getProperty();
+        $localKey = $this->fieldName($this->getBindingKey());
+        if (!empty($options['lookupPrefix'])) {
+            $localKey = $options['lookupPrefix'] . '.' . $localKey;
+        }
         $builder
             ->lookup($through)
-            ->localField($this->fieldName($this->getBindingKey()))
+            ->localField($localKey)
             ->foreignField($joinForeignKey)
             ->alias($join);
-        $builder
+
+        $negateMatch = !empty($options['negateMatch']);
+        $pipelineOptions = $options + $this->associationPipelineOptions();
+        $targetConditions = $pipelineOptions['conditions'] ?? [];
+        $targetPipeline = [];
+        if ($negateMatch && is_array($targetConditions) && $targetConditions !== []) {
+            $targetPipeline[] = ['$match' => $this->normalizePipelineConditions($targetConditions)];
+        }
+        $lookupTags = $builder
             ->lookup($target->getCollection())
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField($targetBindingKey)
             ->alias($this->getProperty());
-        if (!empty($options['matching'])) {
-            $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => false]);
+        if ($targetPipeline !== []) {
+            $lookupTags->pipeline($targetPipeline);
         }
-
-        $pipelineOptions = $options + $this->associationPipelineOptions();
+        if (!empty($options['matching'])) {
+            $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => $negateMatch]);
+        }
 
         $junctionConditions = [];
         if (!empty($pipelineOptions['conditions']) && is_array($pipelineOptions['conditions'])) {
@@ -1740,32 +1753,40 @@ class BelongsToMany extends Association
             );
         }
 
-        $targetConditions = $pipelineOptions['conditions'] ?? [];
-        if (empty($options['matching']) && is_array($targetConditions) && $targetConditions !== []) {
-            $property = $this->getProperty();
-            $targetAlias = $target->getAlias() . '.';
-            $builder->addFields()->field(
-                $property,
-                $builder->func()->filter(
-                    '$' . $property,
-                    'item',
-                    $this->targetCondExpression($targetConditions, $targetAlias, $builder),
-                ),
-            );
-            unset($pipelineOptions['conditions']);
-        }
-
-        if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
-            $property = $this->getProperty();
-            $pipelineOptions['conditions'] = $this->prefixMatchConditions(
-                $pipelineOptions['conditions'],
-                $property,
-            );
-        }
-
         $pipelineFields = $pipelineOptions['fields'] ?? null;
         unset($pipelineOptions['fields']);
-        $this->applyPipelineOptions($builder, $pipelineOptions);
+
+        if ($negateMatch) {
+            unset($pipelineOptions['conditions']);
+            $this->applyPipelineOptions($builder, $pipelineOptions);
+            $builder->match([$this->getProperty() => null]);
+        } else {
+            $targetConditions = $pipelineOptions['conditions'] ?? [];
+            if (empty($options['matching']) && is_array($targetConditions) && $targetConditions !== []) {
+                $property = $this->getProperty();
+                $targetAlias = $target->getAlias() . '.';
+                $builder->addFields()->field(
+                    $property,
+                    $builder->func()->filter(
+                        '$' . $property,
+                        'item',
+                        $this->targetCondExpression($targetConditions, $targetAlias, $builder),
+                    ),
+                );
+                unset($pipelineOptions['conditions']);
+            }
+
+            if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
+                $property = $this->getProperty();
+                $pipelineOptions['conditions'] = $this->prefixMatchConditions(
+                    $pipelineOptions['conditions'],
+                    $property,
+                );
+            }
+
+            $this->applyPipelineOptions($builder, $pipelineOptions);
+        }
+
         $this->applyAssociationSort($builder);
         $this->applyFinderConditions($builder);
         $this->applyFieldsProjection($builder, $pipelineFields);
