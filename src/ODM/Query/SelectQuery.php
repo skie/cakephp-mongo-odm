@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM\Query;
 use ArrayObject;
 use Cake\Collection\Iterator\MapReduce;
 use Cake\Database\ExpressionInterface;
+use Cake\Database\ValueBinder;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
@@ -537,6 +538,8 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             $this->select($field);
         }
 
+        $this->autoFields = true;
+
         return $this;
     }
 
@@ -982,6 +985,23 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
                 !$this->eagerLoaded,
             ]);
         }
+    }
+
+    /**
+     * Returns the compiled query for debugging.
+     *
+     * Fires `Collection.beforeFind` first (cake6 ORM
+     * `SelectQuery::sql()` parity), so beforeFind hooks mutate the query
+     * before its shape is inspected.
+     *
+     * @param \Cake\Database\ValueBinder|null $binder Ignored (Mongo has no bound values); kept for signature parity.
+     * @return string
+     */
+    public function sql(?ValueBinder $binder = null): string
+    {
+        $this->triggerBeforeFind();
+
+        return parent::sql();
     }
 
     /**

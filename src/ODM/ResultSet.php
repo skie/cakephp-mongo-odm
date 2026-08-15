@@ -177,6 +177,8 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             if ($typeName === null) {
                 if ($value instanceof BSONDocument || $value instanceof BSONArray) {
                     $row[$field] = self::bsonToArray($value);
+                } elseif ($value instanceof ObjectId) {
+                    $row[$field] = (string)$value;
                 }
 
                 continue;

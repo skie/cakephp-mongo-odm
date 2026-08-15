@@ -12,8 +12,6 @@ use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Expression\FunctionExpression;
 use Cake\Database\Expression\IdentifierExpression;
 use Cake\Database\Expression\QueryExpression;
-use Cake\Database\StatementInterface;
-use Cake\Database\TypeMap;
 use Cake\Database\ValueBinder;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\ResultSetInterface;
@@ -175,7 +173,7 @@ class SelectQueryTest extends TestCase
             ->first();
 
         $this->assertSame(
-            ['extra' => 2, '_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y', 'extra' => '000000000000000000000002'],
             $results,
         );
 
@@ -187,7 +185,7 @@ class SelectQueryTest extends TestCase
             ->first();
 
         $this->assertSame(
-            ['_id' => '000000000000000000000002', 'extra' => 2, 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y', 'extra' => '000000000000000000000002'],
             $results,
         );
 
@@ -199,7 +197,7 @@ class SelectQueryTest extends TestCase
             ->first();
 
         $this->assertSame(
-            ['extra' => 2, '_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y'],
+            ['_id' => '000000000000000000000002', 'author_id' => '000000000000000000000003', 'title' => 'Second Article', 'body' => 'Second Article Body', 'published' => 'Y', 'extra' => '000000000000000000000002'],
             $results,
         );
     }
@@ -1752,8 +1750,8 @@ class SelectQueryTest extends TestCase
             ->set(['title' => 'First'])
             ->execute();
 
-        $this->assertInstanceOf(StatementInterface::class, $result);
-        $this->assertGreaterThan(0, $result->rowCount());
+        $this->assertIsInt($result);
+        $this->assertGreaterThan(0, $result);
     }
 
     /**
@@ -1769,10 +1767,8 @@ class SelectQueryTest extends TestCase
             ->values(['title' => 'Second'])
             ->execute();
 
-        $result->closeCursor();
-
-        $this->assertInstanceOf(StatementInterface::class, $result);
-        $this->assertEquals(2, $result->rowCount());
+        $this->assertIsArray($result);
+        $this->assertEquals(2, count($result));
     }
 
     /**
@@ -1783,11 +1779,11 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles');
 
         $result = $collection->deleteQuery()
-            ->where(['id >=' => 1])
+            ->where(['_id IN' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']])
             ->execute();
 
-        $this->assertInstanceOf(StatementInterface::class, $result);
-        $this->assertGreaterThan(0, $result->rowCount());
+        $this->assertIsInt($result);
+        $this->assertSame(3, $result);
     }
 
     /**

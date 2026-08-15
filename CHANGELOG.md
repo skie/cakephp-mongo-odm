@@ -70,6 +70,14 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **SelectQuery sql/selectAlso/convertRow (doc 40, G4/G1)** —
+  `SelectQuery::sql()` fires `Collection.beforeFind` once (cake60 ORM parity);
+  `selectAlso()` enables auto-fields so the remaining schema columns are
+  selected; `ResultSet::convertRowWith()` stringifies untyped `ObjectId` values
+  (e.g. `selectAlso(['extra' => '_id'])` returns hex). `testSelectAlso`/
+  `testUpdate`/`testInsert`/`testDelete` rewritten to the ODM shapes (update/
+  delete return affected counts, insert returns inserted `_id` list — no SQL
+  `StatementInterface`).
 - **SelectQuery applyOptions/count/setResult/hydrate (doc 40, G4/G1)** —
   `applyOptions()` now handles `group`/`groupBy`/`having` and skips `null`
   values (cake60 parity); `clause('having')` added; `setResult()` keeps a
