@@ -406,7 +406,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
                 unset($row[$junctionKey]);
             } else {
-                $results[$propertyName] = $this->hydrateRow((array)$row[$propertyName], $target);
+                // A single-entity association with no match stays `null`
+                // (cake parity) instead of hydrating an empty document.
+                $results[$propertyName] = $row[$propertyName] === null
+                    ? null
+                    : $this->hydrateRow((array)$row[$propertyName], $target);
             }
         }
 

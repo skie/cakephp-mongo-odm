@@ -116,7 +116,7 @@ class BelongsTo extends Association
     {
         $finder = $this->getFinder();
         $loaderOptions = [
-            'finder' => fn(): QueryInterface => $this->getTarget()->find($this->extractFinder($finder)[0]),
+            'finder' => $options['finder'] ?? fn(): QueryInterface => $this->getTarget()->find($this->extractFinder($finder)[0]),
             'foreignKey' => $this->getForeignKey(),
             'bindingKey' => $this->getBindingKey(),
             'nestKey' => $this->getProperty(),
