@@ -1109,7 +1109,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
-        $query->mapReduce(function (array $v, $k, $mr): void {
+        $query->mapReduce(function ($v, $k, $mr): void {
             $mr->emit($v['_id']);
         });
         $query->mapReduce(
