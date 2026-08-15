@@ -36,6 +36,12 @@ abstract class Query implements Stringable
 
     public const string TYPE_DELETE = 'delete';
 
+    public const string JOIN_TYPE_INNER = 'INNER';
+
+    public const string JOIN_TYPE_LEFT = 'LEFT';
+
+    public const string JOIN_TYPE_RIGHT = 'RIGHT';
+
     /**
      * @var \Crustum\Mongo\Database\Connection|null
      */
@@ -866,13 +872,38 @@ abstract class Query implements Stringable
     }
 
     /**
-     * Returns the compiled query for debugging.
+     * Returns an array that can be used to describe the internal state of this
+     * object.
      *
-     * @return array{sql: string}
+     * Mirrors the cake6 Database `Query::__debugInfo()` shape. Mongo has no
+     * bound values, so `params` is always empty.
+     *
+     * @return array<string, mixed>
      */
     public function __debugInfo(): array
     {
-        return ['sql' => $this->sql()];
+        try {
+            set_error_handler(
+                static function ($errno, $errstr): never {
+                    throw new CakeException($errstr, $errno);
+                },
+                E_ALL,
+            );
+            $sql = $this->sql();
+        } catch (Throwable) {
+            $sql = 'SQL could not be generated for this query as it is incomplete.';
+        } finally {
+            restore_error_handler();
+        }
+
+        return [
+            '(help)' => 'This is a Query object, to get the results execute or iterate it.',
+            'sql' => $sql,
+            'params' => [],
+            'role' => $this->connectionRole,
+            'defaultTypes' => $this->getDefaultTypes(),
+            'executed' => property_exists($this, 'results') && $this->results !== null,
+        ];
     }
 
     /**

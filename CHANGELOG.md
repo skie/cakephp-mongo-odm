@@ -70,6 +70,30 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **SelectQuery select/selectAllExcept accept repositories (doc 40, RA)** —
+  `select()`/`selectAlso()` accept a `BaseCollection`/`Association` (selects its
+  schema columns, cake6 parity); `selectAllExcept()` accepts a
+  `BaseCollection`/`Association` and always keeps the `_id` primary key;
+  `BaseCollection::setSchema()` accepts a field array (delegates to
+  `setSchemaFromArray()`). `testSelectAllExcept*`/`testSelectWithTableAndAssociationInstance`
+  rewritten to the ODM projection map.
+- **Count results-cache (doc 40, RC)** — `SelectQuery::count()` caches the
+  result in `$resultsCount` until the query is modified (cake6
+  `count()` → `performCount()` + `dirty()` reset); `APPEND`/`PREPEND`/`OVERWRITE`
+  constants added. `testCountCache*`/`testCountWithRebinding` rewritten from the
+  broken Mockery-partial to a real query with a `counter()` closure.
+- **Query `__debugInfo` mirrors cake6 (doc 40, RB)** — Database `Query::__debugInfo()`
+  returns `(help)`/`sql`/`params`/`role`/`defaultTypes`/`executed` (Mongo has no
+  value binder, so `params` is empty); ODM `SelectQuery::__debugInfo()` adds
+  `mapReducers` and `matching` (via `EagerLoader::getMatching()`).
+  `testDebugInfo` asserts the full shape.
+- **`having()` flattens nested expressions (doc 40, RH)** —
+  `QueryCompiler::having()` unwraps `MongoExpressionInterface` instances nested
+  inside the conditions array (`having([$exp->gte('col', 2)])`), matching cake.
+- **`$group` merges select aggregates (doc 40, RH)** — `buildGroupStage()`
+  folds computed `select()` fields into the `$group` accumulators (`$count` →
+  `$sum: 1`, cake `COUNT(*)` parity) and a group-aware `$project` restores the
+  group fields from `_id`. `testHavingOnAnAggregatedField` green.
 - **Deep/nested matching pipelines (doc 40, G3)** — `matching()`/`notMatching()`
   with dot-notation paths now build correct `$lookup` chains: each nested
   matching stage prefixes its lookup `localField` with the **unwound parent

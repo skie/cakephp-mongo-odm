@@ -14,6 +14,7 @@ use Cake\Datasource\ResultSetInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
+use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
@@ -35,6 +36,27 @@ use Traversable;
 class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, QueryInterface
 {
     use CommonQueryTrait;
+
+    /**
+     * Appends the result formatter to the stack.
+     *
+     * @var int
+     */
+    public const int APPEND = 0;
+
+    /**
+     * Prepends the result formatter to the stack.
+     *
+     * @var int
+     */
+    public const int PREPEND = 1;
+
+    /**
+     * Replaces the whole formatter stack.
+     *
+     * @var bool
+     */
+    public const bool OVERWRITE = true;
 
     /**
      * Whether executed rows should be hydrated as Documents.
@@ -70,6 +92,13 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * @var \Closure|null
      */
     protected ?Closure $counter = null;
+
+    /**
+     * Cached result of the last `count()` call, cleared on any modification.
+     *
+     * @var int|null
+     */
+    protected ?int $resultsCount = null;
 
     /**
      * Result formatters applied after hydration.
@@ -255,15 +284,16 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     /**
      * Marks the query dirty, discarding any cached result.
      *
-     * Resetting `$results` mirrors cake6 ORM `SelectQuery::dirty()`, so a
-     * re-executed query always reflects the latest clauses instead of serving
-     * the previously decorated ResultSet.
+     * Resetting `$results`/`$resultsCount` mirrors cake6 ORM
+     * `SelectQuery::dirty()`, so a re-executed query always reflects the latest
+     * clauses instead of serving the previously decorated ResultSet or count.
      *
      * @return void
      */
     protected function dirty(): void
     {
         $this->results = null;
+        $this->resultsCount = null;
         parent::dirty();
     }
 
@@ -372,14 +402,25 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * (configured in {@see \Crustum\Mongo\ODM\Query\CommonQueryTrait::configureFieldResolver()}),
      * so this is a plain passthrough.
      *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int $fields Fields to include/exclude.
+     * A `BaseCollection`/`Association` argument selects every schema column of
+     * that repository (cake6 `SelectQuery::select()` parity).
+     *
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\ODM\Association|\Closure|array<int|string, mixed>|string|float|int $fields Fields to include/exclude.
      * @param bool $overwrite Whether to overwrite the existing projection.
      * @return $this
      */
     public function select(
-        ExpressionInterface|Closure|array|string|float|int $fields = [],
+        ExpressionInterface|BaseCollection|Association|Closure|array|string|float|int $fields = [],
         bool $overwrite = false,
     ): static {
+        if ($fields instanceof Association) {
+            $fields = $fields->getTarget();
+        }
+
+        if ($fields instanceof BaseCollection) {
+            $fields = $fields->getSchema()->columns();
+        }
+
         if (is_array($fields)) {
             $this->registerSelectAliasTypes($fields);
         }
@@ -509,6 +550,20 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     /**
      * Returns the number of matching documents.
      *
+     * The result is cached until the query is modified; a subsequent `count()`
+     * on an unchanged query reuses the previous value without re-querying
+     * (cake6 `SelectQuery::count()` parity).
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        return $this->resultsCount ??= $this->performCount();
+    }
+
+    /**
+     * Performs and returns the count for this query.
+     *
      * When the query carries an in-pipeline eager load (`matching()` /
      * `contain()` via `$lookup`), the count must run through the pipeline
      * because rows are joined, filtered and possibly unwound by those stages —
@@ -520,7 +575,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      *
      * @return int
      */
-    public function count(): int
+    protected function performCount(): int
     {
         $connection = $this->getConnection();
         if (!$connection instanceof Connection) {
@@ -571,10 +626,10 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     /**
      * Appends fields to the projection without overwriting the existing list.
      *
-     * @param \Cake\Database\ExpressionInterface|\Closure|array<int|string, mixed>|string|float|int ...$fields Fields to add.
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\ODM\Association|\Closure|array<int|string, mixed>|string|float|int ...$fields Fields to add.
      * @return $this
      */
-    public function selectAlso(ExpressionInterface|Closure|array|string|float|int ...$fields): static
+    public function selectAlso(ExpressionInterface|BaseCollection|Association|Closure|array|string|float|int ...$fields): static
     {
         foreach ($fields as $field) {
             $this->select($field);
@@ -588,17 +643,27 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     /**
      * Selects all fields for the given collection except the excluded ones.
      *
-     * When the collection exposes a schema the excluded fields are removed from
-     * the field list; otherwise an exclusion projection is built instead.
+     * The `_id` primary key is always kept (Mongo documents must be
+     * addressable); when the collection exposes a schema the excluded fields
+     * are removed from the field list, otherwise an exclusion projection is
+     * built instead.
      *
-     * @param string $collection The collection name.
+     * @param \Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\ODM\Association $collection The collection (or its association) to select fields from.
      * @param array<string> $excludedFields The un-aliased field names not to select.
      * @param bool $overwrite Whether to overwrite the existing projection.
      * @return $this
      */
-    public function selectAllExcept(string $collection, array $excludedFields, bool $overwrite = false): static
+    public function selectAllExcept(BaseCollection|Association $collection, array $excludedFields, bool $overwrite = false): static
     {
-        $fields = $this->collectionFields($collection);
+        if ($collection instanceof Association) {
+            $collection = $collection->getTarget();
+        }
+
+        $fields = $collection->getSchema()->columns();
+        if (!in_array('_id', $fields, true) && !in_array('_id', $excludedFields, true)) {
+            array_unshift($fields, '_id');
+        }
+
         if ($fields === []) {
             return $this->select(array_fill_keys($excludedFields, 0), $overwrite);
         }
@@ -1207,6 +1272,8 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
         return parent::__debugInfo() + [
             'hydrate' => $this->hydrate,
             'formatters' => count($this->formatters),
+            'mapReducers' => count($this->mapReduce),
+            'matching' => $eagerLoader->getMatching(),
             'contain' => $eagerLoader->getContain(),
             'extraOptions' => $this->getOptions(),
             'dtoClass' => $this->dtoClass,

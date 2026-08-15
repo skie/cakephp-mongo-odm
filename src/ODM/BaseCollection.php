@@ -512,15 +512,19 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Sets the schema describing this collection's fields.
      *
-     * Unlike cake, the array form is not accepted here — use
-     * {@see setSchemaFromArray()} for field-definition arrays. This keeps the
-     * signature strict on `SchemaInterface` (ODM divergence from cake).
+     * An array is treated as a field-definition map (`field => type`) and
+     * delegated to {@see setSchemaFromArray()} (cake6 `Table::setSchema()`
+     * parity); a `SchemaInterface` is stored directly.
      *
-     * @param \Cake\Datasource\SchemaInterface $schema Schema to be used for this collection.
+     * @param \Cake\Datasource\SchemaInterface|array<string, array<string, mixed>|string> $schema Schema to be used for this collection.
      * @return $this
      */
-    public function setSchema(SchemaInterface $schema): static
+    public function setSchema(SchemaInterface|array $schema): static
     {
+        if (is_array($schema)) {
+            return $this->setSchemaFromArray($schema);
+        }
+
         $this->schema = $schema;
 
         return $this;

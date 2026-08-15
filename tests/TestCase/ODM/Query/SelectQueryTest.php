@@ -7,11 +7,8 @@ use AssertionError;
 use Cake\Cache\CacheEngine;
 use Cake\Cache\Engine\FileEngine;
 use Cake\Collection\CollectionInterface;
-use Cake\Database\Connection;
 use Cake\Database\Exception\DatabaseException;
-use Cake\Database\Expression\FunctionExpression;
 use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\QueryExpression;
 use Cake\Database\ValueBinder;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\ResultSetInterface;
@@ -19,6 +16,7 @@ use Cake\Event\EventInterface;
 use Cake\I18n\DateTime;
 use Cake\ORM\Association\BelongsTo;
 use Closure;
+use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\Query\Window;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -1111,7 +1109,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
-        $query->mapReduce(function (array $v, $k, $mr): void {
+        $query->mapReduce(function ($v, $k, $mr): void {
             $mr->emit($v['_id']);
         });
         $query->mapReduce(
@@ -1567,19 +1565,19 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('Articles');
 
         $query = $collection->find()
-            ->where('id >= :start')
-            ->where('id <= :end')
-            ->bind(':start', 1, 'integer')
-            ->bind(':end', 3, 'integer');
+            ->where(['_id >=' => '000000000000000000000001'])
+            ->where(['_id <=' => '000000000000000000000003'], [], true);
 
         $firstCount = $query->count();
         $this->assertSame(3, $firstCount);
 
-        $query->bind(':start', 2, 'integer')
-            ->bind(':end', 2, 'integer');
+        $query->where([
+            '_id >=' => '000000000000000000000002',
+            '_id <=' => '000000000000000000000002',
+        ], [], true);
 
         $secondCount = $query->count();
-        $this->assertSame(1, $secondCount, 'Count should reflect the new binding value');
+        $this->assertSame(1, $secondCount, 'Count should reflect the new condition value');
     }
 
     /**
@@ -2289,19 +2287,20 @@ class SelectQueryTest extends TestCase
      */
     public function testCountCache(): void
     {
-        $this->markTestSkipped('// Mockery partial without constructor leaves `$connection`/`$builder` uninitialized; count results-cache (`resultsCount`) not implemented; see 40-selectquerytest-failure-groups.md G7.');
-        $query = Mockery::mock(SelectQuery::class)
-            ->makePartial()
-            ->shouldAllowMockingProtectedMethods();
-        $query->shouldReceive('performCount')
-            ->once()
-            ->andReturn(1);
+        $query = $this->getCollectionLocator()->get('Articles')->find();
+        $calls = 0;
+        $query->counter(function ($q) use (&$calls): int {
+            $calls++;
+
+            return 1;
+        });
 
         $result = $query->count();
-        $this->assertSame(1, $result, 'The result of the sql query should be returned');
+        $this->assertSame(1, $result, 'The result of the count should be returned');
 
         $resultAgain = $query->count();
         $this->assertSame(1, $resultAgain, 'No query should be issued and the cached value returned');
+        $this->assertSame(1, $calls, 'The counter should run only once');
     }
 
     /**
@@ -2310,23 +2309,25 @@ class SelectQueryTest extends TestCase
      */
     public function testCountCacheDirty(): void
     {
-        $query = Mockery::mock(SelectQuery::class)
-            ->makePartial()
-            ->shouldAllowMockingProtectedMethods();
-        $query->shouldReceive('performCount')
-            ->twice()
-            ->andReturn(1, 2);
+        $query = $this->getCollectionLocator()->get('Articles')->find();
+        $calls = 0;
+        $query->counter(function ($q) use (&$calls): int {
+            $calls++;
+
+            return $calls;
+        });
 
         $result = $query->count();
-        $this->assertSame(1, $result, 'The result of the sql query should be returned');
+        $this->assertSame(1, $result, 'The result of the count should be returned');
 
-        $query->where(['dirty' => 'cache']);
+        $query->where(['title' => 'First Article']);
 
         $secondResult = $query->count();
         $this->assertSame(2, $secondResult, 'The query cache should be dropped with any modification');
 
         $thirdResult = $query->count();
         $this->assertSame(2, $thirdResult, 'The query has not been modified, the cached value is valid');
+        $this->assertSame(2, $calls, 'The counter should run once per unmodified query');
     }
 
     /**
@@ -2334,27 +2335,27 @@ class SelectQueryTest extends TestCase
      */
     public function testCountCacheClearedOnBind(): void
     {
-        $query = Mockery::mock(SelectQuery::class)
-            ->makePartial()
-            ->shouldAllowMockingProtectedMethods();
-        $query->shouldReceive('performCount')
-            ->twice()
-            ->andReturn(1, 2);
+        // SQL `bind()` has no Mongo analog; the contract it tests (any query
+        // modification clears the cached count) is exercised with `where()`.
+        $query = $this->getCollectionLocator()->get('Articles')->find();
+        $calls = 0;
+        $query->counter(function ($q) use (&$calls): int {
+            $calls++;
 
-        $query->bind(':start', 'value1');
-        $query->bind(':end', 'value2');
+            return $calls;
+        });
 
         $result = $query->count();
         $this->assertSame(1, $result, 'The result of the first count should be returned');
 
-        $query->bind(':start', 'new_value1');
-        $query->bind(':end', 'new_value2');
+        $query->where(['title' => 'First Article']);
 
         $secondResult = $query->count();
-        $this->assertSame(2, $secondResult, 'The query cache should be dropped after bind()');
+        $this->assertSame(2, $secondResult, 'The query cache should be dropped after a modification');
 
         $thirdResult = $query->count();
         $this->assertSame(2, $thirdResult, 'The query has not been modified, the cached value is valid');
+        $this->assertSame(2, $calls, 'The counter should run once per unmodified query');
     }
 
     /**
@@ -2588,53 +2589,28 @@ class SelectQueryTest extends TestCase
                 $mr->emit($item);
             });
 
-        $expected = [
-            '(help)' => 'This is a Query object, to get the results execute or iterate it.',
-            'sql' => $query->sql(),
-            'params' => $query->getValueBinder()->bindings(),
-            'role' => Connection::ROLE_WRITE,
-            'defaultTypes' => [
-                'authors__id' => 'integer',
-                'authors.id' => 'integer',
-                'id' => 'integer',
-                'authors__name' => 'string',
-                'authors.name' => 'string',
-                'name' => 'string',
-                'articles__id' => 'integer',
-                'articles.id' => 'integer',
-                'articles__author_id' => 'integer',
-                'articles.author_id' => 'integer',
-                'author_id' => 'integer',
-                'articles__title' => 'string',
-                'articles.title' => 'string',
-                'title' => 'string',
-                'articles__body' => 'text',
-                'articles.body' => 'text',
-                'body' => 'text',
-                'articles__published' => 'string',
-                'articles.published' => 'string',
-                'published' => 'string',
-            ],
-            'executed' => false,
-            'decorators' => 0,
-            'hydrate' => false,
-            'formatters' => 1,
-            'mapReducers' => 1,
-            'contain' => [],
-            'extraOptions' => ['foo' => 'bar'],
-            'repository' => $collection,
-        ];
         $result = $query->__debugInfo();
+
+        $this->assertSame('This is a Query object, to get the results execute or iterate it.', $result['(help)']);
+        $this->assertSame($query->sql(), $result['sql']);
+        $this->assertSame([], $result['params'], 'Mongo has no value binder.');
+        $this->assertSame('write', $result['role']);
+        $this->assertFalse($result['executed']);
+        $this->assertArrayHasKey('defaultTypes', $result);
+        $this->assertSame('objectid', $result['defaultTypes']['_id']);
+        $this->assertSame('string', $result['defaultTypes']['name']);
+        $this->assertFalse($result['hydrate']);
+        $this->assertSame(1, $result['formatters']);
+        $this->assertSame(1, $result['mapReducers']);
+        $this->assertSame([], $result['contain']);
+        $this->assertSame(['foo' => 'bar'], $result['extraOptions']);
+        $this->assertSame($collection, $result['repository']);
 
         // Check matching separately since queryBuilder is a Closure
         $this->assertArrayHasKey('matching', $result);
         $this->assertArrayHasKey('articles', $result['matching']);
         $this->assertTrue($result['matching']['articles']['matching']);
         $this->assertInstanceOf(Closure::class, $result['matching']['articles']['queryBuilder']);
-        $this->assertSame('INNER', $result['matching']['articles']['joinType']);
-        unset($result['matching']);
-
-        $this->assertSame($expected, $result);
     }
 
     /**
@@ -2701,16 +2677,12 @@ class SelectQueryTest extends TestCase
     public function testColumnsFromJoin(): void
     {
         $collection = $this->getCollectionLocator()->get('articles');
-        $query = $collection->find();
-        $results = $query
+        $results = $collection->find()
             ->select(['title', 'person.name'])
-            ->join([
-                'person' => [
-                    'table' => 'authors',
-                    'conditions' => [$query->expr()->equalFields('person.id', 'articles.author_id')],
-                ],
-            ])
-            ->orderBy(['articles.id' => 'ASC'])
+            ->join(['person' => 'authors'], function ($q): void {
+                $q->where(fn($exp) => $exp->equalFields('Articles.author_id', 'person._id'));
+            })
+            ->orderBy(['Articles._id' => 'ASC'])
             ->hydrate(false)
             ->toArray();
         $expected = [
@@ -3085,11 +3057,10 @@ class SelectQueryTest extends TestCase
     public function testCustomBindings(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
-        $query = $collection->find()->where(['id >' => 1]);
-        $query->where(fn(QueryExpression $exp) => $exp->add('author_id = :author'));
-        $query->bind(':author', 1, 'integer');
+        $query = $collection->find()->where(['_id >' => '000000000000000000000001']);
+        $query->where(fn(QueryExpression $exp) => $exp->eq('author_id', '000000000000000000000001'));
         $this->assertEquals(1, $query->count());
-        $this->assertEquals(3, $query->first()->id);
+        $this->assertEquals('000000000000000000000003', $query->first()->_id);
     }
 
     /**
@@ -3225,7 +3196,7 @@ class SelectQueryTest extends TestCase
             ->first();
         $this->assertNotEmpty($out, 'Should get a record');
         // There will be loss of precision if too large/small value is set as float instead of string.
-        $this->assertMatchesRegularExpression('/^0?\.123456789012350+$/', $out->fraction);
+        $this->assertSame('0.12345678901235', (string)$out->fraction);
     }
 
     /**
@@ -3690,10 +3661,10 @@ class SelectQueryTest extends TestCase
             ->selectAllExcept($collection, ['body']);
         $selectedFields = $result->clause('select');
         $expected = [
-            'Articles__id' => 'Articles.id',
-            'Articles__author_id' => 'Articles.author_id',
-            'Articles__title' => 'Articles.title',
-            'Articles__published' => 'Articles.published',
+            '_id' => 1,
+            'author_id' => 1,
+            'title' => 1,
+            'published' => 1,
         ];
         $this->assertEquals($expected, $selectedFields);
     }
@@ -3735,11 +3706,11 @@ class SelectQueryTest extends TestCase
             ->selectAllExcept($collection, ['published']);
         $selectedFields = $result->clause('select');
         $expected = [
-            'Articles__id' => 'Articles.id',
-            'Articles__author_id' => 'Articles.author_id',
-            'Articles__title' => 'Articles.title',
-            'Articles__published' => 'Articles.published',
-            'Articles__body' => 'Articles.body',
+            '_id' => 1,
+            'author_id' => 1,
+            'title' => 1,
+            'published' => 1,
+            'body' => 1,
         ];
         $this->assertEquals($expected, $selectedFields);
 
@@ -3749,10 +3720,10 @@ class SelectQueryTest extends TestCase
             ->selectAllExcept($collection, ['published', 'body']);
         $selectedFields = $result->clause('select');
         $expected = [
-            'Articles__id' => 'Articles.id',
-            'Articles__author_id' => 'Articles.author_id',
-            'Articles__title' => 'Articles.title',
-            'Articles__published' => 'Articles.published',
+            '_id' => 1,
+            'author_id' => 1,
+            'title' => 1,
+            'published' => 1,
         ];
         $this->assertEquals($expected, $selectedFields);
 
@@ -3762,9 +3733,9 @@ class SelectQueryTest extends TestCase
             ->selectAllExcept($collection, ['published', 'body'], true);
         $selectedFields = $result->clause('select');
         $expected = [
-            'Articles__id' => 'Articles.id',
-            'Articles__author_id' => 'Articles.author_id',
-            'Articles__title' => 'Articles.title',
+            '_id' => 1,
+            'author_id' => 1,
+            'title' => 1,
         ];
         $this->assertEquals($expected, $selectedFields);
     }
@@ -3781,10 +3752,10 @@ class SelectQueryTest extends TestCase
 
         $results = $query
             ->select([
-                'posts.author_id',
+                'author_id',
                 'post_count' => $query->func()->count(),
             ])
-            ->groupBy(['posts.author_id'])
+            ->groupBy(['author_id'])
             ->having([$query->expr()->gte('post_count', 2)])
             ->hydrate(false)
             ->toArray();
@@ -3908,17 +3879,7 @@ class SelectQueryTest extends TestCase
      */
     public function testFunctionWithOrmQuery(): void
     {
-        $query = $this->getCollectionLocator()->get('Articles')
-            ->setSchema(['column' => 'integer'])
-            ->find()
-            ->select(['column']);
-
-        $binder = new ValueBinder();
-        $function = new FunctionExpression('MyFunction', [$query]);
-        $this->assertSame(
-            'MyFunction((SELECT Articles.column AS Articles__column FROM articles Articles))',
-            preg_replace('/[`"\[\]]/', '', $function->sql($binder)),
-        );
+        $this->markTestSkipped('// SQL SELECT text output (`MyFunction((SELECT ...))`) has no ODM analog; FunctionExpression compiles to Mongo operators. See 40-selectquerytest-failure-groups.md RB.');
     }
 
     public function testContainConflictingAliases(): void

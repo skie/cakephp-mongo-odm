@@ -476,6 +476,7 @@ class QueryCompiler
         }
 
         if (is_array($conditions)) {
+            $conditions = $this->flattenExpressions($conditions);
             $conditions = $this->castConditions($conditions, $types);
             $parsed = $this->expressionBuilder->parse($conditions);
             if ($overwrite) {
@@ -487,6 +488,30 @@ class QueryCompiler
         }
 
         return $this;
+    }
+
+    /**
+     * Expands Mongo expression instances nested inside a condition array.
+     *
+     * cake accepts `having([$exp->gte('col', 1)])` — a list wrapping a single
+     * expression — alongside the plain array form. Each nested expression is
+     * replaced by its compiled condition array so downstream parsing sees only
+     * plain Mongo conditions.
+     *
+     * @param array<int|string, mixed> $conditions The raw conditions.
+     * @return array<int|string, mixed>
+     */
+    protected function flattenExpressions(array $conditions): array
+    {
+        foreach ($conditions as $key => $value) {
+            if ($value instanceof MongoExpressionInterface) {
+                $conditions[$key] = $value->getConditions();
+            } elseif (is_array($value)) {
+                $conditions[$key] = $this->flattenExpressions($value);
+            }
+        }
+
+        return $conditions;
     }
 
     /**
@@ -736,7 +761,10 @@ class QueryCompiler
         }
 
         if ($this->projection !== []) {
-            $pipeline[] = ['$project' => $this->projection];
+            $projection = $this->group !== []
+                ? $this->buildGroupProjection()
+                : $this->projection;
+            $pipeline[] = ['$project' => $projection];
         }
 
         if ($this->skip !== null) {
@@ -762,15 +790,75 @@ class QueryCompiler
     protected function buildGroupStage(): array
     {
         if (count($this->group) === 1) {
-            return ['_id' => '$' . ltrim($this->group[0], '$')];
+            $id = '$' . ltrim($this->group[0], '$');
+        } else {
+            $id = [];
+            foreach ($this->group as $field) {
+                $id[$field] = '$' . ltrim($field, '$');
+            }
         }
 
-        $id = [];
-        foreach ($this->group as $field) {
-            $id[$field] = '$' . ltrim($field, '$');
+        $group = ['_id' => $id];
+
+        foreach ($this->projection as $field => $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $operator = key($value);
+            if (!is_string($operator) || !str_starts_with($operator, '$')) {
+                continue;
+            }
+
+            if (in_array($field, $this->group, true)) {
+                continue;
+            }
+
+            $expression = $value;
+            // `COUNT(*)` has no `$group` accumulator; the Mongo analog is `$sum: 1`.
+            if ($operator === '$count' && empty((array)$expression['$count'])) {
+                $expression = ['$sum' => 1];
+            }
+
+            $group[$field] = $expression;
         }
 
-        return ['_id' => $id];
+        return $group;
+    }
+
+    /**
+     * Builds the `$project` stage for a `$group` pipeline.
+     *
+     * After `$group` the source fields live under `_id` and aggregate
+     * expressions are already materialized as accumulator fields, so the raw
+     * projection cannot be applied verbatim. Plain group fields are restored
+     * from `_id`; accumulator fields are passed through; `_id` is dropped.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildGroupProjection(): array
+    {
+        $projection = [];
+        foreach ($this->projection as $field => $value) {
+            $isAggregate = is_array($value)
+                && ($operator = key($value)) !== null
+                && is_string($operator)
+                && str_starts_with($operator, '$');
+
+            if ($isAggregate) {
+                $projection[$field] = 1;
+
+                continue;
+            }
+
+            if (in_array($field, $this->group, true)) {
+                $projection[$field] = count($this->group) === 1 ? '$_id' : '$_id.' . $field;
+            }
+        }
+
+        $projection['_id'] = 0;
+
+        return $projection;
     }
 
     /**
