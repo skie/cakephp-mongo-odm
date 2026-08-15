@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Query;
 
+use ArrayObject;
 use Cake\Collection\Iterator\MapReduce;
 use Cake\Database\ExpressionInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
@@ -45,6 +46,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      * @var \Crustum\Mongo\ODM\EagerLoader
      */
     protected EagerLoader $eagerLoader;
+
+    /**
+     * Whether the `Collection.beforeFind` event has already been fired.
+     *
+     * @var bool
+     */
+    protected bool $beforeFindFired = false;
 
     /**
      * Result formatters applied after hydration.
@@ -783,6 +791,33 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Triggers the `Collection.beforeFind` event on the query's repository.
+     *
+     * Fires at most once per query execution (cake6 `SelectQuery::triggerBeforeFind()`
+     * parity). The repository's behavior/event hooks may modify the query before
+     * it runs.
+     *
+     * @return void
+     */
+    public function triggerBeforeFind(): void
+    {
+        if ($this->beforeFindFired) {
+            return;
+        }
+
+        $this->beforeFindFired = true;
+
+        $repository = $this->getRepository();
+        if ($repository instanceof BaseCollection) {
+            $repository->dispatchEvent('Collection.beforeFind', [
+                $this,
+                new ArrayObject($this->getOptions()),
+                true,
+            ]);
+        }
+    }
+
+    /**
      * Executes and decorates the database query.
      *
      * Rows are hydrated into Documents (or projected into DTOs when configured),
@@ -793,6 +828,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function execute(): mixed
     {
+        $this->triggerBeforeFind();
         $this->addDefaultFields();
 
         if ($this->repository instanceof BaseCollection) {

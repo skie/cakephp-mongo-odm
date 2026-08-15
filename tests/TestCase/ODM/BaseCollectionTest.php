@@ -6155,7 +6155,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testCallbackArgumentTypes(): void
     {
-        $this->markTestSkipped('// Collection.beforeFind not dispatched by ODM SelectQuery (no triggerBeforeFind); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('articles');
         $collection->belongsTo('authors');
 
@@ -6275,19 +6274,19 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveWithClonedDocument(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $article = $collection->get('000000000000000000000001');
 
         $cloned = clone $article;
-        $cloned->unset('id');
+        $cloned->unset('_id');
         $cloned->setNew(true);
         $this->assertSame($cloned, $collection->save($cloned));
         $this->assertEquals(
             $article->extract(['title', 'author_id']),
             $cloned->extract(['title', 'author_id']),
         );
-        $this->assertSame(4, $cloned->getId());
+        $this->assertNotEmpty($cloned->getId());
+        $this->assertNotSame($article->getId(), $cloned->getId());
     }
 
     /**
@@ -6295,12 +6294,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveHasManyWithIds(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $data = [
             'username' => 'lux',
             'password' => 'passphrase',
             'comments' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
             ],
         ];
 
@@ -6308,7 +6306,7 @@ class BaseCollectionTest extends TestCase
         $userCollection->hasMany('Comments');
 
         $savedUser = $userCollection->save($userCollection->newDocument($data, ['associated' => ['Comments']]));
-        $retrievedUser = $userCollection->find('all')->where(['id' => $savedUser->getId()])->contain(['Comments'])->first();
+        $retrievedUser = $userCollection->find('all')->where(['_id' => $savedUser->getId()])->contain(['Comments'])->first();
         $this->assertEquals($savedUser->comments[0]->user_id, $retrievedUser->comments[0]->user_id);
         $this->assertEquals($savedUser->comments[1]->user_id, $retrievedUser->comments[1]->user_id);
     }
@@ -6320,12 +6318,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveHasManyNoWasteSave(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $data = [
             'username' => 'lux',
             'password' => 'passphrase',
             'comments' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
             ],
         ];
 
@@ -6357,12 +6354,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsToManyNoWasteSave(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $data = [
             'title' => 'foo',
             'body' => 'bar',
             'tags' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
             ],
         ];
 
@@ -6391,7 +6387,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveCorrectPrimaryKeyType(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $document = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -6400,7 +6395,8 @@ class BaseCollectionTest extends TestCase
 
         $collection = $this->getCollectionLocator()->get('Users');
         $this->assertSame($document, $collection->save($document));
-        $this->assertSame(self::$nextUserId, $document->getId());
+        $this->assertNotEmpty($document->getId());
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{24}$/', (string)$document->getId());
     }
 
     /**
@@ -6435,7 +6431,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoDocument(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $collection = $this->getCollectionLocator()->get('Authors');
         $collection->hasMany('SiteArticles');
 
@@ -6453,7 +6448,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoWithConditions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// loadInto() with fields/conditions drops the top-level binding key (EagerLoader FK check); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
         $collection->hasMany('SiteArticles');
 
@@ -6491,7 +6486,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadBelongsToDoubleJoin(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// SQL innerJoinWith() double-join + contain on the same association has no ODM $lookup analog; see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Comments');
         $collection->belongsTo('Articles');
 
@@ -6515,7 +6510,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoMany(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $collection = $this->getCollectionLocator()->get('Authors');
         $collection->hasMany('SiteArticles');
 
@@ -6539,7 +6533,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoNestedAssociations(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// loadInto() nested contain (`Articles.Tags`) does not hydrate (EagerLoader normalization gap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
 
         $document = $collection->get('000000000000000000000001');
@@ -6559,7 +6553,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoMultipleTimesWithNestedAssociations(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// loadInto() repeated with nested contain does not hydrate (EagerLoader normalization gap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
 
         // First load some associations
@@ -6586,7 +6580,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveOrFail(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Mongo is schemaless: arbitrary `foo` fields save successfully, so no failure is triggered; see 18-orm-tests-port-plan.md.');
         $this->expectException(PersistenceFailedException::class);
         $this->expectExceptionMessage('Document save failure.');
 
@@ -6694,15 +6688,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteRejectsDocumentFromOtherCollection(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tag = new Tag(['_id' => '000000000000000000000001']);
         $tag->setNew(false);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'Document of class `TestApp\Model\Document\Tag` does not match the entity class '
-            . '`TestApp\Model\Document\Article` configured for table `Articles`.',
+            'Entity of class `TestApp\Model\Document\Tag` does not match the document class '
+            . '`TestApp\Model\Document\Article` configured for collection `Articles`.',
         );
 
         $articles->delete($tag);
