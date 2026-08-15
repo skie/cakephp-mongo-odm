@@ -16,6 +16,8 @@ use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
+use MongoDB\BSON\ObjectId;
+use MongoDB\Driver\Exception\InvalidArgumentException as InvalidArgumentExceptionDriver;
 use SplObjectStorage;
 use Throwable;
 
@@ -1506,6 +1508,102 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Builds a `$filter` expression for conditions on the target collection.
+     *
+     * Containment `conditions` referencing the target (`Tags._id`, ...) filter
+     * the joined target array element-wise, mirroring `junctionCondExpression()`
+     * but addressing `$$item.<field>` on the target documents.
+     *
+     * @param array<int|string, mixed> $conditions The target conditions.
+     * @param string $targetAlias The target alias including the trailing dot.
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    protected function targetCondExpression(
+        array $conditions,
+        string $targetAlias,
+        AggregationBuilder $builder,
+    ): FunctionExpression {
+        $func = $builder->func();
+        $parts = [];
+        foreach ($conditions as $field => $value) {
+            $field = (string)$field;
+            $upper = strtoupper(ltrim($field, '$'));
+            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $parts[] = $this->targetGroupExpression($upper, $value, $targetAlias, $builder);
+                continue;
+            }
+
+            $bare = str_starts_with($field, $targetAlias) ? substr($field, strlen($targetAlias)) : $field;
+            $bare = $bare === 'id' ? '_id' : $bare;
+            $parts[] = $func->eq('$$item.' . $bare, $this->targetCondValue($bare, $value));
+        }
+
+        return $parts === [] ? $func->literal(true) : $func->and($parts);
+    }
+
+    /**
+     * Builds a `$and`/`$or`/`$nor` group expression for target conditions.
+     *
+     * @param string $operator The uppercase conjunction name (AND/OR/NOT).
+     * @param array<int|string, mixed> $conditions The nested condition group.
+     * @param string $targetAlias The target alias including the trailing dot.
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    protected function targetGroupExpression(
+        string $operator,
+        array $conditions,
+        string $targetAlias,
+        AggregationBuilder $builder,
+    ): FunctionExpression {
+        $func = $builder->func();
+        $parts = [];
+        foreach ($conditions as $field => $value) {
+            $field = (string)$field;
+            $upper = strtoupper(ltrim($field, '$'));
+            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+                $parts[] = $this->targetGroupExpression($upper, $value, $targetAlias, $builder);
+                continue;
+            }
+
+            $bare = str_starts_with($field, $targetAlias) ? substr($field, strlen($targetAlias)) : $field;
+            $bare = $bare === 'id' ? '_id' : $bare;
+            $parts[] = $func->eq('$$item.' . $bare, $this->targetCondValue($bare, $value));
+        }
+
+        return match ($operator) {
+            'OR' => $func->or($parts),
+            'NOT' => $func->nor($parts),
+            default => $func->and($parts),
+        };
+    }
+
+    /**
+     * Casts a target condition value to its database representation.
+     *
+     * @param string $field The resolved target field.
+     * @param mixed $value The condition value.
+     * @return mixed
+     */
+    protected function targetCondValue(string $field, mixed $value): mixed
+    {
+        if (
+            $field === '_id'
+            && is_string($value)
+            && preg_match('/^[0-9a-f]{24}$/i', $value) === 1
+        ) {
+            try {
+                return new ObjectId($value);
+            } catch (InvalidArgumentExceptionDriver) {
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
      * Gets the join collection source key.
      *
      * @return string|null
@@ -1640,6 +1738,21 @@ class BelongsToMany extends Association
                     $this->junctionCondExpression($junctionConditions, $junctionAlias, $builder),
                 ),
             );
+        }
+
+        $targetConditions = $pipelineOptions['conditions'] ?? [];
+        if (empty($options['matching']) && is_array($targetConditions) && $targetConditions !== []) {
+            $property = $this->getProperty();
+            $targetAlias = $target->getAlias() . '.';
+            $builder->addFields()->field(
+                $property,
+                $builder->func()->filter(
+                    '$' . $property,
+                    'item',
+                    $this->targetCondExpression($targetConditions, $targetAlias, $builder),
+                ),
+            );
+            unset($pipelineOptions['conditions']);
         }
 
         if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {

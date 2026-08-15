@@ -70,6 +70,12 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **BelongsToMany contain conditions (doc 40, G2/G3)** —
+  `BelongsToMany::buildPipeline()` filters the joined target array element-wise
+  (`$filter` on `$$item.<field>`) for non-matching containment `conditions`
+  (e.g. `Tags._id => ...`), mirroring the junction filter; hex `_id` condition
+  values cast to `ObjectId`. `testBelongsToManyEagerLoadingNoHydration` both
+  strategies green.
 - **Matching `_matchingData` + BSON date cast (doc 40, G3)** —
   `ResultSet::groupResult()` and the new `applyMatchingData()` (unhydrated) key
   `_matchingData` by the association **alias** (`Comments`) instead of the
