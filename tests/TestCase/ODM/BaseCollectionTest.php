@@ -210,15 +210,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testTableQuery(): void
     {
-        $table = new BaseCollection(['collection' => 'users']);
+        $collection = new BaseCollection(['collection' => 'users']);
 
-        $query = $table->query();
+        $query = $collection->query();
         $this->assertEquals('users', $query->getRepository()->getCollection());
 
-        $query = $table->selectQuery();
+        $query = $collection->selectQuery();
         $this->assertEquals('users', $query->getRepository()->getCollection());
 
-        $query = $table->subquery();
+        $query = $collection->subquery();
         $this->assertEquals('users', $query->getRepository()->getCollection());
     }
 
@@ -280,27 +280,27 @@ class BaseCollectionTest extends TestCase
      */
     public function testTableMethod(): void
     {
-        $table = new BaseCollection(['collection' => 'users']);
-        $this->assertSame('users', $table->getCollection());
+        $collection = new BaseCollection(['collection' => 'users']);
+        $this->assertSame('users', $collection->getCollection());
 
-        $table = new UsersCollection();
-        $this->assertSame('users', $table->getCollection());
+        $collection = new UsersCollection();
+        $this->assertSame('users', $collection->getCollection());
 
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['find'])
             ->setMockClassName('SpecialThingsCollection')
             ->getMock();
-        $this->assertSame('special_things', $table->getCollection());
+        $this->assertSame('special_things', $collection->getCollection());
 
-        $table = new BaseCollection(['alias' => 'LoveBoats']);
-        $this->assertSame('love_boats', $table->getCollection());
+        $collection = new BaseCollection(['alias' => 'LoveBoats']);
+        $this->assertSame('love_boats', $collection->getCollection());
 
-        $table->setCollection('other');
-        $this->assertSame('other', $table->getCollection());
+        $collection->setCollection('other');
+        $this->assertSame('other', $collection->getCollection());
 
-        $table->setCollection('database.other');
-        $this->assertSame('database.other', $table->getCollection());
+        $collection->setCollection('database.other');
+        $this->assertSame('database.other', $collection->getCollection());
     }
 
     /**
@@ -308,24 +308,24 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetAlias(): void
     {
-        $table = new BaseCollection(['alias' => 'users']);
-        $this->assertSame('users', $table->getAlias());
+        $collection = new BaseCollection(['alias' => 'users']);
+        $this->assertSame('users', $collection->getAlias());
 
-        $table = new BaseCollection(['collection' => 'stuffs']);
-        $this->assertSame('stuffs', $table->getAlias());
+        $collection = new BaseCollection(['collection' => 'stuffs']);
+        $this->assertSame('stuffs', $collection->getAlias());
 
-        $table = new UsersCollection();
-        $this->assertSame('Users', $table->getAlias());
+        $collection = new UsersCollection();
+        $this->assertSame('Users', $collection->getAlias());
 
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['find'])
             ->setMockClassName('SpecialThingCollection')
             ->getMock();
-        $this->assertSame('SpecialThing', $table->getAlias());
+        $this->assertSame('SpecialThing', $collection->getAlias());
 
-        $table->setAlias('AnotherOne');
-        $this->assertSame('AnotherOne', $table->getAlias());
+        $collection->setAlias('AnotherOne');
+        $this->assertSame('AnotherOne', $collection->getAlias());
     }
 
     public function testGetAliasException(): void
@@ -333,8 +333,8 @@ class BaseCollectionTest extends TestCase
         $this->expectException(CakeException::class);
         $this->expectExceptionMessage('You must specify either the `alias` or the `collection` option for the constructor.');
 
-        $table = new BaseCollection();
-        $table->getAlias();
+        $collection = new BaseCollection();
+        $collection->getAlias();
     }
 
     public function testGetTableException(): void
@@ -342,8 +342,8 @@ class BaseCollectionTest extends TestCase
         $this->expectException(CakeException::class);
         $this->expectExceptionMessage('You must specify either the `alias` or the `collection` option for the constructor.');
 
-        $table = new BaseCollection();
-        $table->getCollection();
+        $collection = new BaseCollection();
+        $collection->getCollection();
     }
 
     /**
@@ -351,10 +351,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testAliasField(): void
     {
-        $table = new BaseCollection(['alias' => 'Users']);
-        $this->assertSame('Users.id', $table->aliasField('id'));
+        $collection = new BaseCollection(['alias' => 'Users']);
+        $this->assertSame('Users.id', $collection->aliasField('id'));
 
-        $this->assertSame('Users.id', $table->aliasField('Users.id'));
+        $this->assertSame('Users.id', $collection->aliasField('Users.id'));
     }
 
     /**
@@ -362,10 +362,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetConnection(): void
     {
-        $table = new BaseCollection(['collection' => 'users']);
-        $this->assertSame($this->connection, $table->getConnection());
-        $this->assertSame($table, $table->setConnection($this->connection));
-        $this->assertSame($this->connection, $table->getConnection());
+        $collection = new BaseCollection(['collection' => 'users']);
+        $this->assertSame($this->connection, $collection->getConnection());
+        $this->assertSame($collection, $collection->setConnection($this->connection));
+        $this->assertSame($this->connection, $collection->getConnection());
     }
 
     /**
@@ -373,7 +373,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetPrimaryKey(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -381,12 +381,12 @@ class BaseCollectionTest extends TestCase
             ],
         ]);
         // Mongo identity is always `_id`; the schema `primary` constraint is SQL-only.
-        $this->assertSame('_id', $table->getPrimaryKey());
-        $this->assertSame($table, $table->setPrimaryKey('thingID'));
-        $this->assertSame('thingID', $table->getPrimaryKey());
+        $this->assertSame('_id', $collection->getPrimaryKey());
+        $this->assertSame($collection, $collection->setPrimaryKey('thingID'));
+        $this->assertSame('thingID', $collection->getPrimaryKey());
 
-        $table->setPrimaryKey(['thingID', 'user_id']);
-        $this->assertEquals(['thingID', 'user_id'], $table->getPrimaryKey());
+        $collection->setPrimaryKey(['thingID', 'user_id']);
+        $this->assertEquals(['thingID', 'user_id'], $collection->getPrimaryKey());
     }
 
     /**
@@ -394,14 +394,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplayFieldName(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'foo' => ['type' => 'string'],
                 'name' => ['type' => 'string'],
             ],
         ]);
-        $this->assertSame('name', $table->getDisplayField());
+        $this->assertSame('name', $collection->getDisplayField());
     }
 
     /**
@@ -409,14 +409,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplayFieldTitle(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'foo' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
             ],
         ]);
-        $this->assertSame('title', $table->getDisplayField());
+        $this->assertSame('title', $collection->getDisplayField());
     }
 
     /**
@@ -424,14 +424,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplayFieldLabel(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'foo' => ['type' => 'string'],
                 'label' => ['type' => 'string'],
             ],
         ]);
-        $this->assertSame('label', $table->getDisplayField());
+        $this->assertSame('label', $collection->getDisplayField());
     }
 
     /**
@@ -439,7 +439,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplayNameFallback(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -447,9 +447,9 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('custom_title', $table->getDisplayField());
+        $this->assertSame('custom_title', $collection->getDisplayField());
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -458,9 +458,9 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('name', $table->getDisplayField());
+        $this->assertSame('name', $collection->getDisplayField());
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -469,9 +469,9 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('custom_name', $table->getDisplayField());
+        $this->assertSame('custom_name', $collection->getDisplayField());
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -480,9 +480,9 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('custom_name', $table->getDisplayField());
+        $this->assertSame('custom_name', $collection->getDisplayField());
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'integer'],
@@ -493,7 +493,7 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('_id', $table->getDisplayField());
+        $this->assertSame('_id', $collection->getDisplayField());
     }
 
     /**
@@ -501,7 +501,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplayIdFallback(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'string'],
@@ -509,10 +509,10 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('id', $table->getDisplayField());
+        $this->assertSame('id', $collection->getDisplayField());
 
-        $table = $this->getCollectionLocator()->get('ArticlesTags');
-        $this->assertSame('_id', $table->getDisplayField());
+        $collection = $this->getCollectionLocator()->get('ArticlesTags');
+        $this->assertSame('_id', $collection->getDisplayField());
     }
 
     /**
@@ -520,7 +520,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testDisplaySet(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'schema' => [
                 'id' => ['type' => 'string'],
@@ -528,9 +528,9 @@ class BaseCollectionTest extends TestCase
                 '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['id']]],
             ],
         ]);
-        $this->assertSame('id', $table->getDisplayField());
-        $table->setDisplayField('foo');
-        $this->assertSame('foo', $table->getDisplayField());
+        $this->assertSame('id', $collection->getDisplayField());
+        $collection->setDisplayField('foo');
+        $this->assertSame('foo', $collection->getDisplayField());
     }
 
     /**
@@ -538,16 +538,16 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetSchema(): void
     {
-        $table = new BaseCollection(['collection' => 'stuff']);
-        $table->setSchemaFromArray(['id' => ['type' => 'integer']]);
-        $schema = $table->getSchema();
+        $collection = new BaseCollection(['collection' => 'stuff']);
+        $collection->setSchemaFromArray(['id' => ['type' => 'integer']]);
+        $schema = $collection->getSchema();
         $this->assertInstanceOf(CollectionSchema::class, $schema);
         $this->assertSame(['id'], $schema->columns());
 
-        $table = new BaseCollection(['collection' => 'another']);
+        $collection = new BaseCollection(['collection' => 'another']);
         $schema = ['id' => ['type' => 'integer']];
-        $table->setSchemaFromArray($schema);
-        $this->assertSame('integer', $table->getSchema()->getColumnType('id'));
+        $collection->setSchemaFromArray($schema);
+        $this->assertSame('integer', $collection->getSchema()->getColumnType('id'));
     }
 
     /**
@@ -561,7 +561,7 @@ class BaseCollectionTest extends TestCase
                 'type' => 'string',
             ],
         ]);
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'very_long_alias_name',
             'connection' => $this->connection,
         ]);
@@ -578,19 +578,19 @@ class BaseCollectionTest extends TestCase
             );
         }
 
-        $this->assertNotNull($table->setSchema($schema));
+        $this->assertNotNull($collection->setSchema($schema));
     }
 
     public function testSchemaTypeOverrideInInitialize(): void
     {
-        $table = new class (['alias' => 'Users', 'collection' => 'users', 'connection' => $this->connection]) extends BaseCollection {
+        $collection = new class (['alias' => 'Users', 'collection' => 'users', 'connection' => $this->connection]) extends BaseCollection {
             public function initialize(array $config): void
             {
                 $this->getSchema()->setColumnType('username', 'foobar');
             }
         };
 
-        $result = $table->getSchema();
+        $result = $collection->getSchema();
         $this->assertSame('foobar', $result->getColumnType('username'));
     }
 
@@ -601,11 +601,11 @@ class BaseCollectionTest extends TestCase
     public function testFindAllNoFieldsAndNoHydration(): void
     {
         $this->markTestSkipped('// Unhydrated results return raw strings for datetime fields (F16, needs unhydrated type casting); see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $results = $table
+        $results = $collection
             ->find('all')
             ->where(['_id IN' => ['000000000000000000000001', '000000000000000000000002']])
             ->orderBy('_id')
@@ -636,11 +636,11 @@ class BaseCollectionTest extends TestCase
     public function testFindAllSomeFieldsNoHydration(): void
     {
         $this->markTestSkipped('// Mongo projection semantics gap (F16): ODM select() must exclude `_id` and alias fields without leaking into the Database QueryCompiler layer.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $results = $table->find('all')
+        $results = $collection->find('all')
             ->select(['username', 'password'])
             ->enableHydration(false)
             ->orderBy('username')->toArray();
@@ -652,7 +652,7 @@ class BaseCollectionTest extends TestCase
         ];
         $this->assertSame($expected, $results);
 
-        $results = $table->find('all')
+        $results = $collection->find('all')
             ->select(['foo' => 'username', 'password'])
             ->orderBy('username')
             ->enableHydration(false)
@@ -673,11 +673,11 @@ class BaseCollectionTest extends TestCase
     public function testFindAllConditionAutoTypes(): void
     {
         $this->markTestSkipped('// DateTime condition casting in where() is not applied for datetime fields (F16); see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $query = $table->find('all')
+        $query = $collection->find('all')
             ->select(['id', 'username'])
             ->where(['created >=' => new DateTime('2010-01-22 00:00')])
             ->enableHydration(false)
@@ -688,7 +688,7 @@ class BaseCollectionTest extends TestCase
         ];
         $this->assertSame($expected, $query->toArray());
 
-        $query = $table->find()
+        $query = $collection->find()
             ->enableHydration(false)
             ->select(['id', 'username'])
             ->where(['OR' => [
@@ -710,18 +710,18 @@ class BaseCollectionTest extends TestCase
     public function testFindBeforeFindEventMutateQuery(): void
     {
         $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind); see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $table->getEventManager()->on(
+        $collection->getEventManager()->on(
             'Collection.beforeFind',
             function (EventInterface $event, $query, $options): void {
                 $query->limit(1);
             },
         );
 
-        $result = $table->find('all')->all();
+        $result = $collection->find('all')->all();
         $this->assertCount(1, $result, 'Should only have 1 record, limit 1 applied.');
     }
 
@@ -732,12 +732,12 @@ class BaseCollectionTest extends TestCase
     public function testFindBeforeFindEventOverrideReturn(): void
     {
         $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind/setResult); see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $expected = ['One', 'Two', 'Three'];
-        $table->getEventManager()->on(
+        $collection->getEventManager()->on(
             'Collection.beforeFind',
             function (EventInterface $event, $query, $options) use ($expected): void {
                 $query->setResult($expected);
@@ -745,7 +745,7 @@ class BaseCollectionTest extends TestCase
             },
         );
 
-        $query = $table->find('all')
+        $query = $collection->find('all')
             ->formatResults(fn(ResultSet $results): ResultSet => $results);
         $query->limit(1);
         $this->assertEquals($expected, $query->all()->toArray());
@@ -804,14 +804,14 @@ class BaseCollectionTest extends TestCase
     public function testBelongsTo(): void
     {
         $options = ['foreignKey' => 'fake_id', 'conditions' => ['a' => 'b']];
-        $table = new BaseCollection(['collection' => 'dates']);
-        $belongsTo = $table->belongsTo('user', $options);
+        $collection = new BaseCollection(['collection' => 'dates']);
+        $belongsTo = $collection->belongsTo('user', $options);
         $this->assertInstanceOf(BelongsTo::class, $belongsTo);
-        $this->assertSame($belongsTo, $table->getAssociation('user'));
+        $this->assertSame($belongsTo, $collection->getAssociation('user'));
         $this->assertSame('user', $belongsTo->getName());
         $this->assertSame('fake_id', $belongsTo->getForeignKey());
         $this->assertEquals(['a' => 'b'], $belongsTo->getConditions());
-        $this->assertSame($table, $belongsTo->getSource());
+        $this->assertSame($collection, $belongsTo->getSource());
     }
 
     /**
@@ -819,14 +819,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasOne(): void
     {
-        $table = new BaseCollection(['collection' => 'users']);
-        $hasOne = $table->hasOne('profile', ['conditions' => ['b' => 'c']]);
+        $collection = new BaseCollection(['collection' => 'users']);
+        $hasOne = $collection->hasOne('profile', ['conditions' => ['b' => 'c']]);
         $this->assertInstanceOf(HasOne::class, $hasOne);
-        $this->assertSame($hasOne, $table->getAssociation('profile'));
+        $this->assertSame($hasOne, $collection->getAssociation('profile'));
         $this->assertSame('profile', $hasOne->getName());
         $this->assertSame('user_id', $hasOne->getForeignKey());
         $this->assertEquals(['b' => 'c'], $hasOne->getConditions());
-        $this->assertSame($table, $hasOne->getSource());
+        $this->assertSame($collection, $hasOne->getSource());
     }
 
     /**
@@ -834,18 +834,18 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasOnePlugin(): void
     {
-        $table = new BaseCollection(['collection' => 'users']);
+        $collection = new BaseCollection(['collection' => 'users']);
 
-        $hasOne = $table->hasOne('Comments', ['className' => 'TestPlugin.Comments']);
+        $hasOne = $collection->hasOne('Comments', ['className' => 'TestPlugin.Comments']);
         $this->assertInstanceOf(HasOne::class, $hasOne);
         $this->assertSame('Comments', $hasOne->getName());
 
         $this->assertSame('Comments', $hasOne->getAlias());
         $this->assertSame('TestPlugin.Comments', $hasOne->getRegistryAlias());
 
-        $table = new BaseCollection(['collection' => 'users']);
+        $collection = new BaseCollection(['collection' => 'users']);
 
-        $hasOne = $table->hasOne('TestPlugin.Comments', ['className' => 'TestPlugin.Comments']);
+        $hasOne = $collection->hasOne('TestPlugin.Comments', ['className' => 'TestPlugin.Comments']);
         $this->assertInstanceOf(HasOne::class, $hasOne);
         $this->assertSame('Comments', $hasOne->getName());
 
@@ -936,15 +936,15 @@ class BaseCollectionTest extends TestCase
             'conditions' => ['b' => 'c'],
             'sort' => ['foo' => 'asc'],
         ];
-        $table = new BaseCollection(['collection' => 'authors']);
-        $hasMany = $table->hasMany('article', $options);
+        $collection = new BaseCollection(['collection' => 'authors']);
+        $hasMany = $collection->hasMany('article', $options);
         $this->assertInstanceOf(HasMany::class, $hasMany);
-        $this->assertSame($hasMany, $table->getAssociation('article'));
+        $this->assertSame($hasMany, $collection->getAssociation('article'));
         $this->assertSame('article', $hasMany->getName());
         $this->assertSame('author_id', $hasMany->getForeignKey());
         $this->assertEquals(['b' => 'c'], $hasMany->getConditions());
         $this->assertEquals(['foo' => 'asc'], $hasMany->getSort());
-        $this->assertSame($table, $hasMany->getSource());
+        $this->assertSame($collection, $hasMany->getSource());
     }
 
     /**
@@ -953,12 +953,12 @@ class BaseCollectionTest extends TestCase
     public function testHasManyWithClassName(): void
     {
         $this->markTestSkipped('// Eager loader FK-selection check: select() must auto-include the binding key for contained associations (F17); see 18-orm-tests-port-plan.md.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments', [
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments', [
             'conditions' => ['published' => 'Y'],
         ]);
 
-        $table->hasMany('UnapprovedComments', [
+        $collection->hasMany('UnapprovedComments', [
             'className' => 'Comments',
             'conditions' => ['published' => 'N'],
             'propertyName' => 'unaproved_comments',
@@ -992,7 +992,7 @@ class BaseCollectionTest extends TestCase
                 ],
             ],
         ];
-        $result = $table->find()
+        $result = $collection->find()
             ->select(['id', 'title'])
             ->contain([
                 'Comments' => ['fields' => ['id', 'article_id', 'comment']],
@@ -1012,11 +1012,11 @@ class BaseCollectionTest extends TestCase
         $this->getCollectionLocator()->get('Comments');
         $this->loadPlugins(['TestPlugin']);
 
-        $table = new BaseCollection(['collection' => 'authors']);
+        $collection = new BaseCollection(['collection' => 'authors']);
 
-        $table->hasMany('TestPlugin.Comments');
+        $collection->hasMany('TestPlugin.Comments');
 
-        $comments = $table->Comments->getTarget();
+        $comments = $collection->Comments->getTarget();
         $this->assertInstanceOf(CommentsCollection::class, $comments);
     }
 
@@ -1029,11 +1029,11 @@ class BaseCollectionTest extends TestCase
         $this->getCollectionLocator()->get('Comments');
         $this->loadPlugins(['TestPlugin']);
 
-        $table = new BaseCollection(['collection' => 'authors']);
+        $collection = new BaseCollection(['collection' => 'authors']);
 
-        $table->hasMany('Comments', ['className' => 'TestPlugin.Comments']);
+        $collection->hasMany('Comments', ['className' => 'TestPlugin.Comments']);
 
-        $comments = $table->Comments->getTarget();
+        $comments = $collection->Comments->getTarget();
         $this->assertInstanceOf(CommentsCollection::class, $comments);
     }
 
@@ -1048,15 +1048,15 @@ class BaseCollectionTest extends TestCase
             'conditions' => ['b' => 'c'],
             'sort' => ['foo' => 'asc'],
         ];
-        $table = new BaseCollection(['collection' => 'authors', 'connection' => $this->connection]);
-        $belongsToMany = $table->belongsToMany('tag', $options);
+        $collection = new BaseCollection(['collection' => 'authors', 'connection' => $this->connection]);
+        $belongsToMany = $collection->belongsToMany('tag', $options);
         $this->assertInstanceOf(BelongsToMany::class, $belongsToMany);
-        $this->assertSame($belongsToMany, $table->getAssociation('tag'));
+        $this->assertSame($belongsToMany, $collection->getAssociation('tag'));
         $this->assertSame('tag', $belongsToMany->getName());
         $this->assertSame('thing_id', $belongsToMany->getForeignKey());
         $this->assertEquals(['b' => 'c'], $belongsToMany->getConditions());
         $this->assertEquals(['foo' => 'asc'], $belongsToMany->getSort());
-        $this->assertSame($table, $belongsToMany->getSource());
+        $this->assertSame($collection, $belongsToMany->getSource());
         $this->assertSame('things_tags', $belongsToMany->junction()->getCollection());
     }
 
@@ -1081,18 +1081,18 @@ class BaseCollectionTest extends TestCase
             ],
         ];
 
-        $table = new BaseCollection(['collection' => 'members']);
-        $result = $table->addAssociations($params);
-        $this->assertSame($table, $result);
+        $collection = new BaseCollection(['collection' => 'members']);
+        $result = $collection->addAssociations($params);
+        $this->assertSame($collection, $result);
 
-        $associations = $table->associations();
+        $associations = $collection->associations();
 
         $belongsTo = $associations->get('users');
         $this->assertInstanceOf(BelongsTo::class, $belongsTo);
         $this->assertSame('users', $belongsTo->getName());
         $this->assertSame('fake_id', $belongsTo->getForeignKey());
         $this->assertEquals(['a' => 'b'], $belongsTo->getConditions());
-        $this->assertSame($table, $belongsTo->getSource());
+        $this->assertSame($collection, $belongsTo->getSource());
 
         $hasOne = $associations->get('profiles');
         $this->assertInstanceOf(HasOne::class, $hasOne);
@@ -1115,12 +1115,12 @@ class BaseCollectionTest extends TestCase
     public function testUpdateAll(): void
     {
         $this->markTestSkipped('// Mongo projection semantics gap (F16): select() must exclude `_id` from results; see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $fields = ['username' => 'mark'];
-        $result = $table->updateAll($fields, [
+        $result = $collection->updateAll($fields, [
             '_id' => [
                 '$in' => [
                     '000000000000000000000001',
@@ -1131,7 +1131,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $this->assertSame(3, $result);
 
-        $result = $table->find('all')
+        $result = $collection->find('all')
             ->select(['username', '_id' => '000000000000000000000000'])
             ->orderBy(['_id' => 'asc'])
             ->enableHydration(false)
@@ -1144,7 +1144,7 @@ class BaseCollectionTest extends TestCase
     public function testUpdateExpression(): void
     {
         $this->markTestSkipped('// SQL `field = field + 1` expression needs $inc mapping in ODM update compiler; see 18-orm-tests-port-plan.md.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'counter_cache_users',
             'connection' => $this->connection,
         ]);
@@ -1154,9 +1154,9 @@ class BaseCollectionTest extends TestCase
             'comment_count' => 0,
             'posts_published' => 0,
         ]);
-        $table->save($document);
+        $collection->save($document);
         $expression = new QueryExpression(['post_count = post_count + 1']);
-        $result = $table->updateAll([$expression], ['_id' => '000000000000000000000001']);
+        $result = $collection->updateAll([$expression], ['_id' => '000000000000000000000001']);
         $this->assertNotEmpty($result);
     }
 
@@ -1165,12 +1165,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testUpdateAllWithExpressionConditions(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $conditions = new ComparisonExpression('_id', '000000000000000000000001', '<');
-        $result = $table->updateAll(['username' => 'changed'], $conditions);
+        $result = $collection->updateAll(['username' => 'changed'], $conditions);
         $this->assertSame(0, $result);
     }
 
@@ -1180,15 +1180,15 @@ class BaseCollectionTest extends TestCase
     public function testUpdateAllFailure(): void
     {
         $this->expectException(DatabaseException::class);
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['updateQuery'])
             ->setConstructorArgs([['collection' => 'users']])
             ->getMock();
         $query = $this->getMockBuilder(UpdateQuery::class)
             ->onlyMethods(['execute'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->expects($this->once())
+        $collection->expects($this->once())
             ->method('updateQuery')
             ->willReturn($query);
 
@@ -1196,7 +1196,7 @@ class BaseCollectionTest extends TestCase
             ->method('execute')
             ->will($this->throwException(new DatabaseException('Not good')));
 
-        $table->updateAll(['username' => 'mark'], []);
+        $collection->updateAll(['username' => 'mark'], []);
     }
 
     /**
@@ -1204,11 +1204,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteAll(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $result = $table->deleteAll([
+        $result = $collection->deleteAll([
             '_id' => [
                 '$in' => [
                     '000000000000000000000001',
@@ -1219,7 +1219,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $this->assertSame(3, $result);
 
-        $result = $table->find('all')->toArray();
+        $result = $collection->find('all')->toArray();
         $this->assertCount(1, $result, 'Only one record should remain');
         $this->assertSame('000000000000000000000004', $result[0]['_id']);
     }
@@ -1229,12 +1229,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteAllAliasedConditions(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'alias' => 'Managers',
             'connection' => $this->connection,
         ]);
-        $result = $table->deleteAll([
+        $result = $collection->deleteAll([
             'Managers._id' => [
                 '$in' => [
                     '000000000000000000000001',
@@ -1245,7 +1245,7 @@ class BaseCollectionTest extends TestCase
         ]);
         $this->assertSame(3, $result);
 
-        $result = $table->find('all')->toArray();
+        $result = $collection->find('all')->toArray();
         $this->assertCount(1, $result, 'Only one record should remain');
         $this->assertSame('000000000000000000000004', $result[0]['_id']);
     }
@@ -1255,15 +1255,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteAllWithExpressionConditions(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $conditions = new ComparisonExpression('_id', '000000000000000000000004', '<');
-        $result = $table->deleteAll($conditions);
+        $result = $collection->deleteAll($conditions);
         $this->assertSame(3, $result);
 
-        $result = $table->find('all')->toArray();
+        $result = $collection->find('all')->toArray();
         $this->assertCount(1, $result, 'Only one record should remain');
         $this->assertSame('000000000000000000000004', $result[0]['_id']);
     }
@@ -1274,15 +1274,15 @@ class BaseCollectionTest extends TestCase
     public function testDeleteAllFailure(): void
     {
         $this->expectException(DatabaseException::class);
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['deleteQuery'])
             ->setConstructorArgs([['collection' => 'users']])
             ->getMock();
         $query = $this->getMockBuilder(DeleteQuery::class)
             ->onlyMethods(['execute'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->expects($this->once())
+        $collection->expects($this->once())
             ->method('deleteQuery')
             ->willReturn($query);
 
@@ -1290,7 +1290,7 @@ class BaseCollectionTest extends TestCase
             ->method('execute')
             ->will($this->throwException(new DatabaseException('Not good')));
 
-        $table->deleteAll(['id >' => 4]);
+        $collection->deleteAll(['id >' => 4]);
     }
 
     /**
@@ -1298,14 +1298,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindApplyOptions(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery', 'findAll'])
             ->setConstructorArgs([['collection' => 'users', 'connection' => $this->connection]])
             ->getMock();
         $query = $this->getMockBuilder(SelectQuery::class)
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->expects($this->once())
+        $collection->expects($this->once())
             ->method('selectQuery')
             ->willReturn($query);
 
@@ -1319,8 +1319,8 @@ class BaseCollectionTest extends TestCase
             ->method('applyOptions')
             ->with($options);
 
-        $table->expects($this->once())->method('findAll');
-        $table->find('all', ...$options);
+        $collection->expects($this->once())->method('findAll');
+        $collection->find('all', ...$options);
     }
 
     /**
@@ -1384,13 +1384,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListNoHydration(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $table->setDisplayField('username');
+        $collection->setDisplayField('username');
 
-        $query = $table->find('list')
+        $query = $collection->find('list')
             ->enableHydration(false)
             ->orderBy('_id');
         $expected = [
@@ -1401,7 +1401,7 @@ class BaseCollectionTest extends TestCase
         ];
         $this->assertSame($expected, $query->toArray());
 
-        $query = $table->find('list', fields: ['_id', 'username'])
+        $query = $collection->find('list', fields: ['_id', 'username'])
             ->enableHydration(false)
             ->orderBy('_id');
         $expected = [
@@ -1422,20 +1422,20 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListGroupField(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $table->setDisplayField('username');
+        $collection->setDisplayField('username');
 
-        $query = $table->find('all');
+        $query = $collection->find('all');
         $func = $query->func();
         $str = $func->toString('$_id');
         $lastIndex = $func->subtract($func->strLenCP($str), 1);
         $lastChar = $func->toInt($func->substr($str, $lastIndex, 1));
         $odd = $func->mod($lastChar, 2);
 
-        $query = $table->find('list', groupField: 'odd')
+        $query = $collection->find('list', groupField: 'odd')
             ->select(['_id', 'username', 'odd' => $odd])
             ->enableHydration(false)
             ->orderBy('_id');
@@ -1457,7 +1457,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindThreadedNoHydration(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'categories',
             'connection' => $this->connection,
         ]);
@@ -1514,7 +1514,7 @@ class BaseCollectionTest extends TestCase
                 ],
             ],
         ];
-        $results = $table->find('all')
+        $results = $collection->find('all')
             ->select(['id', 'parent_id', 'name'])
             ->enableHydration(false)
             ->find('threaded')
@@ -1528,26 +1528,26 @@ class BaseCollectionTest extends TestCase
      */
     public function testStackingFinders(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['find', 'findList'])
             ->disableOriginalConstructor()
             ->getMock();
         $query = $this->getMockBuilder(SelectQuery::class)
             ->onlyMethods(['addDefaultTypes'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
 
-        $table->expects($this->once())
+        $collection->expects($this->once())
             ->method('find')
             ->with('threaded', ['order' => ['name' => 'ASC']])
             ->willReturn($query);
 
-        $table->expects($this->once())
+        $collection->expects($this->once())
             ->method('findList')
             ->with($query, 'id')
             ->willReturn($query);
 
-        $result = $table
+        $result = $collection
             ->find('threaded', ['order' => ['name' => 'ASC']])
             ->find('list', keyField: 'id');
         $this->assertSame($query, $result);
@@ -1558,11 +1558,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindThreadedHydrated(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'categories',
             'connection' => $this->connection,
         ]);
-        $results = $table->find('all')
+        $results = $collection->find('all')
             ->find('threaded')
             ->select(['_id', 'parent_id', 'name'])
             ->toArray();
@@ -1582,13 +1582,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListHydrated(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $table->setDisplayField('username');
+        $collection->setDisplayField('username');
 
-        $query = $table
+        $query = $collection
             ->find('list', fields: ['_id', 'username'])
             ->orderBy('_id');
         $expected = [
@@ -1605,23 +1605,23 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListSelectedFields(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
-        $table->setDisplayField('username');
+        $collection->setDisplayField('username');
 
-        $query = $table->find('list');
+        $query = $collection->find('list');
         // ODM clause('select') is the Mongo projection map {field: 1}.
         $expected = ['_id' => 1, 'username' => 1];
         $this->assertSame($expected, $query->clause('select'));
 
-        $query = $table->find('list', valueField: fn($row) => $row->username);
+        $query = $collection->find('list', valueField: fn($row) => $row->username);
         $this->assertEmpty($query->clause('select'));
 
         $oddExpression = new QueryExpression('id % 2');
         $expected = ['odd' => $oddExpression, '_id' => 1, 'username' => 1];
-        $query = $table->find('list', fields: ['odd' => $oddExpression, '_id', 'username'], groupField: 'odd');
+        $query = $collection->find('list', fields: ['odd' => $oddExpression, '_id', 'username'], groupField: 'odd');
         $this->assertSame($expected, $query->clause('select'));
 
         $articles = new BaseCollection([
@@ -1661,14 +1661,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindListWithVirtualField(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
             'entityClass' => VirtualUser::class,
         ]);
-        $table->setDisplayField('bonus');
+        $collection->setDisplayField('bonus');
 
-        $query = $table
+        $query = $collection
             ->find('list')
             ->orderBy('_id');
         $this->assertEmpty($query->clause('select'));
@@ -1681,7 +1681,7 @@ class BaseCollectionTest extends TestCase
         ];
         $this->assertSame($expected, $query->toArray());
 
-        $query = $table->find('list', groupField: 'odd');
+        $query = $collection->find('list', groupField: 'odd');
         $this->assertEmpty($query->clause('select'));
     }
 
@@ -1715,8 +1715,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testDocumentClassDefault(): void
     {
-        $table = new BaseCollection();
-        $this->assertSame(Document::class, $table->getDocumentClass());
+        $collection = new BaseCollection();
+        $this->assertSame(Document::class, $collection->getDocumentClass());
     }
 
     /**
@@ -1731,9 +1731,9 @@ class BaseCollectionTest extends TestCase
             class_alias($class, 'TestApp\Model\Document\TestUser');
         }
 
-        $table = new BaseCollection();
-        $this->assertSame($table, $table->setDocumentClass('TestUser'));
-        $this->assertSame('TestApp\Model\Document\TestUser', $table->getDocumentClass());
+        $collection = new BaseCollection();
+        $this->assertSame($collection, $collection->setDocumentClass('TestUser'));
+        $this->assertSame('TestApp\Model\Document\TestUser', $collection->getDocumentClass());
     }
 
     /**
@@ -1747,15 +1747,15 @@ class BaseCollectionTest extends TestCase
             class_alias($class, 'TestApp\Model\Document\CustomCookie');
         }
 
-        $table = $this->getCollectionLocator()->get('CustomCookies');
-        $this->assertSame('TestApp\Model\Document\CustomCookie', $table->getDocumentClass());
+        $collection = $this->getCollectionLocator()->get('CustomCookies');
+        $this->assertSame('TestApp\Model\Document\CustomCookie', $collection->getDocumentClass());
 
         if (!class_exists('TestApp\Model\Document\Address')) {
             class_alias($class, 'TestApp\Model\Document\Address');
         }
 
-        $table = $this->getCollectionLocator()->get('Addresses');
-        $this->assertSame('TestApp\Model\Document\Address', $table->getDocumentClass());
+        $collection = $this->getCollectionLocator()->get('Addresses');
+        $this->assertSame('TestApp\Model\Document\Address', $collection->getDocumentClass());
     }
 
     /**
@@ -1770,11 +1770,11 @@ class BaseCollectionTest extends TestCase
             class_alias($class, 'MyPlugin\Model\Document\SuperUser');
         }
 
-        $table = new BaseCollection();
-        $this->assertSame($table, $table->setDocumentClass('MyPlugin.SuperUser'));
+        $collection = new BaseCollection();
+        $this->assertSame($collection, $collection->setDocumentClass('MyPlugin.SuperUser'));
         $this->assertSame(
             'MyPlugin\Model\Document\SuperUser',
-            $table->getDocumentClass(),
+            $collection->getDocumentClass(),
         );
     }
 
@@ -1786,8 +1786,8 @@ class BaseCollectionTest extends TestCase
     {
         $this->expectException(MissingDocumentException::class);
         $this->expectExceptionMessage('Document class `FooUser` could not be found.');
-        $table = new BaseCollection();
-        $table->setDocumentClass('FooUser');
+        $collection = new BaseCollection();
+        $collection->setDocumentClass('FooUser');
     }
 
     /**
@@ -1796,8 +1796,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testTableClassConventionForAPP(): void
     {
-        $table = new ArticlesCollection();
-        $this->assertSame(Article::class, $table->getDocumentClass());
+        $collection = new ArticlesCollection();
+        $this->assertSame(Article::class, $collection->getDocumentClass());
     }
 
     /**
@@ -1805,10 +1805,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetDocumentClass(): void
     {
-        $table = new BaseCollection();
+        $collection = new BaseCollection();
         $class = '\\' . Mockery::mock(Document::class)::class;
-        $this->assertSame($table, $table->setDocumentClass($class));
-        $this->assertSame($class, $table->getDocumentClass());
+        $this->assertSame($collection, $collection->setDocumentClass($class));
+        $this->assertSame($class, $collection->getDocumentClass());
     }
 
     /**
@@ -1817,10 +1817,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalBelongsToLoading(): void
     {
-        $table = new ArticlesCollection([
+        $collection = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
-        $result = $table->find('all')->contain(['Authors'])->first();
+        $result = $collection->find('all')->contain(['Authors'])->first();
         $this->assertInstanceOf(Author::class, $result->author);
     }
 
@@ -1830,11 +1830,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalHasManyLoading(): void
     {
-        $table = new ArticlesCollection([
+        $collection = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
         // Use select strategy explicitly for nested contain on PostgreSQL compatibility
-        $result = $table->find('all')
+        $result = $collection->find('all')
             ->contain(['Authors' => ['Articles' => ['strategy' => 'select']]])
             ->first();
         $this->assertCount(2, $result->author->articles);
@@ -1849,10 +1849,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testReciprocalBelongsToMany(): void
     {
-        $table = new ArticlesCollection([
+        $collection = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
-        $result = $table->find('all')->contain(['Tags'])->first();
+        $result = $collection->find('all')->contain(['Tags'])->first();
         $this->assertInstanceOf(Tag::class, $result->tags[0]);
         $this->assertInstanceOf(
             ArticlesTag::class,
@@ -1865,10 +1865,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindCleanEntities(): void
     {
-        $table = new ArticlesCollection([
+        $collection = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
-        $results = $table->find('all')->contain(['Tags', 'Authors'])->toArray();
+        $results = $collection->find('all')->contain(['Tags', 'Authors'])->toArray();
         $this->assertCount(3, $results);
         foreach ($results as $article) {
             $this->assertFalse($article->isDirty('id'));
@@ -1891,10 +1891,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindPersistedEntities(): void
     {
-        $table = new ArticlesCollection([
+        $collection = new ArticlesCollection([
             'connection' => $this->connection,
         ]);
-        $results = $table->find('all')->contain(['Tags', 'Authors'])->toArray();
+        $results = $collection->find('all')->contain(['Tags', 'Authors'])->toArray();
         $this->assertCount(3, $results);
         foreach ($results as $article) {
             $this->assertFalse($article->isNew());
@@ -1910,10 +1910,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testExists(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertTrue($table->exists(['_id' => '000000000000000000000001']));
-        $this->assertFalse($table->exists(['_id' => '000000000000000000000501']));
-        $this->assertTrue($table->exists(['_id' => '000000000000000000000003', 'username' => 'larry']));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertTrue($collection->exists(['_id' => '000000000000000000000001']));
+        $this->assertFalse($collection->exists(['_id' => '000000000000000000000501']));
+        $this->assertTrue($collection->exists(['_id' => '000000000000000000000003', 'username' => 'larry']));
     }
 
     /**
@@ -1921,12 +1921,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testExistsWithExpressionConditions(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $conditions = new ComparisonExpression('_id', '000000000000000000000001', '=');
-        $this->assertTrue($table->exists($conditions));
+        $this->assertTrue($collection->exists($conditions));
 
         $conditions = new ComparisonExpression('_id', '000000000000000000000501', '=');
-        $this->assertFalse($table->exists($conditions));
+        $this->assertFalse($collection->exists($conditions));
     }
 
     /**
@@ -1941,12 +1941,12 @@ class BaseCollectionTest extends TestCase
             ->method('load')
             ->with('Sluggable');
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'articles',
             'behaviors' => $mock,
         ]);
-        $result = $table->addBehavior('Sluggable');
-        $this->assertSame($table, $result);
+        $result = $collection->addBehavior('Sluggable');
+        $this->assertSame($collection, $result);
     }
 
     /**
@@ -1954,10 +1954,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testAddBehaviorPlugin(): void
     {
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'articles',
         ]);
-        $result = $table->addBehavior('TestPlugin.PersisterOne', ['some' => 'key']);
+        $result = $collection->addBehavior('TestPlugin.PersisterOne', ['some' => 'key']);
 
         $this->assertSame(['PersisterOne'], $result->behaviors()->loaded());
         $className = $result->behaviors()->get('PersisterOne')->getConfig('className');
@@ -1969,11 +1969,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testAddBehaviorDuplicate(): void
     {
-        $table = new BaseCollection(['collection' => 'articles']);
-        $this->assertSame($table, $table->addBehavior('Sluggable', ['test' => 'value']));
-        $this->assertSame($table, $table->addBehavior('Sluggable', ['test' => 'value']));
+        $collection = new BaseCollection(['collection' => 'articles']);
+        $this->assertSame($collection, $collection->addBehavior('Sluggable', ['test' => 'value']));
+        $this->assertSame($collection, $collection->addBehavior('Sluggable', ['test' => 'value']));
         try {
-            $table->addBehavior('Sluggable', ['thing' => 'thing']);
+            $collection->addBehavior('Sluggable', ['thing' => 'thing']);
             $this->fail('No exception raised');
         } catch (RuntimeException $runtimeException) {
             $this->assertStringContainsString('The `Sluggable` alias has already been loaded', $runtimeException->getMessage());
@@ -1992,12 +1992,12 @@ class BaseCollectionTest extends TestCase
             ->method('unload')
             ->with('Sluggable');
 
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'collection' => 'articles',
             'behaviors' => $mock,
         ]);
-        $result = $table->removeBehavior('Sluggable');
-        $this->assertSame($table, $result);
+        $result = $collection->removeBehavior('Sluggable');
+        $this->assertSame($collection, $result);
     }
 
     /**
@@ -2005,7 +2005,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testAddBehaviors(): void
     {
-        $table = new BaseCollection(['collection' => 'comments']);
+        $collection = new BaseCollection(['collection' => 'comments']);
         $behaviors = [
             'Sluggable',
             'Timestamp' => [
@@ -2018,12 +2018,12 @@ class BaseCollectionTest extends TestCase
             ],
         ];
 
-        $this->assertSame($table, $table->addBehaviors($behaviors));
-        $this->assertTrue($table->behaviors()->has('Sluggable'));
-        $this->assertTrue($table->behaviors()->has('Timestamp'));
+        $this->assertSame($collection, $collection->addBehaviors($behaviors));
+        $this->assertTrue($collection->behaviors()->has('Sluggable'));
+        $this->assertTrue($collection->behaviors()->has('Timestamp'));
         $this->assertSame(
             $behaviors['Timestamp']['events'],
-            $table->behaviors()->get('Timestamp')->getConfig('events'),
+            $collection->behaviors()->get('Timestamp')->getConfig('events'),
         );
     }
 
@@ -2032,8 +2032,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testBehaviors(): void
     {
-        $table = $this->getCollectionLocator()->get('article');
-        $result = $table->behaviors();
+        $collection = $this->getCollectionLocator()->get('article');
+        $result = $collection->behaviors();
         $this->assertInstanceOf(BehaviorRegistry::class, $result);
     }
 
@@ -2042,9 +2042,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetBehavior(): void
     {
-        $table = new BaseCollection(['collection' => 'comments']);
-        $table->addBehavior('Sluggable');
-        $this->assertSame($table->behaviors()->get('Sluggable'), $table->getBehavior('Sluggable'));
+        $collection = new BaseCollection(['collection' => 'comments']);
+        $collection->addBehavior('Sluggable');
+        $this->assertSame($collection->behaviors()->get('Sluggable'), $collection->getBehavior('Sluggable'));
     }
 
     /**
@@ -2053,13 +2053,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetBehaviorThrowsExceptionForMissingBehavior(): void
     {
-        $table = new BaseCollection(['collection' => 'comments']);
+        $collection = new BaseCollection(['collection' => 'comments']);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `Sluggable` behavior is not defined on `' . $table::class . '`.');
+        $this->expectExceptionMessage('The `Sluggable` behavior is not defined on `' . $collection::class . '`.');
 
-        $this->assertFalse($table->hasBehavior('Sluggable'));
-        $table->getBehavior('Sluggable');
+        $this->assertFalse($collection->hasBehavior('Sluggable'));
+        $collection->getBehavior('Sluggable');
     }
 
     /**
@@ -2068,8 +2068,8 @@ class BaseCollectionTest extends TestCase
     public function testAddBehaviorMissing(): void
     {
         $this->expectException(MissingBehaviorException::class);
-        $table = $this->getCollectionLocator()->get('article');
-        $this->assertNull($table->addBehavior('NopeNotThere'));
+        $collection = $this->getCollectionLocator()->get('article');
+        $this->assertNull($collection->addBehavior('NopeNotThere'));
     }
 
     /**
@@ -2077,10 +2077,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testCallBehaviorFinder(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->addBehavior('Sluggable');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->addBehavior('Sluggable');
 
-        $query = $table->find('noSlug');
+        $query = $collection->find('noSlug');
         $this->assertInstanceOf(SelectQuery::class, $query);
         $this->assertNotEmpty($query->clause('where'));
     }
@@ -2090,10 +2090,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testCallBehaviorAliasedFinder(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->addBehavior('Sluggable', ['implementedFinders' => ['special' => 'findNoSlug']]);
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->addBehavior('Sluggable', ['implementedFinders' => ['special' => 'findNoSlug']]);
 
-        $query = $table->find('special');
+        $query = $collection->find('special');
         $this->assertInstanceOf(SelectQuery::class, $query);
         $this->assertNotEmpty($query->clause('where'));
     }
@@ -2109,12 +2109,12 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertNotEmpty($document->getId());
         $this->assertFalse($document->isNew());
 
-        $row = $table->find()->where(['_id' => $document->getId()])->first();
+        $row = $collection->find()->where(['_id' => $document->getId()])->first();
         $this->assertEquals($document->toArray(), $row->toArray());
     }
 
@@ -2125,8 +2125,8 @@ class BaseCollectionTest extends TestCase
     public function testSaveNewEmptyDocument(): void
     {
         $document = new Document();
-        $table = $this->getCollectionLocator()->get('users');
-        $saved = $table->save($document);
+        $collection = $this->getCollectionLocator()->get('users');
+        $saved = $collection->save($document);
         $this->assertNotFalse($saved);
         $this->assertNotEmpty($document->getId());
     }
@@ -2136,8 +2136,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveNewDocumentNoExists(): void
     {
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['exists'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -2145,12 +2145,12 @@ class BaseCollectionTest extends TestCase
                 'collection' => 'users',
             ]])
             ->getMock();
-        $document = $table->newDocument(['username' => 'mark']);
+        $document = $collection->newDocument(['username' => 'mark']);
         $this->assertTrue($document->isNew());
 
-        $table->expects($this->never())
+        $collection->expects($this->never())
             ->method('exists');
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2159,8 +2159,8 @@ class BaseCollectionTest extends TestCase
     public function testSavePrimaryKeyDocumentExists(): void
     {
         $this->skipIfSqlServer();
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['exists'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -2168,11 +2168,11 @@ class BaseCollectionTest extends TestCase
                 'collection' => 'users',
             ]])
             ->getMock();
-        $document = $table->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
+        $document = $collection->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
         $this->assertTrue($document->isNew());
 
-        $table->expects($this->once())->method('exists');
-        $this->assertSame($document, $table->save($document));
+        $collection->expects($this->once())->method('exists');
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2181,8 +2181,8 @@ class BaseCollectionTest extends TestCase
     public function testSavePrimaryKeyDocumentNoExists(): void
     {
         $this->skipIfSqlServer();
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['exists'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -2190,11 +2190,11 @@ class BaseCollectionTest extends TestCase
                 'collection' => 'users',
             ]])
             ->getMock();
-        $document = $table->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
+        $document = $collection->newDocument(['_id' => '000000000000000000000020', 'username' => 'mark']);
         $this->assertTrue($document->isNew());
 
-        $table->expects($this->never())->method('exists');
-        $this->assertSame($document, $table->save($document, ['checkExisting' => false]));
+        $collection->expects($this->never())->method('exists');
+        $this->assertSame($document, $collection->save($document, ['checkExisting' => false]));
     }
 
     /**
@@ -2210,11 +2210,11 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertNotEmpty($document->getId());
 
-        $row = $table->find('all')->where(['_id' => $document->getId()])->first();
+        $row = $collection->find('all')->where(['_id' => $document->getId()])->first();
         $document->unset('crazyness');
         $this->assertEquals($document->toArray(), $row->toArray());
     }
@@ -2224,7 +2224,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveModifyData(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2234,10 +2234,10 @@ class BaseCollectionTest extends TestCase
             $this->assertSame($data, $document);
             $document->set('password', 'foo');
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener);
-        $this->assertSame($data, $table->save($data));
+        $collection->getEventManager()->on('Collection.beforeSave', $listener);
+        $this->assertSame($data, $collection->save($data));
         $this->assertNotEmpty($data->getId());
-        $row = $table->find('all')->where(['_id' => $data->getId()])->first();
+        $row = $collection->find('all')->where(['_id' => $data->getId()])->first();
         $this->assertSame('foo', $row->get('password'));
     }
 
@@ -2246,7 +2246,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveModifyOptions(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'password' => 'foo',
@@ -2259,12 +2259,12 @@ class BaseCollectionTest extends TestCase
         $listener2 = function ($event, $document, ArrayObject $options): void {
             $this->assertTrue($options['crazy']);
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener1);
-        $table->getEventManager()->on('Collection.beforeSave', $listener2);
-        $this->assertSame($data, $table->save($data));
+        $collection->getEventManager()->on('Collection.beforeSave', $listener1);
+        $collection->getEventManager()->on('Collection.beforeSave', $listener2);
+        $this->assertSame($data, $collection->save($data));
         $this->assertNotEmpty($data->getId());
 
-        $row = $table->find('all')->where(['_id' => $data->getId()])->first();
+        $row = $collection->find('all')->where(['_id' => $data->getId()])->first();
         $this->assertEquals($data->toArray(), $row->toArray());
     }
 
@@ -2274,7 +2274,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveStopEvent(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2284,10 +2284,10 @@ class BaseCollectionTest extends TestCase
             $event->stopPropagation();
             $event->setResult($document);
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener);
-        $this->assertSame($data, $table->save($data));
+        $collection->getEventManager()->on('Collection.beforeSave', $listener);
+        $this->assertSame($data, $collection->save($data));
         $this->assertNull($data->getId());
-        $row = $table->find('all')->where(['id' => self::$nextUserId])->first();
+        $row = $collection->find('all')->where(['id' => self::$nextUserId])->first();
         $this->assertNull($row);
     }
 
@@ -2297,7 +2297,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testBeforeSaveStopEventWithNoResult(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2306,8 +2306,8 @@ class BaseCollectionTest extends TestCase
         $listener = function (EventInterface $event, $document): void {
             $event->stopPropagation();
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener);
-        $this->assertFalse($table->save($data));
+        $collection->getEventManager()->on('Collection.beforeSave', $listener);
+        $this->assertFalse($collection->save($data));
     }
 
     public function testBeforeSaveException(): void
@@ -2315,7 +2315,7 @@ class BaseCollectionTest extends TestCase
         $this->expectException(AssertionError::class);
         $this->expectExceptionMessage('The result for the `Collection.beforeSave` event must be `false` or `EntityInterface` instance. Got `int` instead.');
 
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2325,8 +2325,8 @@ class BaseCollectionTest extends TestCase
             $event->stopPropagation();
             $event->setResult(1);
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener);
-        $table->save($data);
+        $collection->getEventManager()->on('Collection.beforeSave', $listener);
+        $collection->save($data);
     }
 
     /**
@@ -2334,8 +2334,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSave(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
-        $data = $table->get('000000000000000000000001');
+        $collection = $this->getCollectionLocator()->get('users');
+        $data = $collection->get('000000000000000000000001');
 
         $data->username = 'newusername';
 
@@ -2345,7 +2345,7 @@ class BaseCollectionTest extends TestCase
             $this->assertTrue($document->isDirty());
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterSave', $listener);
+        $collection->getEventManager()->on('Collection.afterSave', $listener);
 
         $calledAfterCommit = false;
         $listenerAfterCommit = function ($e, EntityInterface $document, $options) use ($data, &$calledAfterCommit): void {
@@ -2354,9 +2354,9 @@ class BaseCollectionTest extends TestCase
             $this->assertNotSame($data->get('username'), $data->getOriginal('username'));
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
-        $this->assertSame($data, $table->save($data));
+        $this->assertSame($data, $collection->save($data));
         $this->assertTrue($called);
         $this->assertTrue($calledAfterCommit);
     }
@@ -2366,7 +2366,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveCommitForNonAtomic(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2378,15 +2378,15 @@ class BaseCollectionTest extends TestCase
             $this->assertSame($data, $document);
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterSave', $listener);
+        $collection->getEventManager()->on('Collection.afterSave', $listener);
 
         $calledAfterCommit = false;
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
-        $this->assertSame($data, $table->save($data, ['atomic' => false]));
+        $this->assertSame($data, $collection->save($data, ['atomic' => false]));
         $this->assertNotEmpty($data->getId());
         $this->assertTrue($called);
         $this->assertTrue($calledAfterCommit);
@@ -2397,7 +2397,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveCommitWithTransactionRunning(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2408,25 +2408,25 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listener);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listener);
 
         $this->connection->begin();
-        $this->assertSame($data, $table->save($data));
+        $this->assertSame($data, $collection->save($data));
         $this->assertFalse($called);
         $this->connection->commit();
     }
 
     public function testDocumentFinalizedSynchronouslyInOuterTransaction(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $this->connection->transactional(function () use ($table): void {
+        $this->connection->transactional(function () use ($collection): void {
             $document = new Document([
                 'username' => 'outertxnuser',
                 'created' => new DateTime('2013-10-10 00:00'),
                 'updated' => new DateTime('2013-10-10 00:00'),
             ]);
-            $table->saveOrFail($document);
+            $collection->saveOrFail($document);
 
             $this->assertFalse(
                 $document->isNew(),
@@ -2446,17 +2446,17 @@ class BaseCollectionTest extends TestCase
 
     public function testDeleteWorksOnDocumentSavedInOuterTransaction(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $this->connection->transactional(function () use ($table): void {
+        $this->connection->transactional(function () use ($collection): void {
             $document = new Document([
                 'username' => 'deletetxnuser',
                 'created' => new DateTime('2013-10-10 00:00'),
                 'updated' => new DateTime('2013-10-10 00:00'),
             ]);
-            $table->saveOrFail($document);
+            $collection->saveOrFail($document);
 
-            $result = $table->delete($document);
+            $result = $collection->delete($document);
             $this->assertTrue(
                 $result,
                 'BaseCollection::delete() must not short-circuit on entity saved inside outer transaction',
@@ -2466,27 +2466,27 @@ class BaseCollectionTest extends TestCase
 
     public function testSaveThenUpdateInOuterTransaction(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $this->connection->transactional(function () use ($table): void {
+        $this->connection->transactional(function () use ($collection): void {
             $document = new Document([
                 'username' => 'insertupdateuser',
                 'created' => new DateTime('2013-10-10 00:00'),
                 'updated' => new DateTime('2013-10-10 00:00'),
             ]);
-            $table->saveOrFail($document);
+            $collection->saveOrFail($document);
 
             $document->username = 'updateduser';
-            $table->saveOrFail($document);
+            $collection->saveOrFail($document);
 
-            $row = $table->get($document->getId());
+            $row = $collection->get($document->getId());
             $this->assertSame('updateduser', $row->username);
         });
     }
 
     public function testDocumentFinalizedDespiteEventualRollback(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
         $this->connection->begin();
 
@@ -2495,7 +2495,7 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table->saveOrFail($document);
+        $collection->saveOrFail($document);
 
         $this->assertFalse($document->isNew(), 'Document must be finalized even if outer transaction will roll back');
         $this->assertFalse($document->isDirty(), 'Document must be clean even if outer transaction will roll back');
@@ -2509,7 +2509,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveCommitWithNonAtomicAndTransactionRunning(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $data = new Document([
             'username' => 'superuser',
             'created' => new DateTime('2013-10-10 00:00'),
@@ -2520,10 +2520,10 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listener);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listener);
 
         $this->connection->begin();
-        $this->assertSame($data, $table->save($data, ['atomic' => false]));
+        $this->assertSame($data, $collection->save($data, ['atomic' => false]));
         $this->assertFalse($called);
         $this->connection->commit();
     }
@@ -2533,14 +2533,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterSaveNotCalled(): void
     {
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insertQuery'])
             ->setConstructorArgs([['collection' => 'users']])
             ->getMock();
         $query = $this->getMockBuilder(InsertQuery::class)
             ->onlyMethods(['execute', 'addDefaultTypes'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
         $statement = Mockery::mock(StatementInterface::class);
         $data = new Document([
@@ -2549,7 +2549,7 @@ class BaseCollectionTest extends TestCase
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
 
-        $table->expects($this->once())->method('insertQuery')
+        $collection->expects($this->once())->method('insertQuery')
             ->willReturn($query);
 
         $query->expects($this->once())->method('execute')
@@ -2563,15 +2563,15 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterSave', $listener);
+        $collection->getEventManager()->on('Collection.afterSave', $listener);
 
         $calledAfterCommit = false;
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listenerAfterCommit);
 
-        $this->assertFalse($table->save($data));
+        $this->assertFalse($collection->save($data));
         $this->assertFalse($called);
         $this->assertFalse($calledAfterCommit);
     }
@@ -2589,21 +2589,21 @@ class BaseCollectionTest extends TestCase
             'name' => 'Jose',
         ]);
 
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
 
         $calledForArticle = false;
         $listenerForArticle = function ($e, $document, $options) use (&$calledForArticle): void {
             $calledForArticle = true;
         };
-        $table->getEventManager()->on('Collection.afterSaveCommit', $listenerForArticle);
+        $collection->getEventManager()->on('Collection.afterSaveCommit', $listenerForArticle);
 
         $calledForAuthor = false;
         $listenerForAuthor = function ($e, $document, $options) use (&$calledForAuthor): void {
             $calledForAuthor = true;
         };
-        $table->getAssociation('Authors')->getEventManager()->on('Collection.afterSaveCommit', $listenerForAuthor);
+        $collection->getAssociation('Authors')->getEventManager()->on('Collection.afterSaveCommit', $listenerForAuthor);
 
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->author->isNew());
         $this->assertTrue($calledForArticle);
@@ -2622,13 +2622,13 @@ class BaseCollectionTest extends TestCase
     public function testSaveNewErrorOnNoPrimaryKey(): void
     {
         $document = new Document(['username' => 'superuser']);
-        $table = $this->getCollectionLocator()->get('users', [
+        $collection = $this->getCollectionLocator()->get('users', [
             'schema' => [
                 'id' => ['type' => 'integer'],
                 'username' => ['type' => 'string'],
             ],
         ]);
-        $saved = $table->save($document);
+        $saved = $collection->save($document);
         $this->assertNotFalse($saved);
         $this->assertNotEmpty($document->getId());
     }
@@ -2645,7 +2645,7 @@ class BaseCollectionTest extends TestCase
             ->setConstructorArgs([['driver' => $this->connection->getDriver()] + $config])
             ->getMock();
 
-        $table = new BaseCollection(['collection' => 'users', 'connection' => $connection]);
+        $collection = new BaseCollection(['collection' => 'users', 'connection' => $connection]);
 
         $connection->expects($this->once())->method('begin');
         $connection->expects($this->once())->method('commit');
@@ -2655,7 +2655,7 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $this->assertSame($data, $table->save($data));
+        $this->assertSame($data, $collection->save($data));
     }
 
     /**
@@ -2670,19 +2670,19 @@ class BaseCollectionTest extends TestCase
             ->setConstructorArgs([['driver' => $this->connection->getDriver()] + ConnectionManager::getConfig('test')])
             ->getMock();
 
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insertQuery', 'getConnection'])
             ->setConstructorArgs([['collection' => 'users']])
             ->getMock();
         $query = $this->getMockBuilder(InsertQuery::class)
             ->onlyMethods(['execute', 'addDefaultTypes'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->method('getConnection')
+        $collection->method('getConnection')
             ->willReturn($connection);
 
-        $table->expects($this->once())->method('insertQuery')
+        $collection->expects($this->once())->method('insertQuery')
             ->willReturn($query);
 
         $connection->expects($this->once())->method('begin');
@@ -2695,7 +2695,7 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table->save($data);
+        $collection->save($data);
     }
 
     /**
@@ -2709,20 +2709,20 @@ class BaseCollectionTest extends TestCase
             ->setConstructorArgs([['driver' => $this->connection->getDriver()] + ConnectionManager::getConfig('test')])
             ->getMock();
 
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['insertQuery', 'getConnection', 'exists'])
             ->setConstructorArgs([['collection' => 'users']])
             ->getMock();
         $query = $this->getMockBuilder(InsertQuery::class)
             ->onlyMethods(['execute', 'addDefaultTypes'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
 
-        $table->method('getConnection')
+        $collection->method('getConnection')
             ->willReturn($connection);
 
-        $table->expects($this->once())->method('insertQuery')
+        $collection->expects($this->once())->method('insertQuery')
             ->willReturn($query);
 
         $statement = Mockery::mock(StatementInterface::class);
@@ -2740,7 +2740,7 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table->save($data);
+        $collection->save($data);
     }
 
     /**
@@ -2760,11 +2760,11 @@ class BaseCollectionTest extends TestCase
         $document->setDirty('created', true);
         $document->setDirty('updated', true);
 
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertNotEmpty($document->getId());
 
-        $row = $table->find('all')->where(['_id' => $document->getId()])->first();
+        $row = $collection->find('all')->where(['_id' => $document->getId()])->first();
         $this->assertNull($row->get('password'));
         $this->assertSame('superuser', $row->get('username'));
     }
@@ -2780,8 +2780,8 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isDirty('usermane'));
         $this->assertFalse($document->isDirty('password'));
         $this->assertFalse($document->isDirty('created'));
@@ -2799,8 +2799,8 @@ class BaseCollectionTest extends TestCase
             'created' => new DateTime('2013-10-10 00:00'),
             'updated' => new DateTime('2013-10-10 00:00'),
         ]);
-        $table = $this->getCollectionLocator()->get('users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
     }
 
@@ -2814,11 +2814,11 @@ class BaseCollectionTest extends TestCase
             '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
-        $original = $table->find('all')->where(['_id' => '000000000000000000000002'])->first();
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('users');
+        $original = $collection->find('all')->where(['_id' => '000000000000000000000002'])->first();
+        $this->assertSame($document, $collection->save($document));
 
-        $row = $table->find('all')->where(['_id' => '000000000000000000000002'])->first();
+        $row = $collection->find('all')->where(['_id' => '000000000000000000000002'])->first();
         $this->assertSame('baggins', $row->username);
         $this->assertEquals($original->password, $row->password);
         $this->assertEquals($original->created, $row->created);
@@ -2837,14 +2837,14 @@ class BaseCollectionTest extends TestCase
             '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $called = false;
         $listener = function (EventInterface $event, $document) use (&$called): void {
             $this->assertFalse($document->isNew());
             $called = true;
         };
-        $table->getEventManager()->on('Collection.beforeSave', $listener);
-        $this->assertSame($document, $table->save($document));
+        $collection->getEventManager()->on('Collection.beforeSave', $listener);
+        $this->assertSame($document, $collection->save($document));
         $this->assertTrue($called);
     }
 
@@ -2854,8 +2854,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveUpdateWithHint(): void
     {
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['exists'])
             ->setConstructorArgs([['collection' => 'users', 'connection' => ConnectionManager::get('test_mongo')]])
             ->getMock();
@@ -2864,8 +2864,8 @@ class BaseCollectionTest extends TestCase
             'username' => 'baggins',
         ], ['markNew' => false]);
         $this->assertFalse($document->isNew());
-        $table->expects($this->never())->method('exists');
-        $this->assertSame($document, $table->save($document));
+        $collection->expects($this->never())->method('exists');
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2879,8 +2879,8 @@ class BaseCollectionTest extends TestCase
             ->onlyMethods(['run'])
             ->setConstructorArgs([['driver' => $this->connection->getDriver()] + ConnectionManager::getConfig('test')])
             ->getMock();
-        $table = $this->fetchCollection('Users');
-        $table->setConnection($connection);
+        $collection = $this->fetchCollection('Users');
+        $collection->setConnection($connection);
 
         $connection->expects($this->once())->method('run')
             ->willReturn(1);
@@ -2889,7 +2889,7 @@ class BaseCollectionTest extends TestCase
             '_id' => '000000000000000000000002',
             'username' => 'baggins',
         ], ['markNew' => false]);
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2898,16 +2898,16 @@ class BaseCollectionTest extends TestCase
      */
     public function testUpdateNoChange(): void
     {
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['query'])
             ->setConstructorArgs([['collection' => 'users', 'connection' => $this->connection]])
             ->getMock();
-        $table->expects($this->never())->method('query');
+        $collection->expects($this->never())->method('query');
         $document = new Document([
             '_id' => '000000000000000000000002',
         ], ['markNew' => false]);
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2916,12 +2916,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testUpdateDirtyNoActualChanges(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $document = $table->get('000000000000000000000001');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $document = $collection->get('000000000000000000000001');
 
         $document->setAccess('*', true);
         $document->patch($document->toArray());
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2930,16 +2930,16 @@ class BaseCollectionTest extends TestCase
     public function testUpdateNoPrimaryButOtherKeys(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['query'])
             ->setConstructorArgs([['collection' => 'users', 'connection' => $this->connection]])
             ->getMock();
-        $table->expects($this->never())->method('query');
+        $collection->expects($this->never())->method('query');
         $document = new Document([
             'username' => 'mariano',
         ], ['markNew' => false]);
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -2956,13 +2956,13 @@ class BaseCollectionTest extends TestCase
         $listener = function ($e, $document, $options) use (&$timesCalled): void {
             $timesCalled++;
         };
-        $table = $this->getCollectionLocator()
+        $collection = $this->getCollectionLocator()
             ->get('authors');
 
-        $table->getEventManager()
+        $collection->getEventManager()
             ->on('Collection.afterSaveCommit', $listener);
 
-        $result = $table->saveMany($documents);
+        $result = $collection->saveMany($documents);
 
         $this->assertSame($documents, $result);
         $this->assertTrue(isset($result[0]->_id));
@@ -2978,10 +2978,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyResultSet(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->Articles->setSort('Articles.id');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->Articles->setSort('Articles.id');
 
-        $documents = $table->find()
+        $documents = $collection->find()
             ->orderBy(['_id' => 'ASC'])
             ->contain(['Articles'])
             ->all();
@@ -3001,18 +3001,18 @@ class BaseCollectionTest extends TestCase
                 $this->assertFalse($document->isDirty());
             }
         };
-        $table = $this->getCollectionLocator()
+        $collection = $this->getCollectionLocator()
             ->get('authors');
 
-        $table->getEventManager()
+        $collection->getEventManager()
             ->on('Collection.afterSaveCommit', $listener);
 
-        $result = $table->saveMany($documents);
+        $result = $collection->saveMany($documents);
         $this->assertSame($documents, $result);
         $this->assertFalse($result->first()->isDirty());
         $this->assertFalse($result->first()->articles[0]->isDirty());
 
-        $first = $table->find()
+        $first = $collection->find()
             ->orderBy(['_id' => 'ASC'])
             ->first();
         $this->assertSame('admad', $first->name);
@@ -3023,13 +3023,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyFailed(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $documents = [
             new Document(['name' => 'mark']),
             new Document(['name' => 'jose']),
         ];
         $documents[1]->setErrors(['name' => ['message']]);
-        $result = $table->saveMany($documents);
+        $result = $collection->saveMany($documents);
 
         $this->assertFalse($result);
         foreach ($documents as $document) {
@@ -3042,14 +3042,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyFailedWithException(): void
     {
-        $table = $this->getCollectionLocator()
+        $collection = $this->getCollectionLocator()
             ->get('authors');
         $documents = [
             new Document(['name' => 'mark']),
             new Document(['name' => 'jose']),
         ];
 
-        $table->getEventManager()->on('Collection.beforeSave', function (EventInterface $event, EntityInterface $document): void {
+        $collection->getEventManager()->on('Collection.beforeSave', function (EventInterface $event, EntityInterface $document): void {
             if ($document->name === 'jose') {
                 throw new Exception('Oh noes');
             }
@@ -3058,7 +3058,7 @@ class BaseCollectionTest extends TestCase
         $this->expectException(Exception::class);
 
         try {
-            $table->saveMany($documents);
+            $collection->saveMany($documents);
         } finally {
             foreach ($documents as $document) {
                 $this->assertTrue($document->isNew());
@@ -3076,8 +3076,8 @@ class BaseCollectionTest extends TestCase
             new Document(['name' => 'dakota']),
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $result = $table->saveManyOrFail($documents);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $result = $collection->saveManyOrFail($documents);
 
         $this->assertSame($documents, $result);
         $this->assertTrue(isset($result[0]->_id));
@@ -3091,17 +3091,17 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyOrFailResultSet(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
 
-        $documents = $table->find()
+        $documents = $collection->find()
             ->orderBy(['id' => 'ASC'])
             ->all();
         $documents->first()->name = 'admad';
 
-        $result = $table->saveManyOrFail($documents);
+        $result = $collection->saveManyOrFail($documents);
         $this->assertSame($documents, $result);
 
-        $first = $table->find()
+        $first = $collection->find()
             ->orderBy(['id' => 'ASC'])
             ->first();
         $this->assertSame('admad', $first->name);
@@ -3112,7 +3112,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveManyOrFailFailed(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $documents = [
             new Document(['name' => 'mark']),
             new Document(['name' => 'jose']),
@@ -3121,7 +3121,7 @@ class BaseCollectionTest extends TestCase
 
         $this->expectException(PersistenceFailedException::class);
 
-        $table->saveManyOrFail($documents);
+        $collection->saveManyOrFail($documents);
     }
 
     public function testSaveWithBuildRulesFailWithErrorMessage(): void
@@ -3174,19 +3174,19 @@ class BaseCollectionTest extends TestCase
      */
     public function testDelete(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
         $options = [
             'limit' => 1,
             'conditions' => [
                 'username' => 'nate',
             ],
         ];
-        $query = $table->find('all', ...$options);
+        $query = $collection->find('all', ...$options);
         $document = $query->first();
-        $result = $table->delete($document);
+        $result = $collection->delete($document);
         $this->assertTrue($result);
 
-        $query = $table->find('all', ...$options);
+        $query = $collection->find('all', ...$options);
         $this->assertCount(0, $query->all(), 'Find should fail.');
     }
 
@@ -3195,13 +3195,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteDependent(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->Articles->setDependent(true);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->Articles->setDependent(true);
 
-        $document = $table->get('000000000000000000000001');
-        $table->delete($document);
+        $document = $collection->get('000000000000000000000001');
+        $collection->delete($document);
 
-        $articles = $table->getAssociation('Articles')->getTarget();
+        $articles = $collection->getAssociation('Articles')->getTarget();
         $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertNull($query->all()->first(), 'Should not find any rows.');
     }
@@ -3211,33 +3211,33 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteDependentHasMany(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->Articles
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->Articles
             ->setDependent(true)
             ->setCascadeCallbacks(true);
 
-        $articles = $table->getAssociation('Articles')->getTarget();
+        $articles = $collection->getAssociation('Articles')->getTarget();
         $articles->getEventManager()->on('Collection.buildRules', function ($event, $rules): void {
             $rules->addDelete(fn($document): bool => $document->author_id !== '000000000000000000000003');
         });
 
-        $document = $table->get('000000000000000000000001');
-        $result = $table->delete($document);
+        $document = $collection->get('000000000000000000000001');
+        $result = $collection->delete($document);
         $this->assertTrue($result);
 
         $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertNull($query->all()->first(), 'Should not find any rows.');
 
-        $document = $table->get('000000000000000000000003');
-        $result = $table->delete($document);
+        $document = $collection->get('000000000000000000000003');
+        $result = $collection->delete($document);
         $this->assertFalse($result);
 
         $query = $articles->find('all', conditions: ['author_id' => $document->getId()]);
         $this->assertFalse($query->all()->isEmpty(), 'Should find some rows.');
 
-        $table->associations()->get('Articles')->setCascadeCallbacks(false);
-        $document = $table->get('000000000000000000000002');
-        $result = $table->delete($document);
+        $collection->associations()->get('Articles')->setCascadeCallbacks(false);
+        $document = $collection->get('000000000000000000000002');
+        $result = $collection->delete($document);
         $this->assertTrue($result);
     }
 
@@ -3246,16 +3246,16 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteNoDependentNoCascade(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('article', [
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('article', [
             'dependent' => false,
         ]);
 
-        $query = $table->find('all')->where(['_id' => '000000000000000000000001']);
+        $query = $collection->find('all')->where(['_id' => '000000000000000000000001']);
         $document = $query->first();
-        $table->delete($document);
+        $collection->delete($document);
 
-        $articles = $table->getAssociation('Articles')->getTarget();
+        $articles = $collection->getAssociation('Articles')->getTarget();
         $query = $articles->find('all')->where(['author_id' => $document->getId()]);
         $this->assertCount(2, $query->all(), 'Should find rows.');
     }
@@ -3265,16 +3265,16 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteBelongsToMany(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tag', [
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tag', [
             'foreignKey' => 'article_id',
             'joinCollection' => 'articles_tags',
         ]);
-        $query = $table->find('all')->where(['_id' => '000000000000000000000001']);
+        $query = $collection->find('all')->where(['_id' => '000000000000000000000001']);
         $document = $query->first();
-        $table->delete($document);
+        $collection->delete($document);
 
-        $junction = $table->getAssociation('tag')->junction();
+        $junction = $collection->getAssociation('tag')->junction();
         $query = $junction->find('all')->where(['article_id' => '000000000000000000000001']);
         $this->assertNull($query->all()->first(), 'Should not find any rows.');
     }
@@ -3384,7 +3384,7 @@ class BaseCollectionTest extends TestCase
                 }
 
                 $this->assertSame('Collection.beforeDelete', $event->getName());
-                $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
+                $this->assertEquals(['document' => $document, 'options' => $options], $event->getData());
 
                 return true;
             })
@@ -3397,7 +3397,7 @@ class BaseCollectionTest extends TestCase
                 }
 
                 $this->assertSame('Collection.afterDelete', $event->getName());
-                $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
+                $this->assertEquals(['document' => $document, 'options' => $options], $event->getData());
 
                 return true;
             })
@@ -3410,15 +3410,15 @@ class BaseCollectionTest extends TestCase
                 }
 
                 $this->assertSame('Collection.afterDeleteCommit', $event->getName());
-                $this->assertEquals(['entity' => $document, 'options' => $options], $event->getData());
+                $this->assertEquals(['document' => $document, 'options' => $options], $event->getData());
 
                 return true;
             })
             ->once();
 
-        $table = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
+        $collection = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
         $document->setNew(false);
-        $table->delete($document, ['checkRules' => false]);
+        $collection->delete($document, ['checkRules' => false]);
     }
 
     /**
@@ -3426,24 +3426,24 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteCallbacksNonAtomic(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $data = $table->get('000000000000000000000001');
+        $data = $collection->get('000000000000000000000001');
 
         $called = false;
         $listener = function ($e, $document, $options) use ($data, &$called): void {
             $this->assertSame($data, $document);
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterDelete', $listener);
+        $collection->getEventManager()->on('Collection.afterDelete', $listener);
 
         $calledAfterCommit = false;
         $listenerAfterCommit = function ($e, $document, $options) use (&$calledAfterCommit): void {
             $calledAfterCommit = true;
         };
-        $table->getEventManager()->on('Collection.afterDeleteCommit', $listenerAfterCommit);
+        $collection->getEventManager()->on('Collection.afterDeleteCommit', $listenerAfterCommit);
 
-        $table->delete($data, ['atomic' => false]);
+        $collection->delete($data, ['atomic' => false]);
         $this->assertTrue($called);
         $this->assertTrue($calledAfterCommit);
     }
@@ -3453,23 +3453,23 @@ class BaseCollectionTest extends TestCase
      */
     public function testAfterDeleteCommitTriggeredOnlyForPrimaryCollection(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->Articles->setDependent(true);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->Articles->setDependent(true);
 
         $called = false;
         $listener = function ($e, $document, $options) use (&$called): void {
             $called = true;
         };
-        $table->getEventManager()->on('Collection.afterDeleteCommit', $listener);
+        $collection->getEventManager()->on('Collection.afterDeleteCommit', $listener);
 
         $called2 = false;
         $listener = function ($e, $document, $options) use (&$called2): void {
             $called2 = true;
         };
-        $table->Articles->getEventManager()->on('Collection.afterDeleteCommit', $listener);
+        $collection->Articles->getEventManager()->on('Collection.afterDeleteCommit', $listener);
 
-        $document = $table->get('000000000000000000000001');
-        $this->assertTrue($table->delete($document));
+        $document = $collection->get('000000000000000000000001');
+        $this->assertTrue($collection->delete($document));
 
         $this->assertTrue($called);
         $this->assertFalse($called2);
@@ -3490,9 +3490,9 @@ class BaseCollectionTest extends TestCase
                 return $event;
             });
 
-        $table = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
+        $collection = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
         $document->setNew(false);
-        $result = $table->delete($document, ['checkRules' => false]);
+        $result = $collection->delete($document, ['checkRules' => false]);
         $this->assertFalse($result);
     }
 
@@ -3512,9 +3512,9 @@ class BaseCollectionTest extends TestCase
                 return $event;
             });
 
-        $table = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
+        $collection = $this->getCollectionLocator()->get('users', ['eventManager' => $mock]);
         $document->setNew(false);
-        $result = $table->delete($document, ['checkRules' => false]);
+        $result = $collection->delete($document, ['checkRules' => false]);
         $this->assertTrue($result);
     }
 
@@ -3525,16 +3525,16 @@ class BaseCollectionTest extends TestCase
     {
         $document = new Document(['_id' => '000000000000000000000001', 'name' => 'mark']);
 
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $table */
-        $table = $this->getMockBuilder(BaseCollection::class)
+        /** @var \Crustum\Mongo\ODM\BaseCollection|\PHPUnit\Framework\MockObject\MockObject $collection */
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['query'])
             ->setConstructorArgs([['connection' => $this->connection]])
             ->getMock();
-        $table->expects($this->never())
+        $collection->expects($this->never())
             ->method('query');
 
         $document->setNew(true);
-        $result = $table->delete($document);
+        $result = $collection->delete($document);
         $this->assertFalse($result);
     }
 
@@ -3543,14 +3543,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteMany(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
-        $documents = $table->find()->limit(2)->all()->toArray();
+        $collection = $this->getCollectionLocator()->get('users');
+        $documents = $collection->find()->limit(2)->all()->toArray();
         $this->assertCount(2, $documents);
 
-        $result = $table->deleteMany($documents);
+        $result = $collection->deleteMany($documents);
         $this->assertSame($documents, $result);
 
-        $count = $table->find()->where(['id IN' => Hash::extract($documents, '{n}.id')])->count();
+        $count = $collection->find()->where(['id IN' => Hash::extract($documents, '{n}.id')])->count();
         $this->assertSame(0, $count, 'Find should not return > 0.');
     }
 
@@ -3559,13 +3559,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteManyOrFail(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
-        $documents = $table->find()->limit(2)->all()->toArray();
+        $collection = $this->getCollectionLocator()->get('users');
+        $documents = $collection->find()->limit(2)->all()->toArray();
         $this->assertCount(2, $documents);
 
-        $table->deleteManyOrFail($documents);
+        $collection->deleteManyOrFail($documents);
 
-        $count = $table->find()->where(['id IN' => Hash::extract($documents, '{n}.id')])->count();
+        $count = $collection->find()->where(['id IN' => Hash::extract($documents, '{n}.id')])->count();
         $this->assertSame(0, $count, 'Find should not return > 0.');
     }
 
@@ -3574,10 +3574,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasField(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $this->assertFalse($table->hasField('nope'), 'Should not be there.');
-        $this->assertTrue($table->hasField('title'), 'Should be there.');
-        $this->assertTrue($table->hasField('body'), 'Should be there.');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $this->assertFalse($collection->hasField('nope'), 'Should not be there.');
+        $this->assertTrue($collection->hasField('title'), 'Should be there.');
+        $this->assertTrue($collection->hasField('body'), 'Should be there.');
     }
 
     /**
@@ -3585,11 +3585,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidatorDefault(): void
     {
-        $table = new BaseCollection();
-        $validator = $table->getValidator();
-        $this->assertSame($table, $validator->getProvider('collection'));
+        $collection = new BaseCollection();
+        $validator = $collection->getValidator();
+        $this->assertSame($collection, $validator->getProvider('collection'));
         $this->assertInstanceOf(Validator::class, $validator);
-        $default = $table->getValidator('default');
+        $default = $collection->getValidator('default');
         $this->assertSame($validator, $default);
     }
 
@@ -3600,8 +3600,8 @@ class BaseCollectionTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The `' . BaseCollection::class . '::validationMissing()` validation method does not exist.');
-        $table = new BaseCollection();
-        $table->getValidator('missing');
+        $collection = new BaseCollection();
+        $collection->getValidator('missing');
     }
 
     /**
@@ -3609,11 +3609,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidatorSetter(): void
     {
-        $table = new BaseCollection();
+        $collection = new BaseCollection();
         $validator = new Validator();
-        $table->setValidator('other', $validator);
-        $this->assertSame($validator, $table->getValidator('other'));
-        $this->assertSame($table, $validator->getProvider('collection'));
+        $collection->setValidator('other', $validator);
+        $this->assertSame($validator, $collection->getValidator('other'));
+        $this->assertSame($collection, $validator->getProvider('collection'));
     }
 
     /**
@@ -3621,13 +3621,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasValidator(): void
     {
-        $table = new BaseCollection();
-        $this->assertTrue($table->hasValidator('default'));
-        $this->assertFalse($table->hasValidator('other'));
+        $collection = new BaseCollection();
+        $this->assertTrue($collection->hasValidator('default'));
+        $this->assertFalse($collection->hasValidator('other'));
 
         $validator = new Validator();
-        $table->setValidator('other', $validator);
-        $this->assertTrue($table->hasValidator('other'));
+        $collection->setValidator('other', $validator);
+        $this->assertTrue($collection->hasValidator('other'));
     }
 
     /**
@@ -3636,10 +3636,10 @@ class BaseCollectionTest extends TestCase
     public function testDocumentSourceExistingAndNew(): void
     {
         $this->loadPlugins(['TestPlugin']);
-        $table = $this->getCollectionLocator()->get('TestPlugin.Authors');
+        $collection = $this->getCollectionLocator()->get('TestPlugin.Authors');
 
-        $existingAuthor = $table->find()->first();
-        $newAuthor = $table->newEmptyDocument();
+        $existingAuthor = $collection->find()->first();
+        $newAuthor = $collection->newEmptyDocument();
 
         $this->assertSame('TestPlugin.Authors', $existingAuthor->getSource());
         $this->assertSame('TestPlugin.Authors', $newAuthor->getSource());
@@ -3650,10 +3650,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testNewDocumentAndValidation(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->getValidator()->requirePresence('title');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->getValidator()->requirePresence('title');
 
-        $document = $table->newDocument([]);
+        $document = $collection->newDocument([]);
         $errors = $document->getErrors();
         $this->assertNotEmpty($errors['title']);
     }
@@ -3663,10 +3663,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testCreateDocumentAndValidation(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->getValidator()->requirePresence('title');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->getValidator()->requirePresence('title');
 
-        $document = $table->newEmptyDocument();
+        $document = $collection->newEmptyDocument();
         $this->assertEmpty($document->getErrors());
     }
 
@@ -3675,9 +3675,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindDefaultToAll(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $result = $table->findByUsername('garrett');
+        $result = $collection->findByUsername('garrett');
         $this->assertInstanceOf(SelectQuery::class, $result);
 
         $this->assertEquals(['username' => 'garrett'], $result->clause('where'));
@@ -3690,9 +3690,9 @@ class BaseCollectionTest extends TestCase
     {
         $this->expectException(BadMethodCallException::class);
         $this->expectExceptionMessage('Not enough arguments for magic finder. Got 0 required 1');
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $table->findByUsername();
+        $collection->findByUsername();
     }
 
     /**
@@ -3702,9 +3702,9 @@ class BaseCollectionTest extends TestCase
     {
         $this->expectException(BadMethodCallException::class);
         $this->expectExceptionMessage('Not enough arguments for magic finder. Got 1 required 2');
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $table->findByUsernameAndId('garrett');
+        $collection->findByUsernameAndId('garrett');
     }
 
     /**
@@ -3714,9 +3714,9 @@ class BaseCollectionTest extends TestCase
     {
         $this->expectException(BadMethodCallException::class);
         $this->expectExceptionMessage('Cannot mix "and" & "or" in a magic finder. Use find() instead.');
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $table->findByUsernameAndIdOrPassword('garrett', 1, 'sekret');
+        $collection->findByUsernameAndIdOrPassword('garrett', 1, 'sekret');
     }
 
     /**
@@ -3724,9 +3724,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindFirstAnd(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $result = $table->findByUsernameAndId('garrett', 4);
+        $result = $collection->findByUsernameAndId('garrett', 4);
         $this->assertInstanceOf(SelectQuery::class, $result);
 
         $this->assertEquals(['username' => 'garrett', '_id' => 4], $result->clause('where'));
@@ -3737,9 +3737,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindFirstOr(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $result = $table->findByUsernameOrId('garrett', 4);
+        $result = $collection->findByUsernameOrId('garrett', 4);
         $this->assertInstanceOf(SelectQuery::class, $result);
 
         $this->assertEquals(
@@ -3753,9 +3753,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindAll(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $result = $table->findAllByAuthorId(1);
+        $result = $collection->findAllByAuthorId(1);
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
 
@@ -3767,9 +3767,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindAllAnd(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $result = $table->findAllByAuthorIdAndPublished(1, 'Y');
+        $result = $collection->findAllByAuthorIdAndPublished(1, 'Y');
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
         $this->assertEquals(['author_id' => 1, 'published' => 'Y'], $result->clause('where'));
@@ -3780,9 +3780,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testMagicFindAllOr(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
 
-        $result = $table->findAllByAuthorIdOrPublished(1, 'Y');
+        $result = $collection->findAllByAuthorIdOrPublished(1, 'Y');
         $this->assertInstanceOf(SelectQuery::class, $result);
         $this->assertNull($result->clause('limit'));
         $this->assertEquals(
@@ -3797,11 +3797,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testBehaviorIntrospection(): void
     {
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $table->addBehavior('Timestamp');
-        $this->assertTrue($table->hasBehavior('Timestamp'), 'should be true on loaded behavior');
-        $this->assertFalse($table->hasBehavior('Tree'), 'should be false on unloaded behavior');
+        $collection->addBehavior('Timestamp');
+        $this->assertTrue($collection->hasBehavior('Timestamp'), 'should be true on loaded behavior');
+        $this->assertFalse($collection->hasBehavior('Tree'), 'should be false on unloaded behavior');
     }
 
     /**
@@ -3817,8 +3817,8 @@ class BaseCollectionTest extends TestCase
             'name' => 'Jose',
         ]);
 
-        $table = $this->getCollectionLocator()->get('articles');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('articles');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->author->isNew());
         $this->assertNotEmpty($document->author->getId());
@@ -3838,10 +3838,10 @@ class BaseCollectionTest extends TestCase
             'body' => 'A body',
         ]);
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->associations()->remove('Articles');
-        $table->hasOne('Articles');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->associations()->remove('Articles');
+        $collection->hasOne('Articles');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->article->isNew());
         $this->assertNotEmpty($document->article->getId());
@@ -3865,10 +3865,10 @@ class BaseCollectionTest extends TestCase
             'body' => 'A body',
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        // $table->hasOne('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        // $collection->hasOne('articles');
 
-        $table->save($document);
+        $collection->save($document);
         $this->assertFalse($document->isNew());
         $this->assertIsArray($document->article);
     }
@@ -3892,8 +3892,8 @@ class BaseCollectionTest extends TestCase
             ]),
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('authors');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->articles[0]->isNew());
         $this->assertFalse($document->articles[1]->isNew());
@@ -3908,9 +3908,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveHasManyOverwrite(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
 
-        $document = $table->get('000000000000000000000003', contain: ['Articles']);
+        $document = $collection->get('000000000000000000000003', contain: ['Articles']);
         $data = [
             'name' => 'big jose',
             'articles' => [
@@ -3920,10 +3920,10 @@ class BaseCollectionTest extends TestCase
                 ],
             ],
         ];
-        $document = $table->patchDocument($document, $data, ['associated' => 'Articles']);
-        $this->assertSame($document, $table->save($document));
+        $document = $collection->patchDocument($document, $data, ['associated' => 'Articles']);
+        $this->assertSame($document, $collection->save($document));
 
-        $document = $table->get('000000000000000000000003', contain: ['Articles']);
+        $document = $collection->get('000000000000000000000003', contain: ['Articles']);
         $this->assertSame('big jose', $document->name, 'Author did not persist');
         $this->assertSame('New title', $document->articles[0]->title, 'Article did not persist');
     }
@@ -3945,8 +3945,8 @@ class BaseCollectionTest extends TestCase
                 'name' => 'Another Something',
             ]),
         ];
-        $table = $this->getCollectionLocator()->get('Articles');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $this->assertSame($document, $collection->save($document));
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->tags[0]->isNew());
         $this->assertFalse($document->tags[1]->isNew());
@@ -3964,14 +3964,14 @@ class BaseCollectionTest extends TestCase
     public function testSaveBelongsToManyJoinDataOnExistingRecord(): void
     {
         $tags = $this->getCollectionLocator()->get('Tags');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $document = $table->find()->contain('Tags')->first();
+        $document = $collection->find()->contain('Tags')->first();
         // not associated to the article already.
         $document->tags[] = $tags->get('000000000000000000000003');
         $document->setDirty('tags', true);
 
-        $this->assertSame($document, $table->save($document));
+        $this->assertSame($document, $collection->save($document));
 
         $this->assertFalse($document->isNew());
         $this->assertFalse($document->tags[0]->isNew());
@@ -4072,18 +4072,18 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsToManyDeleteAllLinks(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->Tags->setSaveStrategy('replace');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->Tags->setSaveStrategy('replace');
 
-        $document = $table->get('000000000000000000000001', contain: 'Tags');
+        $document = $collection->get('000000000000000000000001', contain: 'Tags');
         $this->assertCount(2, $document->tags, 'Fixture data did not change.');
 
         $document->tags = [];
-        $result = $table->save($document);
+        $result = $collection->save($document);
         $this->assertSame($result, $document);
         $this->assertSame([], $document->tags, 'No tags on the entity.');
 
-        $document = $table->get('000000000000000000000001', contain: 'Tags');
+        $document = $collection->get('000000000000000000000001', contain: 'Tags');
         $this->assertSame([], $document->tags, 'No tags in the db either.');
     }
 
@@ -4092,22 +4092,22 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveBelongsToManyDeleteSomeLinks(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->Tags->setSaveStrategy('replace');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->Tags->setSaveStrategy('replace');
 
-        $document = $table->get('000000000000000000000001', contain: 'Tags');
+        $document = $collection->get('000000000000000000000001', contain: 'Tags');
         $this->assertCount(2, $document->tags, 'Fixture data did not change.');
 
         $tag = new Document([
             '_id' => '000000000000000000000002',
         ]);
         $document->tags = [$tag];
-        $result = $table->save($document);
+        $result = $collection->save($document);
         $this->assertSame($result, $document);
         $this->assertCount(1, $document->tags, 'Only one tag left.');
         $this->assertEquals($tag, $document->tags[0]);
 
-        $document = $table->get('000000000000000000000001', contain: 'Tags');
+        $document = $collection->get('000000000000000000000001', contain: 'Tags');
         $this->assertCount(1, $document->tags, 'Only one tag in the db.');
         $this->assertEquals($tag->getId(), $document->tags[0]->getId());
     }
@@ -4131,15 +4131,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testSaveCleanDocument(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['processSave'])
             ->getMock();
         $document = new Document(
             ['id' => 'foo'],
             ['markNew' => false, 'markClean' => true],
         );
-        $table->expects($this->never())->method('processSave');
-        $this->assertSame($document, $table->save($document));
+        $collection->expects($this->never())->method('processSave');
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -4147,13 +4147,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testBelongsToManyIntegration(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $tags = $article->tags;
         $this->assertNotEmpty($tags);
         $tags[] = new Tag(['name' => 'Something New']);
         $article->tags = $tags;
-        $this->assertSame($article, $table->save($article));
+        $this->assertSame($article, $collection->save($article));
         $tags = $article->tags;
         $this->assertCount(3, $tags);
         $this->assertFalse($tags[2]->isNew());
@@ -4414,7 +4414,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testLinkBelongsToMany(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $tagsCollection = $this->getCollectionLocator()->get('Tags');
         $source = ['source' => 'Tags'];
         $options = ['markNew' => false];
@@ -4433,14 +4433,14 @@ class BaseCollectionTest extends TestCase
         $tags[] = $newTag;
 
         $tagsCollection->save($newTag);
-        $table->getAssociation('Tags')->link($article, $tags);
+        $collection->getAssociation('Tags')->link($article, $tags);
 
         $this->assertEquals($article->tags, $tags);
         foreach ($tags as $tag) {
             $this->assertFalse($tag->isNew());
         }
 
-        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEquals($article->tags[2]->getId(), $tags[0]->getId());
         $this->assertEqualsCanonicalizing($article->tags[3]->toArray(), $tags[1]->toArray());
     }
@@ -4904,13 +4904,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToMany(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $article = $table->find('all')
+        $article = $collection->find('all')
             ->where(['_id' => '000000000000000000000001'])
             ->contain(['Tags'])->first();
 
-        $table->getAssociation('Tags')->unlink($article, [$article->tags[0]]);
+        $collection->getAssociation('Tags')->unlink($article, [$article->tags[0]]);
         $this->assertCount(1, $article->tags);
         $this->assertSame('000000000000000000000002', $article->tags[0]->get('_id'));
         $this->assertFalse($article->isDirty('tags'));
@@ -4921,15 +4921,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToManyMultiple(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
         $article = new Document(['_id' => '000000000000000000000001'], $options);
         $tags[] = new Tag(['_id' => '000000000000000000000001'], $options);
         $tags[] = new Tag(['_id' => '000000000000000000000002'], $options);
 
-        $table->getAssociation('Tags')->unlink($article, $tags);
-        $left = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $collection->getAssociation('Tags')->unlink($article, $tags);
+        $left = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($left->tags);
     }
 
@@ -4939,7 +4939,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToManyPassingJoint(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
         $article = new Document(['_id' => '000000000000000000000001'], $options);
@@ -4951,8 +4951,8 @@ class BaseCollectionTest extends TestCase
             'tag_id' => '000000000000000000000002',
         ], $options);
 
-        $table->getAssociation('Tags')->unlink($article, $tags);
-        $left = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $collection->getAssociation('Tags')->unlink($article, $tags);
+        $left = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($left->tags);
     }
 
@@ -4961,7 +4961,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplacelinksBelongsToMany(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
         $article = new Document(['_id' => '000000000000000000000001'], $options);
@@ -4969,12 +4969,12 @@ class BaseCollectionTest extends TestCase
         $tags[] = new Tag(['_id' => '000000000000000000000003'], $options);
         $tags[] = new Tag(['name' => 'foo']);
 
-        $table->getAssociation('Tags')->replaceLinks($article, $tags);
+        $collection->getAssociation('Tags')->replaceLinks($article, $tags);
         $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
         $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
         $this->assertNotEmpty($article->tags[2]->getId());
 
-        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(3, $article->tags);
         $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
         $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
@@ -4987,15 +4987,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplacelinksBelongsToManyWithEmpty(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
         $article = new Document(['_id' => '000000000000000000000001'], $options);
         $tags = [];
 
-        $table->getAssociation('Tags')->replaceLinks($article, $tags);
+        $collection->getAssociation('Tags')->replaceLinks($article, $tags);
         $this->assertSame($tags, $article->tags);
-        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEmpty($article->tags);
     }
 
@@ -5005,7 +5005,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testReplacelinksBelongsToManyWithJoint(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 
         $article = new Document(['_id' => '000000000000000000000001'], $options);
@@ -5018,9 +5018,9 @@ class BaseCollectionTest extends TestCase
         ], $options);
         $tags[] = new Tag(['_id' => '000000000000000000000003'], $options);
 
-        $table->getAssociation('Tags')->replaceLinks($article, $tags);
+        $collection->getAssociation('Tags')->replaceLinks($article, $tags);
         $this->assertSame($tags, $article->tags);
-        $article = $table->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
+        $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertCount(2, $article->tags);
         $this->assertSame('000000000000000000000002', $article->tags[0]->getId());
         $this->assertSame('000000000000000000000003', $article->tags[1]->getId());
@@ -5432,7 +5432,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testSimplifiedFind(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['findAll'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -5440,8 +5440,8 @@ class BaseCollectionTest extends TestCase
             ]])
             ->getMock();
 
-        $table->expects($this->once())->method('findAll');
-        $table->find();
+        $collection->expects($this->once())->method('findAll');
+        $collection->find();
     }
 
     public static function providerForTestGet(): array
@@ -5462,7 +5462,7 @@ class BaseCollectionTest extends TestCase
     public function testGet(array $options): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -5476,23 +5476,23 @@ class BaseCollectionTest extends TestCase
 
         $query = $this->getMockBuilder(SelectQuery::class)
             ->onlyMethods(['addDefaultTypes', 'firstOrFail', 'where', 'cache', 'applyOptions'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
 
-        $table->expects($this->once())->method('selectQuery')
+        $collection->expects($this->once())->method('selectQuery')
             ->willReturn($query);
 
         $document = new Document();
         $query->expects($this->once())->method('applyOptions')
             ->with(['fields' => ['id']]);
         $query->expects($this->once())->method('where')
-            ->with([$table->getAlias() . '.bar' => 10])
+            ->with([$collection->getAlias() . '.bar' => 10])
             ->willReturnSelf();
         $query->expects($this->never())->method('cache');
         $query->expects($this->once())->method('firstOrFail')
             ->willReturn($document);
 
-        $result = $table->get('000000000000000000000010', ...$options);
+        $result = $collection->get('000000000000000000000010', ...$options);
         $this->assertSame($document, $result);
     }
 
@@ -5530,7 +5530,7 @@ class BaseCollectionTest extends TestCase
     public function testGetWithCache(array $options, string $cacheKey, string $cacheConfig, int|string|DateTime $primaryKey): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
@@ -5541,21 +5541,21 @@ class BaseCollectionTest extends TestCase
                 ],
             ]])
             ->getMock();
-        $table->setCollection('table_name');
+        $collection->setCollection('table_name');
 
         $query = $this->getMockBuilder(SelectQuery::class)
             ->onlyMethods(['addDefaultTypes', 'firstOrFail', 'where', 'cache', 'applyOptions'])
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
 
-        $table->expects($this->once())->method('selectQuery')
+        $collection->expects($this->once())->method('selectQuery')
             ->willReturn($query);
 
         $document = new Document();
         $query->expects($this->once())->method('applyOptions')
             ->with(['fields' => ['id']]);
         $query->expects($this->once())->method('where')
-            ->with([$table->getAlias() . '.bar' => $primaryKey])
+            ->with([$collection->getAlias() . '.bar' => $primaryKey])
             ->willReturnSelf();
         $query->expects($this->once())->method('cache')
             ->with($cacheKey, $cacheConfig)
@@ -5563,7 +5563,7 @@ class BaseCollectionTest extends TestCase
         $query->expects($this->once())->method('firstOrFail')
             ->willReturn($document);
 
-        $result = $table->get($primaryKey, ...$options);
+        $result = $collection->get($primaryKey, ...$options);
         $this->assertSame($document, $result);
     }
 
@@ -5575,12 +5575,12 @@ class BaseCollectionTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(RecordNotFoundException::class);
         $this->expectExceptionMessage('Record not found in table `articles`.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
             'collection' => 'articles',
         ]);
-        $table->get('000000000000000000000010');
+        $collection->get('000000000000000000000010');
     }
 
     /**
@@ -5591,12 +5591,12 @@ class BaseCollectionTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidPrimaryKeyException::class);
         $this->expectExceptionMessage('Record not found in table `articles` with primary key `[NULL]`.');
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
             'collection' => 'articles',
         ]);
-        $table->get(null);
+        $collection->get(null);
     }
 
     /**
@@ -5607,12 +5607,12 @@ class BaseCollectionTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidPrimaryKeyException::class);
         $this->expectExceptionMessage("Record not found in table `articles` with primary key `[1, 'two']`.");
-        $table = new BaseCollection([
+        $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
             'collection' => 'articles',
         ]);
-        $table->get([1, 'two']);
+        $collection->get([1, 'two']);
     }
 
     /**
@@ -5621,15 +5621,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testPatchDocumentMarshallerUsage(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['marshaller'])
             ->getMock();
         $marshaller = $this->getMockBuilder(Marshaller::class)
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->belongsTo('users');
-        $table->hasMany('articles');
-        $table->expects($this->once())->method('marshaller')
+        $collection->belongsTo('users');
+        $collection->hasMany('articles');
+        $collection->expects($this->once())->method('marshaller')
             ->willReturn($marshaller);
 
         $document = new Document();
@@ -5638,7 +5638,7 @@ class BaseCollectionTest extends TestCase
             ->method('merge')
             ->with($document, $data, ['associated' => ['users', 'articles']])
             ->willReturn($document);
-        $table->patchDocument($document, $data);
+        $collection->patchDocument($document, $data);
     }
 
     /**
@@ -5647,10 +5647,10 @@ class BaseCollectionTest extends TestCase
      */
     public function testPatchDocument(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $document = new Document(['title' => 'old title'], ['markNew' => false]);
         $data = ['title' => 'new title'];
-        $document = $table->patchDocument($document, $data);
+        $document = $collection->patchDocument($document, $data);
 
         $this->assertSame($data['title'], $document->title);
         $this->assertFalse($document->isNew(), 'entity should not be new.');
@@ -5662,15 +5662,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testPatchEntitiesMarshallerUsage(): void
     {
-        $table = $this->getMockBuilder(BaseCollection::class)
+        $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['marshaller'])
             ->getMock();
         $marshaller = $this->getMockBuilder(Marshaller::class)
-            ->setConstructorArgs([$table])
+            ->setConstructorArgs([$collection])
             ->getMock();
-        $table->belongsTo('users');
-        $table->hasMany('articles');
-        $table->expects($this->once())->method('marshaller')
+        $collection->belongsTo('users');
+        $collection->hasMany('articles');
+        $collection->expects($this->once())->method('marshaller')
             ->willReturn($marshaller);
 
         $documents = [new Document()];
@@ -5679,7 +5679,7 @@ class BaseCollectionTest extends TestCase
             ->method('mergeMany')
             ->with($documents, $data, ['associated' => ['users', 'articles']])
             ->willReturn($documents);
-        $table->patchDocuments($documents, $data);
+        $collection->patchDocuments($documents, $data);
     }
 
     /**
@@ -5688,14 +5688,14 @@ class BaseCollectionTest extends TestCase
      */
     public function testPatchEntities(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $documents = $table->find()->limit(2)->toArray();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $documents = $collection->find()->limit(2)->toArray();
 
         $data = [
             ['id' => $documents[0]->getId(), 'title' => 'new title'],
             ['id' => $documents[1]->getId(), 'title' => 'new title2'],
         ];
-        $documents = $table->patchDocuments($documents, $data);
+        $documents = $collection->patchDocuments($documents, $data);
         foreach ($documents as $i => $document) {
             $this->assertFalse($document->isNew(), 'entities should not be new.');
             $this->assertSame($data[$i]['title'], $document->title);
@@ -5708,25 +5708,25 @@ class BaseCollectionTest extends TestCase
      */
     public function testInterfaceWrappersDelegateToDocumentMethods(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $this->assertInstanceOf(RepositoryInterface::class, $table);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $this->assertInstanceOf(RepositoryInterface::class, $collection);
 
-        $document = $table->newEntity(['title' => 'wrapper title']);
+        $document = $collection->newEntity(['title' => 'wrapper title']);
         $this->assertInstanceOf(Document::class, $document);
         $this->assertSame('wrapper title', $document->title);
 
-        $documents = $table->newEntities([['title' => 'a'], ['title' => 'b']]);
+        $documents = $collection->newEntities([['title' => 'a'], ['title' => 'b']]);
         $this->assertCount(2, $documents);
         $this->assertInstanceOf(Document::class, $documents[0]);
 
-        $empty = $table->newEmptyEntity();
+        $empty = $collection->newEmptyEntity();
         $this->assertInstanceOf(Document::class, $empty);
         $this->assertTrue($empty->isNew());
 
-        $patched = $table->patchEntity($document, ['title' => 'patched']);
+        $patched = $collection->patchEntity($document, ['title' => 'patched']);
         $this->assertSame('patched', $patched->title);
 
-        $patchedMany = $table->patchEntities($documents, [
+        $patchedMany = $collection->patchEntities($documents, [
             ['id' => $documents[0]->getId(), 'title' => 'patched a'],
             ['id' => $documents[1]->getId(), 'title' => 'patched b'],
         ]);
@@ -6053,12 +6053,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasFinder(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->addBehavior('Sluggable');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->addBehavior('Sluggable');
 
-        $this->assertTrue($table->hasFinder('list'));
-        $this->assertTrue($table->hasFinder('noSlug'));
-        $this->assertFalse($table->hasFinder('noFind'));
+        $this->assertTrue($collection->hasFinder('list'));
+        $this->assertTrue($collection->hasFinder('noSlug'));
+        $this->assertFalse($collection->hasFinder('noFind'));
     }
 
     /**
@@ -6085,9 +6085,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidateUnique(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
         $validator = new Validator();
-        $validator->setProvider('table', $table);
+        $validator->setProvider('table', $collection);
         $validator->add('username', 'unique', ['rule' => 'validateUnique', 'provider' => 'table']);
 
         $data = ['username' => ['larry', 'notthere']];
@@ -6115,9 +6115,9 @@ class BaseCollectionTest extends TestCase
     public function testValidateUniqueScope(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Users');
+        $collection = $this->getCollectionLocator()->get('Users');
         $validator = new Validator();
-        $validator->setProvider('table', $table);
+        $validator->setProvider('table', $collection);
         $validator->add('username', 'unique', [
             'rule' => ['validateUnique', ['derp' => 'erp', 'scope' => 'id']],
             'provider' => 'table',
@@ -6144,11 +6144,11 @@ class BaseCollectionTest extends TestCase
             'title' => 'Null title',
         ]);
 
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->save($document);
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->save($document);
 
         $validator = new Validator();
-        $validator->setProvider('table', $table);
+        $validator->setProvider('table', $collection);
         $validator->add('site_id', 'unique', [
             'rule' => [
                 'validateUnique',
@@ -6172,13 +6172,13 @@ class BaseCollectionTest extends TestCase
     public function testCallbackArgumentTypes(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
 
-        $eventManager = $table->getEventManager();
+        $eventManager = $collection->getEventManager();
 
         $associationBeforeFindCount = 0;
-        $table->getAssociation('authors')->getTarget()->getEventManager()->on(
+        $collection->getAssociation('authors')->getTarget()->getEventManager()->on(
             'Collection.beforeFind',
             function (EventInterface $event, SelectQuery $query, ArrayObject $options, bool $primary) use (&$associationBeforeFindCount): void {
                 $this->assertIsBool($primary);
@@ -6194,7 +6194,7 @@ class BaseCollectionTest extends TestCase
                 $beforeFindCount++;
             },
         );
-        $table->find()->contain('authors')->first();
+        $collection->find()->contain('authors')->first();
         $this->assertSame(1, $associationBeforeFindCount);
         $this->assertSame(1, $beforeFindCount);
 
@@ -6206,7 +6206,7 @@ class BaseCollectionTest extends TestCase
                 $buildValidatorCount++;
             },
         );
-        $table->getValidator();
+        $collection->getValidator();
         $this->assertSame(1, $buildValidatorCount);
         $buildRulesCount = 0;
         $beforeRulesCount = 0;
@@ -6247,7 +6247,7 @@ class BaseCollectionTest extends TestCase
             },
         );
         $document = new Document(['title' => 'Title']);
-        $this->assertNotFalse($table->save($document));
+        $this->assertNotFalse($collection->save($document));
         $this->assertSame(1, $buildRulesCount);
         $this->assertSame(1, $beforeRulesCount);
         $this->assertSame(1, $afterRulesCount);
@@ -6267,7 +6267,7 @@ class BaseCollectionTest extends TestCase
                 $afterDeleteCount++;
             },
         );
-        $this->assertTrue($table->delete($document, ['checkRules' => false]));
+        $this->assertTrue($collection->delete($document, ['checkRules' => false]));
         $this->assertSame(1, $beforeDeleteCount);
         $this->assertSame(1, $afterDeleteCount);
     }
@@ -6277,12 +6277,12 @@ class BaseCollectionTest extends TestCase
      */
     public function testSetDocumentSource(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $this->assertSame('Articles', $table->newEmptyDocument()->getSource());
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $this->assertSame('Articles', $collection->newEmptyDocument()->getSource());
 
         $this->loadPlugins(['TestPlugin']);
-        $table = $this->getCollectionLocator()->get('TestPlugin.Comments');
-        $this->assertSame('TestPlugin.Comments', $table->newEmptyDocument()->getSource());
+        $collection = $this->getCollectionLocator()->get('TestPlugin.Comments');
+        $this->assertSame('TestPlugin.Comments', $collection->newEmptyDocument()->getSource());
     }
 
     /**
@@ -6292,13 +6292,13 @@ class BaseCollectionTest extends TestCase
     public function testSaveWithClonedDocument(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $article = $table->get('000000000000000000000001');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $article = $collection->get('000000000000000000000001');
 
         $cloned = clone $article;
         $cloned->unset('id');
         $cloned->setNew(true);
-        $this->assertSame($cloned, $table->save($cloned));
+        $this->assertSame($cloned, $collection->save($cloned));
         $this->assertEquals(
             $article->extract(['title', 'author_id']),
             $cloned->extract(['title', 'author_id']),
@@ -6382,11 +6382,11 @@ class BaseCollectionTest extends TestCase
             ],
         ];
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $article = $table->save($table->newDocument($data, ['associated' => ['Tags']]));
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $article = $collection->save($collection->newDocument($data, ['associated' => ['Tags']]));
 
         $counter = 0;
-        $table->Tags->junction()
+        $collection->Tags->junction()
             ->getEventManager()
             ->on('Collection.afterSave', function (EventInterface $event, $document) use (&$counter): void {
                 if ($document->isDirty()) {
@@ -6394,10 +6394,10 @@ class BaseCollectionTest extends TestCase
                 }
             });
 
-        $article->tags[] = $table->Tags->get('000000000000000000000003');
+        $article->tags[] = $collection->Tags->get('000000000000000000000003');
         $this->assertCount(3, $article->tags);
         $article->setDirty('tags', true);
-        $table->save($article);
+        $collection->save($article);
         $this->assertSame(1, $counter);
     }
 
@@ -6414,8 +6414,8 @@ class BaseCollectionTest extends TestCase
             'updated' => new DateTime('2013-10-10 00:00'),
         ], ['markNew' => true]);
 
-        $table = $this->getCollectionLocator()->get('Users');
-        $this->assertSame($document, $table->save($document));
+        $collection = $this->getCollectionLocator()->get('Users');
+        $this->assertSame($document, $collection->save($document));
         $this->assertSame(self::$nextUserId, $document->getId());
     }
 
@@ -6424,9 +6424,9 @@ class BaseCollectionTest extends TestCase
      */
     public function testDocumentClean(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->getValidator()->requirePresence('body');
-        $document = $table->newDocument(['title' => 'mark']);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->getValidator()->requirePresence('body');
+        $document = $collection->newDocument(['title' => 'mark']);
 
         $document->setDirty('title', true);
         $document->setInvalidField('title', 'albert');
@@ -6452,14 +6452,14 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoDocument(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany('SiteArticles');
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany('SiteArticles');
 
-        $document = $table->get('000000000000000000000001');
-        $result = $table->loadInto($document, ['SiteArticles', 'Articles.Tags']);
+        $document = $collection->get('000000000000000000000001');
+        $result = $collection->loadInto($document, ['SiteArticles', 'Articles.Tags']);
         $this->assertSame($document, $result);
 
-        $expected = $table->get('000000000000000000000001', contain: ['SiteArticles', 'Articles.Tags']);
+        $expected = $collection->get('000000000000000000000001', contain: ['SiteArticles', 'Articles.Tags']);
         $this->assertEquals($expected->site_articles, $result->site_articles);
         $this->assertEquals($expected->articles, $result->articles);
     }
@@ -6470,17 +6470,17 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoWithConditions(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany('SiteArticles');
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany('SiteArticles');
 
-        $document = $table->get('000000000000000000000001');
+        $document = $collection->get('000000000000000000000001');
         $options = [
             'SiteArticles' => ['fields' => ['title', 'author_id']],
             'Articles.Tags' => fn($q) => $q->where(['Tags.name' => 'tag2']),
         ];
-        $result = $table->loadInto($document, $options);
+        $result = $collection->loadInto($document, $options);
         $this->assertSame($document, $result);
-        $expected = $table->get('000000000000000000000001', contain: $options);
+        $expected = $collection->get('000000000000000000000001', contain: $options);
         $this->assertEquals($expected->site_articles, $result->site_articles);
         $this->assertEquals(['title', 'author_id'], $expected->site_articles[0]->getOriginalFields());
         $this->assertEquals($expected->articles, $result->articles);
@@ -6492,13 +6492,13 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadBelongsTo(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $document = $table->get('000000000000000000000002');
-        $result = $table->loadInto($document, ['Authors']);
+        $document = $collection->get('000000000000000000000002');
+        $result = $collection->loadInto($document, ['Authors']);
         $this->assertSame($document, $result);
 
-        $expected = $table->get('000000000000000000000002', contain: ['Authors']);
+        $expected = $collection->get('000000000000000000000002', contain: ['Authors']);
         $this->assertEquals($expected, $document);
     }
 
@@ -6508,18 +6508,18 @@ class BaseCollectionTest extends TestCase
     public function testLoadBelongsToDoubleJoin(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Comments');
-        $table->belongsTo('Articles');
+        $collection = $this->getCollectionLocator()->get('Comments');
+        $collection->belongsTo('Articles');
 
-        $document = $table->get('000000000000000000000002');
-        $result = $table->loadInto($document, [
+        $document = $collection->get('000000000000000000000002');
+        $result = $collection->loadInto($document, [
             'Articles' => fn(SelectQuery $q): SelectQuery => $q->innerJoinWith('Authors', fn($q) => $q->where(['Authors.name' => 'mariano'])),
             'Articles.Authors',
         ]);
 
         $this->assertSame($document, $result);
 
-        $expected = $table->get('000000000000000000000002', contain: ['Articles.Authors']);
+        $expected = $collection->get('000000000000000000000002', contain: ['Articles.Authors']);
         $this->assertEquals($expected, $document);
         $this->assertEquals($expected->article, $document->article);
         $this->assertEquals($expected->article->author, $document->article->author);
@@ -6532,18 +6532,18 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany('SiteArticles');
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany('SiteArticles');
 
-        $documents = $table->find()->toArray();
+        $documents = $collection->find()->toArray();
         $contain = ['SiteArticles', 'Articles.Tags'];
-        $result = $table->loadInto($documents, $contain);
+        $result = $collection->loadInto($documents, $contain);
 
         foreach ($documents as $k => $v) {
             $this->assertSame($v, $result[$k]);
         }
 
-        $documents = $table->find()->contain($contain)->toArray();
+        $documents = $collection->find()->contain($contain)->toArray();
         foreach ($documents as $k => $v) {
             $this->assertEquals($v->site_articles, $result[$k]->site_articles);
             $this->assertEquals($v->articles, $result[$k]->articles);
@@ -6556,16 +6556,16 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoNestedAssociations(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
+        $collection = $this->getCollectionLocator()->get('Authors');
 
-        $document = $table->get('000000000000000000000001');
+        $document = $collection->get('000000000000000000000001');
         // This should work without throwing an error about 'includeFields' not being an association
-        $result = $table->loadInto($document, ['Articles.Tags']);
+        $result = $collection->loadInto($document, ['Articles.Tags']);
         $this->assertSame($document, $result);
         $this->assertNotEmpty($result->articles);
         $this->assertNotEmpty($result->articles[0]->tags);
 
-        $expected = $table->get('000000000000000000000001', contain: ['Articles.Tags']);
+        $expected = $collection->get('000000000000000000000001', contain: ['Articles.Tags']);
         $this->assertEquals($expected->articles, $result->articles);
         $this->assertEquals($expected->articles[0]->tags, $result->articles[0]->tags);
     }
@@ -6576,16 +6576,16 @@ class BaseCollectionTest extends TestCase
     public function testLoadIntoMultipleTimesWithNestedAssociations(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
+        $collection = $this->getCollectionLocator()->get('Authors');
 
         // First load some associations
-        $document = $table->get('000000000000000000000001');
-        $document = $table->loadInto($document, ['Articles']);
+        $document = $collection->get('000000000000000000000001');
+        $document = $collection->loadInto($document, ['Articles']);
         $this->assertNotEmpty($document->articles);
         $this->assertEmpty($document->articles[0]->tags);
 
         // Now load nested associations - this should not throw an error about 'includeFields'
-        $result = $table->loadInto($document, ['Articles.Tags']);
+        $result = $collection->loadInto($document, ['Articles.Tags']);
         $this->assertSame($document, $result);
 
         // Verify the nested associations were loaded correctly
@@ -6609,9 +6609,9 @@ class BaseCollectionTest extends TestCase
         $document = new Document([
             'foo' => 'bar',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $table->saveOrFail($document);
+        $collection->saveOrFail($document);
     }
 
     /**
@@ -6628,9 +6628,9 @@ class BaseCollectionTest extends TestCase
         $document->setError('field', 'Some message');
         $document->setError('multiple', ['one' => 'One', 'two' => 'Two']);
 
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $table->saveOrFail($document);
+        $collection->saveOrFail($document);
     }
 
     /**
@@ -6649,10 +6649,10 @@ class BaseCollectionTest extends TestCase
         ]);
         $document->articles[0]->setError('title', 'Bad value');
 
-        $table = $this->getCollectionLocator()->get('Users');
-        $table->hasMany('Articles');
+        $collection = $this->getCollectionLocator()->get('Users');
+        $collection->hasMany('Articles');
 
-        $table->saveOrFail($document);
+        $collection->saveOrFail($document);
     }
 
     /**
@@ -6663,12 +6663,12 @@ class BaseCollectionTest extends TestCase
         $document = new Document([
             'foo' => 'bar',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
         try {
-            $table->saveOrFail($document);
+            $collection->saveOrFail($document);
         } catch (PersistenceFailedException $persistenceFailedException) {
-            $this->assertSame($document, $persistenceFailedException->getEntity());
+            $this->assertSame($document, $persistenceFailedException->getDocument());
         }
     }
 
@@ -6682,9 +6682,9 @@ class BaseCollectionTest extends TestCase
         $document = new Document([
             '_id' => '000000000000000000000999',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
-        $table->deleteOrFail($document);
+        $collection->deleteOrFail($document);
     }
 
     /**
@@ -6695,12 +6695,12 @@ class BaseCollectionTest extends TestCase
         $document = new Document([
             '_id' => '000000000000000000000999',
         ]);
-        $table = $this->getCollectionLocator()->get('users');
+        $collection = $this->getCollectionLocator()->get('users');
 
         try {
-            $table->deleteOrFail($document);
+            $collection->deleteOrFail($document);
         } catch (PersistenceFailedException $persistenceFailedException) {
-            $this->assertSame($document, $persistenceFailedException->getEntity());
+            $this->assertSame($document, $persistenceFailedException->getDocument());
         }
     }
 
@@ -6739,7 +6739,7 @@ class BaseCollectionTest extends TestCase
 
     /**
      * Tests that the generic Document class is accepted as an escape hatch,
-     * allowing ad-hoc operations such as ``$table->delete(new Document(['_id' => '000000000000000000000001']))``.
+     * allowing ad-hoc operations such as ``$collection->delete(new Document(['_id' => '000000000000000000000001']))``.
      */
     public function testDeleteAcceptsGenericDocument(): void
     {

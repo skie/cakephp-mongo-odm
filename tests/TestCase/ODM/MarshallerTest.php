@@ -365,20 +365,20 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($users);
-        $entity = $marshall->one($data, ['associated' => ['Articles']]);
-        $this->assertTrue($entity->isDirty('username'));
-        $this->assertFalse($entity->isDirty('article'));
+        $document = $marshall->one($data, ['associated' => ['Articles']]);
+        $this->assertTrue($document->isDirty('username'));
+        $this->assertFalse($document->isDirty('article'));
 
         // Ensure consistency with merge()
-        $entity = new Document([
+        $document = new Document([
             'username' => 'Jenny',
         ]);
         // Make the entity think it is new.
-        $entity->setAccess('*', true);
-        $entity->clean();
-        $entity = $marshall->merge($entity, $data, ['associated' => ['Articles']]);
-        $this->assertTrue($entity->isDirty('username'));
-        $this->assertFalse($entity->isDirty('article'));
+        $document->setAccess('*', true);
+        $document->clean();
+        $document = $marshall->merge($document, $data, ['associated' => ['Articles']]);
+        $this->assertTrue($document->isDirty('username'));
+        $this->assertFalse($document->isDirty('article'));
     }
 
     /**
@@ -979,22 +979,22 @@ class MarshallerTest extends TestCase
         $this->assertSame(0, $result->tags[0]->_joinData->active);
         $this->assertSame(1, $result->tags[1]->_joinData->active);
 
-        $entity = new Document();
-        $entity->requireFieldPresence(true);
+        $document = new Document();
+        $document->requireFieldPresence(true);
         // MissingPropertyException should not be thrown for `tags` field
-        $marshall->merge($entity, $data, ['associated' => ['Tags._joinData']]);
+        $marshall->merge($document, $data, ['associated' => ['Tags._joinData']]);
 
         $inner = new Document(['_id' => '000000000000000000000001']);
         $inner->requireFieldPresence(true);
 
-        $entity = new Document([
+        $document = new Document([
             'tags' => [
                 $inner,
             ],
         ]);
-        $entity->requireFieldPresence(true);
+        $document->requireFieldPresence(true);
         // MissingPropertyException should not be thrown for `_joinData` field
-        $marshall->merge($entity, $data, ['associated' => ['Tags._joinData']]);
+        $marshall->merge($document, $data, ['associated' => ['Tags._joinData']]);
     }
 
     /**
@@ -1439,25 +1439,25 @@ class MarshallerTest extends TestCase
             'not_in_schema' => true,
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My Content',
         ]);
-        $entity->setAccess('*', true);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, []);
+        $result = $marshall->merge($document, $data, []);
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEquals($data + ['body' => 'My Content'], $result->toArray());
         $this->assertTrue($result->isDirty(), 'Should be a dirty entity.');
         $this->assertFalse($result->isNew(), 'Should not change the entity state');
 
-        $entity = new Document();
-        $entity->requireFieldPresence(true);
+        $document = new Document();
+        $document->requireFieldPresence(true);
         // MissingPropertyException should not be thrown
-        $marshall->merge($entity, $data, []);
+        $marshall->merge($document, $data, []);
     }
 
     /**
@@ -1475,19 +1475,19 @@ class MarshallerTest extends TestCase
             'not_in_schema' => true,
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My Content',
         ]);
-        $entity->setAccess('*', false);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', false);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, ['patchableFields' => ['body' => true]]);
+        $result = $marshall->merge($document, $data, ['patchableFields' => ['body' => true]]);
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEquals(['title' => 'Foo', 'body' => 'New content'], $result->toArray());
-        $this->assertTrue($entity->isAccessible('body'));
+        $this->assertTrue($document->isAccessible('body'));
     }
 
     /**
@@ -1514,13 +1514,13 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM needs schema type config on Articles collection for cast tests — see F16');
 
         $marshall = new Marshaller($this->articles);
-        $entity = new Document();
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document = new Document();
+        $document->setAccess('*', true);
+        $document->clean();
 
-        $entity = $marshall->merge($entity, ['author_id' => $value]);
-        $this->assertTrue($entity->isDirty('author_id'), 'Field should be dirty');
-        $this->assertSame(0, $entity->get('author_id'), 'Value should be zero');
+        $document = $marshall->merge($document, ['author_id' => $value]);
+        $this->assertTrue($document->isDirty('author_id'), 'Field should be dirty');
+        $this->assertSame(0, $document->get('author_id'), 'Value should be zero');
     }
 
     /**
@@ -1534,17 +1534,17 @@ class MarshallerTest extends TestCase
             'body' => null,
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => null,
         ]);
-        $entity->setAccess('*', true);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->setNew(false);
+        $document->clean();
 
-        $marshall->merge($entity, $data, []);
+        $marshall->merge($document, $data, []);
 
-        $this->assertFalse($entity->isDirty('body'), 'unchanged null should not be dirty');
+        $this->assertFalse($document->isDirty('body'), 'unchanged null should not be dirty');
     }
 
     /**
@@ -1553,22 +1553,22 @@ class MarshallerTest extends TestCase
     public function testMergeWithSameObjectValue(): void
     {
         $created = new DateTime('2020-10-29');
-        $entity = new Document([
+        $document = new Document([
             'comment' => 'foo',
             'created' => $created,
         ]);
-        $entity->setAccess('*', true);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->setNew(false);
+        $document->clean();
 
         $data = [
             'comment' => 'bar',
             'created' => clone $created,
         ];
         $marshall = new Marshaller($this->comments);
-        $marshall->merge($entity, $data);
+        $marshall->merge($document, $data);
 
-        $this->assertFalse($entity->isDirty('created'));
+        $this->assertFalse($document->isDirty('created'));
     }
 
     /**
@@ -1582,16 +1582,16 @@ class MarshallerTest extends TestCase
             'not_in_schema' => true,
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My Content',
         ]);
-        $entity->setAccess('*', false);
-        $entity->setAccess('author_id', true);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', false);
+        $document->setAccess('author_id', true);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, []);
+        $result = $marshall->merge($document, $data, []);
 
         $expected = [
             'title' => 'Foo',
@@ -1668,7 +1668,7 @@ class MarshallerTest extends TestCase
     public function testMergeDirty(): void
     {
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'author_id' => 1,
         ]);
@@ -1677,10 +1677,10 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
             'crazy' => true,
         ];
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, []);
+        $result = $marshall->merge($document, $data, []);
 
         $expected = [
             'title' => 'Foo',
@@ -1688,12 +1688,12 @@ class MarshallerTest extends TestCase
             'crazy' => true,
         ];
         $this->assertEquals($expected, $result->toArray());
-        $this->assertFalse($entity->isDirty('title'));
-        $this->assertFalse($entity->isDirty('author_id'));
-        $this->assertTrue($entity->isDirty('crazy'));
+        $this->assertFalse($document->isDirty('title'));
+        $this->assertFalse($document->isDirty('author_id'));
+        $this->assertTrue($document->isDirty('crazy'));
 
         // https://github.com/cakephp/cakephp/issues/18346
-        $entity = new class ([
+        $document = new class ([
             'title' => 'Foo',
             'author_id' => 1,
         ], ['useSetters' => false]) extends Document {
@@ -1702,14 +1702,14 @@ class MarshallerTest extends TestCase
                 return 'The ' . $name;
             }
         };
-        $entity->clean();
+        $document->clean();
 
-        $this->assertSame('Foo', $entity->title);
-        $marshall->merge($entity, ['title' => 'Foo', 'author_id' => 2]);
-        $this->assertSame('Foo', $entity->title, 'Setter should not be called as the value is unchanged');
-        $this->assertFalse($entity->isDirty('title'));
-        $this->assertTrue($entity->isDirty('author_id'));
-        $this->assertSame(2, $entity->author_id);
+        $this->assertSame('Foo', $document->title);
+        $marshall->merge($document, ['title' => 'Foo', 'author_id' => 2]);
+        $this->assertSame('Foo', $document->title, 'Setter should not be called as the value is unchanged');
+        $this->assertFalse($document->isDirty('title'));
+        $this->assertTrue($document->isDirty('author_id'));
+        $this->assertSame(2, $document->author_id);
     }
 
     /**
@@ -1721,13 +1721,13 @@ class MarshallerTest extends TestCase
             'username' => 'mark',
             'password' => 'secret',
         ]);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'My Title',
             'user' => $user,
         ]);
         $user->setAccess('*', true);
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $data = [
             'body' => 'My Content',
@@ -1736,14 +1736,14 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->articles);
-        $marshall->merge($entity, $data, ['associated' => ['Users']]);
+        $marshall->merge($document, $data, ['associated' => ['Users']]);
 
-        $this->assertTrue($entity->isDirty('user'), 'association should be dirty');
-        $this->assertTrue($entity->isDirty('body'), 'body should be dirty');
-        $this->assertSame('My Content', $entity->body);
-        $this->assertSame($user, $entity->user);
-        $this->assertSame('mark', $entity->user->username);
-        $this->assertSame('not a secret', $entity->user->password);
+        $this->assertTrue($document->isDirty('user'), 'association should be dirty');
+        $this->assertTrue($document->isDirty('body'), 'body should be dirty');
+        $this->assertSame('My Content', $document->body);
+        $this->assertSame($user, $document->user);
+        $this->assertSame('mark', $document->user->username);
+        $this->assertSame('not a secret', $document->user->password);
     }
 
     /**
@@ -1755,12 +1755,12 @@ class MarshallerTest extends TestCase
         $tags = $this->tags->find()->limit(2)->toArray();
         $this->assertNotEmpty($tags);
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'My Title',
             'tags' => [],
         ]);
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $data = [
             'tags' => [
@@ -1769,15 +1769,15 @@ class MarshallerTest extends TestCase
         ];
 
         $marshall = new Marshaller($this->articles);
-        $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
-        $this->assertCount(2, $entity->tags, 'Ids should be resolved to documents.');
-        foreach ($entity->tags as $tag) {
+        $this->assertCount(2, $document->tags, 'Ids should be resolved to documents.');
+        foreach ($document->tags as $tag) {
             $this->assertInstanceOf(Document::class, $tag, 'Tag should be a Document, not raw id.');
             $this->assertNotNull($tag->getId());
         }
 
-        $this->assertSame($tags[0]->getId(), $entity->tags[0]->getId());
+        $this->assertSame($tags[0]->getId(), $document->tags[0]->getId());
     }
 
     /**
@@ -1786,11 +1786,11 @@ class MarshallerTest extends TestCase
      */
     public function testMergeCreateAssociation(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'My Title',
         ]);
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $data = [
             'body' => 'My Content',
@@ -1800,15 +1800,15 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->articles);
-        $marshall->merge($entity, $data, ['associated' => ['Users']]);
+        $marshall->merge($document, $data, ['associated' => ['Users']]);
 
-        $this->assertSame('My Content', $entity->body);
-        $this->assertInstanceOf(Document::class, $entity->user);
-        $this->assertSame('mark', $entity->user->username);
-        $this->assertSame('not a secret', $entity->user->password);
-        $this->assertTrue($entity->isDirty('user'));
-        $this->assertTrue($entity->isDirty('body'));
-        $this->assertTrue($entity->user->isNew());
+        $this->assertSame('My Content', $document->body);
+        $this->assertInstanceOf(Document::class, $document->user);
+        $this->assertSame('mark', $document->user->username);
+        $this->assertSame('not a secret', $document->user->password);
+        $this->assertTrue($document->isDirty('user'));
+        $this->assertTrue($document->isDirty('body'));
+        $this->assertTrue($document->user->isNew());
     }
 
     /**
@@ -1858,7 +1858,7 @@ class MarshallerTest extends TestCase
         $user = new Document(['username' => 'mark', 'password' => 'secret']);
         $comment1 = new Document(['_id' => '000000000000000000000001', 'comment' => 'A comment']);
         $comment2 = new Document(['_id' => '000000000000000000000002', 'comment' => 'Another comment']);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'My Title',
             'user' => $user,
             'comments' => [$comment1, $comment2],
@@ -1867,8 +1867,8 @@ class MarshallerTest extends TestCase
         $user->setAccess('*', true);
         $comment1->setAccess('*', true);
         $comment2->setAccess('*', true);
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $data = [
             'title' => 'Another title',
@@ -1884,17 +1884,17 @@ class MarshallerTest extends TestCase
         ];
         $marshall = new Marshaller($this->articles);
 
-        $result = $marshall->merge($entity, $data, ['associated' => ['Users', 'Comments']]);
-        $this->assertSame($entity, $result);
+        $result = $marshall->merge($document, $data, ['associated' => ['Users', 'Comments']]);
+        $this->assertSame($document, $result);
         $this->assertSame($user, $result->user);
         $this->assertTrue($result->isDirty('user'), 'association should be dirty');
-        $this->assertSame('not so secret', $entity->user->password);
+        $this->assertSame('not so secret', $document->user->password);
 
         $this->assertTrue($result->isDirty('comments'));
-        $this->assertSame($comment1, $entity->comments[0]);
-        $this->assertSame($comment2, $entity->comments[1]);
-        $this->assertSame('Altered comment 1', $entity->comments[0]->comment);
-        $this->assertSame('Altered comment 2', $entity->comments[1]->comment);
+        $this->assertSame($comment1, $document->comments[0]);
+        $this->assertSame($comment2, $document->comments[1]);
+        $this->assertSame('Altered comment 1', $document->comments[0]->comment);
+        $this->assertSame('Altered comment 2', $document->comments[1]->comment);
 
         $thirdComment = $this->articles->Comments
             ->find()
@@ -1904,7 +1904,7 @@ class MarshallerTest extends TestCase
 
         $this->assertEquals(
             ['comment' => 'Extra comment 3'] + $thirdComment,
-            $entity->comments[2]->toArray(),
+            $document->comments[2]->toArray(),
         );
 
         $forthComment = $this->articles->Comments
@@ -1915,16 +1915,16 @@ class MarshallerTest extends TestCase
 
         $this->assertEquals(
             ['comment' => 'Extra comment 4'] + $forthComment,
-            $entity->comments[3]->toArray(),
+            $document->comments[3]->toArray(),
         );
 
         $this->assertEquals(
             ['comment' => 'Extra comment 1'],
-            $entity->comments[4]->toArray(),
+            $document->comments[4]->toArray(),
         );
         $this->assertEquals(
             ['comment' => 'Extra comment 2'],
-            $entity->comments[5]->toArray(),
+            $document->comments[5]->toArray(),
         );
     }
 
@@ -1936,12 +1936,12 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer)
  — see F17 (association-layer)
 ');
-        $entity = $this->articles->get(1, ...['contain' => ['Comments']]);
-        $this->assertNotEmpty($entity->comments);
+        $document = $this->articles->get(1, ...['contain' => ['Comments']]);
+        $this->assertNotEmpty($document->comments);
 
         $marshall = new Marshaller($this->articles);
         $data = ['comments' => ['_ids' => [1, 2, 3]]];
-        $result = $marshall->merge($entity, $data, ['associated' => ['Comments']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Comments']]);
 
         $this->assertCount(3, $result->comments);
         $this->assertTrue($result->isDirty('comments'), 'Updated prop should be dirty');
@@ -1961,8 +1961,8 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer)
  — see F17 (association-layer)
 ');
-        $entity = $this->articles->get(1, ...['contain' => ['Comments']]);
-        $this->assertNotEmpty($entity->comments);
+        $document = $this->articles->get(1, ...['contain' => ['Comments']]);
+        $this->assertNotEmpty($document->comments);
 
         $marshall = new Marshaller($this->articles);
         $data = [
@@ -1973,7 +1973,7 @@ class MarshallerTest extends TestCase
                 ],
             ],
         ];
-        $result = $marshall->merge($entity, $data, ['associated' => ['Comments' => ['onlyIds' => true]]]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Comments' => ['onlyIds' => true]]]);
 
         $this->assertCount(1, $result->comments);
         $this->assertTrue($result->isDirty('comments'), 'Updated prop should be dirty');
@@ -1990,7 +1990,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
  — see F17 (association identity/count semantics)
 ');
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
@@ -2003,11 +2003,11 @@ class MarshallerTest extends TestCase
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => [1, 2, 3]],
         ];
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
         $this->assertCount(3, $result->tags);
         $this->assertTrue($result->isDirty('tags'), 'Updated prop should be dirty');
@@ -2025,7 +2025,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
  — see F17 (association identity/count semantics)
 ');
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
@@ -2038,8 +2038,8 @@ class MarshallerTest extends TestCase
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => [1, 2, 3]],
         ];
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         // Adding a forced join to have another table with the same column names
         $this->articles->Tags->getEventManager()->on('Collection.beforeFind', function ($e, $query): void {
@@ -2049,7 +2049,7 @@ class MarshallerTest extends TestCase
         });
 
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
         $this->assertCount(3, $result->tags);
         $this->assertTrue($result->isDirty('tags'));
@@ -2068,7 +2068,7 @@ class MarshallerTest extends TestCase
             'conditions' => ['ArticleTags.article_id' => 1],
         ]);
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'No tags',
             'body' => 'Some content here',
             'tags' => [],
@@ -2078,11 +2078,11 @@ class MarshallerTest extends TestCase
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => [1, 2, 3]],
         ];
-        $entity->setAccess('*', true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->clean();
 
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
         $this->assertCount(3, $result->tags);
         $this->assertTrue($result->isDirty('tags'));
@@ -2111,7 +2111,7 @@ class MarshallerTest extends TestCase
                 $query->where(['Tags.id >=' => 1]);
             });
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'No tags',
             'body' => 'Some content here',
             'tags' => [],
@@ -2124,9 +2124,9 @@ class MarshallerTest extends TestCase
                 ['_id' => '000000000000000000000002'],
             ],
         ];
-        $entity->setAccess('*', true);
+        $document->setAccess('*', true);
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
         $this->assertCount(2, $result->tags);
         $this->assertInstanceOf(Document::class, $result->tags[0]);
@@ -2140,7 +2140,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyEntitiesFromIdsEmptyValue(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
@@ -2153,23 +2153,23 @@ class MarshallerTest extends TestCase
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => ''],
         ];
-        $entity->setAccess('*', true);
+        $document->setAccess('*', true);
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
         $this->assertCount(0, $result->tags);
 
         $data = [
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => false],
         ];
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
         $this->assertCount(0, $result->tags);
 
         $data = [
             'title' => 'Haz moar tags',
             'tags' => ['_ids' => null],
         ];
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
         $this->assertCount(0, $result->tags);
         $this->assertTrue($result->isDirty('tags'));
     }
@@ -2182,7 +2182,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
  — see F17 (association identity/count semantics)
 ');
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
@@ -2198,9 +2198,9 @@ class MarshallerTest extends TestCase
                 ['name' => 'awesome'],
             ],
         ];
-        $entity->setAccess('*', true);
+        $document->setAccess('*', true);
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, [
+        $result = $marshall->merge($document, $data, [
             'associated' => ['Tags' => ['onlyIds' => true]],
         ]);
         $this->assertCount(0, $result->tags);
@@ -2215,7 +2215,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer)
  — see F17 (association-layer)
 ');
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
             'tags' => [
@@ -2230,9 +2230,9 @@ class MarshallerTest extends TestCase
                 '_ids' => [3],
             ],
         ];
-        $entity->setAccess('*', true);
+        $document->setAccess('*', true);
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, [
+        $result = $marshall->merge($document, $data, [
             'associated' => ['Tags' => ['ids' => true]],
         ]);
         $this->assertCount(1, $result->tags);
@@ -2254,7 +2254,7 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $entity = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get(1, ...['contain' => 'Tags']);
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2262,11 +2262,11 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($articles);
-        $marshall->merge($entity, $data, ['associated' => 'Tags._joinData']);
+        $marshall->merge($document, $data, ['associated' => 'Tags._joinData']);
 
-        $articles->save($entity, ['associated' => ['Tags._joinData']]);
-        $this->assertFalse($entity->tags[0]->isDirty('_joinData'));
-        $this->assertEmpty($entity->tags[0]->_joinData);
+        $articles->save($document, ['associated' => ['Tags._joinData']]);
+        $this->assertFalse($document->tags[0]->isDirty('_joinData'));
+        $this->assertEmpty($document->tags[0]->_joinData);
     }
 
     /**
@@ -2284,10 +2284,10 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $entity = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get(1, ...['contain' => 'Tags']);
         // Make only specific fields patchable, but not _joinData.
-        $entity->tags[0]->setAccess('*', false);
-        $entity->tags[0]->setAccess(['article_id', 'tag_id'], true);
+        $document->tags[0]->setAccess('*', false);
+        $document->tags[0]->setAccess(['article_id', 'tag_id'], true);
 
         $data = [
             'title' => 'Haz data',
@@ -2296,10 +2296,10 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($articles);
-        $result = $marshall->merge($entity, $data, ['associated' => 'Tags._joinData']);
+        $result = $marshall->merge($document, $data, ['associated' => 'Tags._joinData']);
 
-        $this->assertTrue($entity->isDirty('tags'), 'Association data changed');
-        $this->assertTrue($entity->tags[0]->isDirty('_joinData'));
+        $this->assertTrue($document->isDirty('tags'), 'Association data changed');
+        $this->assertTrue($document->tags[0]->isDirty('_joinData'));
         $this->assertTrue($result->tags[0]->_joinData->isDirty('author_id'), 'Field not modified');
         $this->assertTrue($result->tags[0]->_joinData->isDirty('highlighted'), 'Field not modified');
         $this->assertSame(99, $result->tags[0]->_joinData->author_id);
@@ -2321,7 +2321,7 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $entity = $articles->get(1);
+        $document = $articles->get(1);
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2329,14 +2329,14 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($articles);
-        $result = $marshall->merge($entity, $data, ['associated' => 'Tags']);
+        $result = $marshall->merge($document, $data, ['associated' => 'Tags']);
 
-        $this->assertTrue($entity->isDirty('tags'));
+        $this->assertTrue($document->isDirty('tags'));
         $this->assertInstanceOf(Document::class, $result->tags[0]->_joinData);
         $this->assertTrue($result->tags[0]->_joinData->highlighted);
 
         // Also ensure merge() overwrites existing data.
-        $entity = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get(1, ...['contain' => 'Tags']);
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2344,9 +2344,9 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($articles);
-        $result = $marshall->merge($entity, $data, ['associated' => 'Tags']);
+        $result = $marshall->merge($document, $data, ['associated' => 'Tags']);
 
-        $this->assertTrue($entity->isDirty('tags'), 'association data changed');
+        $this->assertTrue($document->isDirty('tags'), 'association data changed');
         $this->assertInstanceOf(Document::class, $result->tags[0]->_joinData);
         $this->assertTrue($result->tags[0]->_joinData->highlighted);
     }
@@ -2521,8 +2521,8 @@ class MarshallerTest extends TestCase
 
         $options = ['associated' => ['Tags._joinData']];
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($initData, $options);
-        $entity->setAccess('*', true);
+        $document = $marshall->one($initData, $options);
+        $document->setAccess('*', true);
 
         $data = [
             'title' => 'Haz data',
@@ -2531,26 +2531,26 @@ class MarshallerTest extends TestCase
                 ['tag' => 'new tag', '_joinData' => ['active' => 1, 'foo' => 'baz']],
             ],
         ];
-        $tag1 = $entity->tags[0];
+        $tag1 = $document->tags[0];
 
-        $result = $marshall->merge($entity, $data, $options);
+        $result = $marshall->merge($document, $data, $options);
 
         $this->assertSame($data['title'], $result->title);
         $this->assertSame('My content', $result->body);
         $this->assertTrue($result->isDirty('tags'));
-        $this->assertSame($tag1, $entity->tags[0]);
-        $this->assertSame($tag1->_joinData, $entity->tags[0]->_joinData);
+        $this->assertSame($tag1, $document->tags[0]);
+        $this->assertSame($tag1->_joinData, $document->tags[0]->_joinData);
         $this->assertSame(
             ['active' => 0, 'foo' => 'bar'],
-            $entity->tags[0]->_joinData->toArray(),
+            $document->tags[0]->_joinData->toArray(),
         );
         $this->assertSame(
             ['active' => 1, 'foo' => 'baz'],
-            $entity->tags[1]->_joinData->toArray(),
+            $document->tags[1]->_joinData->toArray(),
         );
-        $this->assertSame('new tag', $entity->tags[1]->tag);
-        $this->assertTrue($entity->tags[0]->isDirty('_joinData'));
-        $this->assertTrue($entity->tags[1]->isDirty('_joinData'));
+        $this->assertSame('new tag', $document->tags[1]->tag);
+        $this->assertTrue($document->tags[0]->isDirty('_joinData'));
+        $this->assertTrue($document->tags[1]->isDirty('_joinData'));
 
         // With custom junction property
         $this->articles->Tags->setJunctionProperty('_junction');
@@ -2560,8 +2560,8 @@ class MarshallerTest extends TestCase
 
         $options = ['associated' => ['Tags._junction']];
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($initData, $options);
-        $entity->setAccess('*', true);
+        $document = $marshall->one($initData, $options);
+        $document->setAccess('*', true);
 
         $data = [
             'title' => 'Haz data 2',
@@ -2570,26 +2570,26 @@ class MarshallerTest extends TestCase
                 ['tag' => 'new tag 2', '_junction' => ['active' => 1, 'foo' => 'baz 2']],
             ],
         ];
-        $tag1 = $entity->tags[0];
+        $tag1 = $document->tags[0];
 
-        $result = $marshall->merge($entity, $data, $options);
+        $result = $marshall->merge($document, $data, $options);
 
         $this->assertSame($data['title'], $result->title);
         $this->assertSame('My content', $result->body);
         $this->assertTrue($result->isDirty('tags'));
-        $this->assertSame($tag1, $entity->tags[0]);
-        $this->assertSame($tag1->_junction, $entity->tags[0]->_junction);
+        $this->assertSame($tag1, $document->tags[0]);
+        $this->assertSame($tag1->_junction, $document->tags[0]->_junction);
         $this->assertSame(
             ['active' => 0, 'foo' => 'bar 2'],
-            $entity->tags[0]->_junction->toArray(),
+            $document->tags[0]->_junction->toArray(),
         );
         $this->assertSame(
             ['active' => 1, 'foo' => 'baz 2'],
-            $entity->tags[1]->_junction->toArray(),
+            $document->tags[1]->_junction->toArray(),
         );
-        $this->assertSame('new tag 2', $entity->tags[1]->tag);
-        $this->assertTrue($entity->tags[0]->isDirty('_junction'));
-        $this->assertTrue($entity->tags[1]->isDirty('_junction'));
+        $this->assertSame('new tag 2', $document->tags[1]->tag);
+        $this->assertTrue($document->tags[0]->isDirty('_junction'));
+        $this->assertTrue($document->tags[1]->isDirty('_junction'));
     }
 
     /**
@@ -2628,8 +2628,8 @@ class MarshallerTest extends TestCase
 
         $options = ['associated' => ['Tags._joinData.Users']];
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($data, $options);
-        $entity->setAccess('*', true);
+        $document = $marshall->one($data, $options);
+        $document->setAccess('*', true);
 
         $data = [
             'title' => 'Haz data',
@@ -2652,19 +2652,19 @@ class MarshallerTest extends TestCase
                 ],
             ],
         ];
-        $tag1 = $entity->tags[0];
-        $result = $marshall->merge($entity, $data, $options);
+        $tag1 = $document->tags[0];
+        $result = $marshall->merge($document, $data, $options);
 
         $this->assertSame($data['title'], $result->title);
         $this->assertSame('My content', $result->body);
-        $this->assertTrue($entity->isDirty('tags'));
-        $this->assertSame($tag1, $entity->tags[0]);
+        $this->assertTrue($document->isDirty('tags'));
+        $this->assertSame($tag1, $document->tags[0]);
 
         $this->assertTrue($tag1->isDirty('_joinData'));
-        $this->assertSame($tag1->_joinData, $entity->tags[0]->_joinData);
-        $this->assertSame('Bill', $entity->tags[0]->_joinData->user->username);
-        $this->assertSame('secret', $entity->tags[0]->_joinData->user->password);
-        $this->assertSame('ber', $entity->tags[1]->_joinData->user->username);
+        $this->assertSame($tag1->_joinData, $document->tags[0]->_joinData);
+        $this->assertSame('Bill', $document->tags[0]->_joinData->user->username);
+        $this->assertSame('secret', $document->tags[0]->_joinData->user->password);
+        $this->assertSame('ber', $document->tags[1]->_joinData->user->username);
     }
 
     /**
@@ -2676,12 +2676,12 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer)
  — see F17 (association-layer)
 ');
-        $entity = $this->articles->get(1, ...['contain' => ['Tags']]);
-        $entity->setAccess('*', true);
+        $document = $this->articles->get(1, ...['contain' => ['Tags']]);
+        $document->setAccess('*', true);
 
-        $original = $entity->tags[0]->_joinData;
+        $original = $document->tags[0]->_joinData;
 
-        $this->assertInstanceOf(Document::class, $entity->tags[0]->_joinData);
+        $this->assertInstanceOf(Document::class, $document->tags[0]->_joinData);
 
         $data = [
             'title' => 'Haz moar tags',
@@ -2690,7 +2690,7 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->articles);
-        $result = $marshall->merge($entity, $data, ['associated' => ['Tags']]);
+        $result = $marshall->merge($document, $data, ['associated' => ['Tags']]);
 
         $this->assertCount(1, $result->tags);
         $this->assertTrue($result->isDirty('tags'));
@@ -2871,7 +2871,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer)
  — see F17 (association-layer)
 ');
-        $entity = new Document(
+        $document = new Document(
             ['comment' => 'My Comment text'],
             ['markNew' => false, 'markClean' => true],
         );
@@ -2883,9 +2883,9 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->comments);
-        $marshall->merge($entity, $data);
-        $this->assertInstanceOf(DateTime::class, $entity->created);
-        $this->assertSame('2014-02-14', $entity->created->format('Y-m-d'));
+        $marshall->merge($document, $data);
+        $this->assertInstanceOf(DateTime::class, $document->created);
+        $this->assertSame('2014-02-14', $document->created->format('Y-m-d'));
     }
 
     /**
@@ -2998,16 +2998,16 @@ class MarshallerTest extends TestCase
             'author_id' => 1,
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My content',
             'author_id' => 2,
         ]);
-        $entity->setAccess('*', false);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', false);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, ['fields' => ['title', 'body']]);
+        $result = $marshall->merge($document, $data, ['fields' => ['title', 'body']]);
 
         $expected = [
             'title' => 'My title',
@@ -3015,9 +3015,9 @@ class MarshallerTest extends TestCase
             'author_id' => 2,
         ];
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEquals($expected, $result->toArray());
-        $this->assertFalse($entity->isAccessible('*'));
+        $this->assertFalse($document->isAccessible('*'));
     }
 
     /**
@@ -3039,17 +3039,17 @@ class MarshallerTest extends TestCase
         ];
         $marshall = new Marshaller($this->articles);
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My content',
             'author_id' => 2,
         ]);
 
-        $entity->setAccess('*', false);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', false);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, ['fields' => ['body']]);
+        $result = $marshall->merge($document, $data, ['fields' => ['body']]);
 
         $expected = [
             'title' => 'Foo',
@@ -3057,29 +3057,29 @@ class MarshallerTest extends TestCase
             'author_id' => 2,
         ];
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEquals($expected, $result->toArray());
-        $this->assertFalse($entity->isAccessible('*'));
+        $this->assertFalse($document->isAccessible('*'));
         // We have validation errors though
-        $this->assertNotEmpty($entity->getErrors());
+        $this->assertNotEmpty($document->getErrors());
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My content',
             'author_id' => 2,
         ]);
 
-        $entity->setAccess('*', false);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', false);
+        $document->setNew(false);
+        $document->clean();
 
-        $result = $marshall->merge($entity, $data, ['fields' => ['body'], 'strictFields' => true]);
+        $result = $marshall->merge($document, $data, ['fields' => ['body'], 'strictFields' => true]);
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEquals($expected, $result->toArray());
-        $this->assertFalse($entity->isAccessible('*'));
+        $this->assertFalse($document->isAccessible('*'));
         // We only validate fields list now
-        $this->assertEmpty($entity->getErrors());
+        $this->assertEmpty($document->getErrors());
     }
 
     /**
@@ -3173,12 +3173,12 @@ class MarshallerTest extends TestCase
             'username' => 'mark',
             'password' => 'secret',
         ]);
-        $entity = new Document([
+        $document = new Document([
             'tile' => 'My Title',
             'user' => $user,
         ]);
         $user->setAccess('*', true);
-        $entity->setAccess('*', true);
+        $document->setAccess('*', true);
 
         $data = [
             'body' => 'My Content',
@@ -3189,17 +3189,17 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->articles);
-        $marshall->merge($entity, $data, [
+        $marshall->merge($document, $data, [
             'fields' => ['something'],
             'associated' => ['Users' => ['fields' => ['extra']]],
         ]);
-        $this->assertNull($entity->body);
-        $this->assertSame('else', $entity->something);
-        $this->assertSame($user, $entity->user);
-        $this->assertSame('mark', $entity->user->username);
-        $this->assertSame('secret', $entity->user->password);
-        $this->assertSame('data', $entity->user->extra);
-        $this->assertTrue($entity->isDirty('user'));
+        $this->assertNull($document->body);
+        $this->assertSame('else', $document->something);
+        $this->assertSame($user, $document->user);
+        $this->assertSame('mark', $document->user->username);
+        $this->assertSame('secret', $document->user->password);
+        $this->assertSame('data', $document->user->extra);
+        $this->assertTrue($document->isDirty('user'));
     }
 
     /**
@@ -3295,8 +3295,8 @@ class MarshallerTest extends TestCase
 
         $options = ['associated' => ['Tags' => ['associated' => ['_joinData']]]];
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($data, $options);
-        $entity->setAccess('*', true);
+        $document = $marshall->one($data, $options);
+        $document->setAccess('*', true);
 
         $data = [
             'title' => 'Haz data',
@@ -3306,25 +3306,25 @@ class MarshallerTest extends TestCase
             ],
         ];
 
-        $tag1 = $entity->tags[0];
-        $result = $marshall->merge($entity, $data, [
+        $tag1 = $document->tags[0];
+        $result = $marshall->merge($document, $data, [
             'associated' => ['Tags._joinData' => ['fields' => ['foo']]],
         ]);
         $this->assertSame($data['title'], $result->title);
         $this->assertSame('My content', $result->body);
-        $this->assertSame($tag1, $entity->tags[0]);
-        $this->assertSame($tag1->_joinData, $entity->tags[0]->_joinData);
+        $this->assertSame($tag1, $document->tags[0]);
+        $this->assertSame($tag1->_joinData, $document->tags[0]->_joinData);
         $this->assertSame(
             ['active' => 0, 'foo' => 'bar'],
-            $entity->tags[0]->_joinData->toArray(),
+            $document->tags[0]->_joinData->toArray(),
         );
         $this->assertSame(
             ['foo' => 'baz'],
-            $entity->tags[1]->_joinData->toArray(),
+            $document->tags[1]->_joinData->toArray(),
         );
-        $this->assertSame('new tag', $entity->tags[1]->tag);
-        $this->assertTrue($entity->tags[0]->isDirty('_joinData'));
-        $this->assertTrue($entity->tags[1]->isDirty('_joinData'));
+        $this->assertSame('new tag', $document->tags[1]->tag);
+        $this->assertTrue($document->tags[0]->isDirty('_joinData'));
+        $this->assertTrue($document->tags[1]->isDirty('_joinData'));
     }
 
     /**
@@ -3339,8 +3339,8 @@ class MarshallerTest extends TestCase
 
         $this->articles->getValidator()->requirePresence('thing');
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($data);
-        $this->assertNotEmpty($entity->getError('thing'));
+        $document = $marshall->one($data);
+        $this->assertNotEmpty($document->getError('thing'));
     }
 
     /**
@@ -3371,23 +3371,23 @@ class MarshallerTest extends TestCase
 
         $this->articles->Comments->setValidator('default', $validator2);
 
-        $entity = new Marshaller($this->articles)->one($data, [
+        $document = new Marshaller($this->articles)->one($data, [
             'validate' => 'custom',
             'associated' => ['Users', 'Comments'],
         ]);
-        $this->assertNotEmpty($entity->getError('body'), 'custom was not used');
-        $this->assertNull($entity->body);
-        $this->assertEmpty($entity->user->getError('thing'));
-        $this->assertNotEmpty($entity->comments[0]->getError('thing'));
+        $this->assertNotEmpty($document->getError('body'), 'custom was not used');
+        $this->assertNull($document->body);
+        $this->assertEmpty($document->user->getError('thing'));
+        $this->assertNotEmpty($document->comments[0]->getError('thing'));
 
-        $entity = new Marshaller($this->articles)->one($data, [
+        $document = new Marshaller($this->articles)->one($data, [
             'validate' => 'custom',
             'associated' => ['Users' => ['validate' => 'customThing'], 'Comments'],
         ]);
-        $this->assertNotEmpty($entity->getError('body'));
-        $this->assertNull($entity->body);
-        $this->assertNotEmpty($entity->user->getError('thing'), 'customThing was not used');
-        $this->assertNotEmpty($entity->comments[0]->getError('thing'));
+        $this->assertNotEmpty($document->getError('body'));
+        $this->assertNull($document->body);
+        $this->assertNotEmpty($document->user->getError('thing'), 'customThing was not used');
+        $this->assertNotEmpty($document->comments[0]->getError('thing'));
     }
 
     /**
@@ -3409,18 +3409,18 @@ class MarshallerTest extends TestCase
         $this->articles->setValidator('default', $validator);
         $this->articles->Users->setValidator('default', $validator);
 
-        $entity = new Marshaller($this->articles)->one($data, [
+        $document = new Marshaller($this->articles)->one($data, [
             'validate' => false,
             'associated' => ['Users'],
         ]);
-        $this->assertEmpty($entity->getError('thing'));
-        $this->assertNotEmpty($entity->user->getError('thing'));
+        $this->assertEmpty($document->getError('thing'));
+        $this->assertNotEmpty($document->user->getError('thing'));
 
-        $entity = new Marshaller($this->articles)->one($data, [
+        $document = new Marshaller($this->articles)->one($data, [
             'associated' => ['Users' => ['validate' => false]],
         ]);
-        $this->assertNotEmpty($entity->getError('thing'));
-        $this->assertEmpty($entity->user->getError('thing'));
+        $this->assertNotEmpty($document->getError('thing'));
+        $this->assertEmpty($document->user->getError('thing'));
     }
 
     /**
@@ -3438,10 +3438,10 @@ class MarshallerTest extends TestCase
             new Validator()->add('number', 'numeric', ['rule' => 'numeric']),
         );
         $marshall = new Marshaller($this->articles);
-        $entity = $marshall->one($data, ['validate' => 'custom']);
-        $this->assertNotEmpty($entity->getError('number'));
-        $this->assertNull($entity->number);
-        $this->assertSame(['number' => 'bar'], $entity->getInvalid());
+        $document = $marshall->one($data, ['validate' => 'custom']);
+        $this->assertNotEmpty($document->getError('number'));
+        $this->assertNull($document->number);
+        $this->assertSame(['number' => 'bar'], $document->getInvalid());
     }
 
     /**
@@ -3457,17 +3457,17 @@ class MarshallerTest extends TestCase
             'author_id' => 'foo',
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             '_id' => '000000000000000000000001',
             'title' => 'Foo',
             'body' => 'My Content',
             'author_id' => 1,
         ]);
-        $this->assertEmpty($entity->getInvalid());
+        $this->assertEmpty($document->getInvalid());
 
-        $entity->setAccess('*', true);
-        $entity->setNew(false);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->setNew(false);
+        $document->clean();
 
         $this->articles->getValidator()
             ->requirePresence('thing', 'update')
@@ -3475,7 +3475,7 @@ class MarshallerTest extends TestCase
             ->add('author_id', 'numeric', ['rule' => 'numeric'])
             ->add('_id', 'numeric', ['rule' => 'numeric', 'on' => 'update']);
 
-        $expected = clone $entity;
+        $expected = clone $document;
         $result = $marshall->merge($expected, $data, []);
 
         $this->assertSame($expected, $result);
@@ -3484,7 +3484,7 @@ class MarshallerTest extends TestCase
         $this->assertEmpty($result->getError('_id'));
 
         $this->articles->getValidator()->requirePresence('thing', 'create');
-        $result = $marshall->merge($entity, $data, []);
+        $result = $marshall->merge($document, $data, []);
 
         $this->assertEmpty($result->getError('thing'));
         $this->assertSame(['author_id' => 'foo'], $result->getInvalid());
@@ -3500,29 +3500,29 @@ class MarshallerTest extends TestCase
             'author_id' => 'foo',
         ];
         $marshall = new Marshaller($this->articles);
-        $entity = new Document([
+        $document = new Document([
             'title' => 'Foo',
             'body' => 'My Content',
             'author_id' => 1,
         ]);
-        $entity->setAccess('*', true);
-        $entity->setNew(true);
-        $entity->clean();
+        $document->setAccess('*', true);
+        $document->setNew(true);
+        $document->clean();
 
         $this->articles->getValidator()
             ->requirePresence('thing', 'update')
             ->add('author_id', 'numeric', ['rule' => 'numeric', 'on' => 'update']);
 
-        $expected = clone $entity;
+        $expected = clone $document;
         $result = $marshall->merge($expected, $data, []);
 
         $this->assertEmpty($result->getError('author_id'));
         $this->assertEmpty($result->getError('thing'));
 
-        $entity->clean();
-        $entity->setNew(false);
+        $document->clean();
+        $document->setNew(false);
 
-        $result = $marshall->merge($entity, $data, []);
+        $result = $marshall->merge($document, $data, []);
         $this->assertNotEmpty($result->getError('author_id'));
         $this->assertNotEmpty($result->getError('thing'));
     }
@@ -3553,10 +3553,10 @@ class MarshallerTest extends TestCase
         ];
 
         $marshall = new Marshaller($this->articles);
-        $entity = $this->articles->newEmptyDocument();
-        $result = $marshall->merge($entity, $data, []);
+        $document = $this->articles->newEmptyDocument();
+        $result = $marshall->merge($document, $data, []);
 
-        $this->assertSame($entity, $result);
+        $this->assertSame($document, $result);
         $this->assertEmpty($result->getErrors());
         $this->assertTrue($result->isDirty('_translations'));
 
@@ -3597,12 +3597,12 @@ class MarshallerTest extends TestCase
             },
         );
 
-        $entity = $marshall->one($data);
+        $document = $marshall->one($data);
 
-        $this->assertSame('Modified title', $entity->title);
-        $this->assertSame('My content', $entity->body);
-        $this->assertSame('Robert', $entity->user->name);
-        $this->assertSame('robert', $entity->user->username);
+        $this->assertSame('Modified title', $document->title);
+        $this->assertSame('My content', $document->body);
+        $this->assertSame('Robert', $document->user->name);
+        $this->assertSame('robert', $document->user->username);
     }
 
     /**
@@ -3676,17 +3676,17 @@ class MarshallerTest extends TestCase
             },
         );
 
-        $entity = $marshall->one($data, [
+        $document = $marshall->one($data, [
             'associated' => ['Users', 'Comments', 'Tags'],
         ]);
 
-        $this->assertSame('h45h3d', $entity->user->secret);
-        $this->assertSame('First post (modified)', $entity->comments[0]->comment);
-        $this->assertSame('Second post (modified)', $entity->comments[1]->comment);
-        $this->assertSame('news (modified)', $entity->tags[0]->tag);
-        $this->assertSame('cakephp (modified)', $entity->tags[1]->tag);
-        $this->assertSame(1, $entity->tags[0]->_joinData->modified_by);
-        $this->assertSame(1, $entity->tags[1]->_joinData->modified_by);
+        $this->assertSame('h45h3d', $document->user->secret);
+        $this->assertSame('First post (modified)', $document->comments[0]->comment);
+        $this->assertSame('Second post (modified)', $document->comments[1]->comment);
+        $this->assertSame('news (modified)', $document->tags[0]->tag);
+        $this->assertSame('cakephp (modified)', $document->tags[1]->tag);
+        $this->assertSame(1, $document->tags[0]->_joinData->modified_by);
+        $this->assertSame(1, $document->tags[1]->_joinData->modified_by);
     }
 
     /**
@@ -3707,8 +3707,8 @@ class MarshallerTest extends TestCase
 
         $this->articles->getEventManager()->on(
             'Collection.afterMarshal',
-            function ($e, $entity, $data, $options): void {
-                $this->assertInstanceOf(Document::class, $entity);
+            function ($e, $document, $data, $options): void {
+                $this->assertInstanceOf(Document::class, $document);
                 $this->assertArrayHasKey('validate', $options);
                 $this->assertFalse($options['isMerge']);
 
@@ -3716,18 +3716,18 @@ class MarshallerTest extends TestCase
                 $data['user']['username'] = 'robert';
                 $options['associated'] = ['Users'];
 
-                $entity->body = 'Modified body';
+                $document->body = 'Modified body';
             },
         );
 
-        $entity = $marshall->one($data);
+        $document = $marshall->one($data);
 
-        $this->assertSame('original title', $entity->title, '$data is immutable');
-        $this->assertSame('Modified body', $entity->body);
+        $this->assertSame('original title', $document->title, '$data is immutable');
+        $this->assertSame('Modified body', $document->body);
         // both $options and $data are unchangeable
-        $this->assertIsArray($entity->user, '$options[\'associated\'] is ignored');
-        $this->assertSame('Robert', $entity->user['name']);
-        $this->assertSame('rob', $entity->user['username']);
+        $this->assertIsArray($document->user, '$options[\'associated\'] is ignored');
+        $this->assertSame('Robert', $document->user['name']);
+        $this->assertSame('rob', $document->user['username']);
     }
 
     /**
@@ -3749,8 +3749,8 @@ class MarshallerTest extends TestCase
 
         $this->articles->getEventManager()->on(
             'Collection.afterMarshal',
-            function ($e, $entity, $data, $options): void {
-                $this->assertInstanceOf(Document::class, $entity);
+            function ($e, $document, $data, $options): void {
+                $this->assertInstanceOf(Document::class, $document);
                 $this->assertArrayHasKey('validate', $options);
                 $this->assertTrue($options['isMerge']);
 
@@ -3758,30 +3758,30 @@ class MarshallerTest extends TestCase
                 $data['user']['username'] = 'robert';
                 $options['associated'] = ['Users'];
 
-                $entity->body = 'options[fields] is empty';
+                $document->body = 'options[fields] is empty';
                 if (isset($options['fields'])) {
-                    $entity->body = 'options[fields] is set';
+                    $document->body = 'options[fields] is set';
                 }
             },
         );
 
         //test when $options['fields'] is empty
-        $entity = $this->articles->newEmptyDocument();
-        $marshall->merge($entity, $data, []);
+        $document = $this->articles->newEmptyDocument();
+        $marshall->merge($document, $data, []);
 
-        $this->assertSame('original title', $entity->title, '$data is immutable');
-        $this->assertSame('options[fields] is empty', $entity->body);
+        $this->assertSame('original title', $document->title, '$data is immutable');
+        $this->assertSame('options[fields] is empty', $document->body);
         // both $options and $data are unchangeable
-        $this->assertIsArray($entity->user, '$options[\'associated\'] is ignored');
-        $this->assertSame('Robert', $entity->user['name']);
-        $this->assertSame('rob', $entity->user['username']);
+        $this->assertIsArray($document->user, '$options[\'associated\'] is ignored');
+        $this->assertSame('Robert', $document->user['name']);
+        $this->assertSame('rob', $document->user['username']);
 
         //test when $options['fields'] is set
-        $entity = $this->articles->newEmptyDocument();
-        $marshall->merge($entity, $data, ['fields' => ['title', 'body']]);
+        $document = $this->articles->newEmptyDocument();
+        $marshall->merge($document, $data, ['fields' => ['title', 'body']]);
 
-        $this->assertSame('original title', $entity->title, '$data is immutable');
-        $this->assertSame('options[fields] is set', $entity->body);
+        $this->assertSame('original title', $document->title, '$data is immutable');
+        $this->assertSame('options[fields] is set', $document->body);
     }
 
     /**
@@ -3793,7 +3793,7 @@ class MarshallerTest extends TestCase
         $this->markTestSkipped('ODM association layer: F17 (association-layer) — see F17 (association-layer)');
 
         $options = ['markClean' => true, 'isNew' => false];
-        $entity = new Document([
+        $document = new Document([
             'title' => 'My Title',
             'user' => new Document([
                 'username' => 'mark',
@@ -3809,13 +3809,13 @@ class MarshallerTest extends TestCase
             ],
         ];
         $marshall = new Marshaller($this->articles);
-        $marshall->merge($entity, $data, ['associated' => ['Users']]);
-        $this->assertSame('My Content', $entity->body);
-        $this->assertInstanceOf(Document::class, $entity->user);
-        $this->assertSame('mark', $entity->user->username);
-        $this->assertSame('not a secret', $entity->user->password);
-        $this->assertFalse($entity->isDirty('user'));
-        $this->assertTrue($entity->user->isNew());
+        $marshall->merge($document, $data, ['associated' => ['Users']]);
+        $this->assertSame('My Content', $document->body);
+        $this->assertInstanceOf(Document::class, $document->user);
+        $this->assertSame('mark', $document->user->username);
+        $this->assertSame('not a secret', $document->user->password);
+        $this->assertFalse($document->isDirty('user'));
+        $this->assertTrue($document->user->isNew());
     }
 
     /**

@@ -26,13 +26,13 @@ class ValidCount
     /**
      * Performs the count check.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document being checked.
+     * @param \Cake\Datasource\EntityInterface $document The document being checked.
      * @param array<string, mixed> $options Options containing `operator` and `count`.
      * @return bool
      */
-    public function __invoke(EntityInterface $entity, array $options): bool
+    public function __invoke(EntityInterface $document, array $options): bool
     {
-        $value = $entity->get($this->field);
+        $value = $document->get($this->field);
         if (!is_array($value) && !$value instanceof Countable) {
             return false;
         }

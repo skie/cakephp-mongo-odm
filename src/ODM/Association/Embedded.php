@@ -394,11 +394,11 @@ abstract class Embedded extends Association
      * deleting the parent removes it. `dependent` is a no-op and must not
      * issue any FK-based delete.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The parent document.
+     * @param \Cake\Datasource\EntityInterface $document The parent document.
      * @param array<string, mixed> $options Delete options.
      * @return bool
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         return true;
     }

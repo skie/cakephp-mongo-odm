@@ -22,7 +22,7 @@ class UpdateQuery extends DatabaseUpdateQuery
     /**
      * Constructor.
      *
-     * Accepts either a `BaseCollection` (cake-compatible: `new UpdateQuery($table)`)
+     * Accepts either a `BaseCollection` (cake-compatible: `new UpdateQuery($collection)`)
      * or the low-level `(connection, collection, repository)` signature.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\Database\Connection|null $connection Repository or connection.

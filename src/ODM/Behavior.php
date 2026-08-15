@@ -231,11 +231,11 @@ abstract class Behavior implements EventListenerInterface
     /**
      * Whether the given value is a new entity.
      *
-     * @param mixed $entity The value to check.
+     * @param mixed $document The value to check.
      * @return bool
      */
-    protected function isNewEntity(mixed $entity): bool
+    protected function isNewEntity(mixed $document): bool
     {
-        return $entity instanceof EntityInterface && $entity->isNew();
+        return $document instanceof EntityInterface && $document->isNew();
     }
 }

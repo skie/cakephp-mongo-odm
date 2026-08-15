@@ -123,14 +123,14 @@ class DBRef extends Embedded
     {
         return function (iterable $entities) use ($options): iterable {
             $property = $this->getProperty();
-            foreach ($entities as $entity) {
-                $value = $entity->get($property);
+            foreach ($entities as $document) {
+                $value = $document->get($property);
                 if ($value instanceof BSONDocument) {
                     $value = $value->getArrayCopy();
                 }
 
-                $entity->set($property, is_array($value) ? $this->hydrate($value, $options) : $value);
-                $entity->setDirty($property, false);
+                $document->set($property, is_array($value) ? $this->hydrate($value, $options) : $value);
+                $document->setDirty($property, false);
             }
 
             return $entities;

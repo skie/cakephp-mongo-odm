@@ -24,24 +24,24 @@ class DependentDeleteHelper
      * This method does nothing if the association is not dependent.
      *
      * @param \Crustum\Mongo\ODM\Association $association The association callbacks are being cascaded on.
-     * @param \Cake\Datasource\EntityInterface $entity The entity that started the cascaded delete.
+     * @param \Cake\Datasource\EntityInterface $document The entity that started the cascaded delete.
      * @param array<string, mixed> $options The options for the original delete.
      * @return bool Success.
      */
-    public function cascadeDelete(Association $association, EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(Association $association, EntityInterface $document, array $options = []): bool
     {
         if (!$association->getDependent()) {
             return true;
         }
 
-        $table = $association->getTarget();
+        $collection = $association->getTarget();
 
         $foreignKey = array_map(
-            $table->aliasField(...),
+            $collection->aliasField(...),
             array_values(array_filter((array)$association->getForeignKey(), is_string(...))),
         );
         $bindingKey = (array)$association->getBindingKey();
-        $bindingValue = $entity->extract($bindingKey);
+        $bindingValue = $document->extract($bindingKey);
         if (in_array(null, $bindingValue, true)) {
             return true;
         }
@@ -50,7 +50,7 @@ class DependentDeleteHelper
 
         if ($association->getCascadeCallbacks()) {
             foreach ($association->find()->where($conditions)->toArray() as $related) {
-                $success = $table->delete($related, $options);
+                $success = $collection->delete($related, $options);
                 if (!$success) {
                     return false;
                 }

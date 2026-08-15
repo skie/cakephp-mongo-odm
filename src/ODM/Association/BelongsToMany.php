@@ -227,18 +227,18 @@ class BelongsToMany extends Association
      * With the append strategy, existing links are kept and the new targets are
      * linked. With the replace strategy, the source `_ids` array is replaced.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        $targetEntity = $entity->get($this->getProperty());
+        $targetEntity = $document->get($this->getProperty());
         $strategy = $this->getSaveStrategy();
 
         $isEmpty = in_array($targetEntity, [null, [], '', false], true);
-        if ($isEmpty && $entity->isNew()) {
-            return $entity;
+        if ($isEmpty && $document->isNew()) {
+            return $document;
         }
 
         if ($isEmpty) {
@@ -246,11 +246,11 @@ class BelongsToMany extends Association
         }
 
         if ($strategy === self::SAVE_APPEND) {
-            return $this->saveTarget($entity, $targetEntity, $options);
+            return $this->saveTarget($document, $targetEntity, $options);
         }
 
-        if ($this->replaceLinks($entity, (array)$targetEntity, $options)) {
-            return $entity;
+        if ($this->replaceLinks($document, (array)$targetEntity, $options)) {
+            return $document;
         }
 
         return false;
@@ -263,11 +263,11 @@ class BelongsToMany extends Association
      * removed. With `cascadeCallbacks` each link is deleted through the
      * collection (firing events); otherwise a bulk `deleteAll()` runs.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Delete options.
      * @return bool
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         if (!$this->getDependent()) {
             return true;
@@ -279,15 +279,15 @@ class BelongsToMany extends Association
         $conditions = [];
 
         if ($bindingKeys !== []) {
-            $conditions = array_combine($foreignKeys, $entity->extract($bindingKeys));
+            $conditions = array_combine($foreignKeys, $document->extract($bindingKeys));
         }
 
-        $table = $this->junction();
-        $hasMany = $this->getSource()->getAssociation($table->getAlias());
+        $collection = $this->junction();
+        $hasMany = $this->getSource()->getAssociation($collection->getAlias());
         if ($this->getCascadeCallbacks()) {
             /** @var \Cake\Datasource\EntityInterface $related */
             foreach ($hasMany->find('all')->where($conditions)->toArray() as $related) {
-                $success = $table->delete($related, $options);
+                $success = $collection->delete($related, $options);
                 if (!$success) {
                     return false;
                 }
@@ -301,7 +301,7 @@ class BelongsToMany extends Association
             $conditions = array_merge($conditions, $assocConditions);
         }
 
-        $table->deleteAll($conditions);
+        $collection->deleteAll($conditions);
 
         return true;
     }
@@ -330,30 +330,30 @@ class BelongsToMany extends Association
 
         $targetEntities = is_array($entities) ? $entities : iterator_to_array($entities);
 
-        $table = $this->getTarget();
+        $collection = $this->getTarget();
         $original = $targetEntities;
         $persisted = [];
 
-        foreach ($targetEntities as $k => $entity) {
-            if (!$entity instanceof EntityInterface) {
+        foreach ($targetEntities as $k => $document) {
+            if (!$document instanceof EntityInterface) {
                 break;
             }
 
             if (!empty($options['atomic'])) {
-                $entity = clone $entity;
+                $document = clone $document;
             }
 
-            $saved = $table->save($entity, $options);
+            $saved = $collection->save($document, $options);
             if ($saved instanceof EntityInterface) {
-                $targetEntities[$k] = $entity;
-                $persisted[] = $entity;
+                $targetEntities[$k] = $document;
+                $persisted[] = $document;
                 continue;
             }
 
             if (!empty($options['atomic'])) {
                 $originalEntity = $original[$k] ?? null;
                 if ($originalEntity instanceof EntityInterface) {
-                    $originalEntity->setErrors($entity->getErrors());
+                    $originalEntity->setErrors($document->getErrors());
                 }
             }
 
@@ -565,8 +565,8 @@ class BelongsToMany extends Association
             throw new InvalidArgumentException('Source entity needs to be persisted before links can be created or removed.');
         }
 
-        foreach ($targetEntities as $entity) {
-            if ($entity->isNew()) {
+        foreach ($targetEntities as $document) {
+            if ($document->isNew()) {
                 throw new InvalidArgumentException('Cannot link entities that have not been persisted yet.');
             }
         }
@@ -648,15 +648,15 @@ class BelongsToMany extends Association
         $result = [];
         $missing = [];
 
-        foreach ($targetEntities as $entity) {
-            if (!($entity instanceof EntityInterface)) {
+        foreach ($targetEntities as $document) {
+            if (!($document instanceof EntityInterface)) {
                 continue;
             }
 
-            $joint = $entity->get($jointProperty);
+            $joint = $document->get($jointProperty);
 
             if (!($joint instanceof EntityInterface)) {
-                $missing[] = $entity->extract($primary);
+                $missing[] = $document->extract($primary);
                 continue;
             }
 
@@ -779,9 +779,9 @@ class BelongsToMany extends Association
         $unmatchedEntityKeys = [];
         $present = [];
 
-        foreach ($jointEntities as $i => $entity) {
-            $unmatchedEntityKeys[$i] = $entity->extract($keys);
-            $present[$i] = array_values($entity->extract($assocForeignKey));
+        foreach ($jointEntities as $i => $document) {
+            $unmatchedEntityKeys[$i] = $document->extract($keys);
+            $present[$i] = array_values($document->extract($assocForeignKey));
         }
 
         foreach ($existing as $existingLink) {
@@ -810,22 +810,22 @@ class BelongsToMany extends Association
 
         $primary = (array)$target->getPrimaryKey();
         $jointProperty = $this->junctionProperty;
-        foreach ($targetEntities as $k => $entity) {
-            if (!($entity instanceof EntityInterface)) {
+        foreach ($targetEntities as $k => $document) {
+            if (!($document instanceof EntityInterface)) {
                 continue;
             }
 
-            $key = array_values($entity->extract($primary));
+            $key = array_values($document->extract($primary));
             foreach ($present as $i => $data) {
-                if ($key === $data && !$entity->get($jointProperty)) {
+                if ($key === $data && !$document->get($jointProperty)) {
                     unset($targetEntities[$k], $present[$i]);
                     break;
                 }
             }
         }
 
-        foreach ($deletes as $entity) {
-            if (!$junction->delete($entity, $options) && !empty($options['atomic'])) {
+        foreach ($deletes as $document) {
+            if (!$junction->delete($document, $options) && !empty($options['atomic'])) {
                 return false;
             }
         }
@@ -885,20 +885,20 @@ class BelongsToMany extends Association
      * the junction. The reciprocal source/target/junction associations are
      * generated automatically (matching cake60).
      *
-     * @param \Crustum\Mongo\ODM\BaseCollection|string|null $table Junction collection instance or alias.
+     * @param \Crustum\Mongo\ODM\BaseCollection|string|null $collection Junction collection instance or alias.
      * @return \Crustum\Mongo\ODM\BaseCollection
      * @throws \InvalidArgumentException When source and target are the same collection.
      */
-    public function junction(BaseCollection|string|null $table = null): BaseCollection
+    public function junction(BaseCollection|string|null $collection = null): BaseCollection
     {
-        if ($table === null && $this->junctionCollection instanceof BaseCollection) {
+        if ($collection === null && $this->junctionCollection instanceof BaseCollection) {
             return $this->junctionCollection;
         }
 
-        if ($table instanceof BaseCollection) {
-            $collection = $table;
+        if ($collection instanceof BaseCollection) {
+            $collection = $collection;
         } else {
-            $through = $table ?? $this->through;
+            $through = $collection ?? $this->through;
             if ($through instanceof BaseCollection) {
                 $collection = $through;
             } elseif ($through !== null) {

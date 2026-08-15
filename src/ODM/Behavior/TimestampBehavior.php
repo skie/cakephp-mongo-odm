@@ -68,12 +68,12 @@ class TimestampBehavior extends Behavior
      * Handles a configured model event.
      *
      * @param \Cake\Event\EventInterface<object> $event The dispatched event.
-     * @param \Cake\Datasource\EntityInterface $entity The affected document.
+     * @param \Cake\Datasource\EntityInterface $document The affected document.
      * @param \ArrayObject<string, mixed>|null $options Event options.
      * @return void
      * @throws \UnexpectedValueException If a timestamp condition is invalid.
      */
-    public function handleEvent(EventInterface $event, EntityInterface $entity, ?ArrayObject $options = null): void
+    public function handleEvent(EventInterface $event, EntityInterface $document, ?ArrayObject $options = null): void
     {
         $events = $this->getConfig('events');
         $fields = is_array($events) ? ($events[$event->getName()] ?? []) : [];
@@ -89,8 +89,8 @@ class TimestampBehavior extends Behavior
                 ));
             }
 
-            if ($when === 'always' || ($when === 'new' && $entity->isNew()) || ($when === 'existing' && !$entity->isNew())) {
-                $this->updateField($entity, (string)$field);
+            if ($when === 'always' || ($when === 'new' && $document->isNew()) || ($when === 'existing' && !$document->isNew())) {
+                $this->updateField($document, (string)$field);
             }
         }
     }
@@ -120,11 +120,11 @@ class TimestampBehavior extends Behavior
     /**
      * Updates timestamp fields for an event.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The affected document.
+     * @param \Cake\Datasource\EntityInterface $document The affected document.
      * @param string $eventName The configured event name.
      * @return bool Whether a field was updated.
      */
-    public function touch(EntityInterface $entity, string $eventName = 'Collection.beforeSave'): bool
+    public function touch(EntityInterface $document, string $eventName = 'Collection.beforeSave'): bool
     {
         $events = $this->getConfig('events');
         $fields = is_array($events) ? ($events[$eventName] ?? []) : [];
@@ -135,8 +135,8 @@ class TimestampBehavior extends Behavior
         $updated = false;
         foreach ($fields as $field => $when) {
             if (in_array($when, ['always', 'existing'], true)) {
-                $entity->setDirty((string)$field, false);
-                $this->updateField($entity, (string)$field, true);
+                $document->setDirty((string)$field, false);
+                $this->updateField($document, (string)$field, true);
                 $updated = true;
             }
         }
@@ -147,14 +147,14 @@ class TimestampBehavior extends Behavior
     /**
      * Sets one timestamp field when it has not already been changed.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The affected document.
+     * @param \Cake\Datasource\EntityInterface $document The affected document.
      * @param string $field The field to update.
      * @param bool $refresh Whether to refresh the timestamp.
      * @return void
      */
-    private function updateField(EntityInterface $entity, string $field, bool $refresh = false): void
+    private function updateField(EntityInterface $document, string $field, bool $refresh = false): void
     {
-        if ($entity->isDirty($field)) {
+        if ($document->isDirty($field)) {
             return;
         }
 
@@ -170,6 +170,6 @@ class TimestampBehavior extends Behavior
             );
         }
 
-        $entity->set($field, $this->timestamp(null, $refresh && (bool)$this->getConfig('refreshTimestamp')));
+        $document->set($field, $this->timestamp(null, $refresh && (bool)$this->getConfig('refreshTimestamp')));
     }
 }

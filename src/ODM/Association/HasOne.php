@@ -57,15 +57,15 @@ class HasOne extends Association
     /**
      * Saves the associated target document and back-fills the foreign key.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        $targetEntity = $entity->get($this->getProperty());
+        $targetEntity = $document->get($this->getProperty());
         if (!$targetEntity instanceof EntityInterface) {
-            return $entity;
+            return $document;
         }
 
         $foreignKeys = array_values(array_filter(
@@ -74,7 +74,7 @@ class HasOne extends Association
         ));
         $properties = array_combine(
             $foreignKeys,
-            $entity->extract((array)$this->getBindingKey()),
+            $document->extract((array)$this->getBindingKey()),
         );
         $targetEntity->patch($properties, ['guard' => false]);
 
@@ -84,7 +84,7 @@ class HasOne extends Association
             return false;
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -154,8 +154,8 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
-        return (new DependentDeleteHelper())->cascadeDelete($this, $entity, $options);
+        return (new DependentDeleteHelper())->cascadeDelete($this, $document, $options);
     }
 }

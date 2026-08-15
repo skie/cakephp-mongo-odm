@@ -63,8 +63,8 @@ class LazyEagerLoader
         $method = is_string($primaryKey) ? 'get' : 'extract';
 
         $keys = [];
-        foreach ($entities as $entity) {
-            $keys[] = $entity->{$method}($primaryKey);
+        foreach ($entities as $document) {
+            $keys[] = $document->{$method}($primaryKey);
         }
 
         return $source
@@ -122,12 +122,12 @@ class LazyEagerLoader
         $injected = [];
         $properties = $this->getPropertyMap($source, $associations);
         $primaryKey = (array)$source->getPrimaryKey();
-        $indexBy = static fn(EntityInterface $entity): string => implode(';', $entity->extract($primaryKey));
+        $indexBy = static fn(EntityInterface $document): string => implode(';', $document->extract($primaryKey));
 
         $results = [];
-        foreach ($query->toArray() as $entity) {
-            if ($entity instanceof EntityInterface) {
-                $results[$indexBy($entity)] = $entity;
+        foreach ($query->toArray() as $document) {
+            if ($document instanceof EntityInterface) {
+                $results[$indexBy($document)] = $document;
             }
         }
 

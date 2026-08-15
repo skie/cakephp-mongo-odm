@@ -99,12 +99,12 @@ class BelongsToTest extends TestCase
      */
     public function testDisableForeignKey(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $assoc = $table
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $assoc = $collection
             ->belongsTo('Authors')
             ->setForeignKey('author_id');
 
-        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
+        $article = $collection->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
         $this->assertSame('mariano', $article->author->name);
 
         $assoc
@@ -113,7 +113,7 @@ class BelongsToTest extends TestCase
                 'Authors.name' => 'larry',
             ]);
 
-        $article = $table->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
+        $article = $collection->find()->contain(['Authors'])->orderByAsc('Articles._id')->first();
         $this->assertSame('larry', $article->author->name);
     }
 
@@ -144,15 +144,15 @@ class BelongsToTest extends TestCase
      */
     public function testCustomAlias(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles', [
+        $collection = $this->getCollectionLocator()->get('Articles', [
             'className' => 'TestPlugin.Articles',
         ]);
-        $table->addAssociations([
+        $collection->addAssociations([
             'belongsTo' => [
                 'FooAuthors' => ['className' => 'TestPlugin.Authors', 'foreignKey' => 'author_id'],
             ],
         ]);
-        $article = $table->find()->contain(['FooAuthors'])->first();
+        $article = $collection->find()->contain(['FooAuthors'])->first();
 
         $this->assertTrue(isset($article->foo_author));
         $this->assertEquals($article->foo_author->name, 'mariano');
@@ -301,8 +301,8 @@ class BelongsToTest extends TestCase
         $mock->shouldReceive('delete')->never();
 
         $association = new BelongsTo('Companies', $this->client, $config);
-        $entity = new Document(['company_name' => 'CakePHP', '_id' => '000000000000000000000001']);
-        $this->assertTrue($association->cascadeDelete($entity));
+        $document = new Document(['company_name' => 'CakePHP', '_id' => '000000000000000000000001']);
+        $this->assertTrue($association->cascadeDelete($document));
     }
 
     /**
@@ -315,16 +315,16 @@ class BelongsToTest extends TestCase
             'target' => $spy,
         ];
 
-        $entity = new Document([
+        $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
             'author' => ['name' => 'Jose'],
         ]);
 
         $association = new BelongsTo('Authors', $this->client, $config);
-        $result = $association->saveAssociated($entity);
-        $this->assertSame($result, $entity);
-        $this->assertNull($entity->author_id);
+        $result = $association->saveAssociated($document);
+        $this->assertSame($result, $document);
+        $this->assertNull($document->author_id);
 
         $spy->shouldNotHaveReceived('saveAssociated');
     }

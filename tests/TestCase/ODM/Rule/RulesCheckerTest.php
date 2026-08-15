@@ -21,9 +21,9 @@ final class RulesCheckerTest extends TestCase
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['tenant_id', 'slug']), 'unique');
 
-        $entity = new Document(['tenant_id' => 't1', 'slug' => 'same']);
+        $document = new Document(['tenant_id' => 't1', 'slug' => 'same']);
 
-        self::assertTrue($checker->checkCreate($entity));
+        self::assertTrue($checker->checkCreate($document));
     }
 
     public function testUniqueUpdateExcludesCurrentDocument(): void
@@ -33,17 +33,17 @@ final class RulesCheckerTest extends TestCase
             ->method('exists')
             ->with([
                 'email' => 'user@example.com',
-                '_id' => ['$ne' => $entityId = '507f1f77bcf86cd799439011'],
+                '_id' => ['$ne' => $documentId = '507f1f77bcf86cd799439011'],
             ])
             ->willReturn(false);
 
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['email']), 'unique');
 
-        $entity = new Document(['_id' => $entityId, 'email' => 'user@example.com']);
-        $entity->setNew(false);
+        $document = new Document(['_id' => $documentId, 'email' => 'user@example.com']);
+        $document->setNew(false);
 
-        self::assertTrue($checker->checkUpdate($entity));
+        self::assertTrue($checker->checkUpdate($document));
     }
 
     public function testUniqueFailurePropagatesToEntity(): void
@@ -54,10 +54,10 @@ final class RulesCheckerTest extends TestCase
         $checker = new RulesChecker(['repository' => $repository]);
         $checker->add($checker->isUnique(['email'], 'Email is already used'), 'unique');
 
-        $entity = new Document(['email' => 'user@example.com']);
+        $document = new Document(['email' => 'user@example.com']);
 
-        self::assertFalse($checker->checkCreate($entity));
-        self::assertSame(['unique' => 'Email is already used'], $entity->getError('email'));
+        self::assertFalse($checker->checkCreate($document));
+        self::assertSame(['unique' => 'Email is already used'], $document->getError('email'));
     }
 
     public function testExistsInAndNullable(): void
@@ -81,13 +81,13 @@ final class RulesCheckerTest extends TestCase
     public function testValidCountUsesMongoEmbeddedArraySize(): void
     {
         $checker = new RulesChecker();
-        $entity = new Document(['items' => ['one', 'two']]);
+        $document = new Document(['items' => ['one', 'two']]);
 
         $checker->add($checker->validCount('items', 2, '=='), 'count');
-        self::assertTrue($checker->checkCreate($entity));
+        self::assertTrue($checker->checkCreate($document));
 
         $invalid = new RulesChecker();
         $invalid->add($invalid->validCount('items', 3, '=='), 'count');
-        self::assertFalse($invalid->checkCreate($entity));
+        self::assertFalse($invalid->checkCreate($document));
     }
 }

@@ -52,9 +52,9 @@ class EmbedMany extends Embedded
     {
         return function (iterable $entities) use ($options): iterable {
             $property = $this->getProperty();
-            foreach ($entities as $entity) {
-                $entity->set($property, $this->hydrateEmbedded($entity->get($property), $entity, $options));
-                $entity->setDirty($property, false);
+            foreach ($entities as $document) {
+                $document->set($property, $this->hydrateEmbedded($document->get($property), $document, $options));
+                $document->setDirty($property, false);
             }
 
             return $entities;

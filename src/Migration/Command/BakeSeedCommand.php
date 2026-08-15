@@ -136,7 +136,7 @@ class BakeSeedCommand extends Command
      */
     protected function buildFile(string $className): string
     {
-        $table = Inflector::underscore(substr($className, 0, -4));
+        $collection = Inflector::underscore(substr($className, 0, -4));
 
         return <<<PHP
 <?php
@@ -148,7 +148,7 @@ class {$className} extends BaseSeed
 {
     public function run(): void
     {
-        // \$this->insert('{$table}', [
+        // \$this->insert('{$collection}', [
         //     'name' => 'Example',
         // ]);
     }

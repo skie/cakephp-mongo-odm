@@ -199,8 +199,8 @@ class SelectLoader implements LoaderInterface
         $segments = explode('.', $sourcePath);
         array_pop($segments);
         $collected = [];
-        foreach ($entities as $entity) {
-            $this->walkSourcePath($entity, $segments, $collected);
+        foreach ($entities as $document) {
+            $this->walkSourcePath($document, $segments, $collected);
         }
 
         return $collected;
@@ -209,25 +209,25 @@ class SelectLoader implements LoaderInterface
     /**
      * Recursively walks a property path on an entity/array collecting leaves.
      *
-     * @param mixed $entity The current value.
+     * @param mixed $document The current value.
      * @param array<int, string> $segments The remaining path segments.
      * @param array<int, mixed> $collected The collected leaves.
      * @return void
      */
-    protected function walkSourcePath(mixed $entity, array $segments, array &$collected): void
+    protected function walkSourcePath(mixed $document, array $segments, array &$collected): void
     {
         $segment = array_shift($segments);
         if ($segment === null) {
-            if ($entity instanceof EntityInterface || is_array($entity)) {
-                $collected[] = $entity;
+            if ($document instanceof EntityInterface || is_array($document)) {
+                $collected[] = $document;
             }
 
             return;
         }
 
-        $value = $entity instanceof EntityInterface
-            ? $entity->get($segment)
-            : (is_array($entity) ? ($entity[$segment] ?? null) : null);
+        $value = $document instanceof EntityInterface
+            ? $document->get($segment)
+            : (is_array($document) ? ($document[$segment] ?? null) : null);
 
         if ($value === null) {
             return;

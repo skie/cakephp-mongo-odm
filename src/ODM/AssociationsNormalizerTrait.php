@@ -60,11 +60,11 @@ trait AssociationsNormalizerTrait
     protected function normalizeAssociations(array|string $associations): array
     {
         $result = [];
-        foreach ((array)$associations as $table => $options) {
+        foreach ((array)$associations as $collection => $options) {
             $pointer = &$result;
 
-            if (is_int($table)) {
-                $table = $options;
+            if (is_int($collection)) {
+                $collection = $options;
                 $options = [];
             }
 
@@ -77,13 +77,13 @@ trait AssociationsNormalizerTrait
                 $options = $actualOptions;
             }
 
-            if (!str_contains((string)$table, '.')) {
-                $result[$table] = $options;
+            if (!str_contains((string)$collection, '.')) {
+                $result[$collection] = $options;
                 continue;
             }
 
-            $path = explode('.', (string)$table);
-            $table = array_pop($path);
+            $path = explode('.', (string)$collection);
+            $collection = array_pop($path);
             $first = array_shift($path);
             assert(is_string($first));
 
@@ -98,8 +98,8 @@ trait AssociationsNormalizerTrait
                 $pointer = &$pointer['associated'][$t];
             }
 
-            $pointer['associated'] += [$table => []];
-            $pointer['associated'][$table] = $options + $pointer['associated'][$table];
+            $pointer['associated'] += [$collection => []];
+            $pointer['associated'][$collection] = $options + $pointer['associated'][$collection];
         }
 
         return $result['associated'] ?? $result;

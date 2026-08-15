@@ -62,12 +62,12 @@ class ExistsIn
     /**
      * Performs the existence check.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document from where to extract the fields.
+     * @param \Cake\Datasource\EntityInterface $document The document from where to extract the fields.
      * @param array<string, mixed> $options Options passed to the check, where the `repository` key is required.
      * @return bool
      * @throws \Cake\Database\Exception\DatabaseException When the rule refers to an undefined association.
      */
-    public function __invoke(EntityInterface $entity, array $options): bool
+    public function __invoke(EntityInterface $document, array $options): bool
     {
         if (is_string($this->repository)) {
             /** @var \Crustum\Mongo\ODM\BaseCollection $source */
@@ -112,18 +112,18 @@ class ExistsIn
             $source = $source->getSource();
         }
 
-        if (!$entity->extract($this->fields, true)) {
+        if (!$document->extract($this->fields, true)) {
             return true;
         }
 
-        if ($this->fieldsAreNull($entity, $source)) {
+        if ($this->fieldsAreNull($document, $source)) {
             return true;
         }
 
         if ($this->options['allowNullableNulls'] && method_exists($source, 'describeSchema')) {
             $schema = $source->describeSchema();
             foreach ($fields as $i => $field) {
-                if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
+                if ($schema->hasColumn($field) && $schema->isNullable($field) && $document->get($field) === null) {
                     unset($bindingKey[$i], $fields[$i]);
                 }
             }
@@ -137,7 +137,7 @@ class ExistsIn
         );
         $conditions = array_combine(
             $primary,
-            $entity->extract($fields),
+            $document->extract($fields),
         );
 
         return $target->exists($conditions);
@@ -146,11 +146,11 @@ class ExistsIn
     /**
      * Checks whether the given document fields are nullable and null.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to check.
+     * @param \Cake\Datasource\EntityInterface $document The document to check.
      * @param \Cake\Datasource\RepositoryInterface $source The repository to use schema from.
      * @return bool
      */
-    protected function fieldsAreNull(EntityInterface $entity, RepositoryInterface $source): bool
+    protected function fieldsAreNull(EntityInterface $document, RepositoryInterface $source): bool
     {
         if (!method_exists($source, 'describeSchema')) {
             return false;
@@ -159,7 +159,7 @@ class ExistsIn
         $nulls = 0;
         $schema = $source->describeSchema();
         foreach ($this->fields as $field) {
-            if ($schema->hasColumn($field) && $schema->isNullable($field) && $entity->get($field) === null) {
+            if ($schema->hasColumn($field) && $schema->isNullable($field) && $document->get($field) === null) {
                 $nulls++;
             }
         }

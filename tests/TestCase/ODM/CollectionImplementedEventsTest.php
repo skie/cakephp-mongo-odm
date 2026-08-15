@@ -16,8 +16,8 @@ class CollectionImplementedEventsTest extends TestCase
      */
     public function testImplementedEvents(): void
     {
-        $table = new ImplementedEventsCollection();
-        $result = $table->implementedEvents();
+        $collection = new ImplementedEventsCollection();
+        $result = $collection->implementedEvents();
         $expected = [
             'Collection.beforeMarshal' => 'beforeMarshal',
             'Collection.buildValidator' => 'buildValidator',
@@ -33,8 +33,8 @@ class CollectionImplementedEventsTest extends TestCase
 
     public function testImplementedEventsWithCollectionEventsTrait(): void
     {
-        $table = new ImplementedAllEventsCollection();
-        $result = $table->implementedEvents();
+        $collection = new ImplementedAllEventsCollection();
+        $result = $collection->implementedEvents();
         $expected = [
             'Collection.beforeMarshal' => 'beforeMarshal',
             'Collection.afterMarshal' => 'afterMarshal',

@@ -48,18 +48,18 @@ class SoftDeleteBehavior extends Behavior
      * Replaces a delete with a timestamp update unless forced.
      *
      * @param \Cake\Event\EventInterface<object> $event The dispatched event.
-     * @param \Cake\Datasource\EntityInterface $entity The document being deleted.
+     * @param \Cake\Datasource\EntityInterface $document The document being deleted.
      * @param \ArrayObject<string, mixed> $options Delete options.
      * @return void
      */
-    public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function beforeDelete(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
         if (($options['forceDelete'] ?? false) === true) {
             return;
         }
 
         $field = (string)$this->getConfig('field');
-        $conditions = ['_id' => $entity->get('_id')];
+        $conditions = ['_id' => $document->get('_id')];
         $this->collection()->updateAll(
             [$field => new UTCDateTime(new DateTimeImmutable('now', new DateTimeZone('UTC')))],
             $conditions,

@@ -72,12 +72,12 @@ class HasOneTest extends TestCase
      */
     public function testDisableForeignKey(): void
     {
-        $table = $this->getCollectionLocator()->get('Users');
-        $assoc = $table
+        $collection = $this->getCollectionLocator()->get('Users');
+        $assoc = $collection
             ->hasOne('Profiles')
             ->setForeignKey('user_id');
 
-        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
+        $user = $collection->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('mariano', $user->profile->first_name);
 
         $assoc
@@ -86,7 +86,7 @@ class HasOneTest extends TestCase
                 'Profiles.first_name' => 'larry',
             ]);
 
-        $user = $table->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
+        $user = $collection->find()->contain(['Profiles'])->orderByAsc('Users._id')->first();
         $this->assertSame('larry', $user->profile->first_name);
     }
 
@@ -218,16 +218,16 @@ class HasOneTest extends TestCase
             'target' => $spy,
         ];
 
-        $entity = new Document([
+        $document = new Document([
             'username' => 'Mark',
             'email' => 'mark@example.com',
             'profile' => ['twitter' => '@cakephp'],
         ]);
 
         $association = new HasOne('Profiles', $this->user, $config);
-        $result = $association->saveAssociated($entity);
+        $result = $association->saveAssociated($document);
 
-        $this->assertSame($result, $entity);
+        $this->assertSame($result, $document);
         $spy->shouldNotHaveReceived('saveAssociated');
     }
 
@@ -323,8 +323,8 @@ class HasOneTest extends TestCase
             $this->fail('Callbacks should not be triggered when callbacks do not cascade.');
         });
 
-        $entity = new Document(['_id' => '000000000000000000000001']);
-        $association->cascadeDelete($entity);
+        $document = new Document(['_id' => '000000000000000000000001']);
+        $association->cascadeDelete($document);
 
         $query = $this->profile->find()->where(['user_id' => '000000000000000000000001']);
         $this->assertSame(1, $query->count(), 'Left non-matching row behind');
@@ -356,13 +356,13 @@ class HasOneTest extends TestCase
         $association = $Authors->hasOne('Articles', $config);
 
         // create article with null foreign key
-        $entity = new Document(['author_id' => null, 'title' => 'this has no author', 'body' => 'I am abandoned', 'published' => 'N']);
-        $Articles->save($entity);
+        $document = new Document(['author_id' => null, 'title' => 'this has no author', 'body' => 'I am abandoned', 'published' => 'N']);
+        $Articles->save($document);
 
         // get author with null binding key
-        $entity = $Authors->get('000000000000000000000002', ...['contain' => 'Articles']);
-        $this->assertNull($entity->article);
-        $this->assertTrue($association->cascadeDelete($entity));
+        $document = $Authors->get('000000000000000000000002', ...['contain' => 'Articles']);
+        $this->assertNull($document->article);
+        $this->assertTrue($association->cascadeDelete($document));
 
         $query = $Articles->find();
         $this->assertSame(4, $query->count(), 'No articles should be deleted');

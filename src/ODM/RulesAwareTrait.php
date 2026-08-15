@@ -28,13 +28,13 @@ trait RulesAwareTrait
      * Returns whether the passed document complies with all the rules stored in
      * the rules checker.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to check for validity.
+     * @param \Cake\Datasource\EntityInterface $document The document to check for validity.
      * @param string $operation The operation being run. Either 'create', 'update' or 'delete'.
      * @param \ArrayObject<string, mixed>|array<string, mixed>|null $options The options to be passed to the rules.
      * @return bool
      */
     public function checkRules(
-        EntityInterface $entity,
+        EntityInterface $document,
         string $operation = RulesChecker::CREATE,
         ArrayObject|array|null $options = null,
     ): bool {
@@ -42,16 +42,16 @@ trait RulesAwareTrait
         $options = is_array($options) ? new ArrayObject($options) : ($options ?: new ArrayObject());
         $hasEvents = ($this instanceof EventDispatcherInterface);
         if ($hasEvents) {
-            $event = $this->dispatchEvent('Collection.beforeRules', ['entity' => $entity, 'options' => $options, 'operation' => $operation]);
+            $event = $this->dispatchEvent('Collection.beforeRules', ['document' => $document, 'options' => $options, 'operation' => $operation]);
             if ($event->isStopped()) {
                 return (bool)$event->getResult();
             }
         }
 
-        $result = $rules->check($entity, $operation, $options->getArrayCopy());
+        $result = $rules->check($document, $operation, $options->getArrayCopy());
 
         if ($hasEvents) {
-            $event = $this->dispatchEvent('Collection.afterRules', ['entity' => $entity, 'options' => $options, 'result' => $result, 'operation' => $operation]);
+            $event = $this->dispatchEvent('Collection.afterRules', ['document' => $document, 'options' => $options, 'result' => $result, 'operation' => $operation]);
             if ($event->isStopped()) {
                 return (bool)$event->getResult();
             }

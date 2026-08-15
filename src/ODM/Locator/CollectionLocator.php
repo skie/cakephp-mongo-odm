@@ -204,8 +204,8 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
             }
 
             if (!isset($options['collection']) && !str_contains($options['className'], '\\')) {
-                [, $table] = pluginSplit($options['className']);
-                $options['collection'] = Inflector::underscore($table);
+                [, $collection] = pluginSplit($options['className']);
+                $options['collection'] = Inflector::underscore($collection);
             }
 
             $options['className'] = $this->fallbackClassName;

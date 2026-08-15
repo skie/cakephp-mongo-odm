@@ -46,18 +46,18 @@ class IsUnique
     /**
      * Performs the uniqueness check.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document being checked.
+     * @param \Cake\Datasource\EntityInterface $document The document being checked.
      * @param array<string, mixed> $options Options passed by the rules checker.
      * @return bool
      * @throws \InvalidArgumentException If no repository is supplied.
      */
-    public function __invoke(EntityInterface $entity, array $options): bool
+    public function __invoke(EntityInterface $document, array $options): bool
     {
-        if (!$entity->extract($this->fields, true)) {
+        if (!$document->extract($this->fields, true)) {
             return true;
         }
 
-        $fields = $entity->extract($this->fields);
+        $fields = $document->extract($this->fields);
         if ($this->options['allowMultipleNulls'] && array_any($fields, static fn(mixed $value): bool => $value === null)) {
             return true;
         }
@@ -68,12 +68,12 @@ class IsUnique
         }
 
         $conditions = $fields;
-        if (!$entity->isNew()) {
+        if (!$document->isNew()) {
             if (method_exists($repository, 'getPrimaryKey')) {
                 $keys = (array)$repository->getPrimaryKey();
-                $keys = $entity->extract($keys);
+                $keys = $document->extract($keys);
             } else {
-                $keys = $entity->extract(['_id']);
+                $keys = $document->extract(['_id']);
             }
 
             if (array_filter($keys, static fn(mixed $value): bool => $value !== null)) {

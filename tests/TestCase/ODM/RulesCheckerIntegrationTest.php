@@ -56,34 +56,34 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveBelongsToWithValidationError(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
         ]);
-        $entity->author = new Document([
+        $document->author = new Document([
             'name' => 'Jose',
         ]);
 
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
-        $table->getAssociation('authors')
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
+        $collection->getAssociation('authors')
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Document $author, array $options) use ($table): false {
-                    $this->assertSame($options['repository'], $table->getAssociation('authors')->getTarget());
+                function (Document $author, array $options) use ($collection): false {
+                    $this->assertSame($options['repository'], $collection->getAssociation('authors')->getTarget());
 
                     return false;
                 },
                 ['errorField' => 'name', 'message' => 'This is an error'],
             );
 
-        $this->assertFalse($table->save($entity));
-        $this->assertTrue($entity->isNew());
-        $this->assertTrue($entity->author->isNew());
-        $this->assertNull($entity->get('author_id'));
-        $this->assertNotEmpty($entity->author->getError('name'));
-        $this->assertEquals(['This is an error'], $entity->author->getError('name'));
+        $this->assertFalse($collection->save($document));
+        $this->assertTrue($document->isNew());
+        $this->assertTrue($document->author->isNew());
+        $this->assertNull($document->get('author_id'));
+        $this->assertNotEmpty($document->author->getError('name'));
+        $this->assertEquals(['This is an error'], $document->author->getError('name'));
     }
 
     /**
@@ -92,32 +92,32 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveHasOneWithValidationError(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'Jose',
         ]);
-        $entity->article = new Document([
+        $document->article = new Document([
             'title' => 'A Title',
             'body' => 'A body',
         ]);
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasOne('articles');
-        $table->getAssociation('articles')
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasOne('articles');
+        $collection->getAssociation('articles')
             ->getTarget()
             ->rulesChecker()
             ->add(
-                fn(EntityInterface $entity): false => false,
+                fn(EntityInterface $document): false => false,
                 ['errorField' => 'title', 'message' => 'This is an error'],
             );
 
-        $this->assertFalse($table->save($entity));
-        $this->assertTrue($entity->isNew());
-        $this->assertTrue($entity->article->isNew());
-        $this->assertNull($entity->article->id);
-        $this->assertNull($entity->article->get('author_id'));
-        $this->assertFalse($entity->article->isDirty('author_id'));
-        $this->assertNotEmpty($entity->article->getError('title'));
-        $this->assertSame('A Title', $entity->article->getInvalidField('title'));
+        $this->assertFalse($collection->save($document));
+        $this->assertTrue($document->isNew());
+        $this->assertTrue($document->article->isNew());
+        $this->assertNull($document->article->id);
+        $this->assertNull($document->article->get('author_id'));
+        $this->assertFalse($document->article->isDirty('author_id'));
+        $this->assertNotEmpty($document->article->getError('title'));
+        $this->assertSame('A Title', $document->article->getInvalidField('title'));
     }
 
     /**
@@ -127,10 +127,10 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveHasManyWithErrorsAtomic(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'Jose',
         ]);
-        $entity->articles = [
+        $document->articles = [
             new Document([
                 'title' => '1',
                 'body' => 'A body',
@@ -141,30 +141,30 @@ class RulesCheckerIntegrationTest extends TestCase
             ]),
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
-        $table->getAssociation('articles')
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+        $collection->getAssociation('articles')
             ->getTarget()
             ->rulesChecker()
             ->add(
-                function (Document $entity, array $options) use ($table): bool {
-                    $this->assertSame($table, $options['_sourceTable']);
+                function (Document $document, array $options) use ($collection): bool {
+                    $this->assertSame($collection, $options['_sourceTable']);
 
-                    return $entity->title === '1';
+                    return $document->title === '1';
                 },
                 ['errorField' => 'title', 'message' => 'This is an error'],
             );
 
-        $this->assertFalse($table->save($entity));
-        $this->assertTrue($entity->isNew());
-        $this->assertTrue($entity->articles[0]->isNew());
-        $this->assertTrue($entity->articles[1]->isNew());
-        $this->assertNull($entity->articles[0]->id);
-        $this->assertNull($entity->articles[1]->id);
-        $this->assertNull($entity->articles[0]->author_id);
-        $this->assertNull($entity->articles[1]->author_id);
-        $this->assertEmpty($entity->articles[0]->getErrors());
-        $this->assertNotEmpty($entity->articles[1]->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertTrue($document->isNew());
+        $this->assertTrue($document->articles[0]->isNew());
+        $this->assertTrue($document->articles[1]->isNew());
+        $this->assertNull($document->articles[0]->id);
+        $this->assertNull($document->articles[1]->id);
+        $this->assertNull($document->articles[0]->author_id);
+        $this->assertNull($document->articles[1]->author_id);
+        $this->assertEmpty($document->articles[0]->getErrors());
+        $this->assertNotEmpty($document->articles[1]->getErrors());
     }
 
     /**
@@ -174,10 +174,10 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveHasManyWithErrorsNonAtomic(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'Jose',
         ]);
-        $entity->articles = [
+        $document->articles = [
             new Document([
                 'title' => 'A title',
                 'body' => 'A body',
@@ -188,9 +188,9 @@ class RulesCheckerIntegrationTest extends TestCase
             ]),
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
-        $table->getAssociation('articles')
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+        $collection->getAssociation('articles')
             ->getTarget()
             ->rulesChecker()
             ->add(
@@ -198,14 +198,14 @@ class RulesCheckerIntegrationTest extends TestCase
                 ['errorField' => 'title', 'message' => 'This is an error'],
             );
 
-        $result = $table->save($entity, ['atomic' => false]);
-        $this->assertSame($entity, $result);
-        $this->assertFalse($entity->isNew());
-        $this->assertTrue($entity->articles[0]->isNew());
-        $this->assertFalse($entity->articles[1]->isNew());
-        $this->assertNotEmpty($entity->articles[1]->getId());
-        $this->assertNull($entity->articles[0]->getId());
-        $this->assertNotEmpty($entity->articles[0]->getError('title'));
+        $result = $collection->save($document, ['atomic' => false]);
+        $this->assertSame($document, $result);
+        $this->assertFalse($document->isNew());
+        $this->assertTrue($document->articles[0]->isNew());
+        $this->assertFalse($document->articles[1]->isNew());
+        $this->assertNotEmpty($document->articles[1]->getId());
+        $this->assertNull($document->articles[0]->getId());
+        $this->assertNotEmpty($document->articles[0]->getError('title'));
     }
 
     /**
@@ -213,11 +213,11 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveBelongsToManyWithValidationErrorInJointEntity(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
         ]);
-        $entity->tags = [
+        $document->tags = [
             new Document([
                 'name' => 'Something New',
             ]),
@@ -225,21 +225,21 @@ class RulesCheckerIntegrationTest extends TestCase
                 'name' => '100',
             ]),
         ];
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tags');
-        $table->getAssociation('tags')
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tags');
+        $collection->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(fn(Document $entity): false => false);
+            ->add(fn(Document $document): false => false);
 
-        $this->assertFalse($table->save($entity));
-        $this->assertTrue($entity->isNew());
-        $this->assertTrue($entity->tags[0]->isNew());
-        $this->assertTrue($entity->tags[1]->isNew());
-        $this->assertNull($entity->tags[0]->getId());
-        $this->assertNull($entity->tags[1]->getId());
-        $this->assertNull($entity->tags[0]->_joinData);
-        $this->assertNull($entity->tags[1]->_joinData);
+        $this->assertFalse($collection->save($document));
+        $this->assertTrue($document->isNew());
+        $this->assertTrue($document->tags[0]->isNew());
+        $this->assertTrue($document->tags[1]->isNew());
+        $this->assertNull($document->tags[0]->getId());
+        $this->assertNull($document->tags[1]->getId());
+        $this->assertNull($document->tags[0]->_joinData);
+        $this->assertNull($document->tags[1]->_joinData);
     }
 
     /**
@@ -248,11 +248,11 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSaveBelongsToManyWithValidationErrorInJointEntityNonAtomic(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
         ]);
-        $entity->tags = [
+        $document->tags = [
             new Document([
                 'name' => 'Something New',
             ]),
@@ -260,24 +260,24 @@ class RulesCheckerIntegrationTest extends TestCase
                 'name' => 'New one',
             ]),
         ];
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tags');
-        $table->getAssociation('tags')
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tags');
+        $collection->getAssociation('tags')
             ->junction()
             ->rulesChecker()
-            ->add(fn(Document $entity): false => false);
+            ->add(fn(Document $document): false => false);
 
-        $this->assertSame($entity, $table->save($entity, ['atomic' => false]));
-        $this->assertFalse($entity->isNew());
-        $this->assertFalse($entity->tags[0]->isNew());
-        $this->assertFalse($entity->tags[1]->isNew());
-        $this->assertNotEmpty($entity->tags[0]->getId());
-        $this->assertNotEmpty($entity->tags[1]->getId());
-        $this->assertTrue($entity->tags[0]->_joinData->isNew());
-        $this->assertTrue($entity->tags[1]->_joinData->isNew());
-        $this->assertSame($entity->getId(), $entity->tags[0]->_joinData->article_id);
-        $this->assertSame($entity->tags[0]->getId(), $entity->tags[0]->_joinData->tag_id);
-        $this->assertSame($entity->tags[1]->getId(), $entity->tags[1]->_joinData->tag_id);
+        $this->assertSame($document, $collection->save($document, ['atomic' => false]));
+        $this->assertFalse($document->isNew());
+        $this->assertFalse($document->tags[0]->isNew());
+        $this->assertFalse($document->tags[1]->isNew());
+        $this->assertNotEmpty($document->tags[0]->getId());
+        $this->assertNotEmpty($document->tags[1]->getId());
+        $this->assertTrue($document->tags[0]->_joinData->isNew());
+        $this->assertTrue($document->tags[1]->_joinData->isNew());
+        $this->assertSame($document->getId(), $document->tags[0]->_joinData->article_id);
+        $this->assertSame($document->tags[0]->getId(), $document->tags[0]->_joinData->tag_id);
+        $this->assertSame($document->tags[1]->getId(), $document->tags[1]->_joinData->tag_id);
     }
 
     /**
@@ -285,20 +285,20 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testAddingRuleWithName(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'larry',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
         $rules->add(
             fn(): false => false,
             'ruleName',
             ['errorField' => 'name'],
         );
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['ruleName' => 'invalid'], $entity->getError('name'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['ruleName' => 'invalid'], $document->getError('name'));
     }
 
     /**
@@ -306,21 +306,21 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueRuleSingleInvocation(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'larry',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(['name']), 'isUnique', ['errorField' => 'title']);
-        $this->assertFalse($table->save($entity));
+        $this->assertFalse($collection->save($document));
 
         $this->assertEquals(
             ['isUnique' => 'This value is already in use'],
-            $entity->getError('title'),
+            $document->getError('title'),
             'Provided field should have errors',
         );
-        $this->assertEmpty($entity->getError('name'), 'Errors should not apply to original field.');
+        $this->assertEmpty($document->getError('name'), 'Errors should not apply to original field.');
     }
 
     /**
@@ -328,23 +328,23 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueDomainRule(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'larry',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(['name']));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['isUnique' => 'This value is already in use'], $entity->getError('name'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['isUnique' => 'This value is already in use'], $document->getError('name'));
 
-        $entity->name = 'jose';
-        $this->assertSame($entity, $table->save($entity));
+        $document->name = 'jose';
+        $this->assertSame($document, $collection->save($document));
 
-        $entity = $table->get('000000000000000000000001');
-        $entity->setDirty('name', true);
-        $this->assertSame($entity, $table->save($entity));
+        $document = $collection->get('000000000000000000000001');
+        $document->setDirty('name', true);
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -352,21 +352,21 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueMultipleFields(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'author_id' => '000000000000000000000001',
             'title' => 'First Article',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(['title', 'author_id'], 'Nope'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['title' => ['isUnique' => 'Nope']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['title' => ['isUnique' => 'Nope']], $document->getErrors());
 
-        $entity->clean();
-        $entity->author_id = '000000000000000000000002';
-        $this->assertSame($entity, $table->save($entity));
+        $document->clean();
+        $document->author_id = '000000000000000000000002';
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -374,19 +374,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueNonUniqueNulls(): void
     {
-        $table = $this->getCollectionLocator()->get('UniqueAuthors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('UniqueAuthors');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(
             ['first_author_id', 'second_author_id'],
             ['allowMultipleNulls' => false],
         ));
 
-        $entity = new Document([
+        $document = new Document([
             'first_author_id' => null,
             'second_author_id' => '000000000000000000000001',
         ]);
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['first_author_id' => ['isUnique' => 'This value is already in use']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['first_author_id' => ['isUnique' => 'This value is already in use']], $document->getErrors());
     }
 
     /**
@@ -396,27 +396,27 @@ class RulesCheckerIntegrationTest extends TestCase
     {
         $this->skipIf(ConnectionManager::get('test')->getDriver() instanceof Sqlserver);
 
-        $table = $this->getCollectionLocator()->get('UniqueAuthors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('UniqueAuthors');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(
             ['first_author_id', 'second_author_id'],
         ));
 
-        $entity = new Document([
+        $document = new Document([
             'first_author_id' => null,
             'second_author_id' => '000000000000000000000001',
         ]);
-        $this->assertNotEmpty($table->save($entity));
+        $this->assertNotEmpty($collection->save($document));
 
-        $entity->first_author_id = '000000000000000000000002';
-        $this->assertSame($entity, $table->save($entity));
+        $document->first_author_id = '000000000000000000000002';
+        $this->assertSame($document, $collection->save($document));
 
-        $entity = new Document([
+        $document = new Document([
             'first_author_id' => '000000000000000000000002',
             'second_author_id' => '000000000000000000000001',
         ]);
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['first_author_id' => ['isUnique' => 'This value is already in use']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['first_author_id' => ['isUnique' => 'This value is already in use']], $document->getErrors());
     }
 
     /**
@@ -424,19 +424,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInDomainRule(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['existsIn' => 'This value does not exist'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['existsIn' => 'This value does not exist'], $document->getError('author_id'));
     }
 
     /**
@@ -444,24 +444,24 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInRuleSingleInvocation(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'larry',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'), 'existsIn', ['errorField' => 'other']);
-        $this->assertFalse($table->save($entity));
+        $this->assertFalse($collection->save($document));
 
         $this->assertEquals(
             ['existsIn' => 'This value does not exist'],
-            $entity->getError('other'),
+            $document->getError('other'),
             'Provided field should have errors',
         );
-        $this->assertEmpty($entity->getError('author_id'), 'Errors should not apply to original field.');
+        $this->assertEmpty($document->getError('author_id'), 'Errors should not apply to original field.');
     }
 
     /**
@@ -469,17 +469,17 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInDomainRuleWithObject(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', $this->getCollectionLocator()->get('Authors'), 'Nope'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['existsIn' => 'Nope'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['existsIn' => 'Nope'], $document->getError('author_id'));
     }
 
     /**
@@ -487,19 +487,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNullValue(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => null,
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
-        $this->assertEquals($entity, $table->save($entity));
-        $this->assertEquals([], $entity->getError('author_id'));
+        $this->assertEquals($document, $collection->save($document));
+        $this->assertEquals([], $document->getError('author_id'));
     }
 
     /**
@@ -510,18 +510,18 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNotNullValueNewEntity(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'A Category',
         ]);
-        $table = $this->getCollectionLocator()->get('Categories');
-        $table->belongsTo('Categories', [
+        $collection = $this->getCollectionLocator()->get('Categories');
+        $collection->belongsTo('Categories', [
             'foreignKey' => 'parent_id',
             'bindingKey' => 'id',
         ]);
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('parent_id', 'Categories'));
-        $this->assertTrue($table->checkRules($entity, RulesChecker::CREATE));
-        $this->assertEmpty($entity->getError('parent_id'));
+        $this->assertTrue($collection->checkRules($document, RulesChecker::CREATE));
+        $this->assertEmpty($document->getError('parent_id'));
     }
 
     /**
@@ -529,24 +529,24 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInWithBindingKey(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors', [
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors', [
             'bindingKey' => 'name',
             'foreignKey' => 'title',
         ]);
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('title', 'Authors'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertNotEmpty($entity->getError('title'));
+        $this->assertFalse($collection->save($document));
+        $this->assertNotEmpty($document->getError('title'));
 
-        $entity->clean();
-        $entity->title = 'larry';
-        $this->assertEquals($entity, $table->save($entity));
+        $document->clean();
+        $document->title = 'larry';
+        $this->assertEquals($document, $collection->save($document));
     }
 
     /**
@@ -556,18 +556,18 @@ class RulesCheckerIntegrationTest extends TestCase
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('ExistsIn rule for `author_id` is invalid. `NotValid` is not associated with `Crustum\Mongo\ODM\BaseCollection`.');
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'NotValid'));
 
-        $table->save($entity);
+        $collection->save($document);
     }
 
     /**
@@ -575,28 +575,28 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInHasManyNewEntities(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->Comments->belongsTo('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->Comments->belongsTo('Articles');
 
-        $rules = $table->Comments->rulesChecker();
-        $rules->add($rules->existsIn(['article_id'], $table));
+        $rules = $collection->Comments->rulesChecker();
+        $rules->add($rules->existsIn(['article_id'], $collection));
 
-        $article = $table->newDocument([
+        $article = $collection->newDocument([
             'title' => 'new article',
             'comments' => [
-                $table->Comments->newDocument([
+                $collection->Comments->newDocument([
                     'user_id' => '000000000000000000000001',
                     'comment' => 'comment 1',
                 ]),
-                $table->Comments->newDocument([
+                $collection->Comments->newDocument([
                     'user_id' => '000000000000000000000001',
                     'comment' => 'comment 2',
                 ]),
             ],
         ]);
 
-        $this->assertNotFalse($table->save($article));
+        $this->assertNotFalse($collection->save($article));
     }
 
     /**
@@ -605,25 +605,25 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInHasManyNewEntitiesViaAssociation(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->Comments->belongsTo('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->Comments->belongsTo('Articles');
 
-        $rules = $table->Comments->rulesChecker();
+        $rules = $collection->Comments->rulesChecker();
         $rules->add($rules->existsIn(['article_id'], 'Articles'));
 
-        $article = $table->newDocument([
+        $article = $collection->newDocument([
             'title' => 'test',
         ]);
 
         $article->comments = [
-            $table->Comments->newDocument([
+            $collection->Comments->newDocument([
                 'user_id' => '000000000000000000000001',
                 'comment' => 'test',
             ]),
         ];
 
-        $this->assertNotFalse($table->save($article));
+        $this->assertNotFalse($collection->save($article));
     }
 
     /**
@@ -631,16 +631,16 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testSkipRulesChecking(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', $this->getCollectionLocator()->get('Authors'), 'Nope'));
 
-        $this->assertSame($entity, $table->save($entity, ['checkRules' => false]));
+        $this->assertSame($document, $collection->save($document, ['checkRules' => false]));
     }
 
     /**
@@ -648,18 +648,18 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testUseBeforeRules(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', $this->getCollectionLocator()->get('Authors'), 'Nope'));
 
-        $table->getEventManager()->on(
+        $collection->getEventManager()->on(
             'Collection.beforeRules',
-            function (EventInterface $event, EntityInterface $entity, ArrayObject $options, $operation): void {
+            function (EventInterface $event, EntityInterface $document, ArrayObject $options, $operation): void {
                 $this->assertEquals(
                     [
                         'atomic' => true,
@@ -678,7 +678,7 @@ class RulesCheckerIntegrationTest extends TestCase
             },
         );
 
-        $this->assertSame($entity, $table->save($entity));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -686,18 +686,18 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testUseAfterRules(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', $this->getCollectionLocator()->get('Authors'), 'Nope'));
 
-        $table->getEventManager()->on(
+        $collection->getEventManager()->on(
             'Collection.afterRules',
-            function (EventInterface $event, EntityInterface $entity, ArrayObject $options, $result, $operation): void {
+            function (EventInterface $event, EntityInterface $document, ArrayObject $options, $result, $operation): void {
                 $this->assertEquals(
                     [
                         'atomic' => true,
@@ -717,7 +717,7 @@ class RulesCheckerIntegrationTest extends TestCase
             },
         );
 
-        $this->assertSame($entity, $table->save($entity));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -725,17 +725,17 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testUseBuildRulesEvent(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->getEventManager()->on('Collection.buildRules', function (EventInterface $event, RulesChecker $rules): void {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->getEventManager()->on('Collection.buildRules', function (EventInterface $event, RulesChecker $rules): void {
             $rules->add($rules->existsIn('author_id', $this->getCollectionLocator()->get('Authors'), 'Nope'));
         });
 
-        $this->assertFalse($table->save($entity));
+        $this->assertFalse($collection->save($document));
     }
 
     /**
@@ -743,16 +743,16 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueWithCleanFields(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $entity = $table->get('000000000000000000000001');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $document = $collection->get('000000000000000000000001');
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(['title', 'author_id'], 'Nope'));
 
-        $entity->body = 'Foo';
-        $this->assertSame($entity, $table->save($entity));
+        $document->body = 'Foo';
+        $this->assertSame($document, $collection->save($document));
 
-        $entity->title = 'Third Article';
-        $this->assertFalse($table->save($entity));
+        $document->title = 'Third Article';
+        $this->assertFalse($collection->save($document));
     }
 
     /**
@@ -760,23 +760,23 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testIsUniqueAliasPrefix(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '000000000000000000000001',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->isUnique(['author_id']));
 
-        $table->Authors->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
+        $collection->Authors->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
             $query->leftJoin(['a2' => 'authors']);
         });
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['isUnique' => 'This value is already in use'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['isUnique' => 'This value is already in use'], $document->getError('author_id'));
     }
 
     /**
@@ -784,17 +784,17 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInWithCleanFields(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
-        $entity = $table->get('000000000000000000000001');
-        $entity->title = 'Foo';
-        $entity->author_id = '507f1f77bcf86cd799439011';
-        $entity->setDirty('author_id', false);
-        $this->assertSame($entity, $table->save($entity));
+        $document = $collection->get('000000000000000000000001');
+        $document->title = 'Foo';
+        $document->author_id = '507f1f77bcf86cd799439011';
+        $document->setDirty('author_id', false);
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -802,23 +802,23 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAliasPrefix(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
-        $table->Authors->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
+        $collection->Authors->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
             $query->leftJoin(['a2' => 'authors']);
         });
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['existsIn' => 'This value does not exist'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['existsIn' => 'This value does not exist'], $document->getError('author_id'));
     }
 
     /**
@@ -826,19 +826,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInErrorWithArrayField(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn(['author_id'], 'Authors'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['existsIn' => 'This value does not exist'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['existsIn' => 'This value does not exist'], $document->getError('author_id'));
     }
 
     /**
@@ -846,21 +846,21 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOn(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => null,
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article without Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
         ]));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -868,21 +868,21 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOff(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => null,
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article without Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => false,
         ]));
-        $this->assertFalse($table->save($entity));
+        $this->assertFalse($collection->save($document));
     }
 
     /**
@@ -890,19 +890,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsDefaultValue(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => null,
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article without Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors'));
-        $this->assertFalse($table->save($entity));
+        $this->assertFalse($collection->save($document));
     }
 
     /**
@@ -910,23 +910,23 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsCustomMessage(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => null,
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article without Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => false,
             'message' => 'Niente',
         ]));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['existsIn' => 'Niente']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['existsIn' => 'Niente']], $document->getErrors());
     }
 
     /**
@@ -934,19 +934,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOnAllKeysSet(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '000000000000000000000001',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', ['allowNullableNulls' => true]));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -954,19 +954,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOffAllKeysSet(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '000000000000000000000001',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', ['allowNullableNulls' => false]));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -974,21 +974,21 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOnAllKeysCustomMessage(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '000000000000000000000001',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
             'message' => 'will not error']));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -996,22 +996,22 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOnInvalidKey(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '507f1f77bcf86cd799439011',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
             'message' => 'will error']));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $document->getErrors());
     }
 
     /**
@@ -1020,22 +1020,22 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOnInvalidKeys(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '507f1f77bcf86cd799439011',
             'site_id' => '507f1f77bcf86cd799439011',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
             'message' => 'will error']));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $document->getErrors());
     }
 
     /**
@@ -1044,22 +1044,22 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInAllowNullableNullsOnInvalidKeySecond(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '000000000000000000000001',
             'site_id' => '507f1f77bcf86cd799439011',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
             'message' => 'will error']));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['existsIn' => 'will error']], $document->getErrors());
     }
 
     /**
@@ -1081,15 +1081,15 @@ class RulesCheckerIntegrationTest extends TestCase
                 'name' => 'New Site Article with Author',
             ]),
         ];
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsIn(['author_id', 'site_id'], 'SiteAuthors', [
             'allowNullableNulls' => true,
             'message' => 'will error with array_combine warning']));
-        $result = $table->saveMany($entities);
+        $result = $collection->saveMany($entities);
         $this->assertCount(2, $result);
 
         $this->assertInstanceOf(Document::class, $result[0]);
@@ -1104,19 +1104,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNullableMethod(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => null,
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article without Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -1124,19 +1124,19 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNullableMethodWithValidValues(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '000000000000000000000001',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
-        $this->assertInstanceOf(Document::class, $table->save($entity));
+        $this->assertInstanceOf(Document::class, $collection->save($document));
     }
 
     /**
@@ -1144,20 +1144,20 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNullableMethodWithInvalidValues(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '507f1f77bcf86cd799439011',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article with Invalid Author',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['_existsIn' => 'This value does not exist']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['_existsIn' => 'This value does not exist']], $document->getErrors());
     }
 
     /**
@@ -1165,20 +1165,20 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInNullableMethodWithCustomMessage(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'id' => 10,
             'author_id' => '507f1f77bcf86cd799439011',
             'site_id' => '000000000000000000000001',
             'name' => 'New Site Article',
         ]);
-        $table = $this->getCollectionLocator()->get('SiteArticles');
-        $table->belongsTo('SiteAuthors');
+        $collection = $this->getCollectionLocator()->get('SiteArticles');
+        $collection->belongsTo('SiteAuthors');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
 
         $rules->add($rules->existsInNullable(['author_id', 'site_id'], 'SiteAuthors', 'Custom nullable message'));
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['author_id' => ['_existsIn' => 'Custom nullable message']], $entity->getErrors());
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['author_id' => ['_existsIn' => 'Custom nullable message']], $document->getErrors());
     }
 
     /**
@@ -1186,12 +1186,12 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testDeleteRules(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
-        $rules->addDelete(fn($entity): false => false);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
+        $rules->addDelete(fn($document): false => false);
 
-        $entity = $table->get('000000000000000000000001');
-        $this->assertFalse($table->delete($entity));
+        $document = $collection->get('000000000000000000000001');
+        $this->assertFalse($collection->delete($document));
     }
 
     /**
@@ -1199,20 +1199,20 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testCustomOptionsPassingSave(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'jose',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
-        $rules->add(function ($entity, array $options): false {
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
+        $rules->add(function ($document, array $options): false {
             $this->assertSame('bar', $options['foo']);
             $this->assertSame('option', $options['another']);
 
             return false;
         }, ['another' => 'option']);
 
-        $this->assertFalse($table->save($entity, ['foo' => 'bar']));
+        $this->assertFalse($collection->save($document, ['foo' => 'bar']));
     }
 
     /**
@@ -1220,17 +1220,17 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testCustomOptionsPassingDelete(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $rules = $table->rulesChecker();
-        $rules->addDelete(function ($entity, array $options): false {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $rules = $collection->rulesChecker();
+        $rules->addDelete(function ($document, array $options): false {
             $this->assertSame('bar', $options['foo']);
             $this->assertSame('option', $options['another']);
 
             return false;
         }, ['another' => 'option']);
 
-        $entity = $table->get('000000000000000000000001');
-        $this->assertFalse($table->delete($entity, ['foo' => 'bar']));
+        $document = $collection->get('000000000000000000000001');
+        $this->assertFalse($collection->delete($document, ['foo' => 'bar']));
     }
 
     /**
@@ -1238,16 +1238,16 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testCustomErrorMessageFromRule(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'larry',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
         $rules->add(fn(): string => 'So much nope', ['errorField' => 'name']);
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['So much nope'], $entity->getError('name'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['So much nope'], $document->getError('name'));
     }
 
     /**
@@ -1255,17 +1255,17 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testCustomErrorMessageFromRuleNoErrorField(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'larry',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Authors');
-        $rules = $table->rulesChecker();
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $rules = $collection->rulesChecker();
         $rules->add(fn(): string => 'So much nope');
 
-        $this->assertFalse($table->save($entity));
-        $this->assertNotEmpty($entity->getErrors());
-        $this->assertEquals(['So much nope'], $entity->getError('_rule'));
+        $this->assertFalse($collection->save($document));
+        $this->assertNotEmpty($document->getErrors());
+        $this->assertEquals(['So much nope'], $document->getError('_rule'));
     }
 
     /**
@@ -1274,10 +1274,10 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testAvoidExistsInOnAutomaticSaving(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'name' => 'Jose',
         ]);
-        $entity->articles = [
+        $document->articles = [
             new Document([
                 'title' => '1',
                 'body' => 'A body',
@@ -1288,22 +1288,22 @@ class RulesCheckerIntegrationTest extends TestCase
             ]),
         ];
 
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
-        $table->getAssociation('articles')->belongsTo('authors');
-        $checker = $table->getAssociation('articles')->getTarget()->rulesChecker();
-        $checker->add(function ($entity, $options) use ($checker): true {
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+        $collection->getAssociation('articles')->belongsTo('authors');
+        $checker = $collection->getAssociation('articles')->getTarget()->rulesChecker();
+        $checker->add(function ($document, $options) use ($checker): true {
             $rule = $checker->existsIn('author_id', 'authors');
-            $id = $entity->author_id;
-            $entity->author_id = '507f1f77bcf86cd799439011';
-            $result = $rule($entity, $options);
+            $id = $document->author_id;
+            $document->author_id = '507f1f77bcf86cd799439011';
+            $result = $rule($document, $options);
             $this->assertTrue($result);
-            $entity->author_id = $id;
+            $document->author_id = $id;
 
             return true;
         });
 
-        $this->assertSame($entity, $table->save($entity));
+        $this->assertSame($document, $collection->save($document));
     }
 
     /**
@@ -1311,20 +1311,20 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testExistsInDomainRuleWithAssociationConditions(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'An Article',
             'author_id' => '000000000000000000000001',
         ]);
 
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors', [
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors', [
             'conditions' => ['Authors.name !=' => 'mariano'],
         ]);
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals(['existsIn' => 'This value does not exist'], $entity->getError('author_id'));
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals(['existsIn' => 'This value does not exist'], $document->getError('author_id'));
     }
 
     /**
@@ -1332,11 +1332,11 @@ class RulesCheckerIntegrationTest extends TestCase
      */
     public function testCountOfAssociatedItems(): void
     {
-        $entity = new Document([
+        $document = new Document([
             'title' => 'A Title',
             'body' => 'A body',
         ]);
-        $entity->tags = [
+        $document->tags = [
             new Document([
                 'name' => 'Something New',
             ]),
@@ -1347,34 +1347,34 @@ class RulesCheckerIntegrationTest extends TestCase
 
         $this->getCollectionLocator()->get('ArticlesTags');
 
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tags');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tags');
 
-        $rules = $table->rulesChecker();
+        $rules = $collection->rulesChecker();
         $rules->add($rules->validCount('tags', 3));
 
-        $this->assertFalse($table->save($entity));
-        $this->assertEquals($entity->getErrors(), [
+        $this->assertFalse($collection->save($document));
+        $this->assertEquals($document->getErrors(), [
             'tags' => [
                 'validCount' => 'The count does not match >3',
             ],
         ]);
 
         // Testing that undesired types fail
-        $entity->tags = null;
-        $this->assertFalse($table->save($entity));
+        $document->tags = null;
+        $this->assertFalse($collection->save($document));
 
-        $entity->tags = new stdClass();
-        $this->assertFalse($table->save($entity));
+        $document->tags = new stdClass();
+        $this->assertFalse($collection->save($document));
 
-        $entity->tags = 'string';
-        $this->assertFalse($table->save($entity));
+        $document->tags = 'string';
+        $this->assertFalse($collection->save($document));
 
-        $entity->tags = 123456;
-        $this->assertFalse($table->save($entity));
+        $document->tags = 123456;
+        $this->assertFalse($collection->save($document));
 
-        $entity->tags = 0.512;
-        $this->assertFalse($table->save($entity));
+        $document->tags = 0.512;
+        $this->assertFalse($collection->save($document));
     }
 
     /**

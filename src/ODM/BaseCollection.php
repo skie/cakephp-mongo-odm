@@ -806,28 +806,28 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * Catches mistakes like `$this->Invoices->delete($orderDocument)` where
      * a document from a different collection is passed.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to validate.
+     * @param \Cake\Datasource\EntityInterface $document The document to validate.
      * @return void
      * @throws \InvalidArgumentException When the document does not match the configured document class.
      */
-    protected function assertDocumentClass(EntityInterface $entity): void
+    protected function assertDocumentClass(EntityInterface $document): void
     {
         if (!$this->assertDocumentClass) {
             return;
         }
 
-        if ($entity->getSource() === $this->getRegistryAlias()) {
+        if ($document->getSource() === $this->getRegistryAlias()) {
             return;
         }
 
         $documentClass = $this->getDocumentClass();
-        if ($entity instanceof $documentClass || $entity::class === Document::class) {
+        if ($document instanceof $documentClass || $document::class === Document::class) {
             return;
         }
 
         throw new InvalidArgumentException(sprintf(
             'Entity of class `%s` does not match the document class `%s` configured for collection `%s`.',
-            $entity::class,
+            $document::class,
             $documentClass,
             $this->getRegistryAlias(),
         ));
@@ -1610,10 +1610,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $query->cache($cacheKey, $cache);
         }
 
-        /** @var \Cake\Datasource\EntityInterface $entity */
-        $entity = $query->firstOrFail();
+        /** @var \Cake\Datasource\EntityInterface $document */
+        $document = $query->firstOrFail();
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -1686,16 +1686,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             'defaults' => true,
         ]);
 
-        $entity = $this->executeTransaction(
+        $document = $this->executeTransaction(
             fn(): EntityInterface|array => $this->processFindOrCreate($search, $callback, $options->getArrayCopy()),
             (bool)$options['atomic'],
         );
 
-        if ($entity && $this->transactionCommitted((bool)$options['atomic'], true)) {
-            $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
+        if ($document && $this->transactionCommitted((bool)$options['atomic'], true)) {
+            $this->dispatchEvent('Collection.afterSaveCommit', ['document' => $document, 'options' => $options]);
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -1924,19 +1924,19 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * - checkExisting: Whether to check whether the document already exists
      *   (default: true).
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
+     * @param \Cake\Datasource\EntityInterface $document The document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function save(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function save(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        if ($entity instanceof Document) {
-            $embeddedParent = $entity->getEmbeddedParent();
+        if ($document instanceof Document) {
+            $embeddedParent = $document->getEmbeddedParent();
             if ($embeddedParent !== null) {
                 $parent = $embeddedParent['parent'];
                 $association = $embeddedParent['association'];
 
-                return $association->saveChild($parent, $entity) ? $entity : false;
+                return $association->saveChild($parent, $document) ? $document : false;
             }
         }
 
@@ -1949,31 +1949,31 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             '_cleanOnSuccess' => true,
         ]);
 
-        if ($entity->hasErrors((bool)$options['associated'])) {
+        if ($document->hasErrors((bool)$options['associated'])) {
             return false;
         }
 
-        if ($entity->isNew() === false && !$entity->isDirty()) {
-            return $entity;
+        if ($document->isNew() === false && !$document->isDirty()) {
+            return $document;
         }
 
         $success = $this->executeTransaction(
-            fn(): EntityInterface|false => $this->processSave($entity, $options),
+            fn(): EntityInterface|false => $this->processSave($document, $options),
             (bool)$options['atomic'],
         );
 
         if ($success) {
             if ($this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
-                $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
+                $this->dispatchEvent('Collection.afterSaveCommit', ['document' => $document, 'options' => $options]);
             }
 
             if ($options['atomic'] || $options['_primary']) {
                 if ($options['_cleanOnSuccess']) {
-                    $entity->clean();
-                    $entity->setNew(false);
+                    $document->clean();
+                    $document->setNew(false);
                 }
 
-                $entity->setSource($this->getRegistryAlias());
+                $document->setSource($this->getRegistryAlias());
             }
         }
 
@@ -1985,16 +1985,16 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * application rules checks failed, the document contains errors, or the
      * save was aborted by a callback.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
      * @param array<string, mixed> $options The options to use when saving.
      * @return \Cake\Datasource\EntityInterface
      * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException When the document could not be saved.
      */
-    public function saveOrFail(EntityInterface $entity, array $options = []): EntityInterface
+    public function saveOrFail(EntityInterface $document, array $options = []): EntityInterface
     {
-        $saved = $this->save($entity, $options);
+        $saved = $this->save($document, $options);
         if ($saved === false) {
-            throw new PersistenceFailedException($entity, ['save']);
+            throw new PersistenceFailedException($document, ['save']);
         }
 
         return $saved;
@@ -2003,35 +2003,35 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Performs the actual saving of a document based on the passed options.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
      * @param \ArrayObject<string, mixed> $options The options to use for the save operation.
      * @return \Cake\Datasource\EntityInterface|false
      * @throws \Cake\Core\Exception\CakeException When the document is missing some of the primary keys.
      * @throws \Crustum\Mongo\ODM\Exception\RolledbackTransactionException If the transaction
      *   is aborted in the afterSave event.
      */
-    protected function processSave(EntityInterface $entity, ArrayObject $options): EntityInterface|false
+    protected function processSave(EntityInterface $document, ArrayObject $options): EntityInterface|false
     {
-        $this->assertDocumentClass($entity);
+        $this->assertDocumentClass($document);
 
         $primaryKey = (array)$this->getPrimaryKey();
 
-        if ($options['checkExisting'] && $primaryKey !== [] && $entity->isNew() && $entity->has($primaryKey)) {
+        if ($options['checkExisting'] && $primaryKey !== [] && $document->isNew() && $document->has($primaryKey)) {
             $conditions = [];
-            foreach ($entity->extract($primaryKey) as $key => $value) {
+            foreach ($document->extract($primaryKey) as $key => $value) {
                 $conditions[$key] = $value;
             }
 
-            $entity->setNew(!$this->exists($conditions));
+            $document->setNew(!$this->exists($conditions));
         }
 
-        $mode = $entity->isNew() ? RulesChecker::CREATE : RulesChecker::UPDATE;
-        if ($options['checkRules'] && !$this->checkRules($entity, $mode, $options)) {
+        $mode = $document->isNew() ? RulesChecker::CREATE : RulesChecker::UPDATE;
+        if ($options['checkRules'] && !$this->checkRules($document, $mode, $options)) {
             return false;
         }
 
         $options['associated'] = $this->associations->normalizeKeys($options['associated']);
-        $event = $this->dispatchEvent('Collection.beforeSave', ['entity' => $entity, 'options' => $options]);
+        $event = $this->dispatchEvent('Collection.beforeSave', ['document' => $document, 'options' => $options]);
         if ($event->isStopped()) {
             $result = $event->getResult();
             if ($result === null) {
@@ -2054,7 +2054,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         $saved = $this->associations->saveParents(
             $this,
-            $entity,
+            $document,
             $options['associated'],
             ['_primary' => false] + $options->getArrayCopy(),
         );
@@ -2073,37 +2073,37 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $schemaColumns = $this->getSchema()->columns();
         // Mongo is schemaless: when the schema declares no columns beyond `_id`,
         // persist every document field instead of filtering everything away.
-        $data = count($schemaColumns) <= 1 ? $entity->toArray() : $entity->extract($columns, true);
+        $data = count($schemaColumns) <= 1 ? $document->toArray() : $document->extract($columns, true);
 
-        $isNew = $entity->isNew();
-        $success = $isNew ? $this->insert($entity, $data) : $this->update($entity, $data);
+        $isNew = $document->isNew();
+        $success = $isNew ? $this->insert($document, $data) : $this->update($document, $data);
 
         if ($success) {
-            $success = $this->onSaveSuccess($entity, $options);
+            $success = $this->onSaveSuccess($document, $options);
         }
 
         if (!$success && $isNew) {
-            $entity->unset($this->getPrimaryKey());
-            $entity->setNew(true);
+            $document->unset($this->getPrimaryKey());
+            $document->setNew(true);
         }
 
-        return $success ? $entity : false;
+        return $success ? $document : false;
     }
 
     /**
      * Handles the saving of children associations and executing the afterSave
      * logic once the document for this collection has been saved successfully.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
      * @param \ArrayObject<string, mixed> $options The options to use for the save operation.
      * @return bool True on success.
      * @throws \Crustum\Mongo\ODM\Exception\RolledbackTransactionException If the transaction is aborted in the afterSave event.
      */
-    protected function onSaveSuccess(EntityInterface $entity, ArrayObject $options): bool
+    protected function onSaveSuccess(EntityInterface $document, ArrayObject $options): bool
     {
         $success = $this->associations->saveChildren(
             $this,
-            $entity,
+            $document,
             $options['associated'],
             ['_primary' => false] + $options->getArrayCopy(),
         );
@@ -2112,7 +2112,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             return false;
         }
 
-        $this->dispatchEvent('Collection.afterSave', ['entity' => $entity, 'options' => $options]);
+        $this->dispatchEvent('Collection.afterSave', ['document' => $document, 'options' => $options]);
 
         $connection = $this->getConnection();
         if ($options['atomic'] && $connection instanceof Connection && !$connection->inTransaction()) {
@@ -2120,9 +2120,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         if (!$options['atomic'] && !$options['_primary']) {
-            $entity->clean();
-            $entity->setNew(false);
-            $entity->setSource($this->getRegistryAlias());
+            $document->clean();
+            $document->setNew(false);
+            $document->setSource($this->getRegistryAlias());
         }
 
         return true;
@@ -2138,12 +2138,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * type can generate one, `_id` is assigned up front. ODM extension — the
      * cake analog is `Table::_insert()`.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to insert.
+     * @param \Cake\Datasource\EntityInterface $document The document to insert.
      * @param array<string, mixed> $data The data to insert (already filtered to schema columns).
      * @return \Cake\Datasource\EntityInterface|false
      * @throws \Cake\Core\Exception\CakeException When the document is missing some of the primary keys.
      */
-    protected function insert(EntityInterface $entity, array $data): EntityInterface|false
+    protected function insert(EntityInterface $document, array $data): EntityInterface|false
     {
         $primaryKey = (array)$this->getPrimaryKey();
 
@@ -2151,10 +2151,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             unset($data[$property]);
         }
 
-        if (!$entity->has($primaryKey)) {
+        if (!$document->has($primaryKey)) {
             $newId = $this->newId(array_values($primaryKey));
             if ($newId !== null) {
-                $entity->set('_id', $newId);
+                $document->set('_id', $newId);
                 $data['_id'] = $newId;
             }
         }
@@ -2168,7 +2168,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 return false;
             }
 
-            return $entity;
+            return $document;
         }
 
         $ids = is_array($ids) ? $ids : [];
@@ -2177,12 +2177,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         if (isset($data['_id'])) {
-            $entity->set('_id', $data['_id']);
+            $document->set('_id', $data['_id']);
         } elseif (isset($ids[0]) && $ids[0] !== '') {
-            $entity->set('_id', $ids[0]);
+            $document->set('_id', $ids[0]);
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -2219,22 +2219,22 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * absent ones `$unset`. Referenced-association properties and primary-key
      * fields are skipped. ODM extension — the cake analog is `Table::_update()`.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to update.
+     * @param \Cake\Datasource\EntityInterface $document The document to update.
      * @param array<string, mixed> $data The dirty data (already filtered to schema columns).
      * @return \Cake\Datasource\EntityInterface|false
      * @throws \InvalidArgumentException When the document is missing primary key values.
      */
-    protected function update(EntityInterface $entity, array $data): EntityInterface|false
+    protected function update(EntityInterface $document, array $data): EntityInterface|false
     {
         $primaryKey = (array)$this->getPrimaryKey();
-        if (!$entity->has($primaryKey)) {
+        if (!$document->has($primaryKey)) {
             throw new InvalidArgumentException('All primary key value(s) are needed for updating.');
         }
 
         $set = [];
         $unset = [];
         $associationProperties = $this->associationProperties();
-        foreach ($entity->getDirty() as $field) {
+        foreach ($document->getDirty() as $field) {
             if (in_array($field, $primaryKey, true)) {
                 continue;
             }
@@ -2247,8 +2247,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
                 continue;
             }
 
-            if ($entity->has($field)) {
-                $set[$field] = $this->serializeForWrite($entity->get($field));
+            if ($document->has($field)) {
+                $set[$field] = $this->serializeForWrite($document->get($field));
             } else {
                 $unset[] = $field;
             }
@@ -2264,13 +2264,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         if ($set === [] && $unset === []) {
-            return $entity;
+            return $document;
         }
 
-        $query->where($entity->extract($primaryKey));
+        $query->where($document->extract($primaryKey));
         $count = $query->execute();
 
-        return is_int($count) ? $entity : false;
+        return is_int($count) ? $document : false;
     }
 
     /**
@@ -2374,10 +2374,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $isNew = [];
         $cleanupOnFailure = function ($entities) use (&$isNew): void {
             /** @var iterable<\Cake\Datasource\EntityInterface> $entities */
-            foreach ($entities as $key => $entity) {
+            foreach ($entities as $key => $document) {
                 if (isset($isNew[$key]) && $isNew[$key]) {
-                    $entity->unset($this->getPrimaryKey());
-                    $entity->setNew(true);
+                    $document->unset($this->getPrimaryKey());
+                    $document->setNew(true);
                 }
             }
         };
@@ -2387,10 +2387,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         try {
             $this->executeTransaction(function () use ($entities, $options, &$isNew, &$failed): bool {
                 $options = (array)$options;
-                foreach ($entities as $key => $entity) {
-                    $isNew[$key] = $entity->isNew();
-                    if ($this->save($entity, $options) === false) {
-                        $failed = $entity;
+                foreach ($entities as $key => $document) {
+                    $isNew[$key] = $document->isNew();
+                    if ($this->save($document, $options) === false) {
+                        $failed = $document;
 
                         return false;
                     }
@@ -2410,12 +2410,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             throw new PersistenceFailedException($failed, ['saveMany']);
         }
 
-        $cleanupOnSuccess = function (EntityInterface $entity) use (&$cleanupOnSuccess): void {
-            $entity->clean();
-            $entity->setNew(false);
+        $cleanupOnSuccess = function (EntityInterface $document) use (&$cleanupOnSuccess): void {
+            $document->clean();
+            $document->setNew(false);
 
-            foreach (array_keys($entity->toArray()) as $field) {
-                $value = $entity->get($field);
+            foreach (array_keys($document->toArray()) as $field) {
+                $value = $document->get($field);
 
                 if ($value instanceof EntityInterface) {
                     $cleanupOnSuccess($value);
@@ -2428,10 +2428,10 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         };
 
         if ($this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
-            foreach ($entities as $entity) {
-                $this->dispatchEvent('Collection.afterSaveCommit', ['entity' => $entity, 'options' => $options]);
+            foreach ($entities as $document) {
+                $this->dispatchEvent('Collection.afterSaveCommit', ['document' => $document, 'options' => $options]);
                 if ($options['atomic'] || $options['_primary']) {
-                    $cleanupOnSuccess($entity);
+                    $cleanupOnSuccess($document);
                 }
             }
         }
@@ -2454,11 +2454,11 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *   transaction (default: true).
      * - checkRules: Whether to run the rules checker (default: true).
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to remove.
+     * @param \Cake\Datasource\EntityInterface $document The document to remove.
      * @param array<string, mixed> $options The options for the delete.
      * @return bool Success.
      */
-    public function delete(EntityInterface $entity, array $options = []): bool
+    public function delete(EntityInterface $document, array $options = []): bool
     {
         $options = new ArrayObject($options + [
             'atomic' => true,
@@ -2467,13 +2467,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         ]);
 
         $success = $this->executeTransaction(
-            fn(): bool => $this->processDelete($entity, $options),
+            fn(): bool => $this->processDelete($document, $options),
             (bool)$options['atomic'],
         );
 
         if ($success && $this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
             $this->dispatchEvent('Collection.afterDeleteCommit', [
-                'entity' => $entity,
+                'document' => $document,
                 'options' => $options,
             ]);
         }
@@ -2538,9 +2538,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             ]);
 
         $failed = $this->executeTransaction(function () use ($entities, $options) {
-            foreach ($entities as $entity) {
-                if (!$this->processDelete($entity, $options)) {
-                    return $entity;
+            foreach ($entities as $document) {
+                if (!$this->processDelete($document, $options)) {
+                    return $document;
                 }
             }
 
@@ -2548,9 +2548,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }, (bool)$options['atomic']);
 
         if ($failed === null && $this->transactionCommitted((bool)$options['atomic'], (bool)$options['_primary'])) {
-            foreach ($entities as $entity) {
+            foreach ($entities as $document) {
                 $this->dispatchEvent('Collection.afterDeleteCommit', [
-                    'entity' => $entity,
+                    'document' => $document,
                     'options' => $options,
                 ]);
             }
@@ -2564,60 +2564,60 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * document is new, has no primary key value, application rules checks
      * failed, or the delete was aborted by a callback.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document to remove.
+     * @param \Cake\Datasource\EntityInterface $document The document to remove.
      * @param array<string, mixed> $options The options for the delete.
      * @return void
      * @throws \Crustum\Mongo\ODM\Exception\PersistenceFailedException
      * @see \Crustum\Mongo\ODM\BaseCollection::delete()
      */
-    public function deleteOrFail(EntityInterface $entity, array $options = []): void
+    public function deleteOrFail(EntityInterface $document, array $options = []): void
     {
-        $deleted = $this->delete($entity, $options);
+        $deleted = $this->delete($document, $options);
         if ($deleted === false) {
-            throw new PersistenceFailedException($entity, ['delete']);
+            throw new PersistenceFailedException($document, ['delete']);
         }
     }
 
     /**
      * Performs the delete operation.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
+     * @param \Cake\Datasource\EntityInterface $document The document.
      * @param \ArrayObject<string, mixed> $options Delete options.
      * @return bool
      */
-    protected function processDelete(EntityInterface $entity, ArrayObject $options): bool
+    protected function processDelete(EntityInterface $document, ArrayObject $options): bool
     {
-        $this->assertDocumentClass($entity);
+        $this->assertDocumentClass($document);
 
-        if ($entity->isNew()) {
+        if ($document->isNew()) {
             return false;
         }
 
         $primaryKey = (array)$this->getPrimaryKey();
-        if (!$entity->has($primaryKey)) {
+        if (!$document->has($primaryKey)) {
             throw new InvalidArgumentException('Deleting requires all primary key values.');
         }
 
-        if ($options['checkRules'] && !$this->checkRules($entity, RulesChecker::DELETE, $options)) {
+        if ($options['checkRules'] && !$this->checkRules($document, RulesChecker::DELETE, $options)) {
             return false;
         }
 
-        $event = $this->dispatchEvent('Collection.beforeDelete', ['entity' => $entity, 'options' => $options]);
+        $event = $this->dispatchEvent('Collection.beforeDelete', ['document' => $document, 'options' => $options]);
         if ($event->isStopped()) {
             return (bool)$event->getResult();
         }
 
-        if (!$this->cascadeDelete($entity, $options->getArrayCopy())) {
+        if (!$this->cascadeDelete($document, $options->getArrayCopy())) {
             return false;
         }
 
-        $query = $this->queryFactory->delete($this)->where($entity->extract($primaryKey));
+        $query = $this->queryFactory->delete($this)->where($document->extract($primaryKey));
         $count = $query->execute();
         if ($count < 1) {
             return false;
         }
 
-        $this->dispatchEvent('Collection.afterDelete', ['entity' => $entity, 'options' => $options]);
+        $this->dispatchEvent('Collection.afterDelete', ['document' => $document, 'options' => $options]);
 
         return true;
     }
@@ -2626,18 +2626,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * Cascades deletes to dependent associations. ODM extension — the cake
      * analog is the cascade logic inside `Table::_processDelete()`.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Delete options.
      * @return bool
      */
-    protected function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    protected function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         foreach ($this->associations as $association) {
             if (!$association->getDependent()) {
                 continue;
             }
 
-            if (!$association->cascadeDelete($entity, $options)) {
+            if (!$association->cascadeDelete($document, $options)) {
                 return false;
             }
         }
@@ -3078,14 +3078,14 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Interface-compat wrapper for {@see patchDocument()}.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The document.
+     * @param \Cake\Datasource\EntityInterface $document The document.
      * @param array<string, mixed> $data Input data.
      * @param array<string, mixed> $options Marshalling options.
      * @return \Cake\Datasource\EntityInterface
      */
-    public function patchEntity(EntityInterface $entity, array $data, array $options = []): EntityInterface
+    public function patchEntity(EntityInterface $document, array $data, array $options = []): EntityInterface
     {
-        return $this->patchDocument($entity, $data, $options);
+        return $this->patchDocument($document, $data, $options);
     }
 
     /**
@@ -3140,7 +3140,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             $context = $options;
         }
 
-        $entity = new ($this->getDocumentClass())(
+        $document = new ($this->getDocumentClass())(
             $context['data'],
             [
                 'useSetters' => false,
@@ -3152,7 +3152,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             [$context['field']],
             isset($options['scope']) ? (array)$options['scope'] : [],
         );
-        $values = $entity->extract($fields);
+        $values = $document->extract($fields);
         foreach ($values as $field) {
             if ($field !== null && !is_scalar($field)) {
                 return false;
@@ -3162,7 +3162,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $class = static::IS_UNIQUE_CLASS;
         $rule = new $class($fields, $options);
 
-        return $rule($entity, ['repository' => $this]);
+        return $rule($document, ['repository' => $this]);
     }
 
     /**
@@ -3267,8 +3267,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if ($entities instanceof EntityInterface) {
             $this->assertDocumentClass($entities);
         } else {
-            foreach ($entities as $entity) {
-                $this->assertDocumentClass($entity);
+            foreach ($entities as $document) {
+                $this->assertDocumentClass($document);
             }
         }
 

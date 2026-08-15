@@ -38,14 +38,14 @@ trait CollectionEventsTrait
      * to the patchDocument() or newDocument() call.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Collection event.
-     * @param \Cake\Datasource\EntityInterface $entity The document to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The document to be saved.
      * @param \ArrayObject<string, mixed> $data Data to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
     public function afterMarshal(
         EventInterface $event,
-        EntityInterface $entity,
+        EntityInterface $document,
         ArrayObject $data,
         ArrayObject $options,
     ): void {
@@ -83,11 +83,11 @@ trait CollectionEventsTrait
      * When the event is stopped the result of the event will be returned.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function beforeSave(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -95,11 +95,11 @@ trait CollectionEventsTrait
      * The Collection.afterSave event is fired after an entity is saved.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity Saved entity.
+     * @param \Cake\Datasource\EntityInterface $document Saved entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function afterSave(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -110,11 +110,11 @@ trait CollectionEventsTrait
      * transaction is started before calling save.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity Saved entity.
+     * @param \Cake\Datasource\EntityInterface $document Saved entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function afterSaveCommit(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function afterSaveCommit(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -124,11 +124,11 @@ trait CollectionEventsTrait
      * When the event is stopped the result of the event will be returned.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity Entity to be deleted.
+     * @param \Cake\Datasource\EntityInterface $document Entity to be deleted.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function beforeDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function beforeDelete(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -136,11 +136,11 @@ trait CollectionEventsTrait
      * The Collection.afterDelete event is fired after an entity has been deleted.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity Deleted entity.
+     * @param \Cake\Datasource\EntityInterface $document Deleted entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function afterDelete(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -151,11 +151,11 @@ trait CollectionEventsTrait
      * triggered if a transaction is started before calling delete.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity Deleted entity.
+     * @param \Cake\Datasource\EntityInterface $document Deleted entity.
      * @param \ArrayObject<string, mixed> $options Options.
      * @return void
      */
-    public function afterDeleteCommit(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    public function afterDeleteCommit(EventInterface $event, EntityInterface $document, ArrayObject $options): void
     {
     }
 
@@ -164,14 +164,14 @@ trait CollectionEventsTrait
      * By stopping this event, you can halt the rules checking and set the result of applying rules.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @param string $operation Operation.
      * @return void
      */
     public function beforeRules(
         EventInterface $event,
-        EntityInterface $entity,
+        EntityInterface $document,
         ArrayObject $options,
         string $operation,
     ): void {
@@ -182,7 +182,7 @@ trait CollectionEventsTrait
      * By stopping this event, you can return the final value of the rules checking operation.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to be saved.
+     * @param \Cake\Datasource\EntityInterface $document The entity to be saved.
      * @param \ArrayObject<string, mixed> $options Options.
      * @param bool $result Result.
      * @param string $operation Operation.
@@ -190,7 +190,7 @@ trait CollectionEventsTrait
      */
     public function afterRules(
         EventInterface $event,
-        EntityInterface $entity,
+        EntityInterface $document,
         ArrayObject $options,
         bool $result,
         string $operation,

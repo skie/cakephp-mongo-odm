@@ -595,11 +595,11 @@ abstract class Association
     /**
      * Applies dependent deletion or nullification to referenced documents.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Delete options.
      * @return bool Whether the dependent operation succeeded.
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         if (!$this->dependent && $this->onDelete !== 'nullify') {
             return true;
@@ -609,7 +609,7 @@ abstract class Association
             (array)$this->getForeignKey(),
             is_string(...),
         ));
-        $keys = array_combine($foreignKeys, $entity->extract((array)$this->getBindingKey()));
+        $keys = array_combine($foreignKeys, $document->extract((array)$this->getBindingKey()));
         if ($keys === [] || in_array(null, $keys, true)) {
             return true;
         }
@@ -673,13 +673,13 @@ abstract class Association
      * Default behavior is a no-op; associations that persist target documents
      * (BelongsTo, HasOne, HasMany) override this.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        return $entity;
+        return $document;
     }
 
     /**

@@ -230,20 +230,20 @@ class AssociationCollection implements Countable, IteratorAggregate
      * Parent associations include any association where the given collection
      * is the owning side.
      *
-     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection entity is for.
+     * @param \Cake\Datasource\EntityInterface $document The entity to save associated data for.
      * @param array<int|string, mixed> $associations The list of associations to save parents from.
      *   associations not in this list will not be saved.
      * @param array<string, mixed> $options The options for the save operation.
      * @return bool Success
      */
-    public function saveParents(BaseCollection $table, EntityInterface $entity, array $associations, array $options = []): bool
+    public function saveParents(BaseCollection $collection, EntityInterface $document, array $associations, array $options = []): bool
     {
         if ($associations === []) {
             return true;
         }
 
-        return $this->saveAssociations($table, $entity, $associations, $options, false);
+        return $this->saveAssociations($collection, $document, $associations, $options, false);
     }
 
     /**
@@ -252,27 +252,27 @@ class AssociationCollection implements Countable, IteratorAggregate
      * Child associations include any association where the given collection
      * is not the owning side.
      *
-     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection entity is for.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to save associated data for.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection entity is for.
+     * @param \Cake\Datasource\EntityInterface $document The entity to save associated data for.
      * @param array<int|string, mixed> $associations The list of associations to save children from.
      *   associations not in this list will not be saved.
      * @param array<string, mixed> $options The options for the save operation.
      * @return bool Success
      */
-    public function saveChildren(BaseCollection $table, EntityInterface $entity, array $associations, array $options): bool
+    public function saveChildren(BaseCollection $collection, EntityInterface $document, array $associations, array $options): bool
     {
         if ($associations === []) {
             return true;
         }
 
-        return $this->saveAssociations($table, $entity, $associations, $options, true);
+        return $this->saveAssociations($collection, $document, $associations, $options, true);
     }
 
     /**
      * Helper method for saving an association's data.
      *
-     * @param \Crustum\Mongo\ODM\BaseCollection $table The collection the save is currently operating on
-     * @param \Cake\Datasource\EntityInterface $entity The entity to save
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection the save is currently operating on
+     * @param \Cake\Datasource\EntityInterface $document The entity to save
      * @param array<int|string, mixed> $associations Array of associations to save.
      * @param array<string, mixed> $options Original options
      * @param bool $owningSide Compared with association classes'
@@ -281,8 +281,8 @@ class AssociationCollection implements Countable, IteratorAggregate
      * @throws \InvalidArgumentException When an unknown alias is used.
      */
     protected function saveAssociations(
-        BaseCollection $table,
-        EntityInterface $entity,
+        BaseCollection $collection,
+        EntityInterface $document,
         array $associations,
         array $options,
         bool $owningSide,
@@ -299,7 +299,7 @@ class AssociationCollection implements Countable, IteratorAggregate
                 $msg = sprintf(
                     'Cannot save `%s`, it is not associated to `%s`.',
                     $alias,
-                    $table->getAlias(),
+                    $collection->getAlias(),
                 );
                 throw new InvalidArgumentException($msg);
             }
@@ -310,7 +310,7 @@ class AssociationCollection implements Countable, IteratorAggregate
             }
 
             $nested = is_array($nested) ? $nested : [];
-            if (!$this->save($relation, $entity, $nested, $options)) {
+            if (!$this->save($relation, $document, $nested, $options)) {
                 return false;
             }
         }
@@ -322,18 +322,18 @@ class AssociationCollection implements Countable, IteratorAggregate
      * Helper method for saving an association's data.
      *
      * @param \Crustum\Mongo\ODM\Association $association The association object to save with.
-     * @param \Cake\Datasource\EntityInterface $entity The entity to save
+     * @param \Cake\Datasource\EntityInterface $document The entity to save
      * @param array<string, mixed> $nested Options for deeper associations
      * @param array<string, mixed> $options Original options
      * @return bool Success
      */
     protected function save(
         Association $association,
-        EntityInterface $entity,
+        EntityInterface $document,
         array $nested,
         array $options,
     ): bool {
-        if (!$entity->isDirty($association->getProperty())) {
+        if (!$document->isDirty($association->getProperty())) {
             return true;
         }
 
@@ -341,18 +341,18 @@ class AssociationCollection implements Countable, IteratorAggregate
             $options = $nested + $options;
         }
 
-        return (bool)$association->saveAssociated($entity, $options);
+        return (bool)$association->saveAssociated($document, $options);
     }
 
     /**
      * Cascade a delete across the various associations.
      * Cascade first across associations for which cascadeCallbacks is true.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The entity to delete associations for.
+     * @param \Cake\Datasource\EntityInterface $document The entity to delete associations for.
      * @param array<string, mixed> $options The options used in the delete operation.
      * @return bool
      */
-    public function cascadeDelete(EntityInterface $entity, array $options): bool
+    public function cascadeDelete(EntityInterface $document, array $options): bool
     {
         $noCascade = [];
         foreach ($this->items as $assoc) {
@@ -361,14 +361,14 @@ class AssociationCollection implements Countable, IteratorAggregate
                 continue;
             }
 
-            $success = $assoc->cascadeDelete($entity, $options);
+            $success = $assoc->cascadeDelete($document, $options);
             if (!$success) {
                 return false;
             }
         }
 
         foreach ($noCascade as $assoc) {
-            $success = $assoc->cascadeDelete($entity, $options);
+            $success = $assoc->cascadeDelete($document, $options);
             if (!$success) {
                 return false;
             }

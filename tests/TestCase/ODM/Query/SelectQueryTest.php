@@ -62,9 +62,9 @@ class SelectQueryTest extends TestCase
     protected $connection;
 
     /**
-     * @var \Cake\ORM\Table
+     * @var \Crustum\Mongo\ODM\BaseCollection
      */
-    protected $table;
+    protected $collection;
 
     /**
      * setUp method
@@ -96,7 +96,7 @@ class SelectQueryTest extends TestCase
             ],
         ];
 
-        $this->table = $this->getCollectionLocator()->get('foo', ['schema' => $schema]);
+        $this->collection = $this->getCollectionLocator()->get('foo', ['schema' => $schema]);
         $clients = $this->getCollectionLocator()->get('clients', ['schema' => $schema1]);
         $orders = $this->getCollectionLocator()->get('orders', ['schema' => $schema2]);
         $companies = $this->getCollectionLocator()->get('companies', ['schema' => $schema, 'collection' => 'organizations']);
@@ -105,7 +105,7 @@ class SelectQueryTest extends TestCase
         $this->getCollectionLocator()->get('stuffTypes', ['schema' => $schema]);
         $this->getCollectionLocator()->get('categories', ['schema' => $schema]);
 
-        $this->table->belongsTo('clients');
+        $this->collection->belongsTo('clients');
         $clients->hasOne('orders');
         $clients->belongsTo('companies');
 
@@ -157,17 +157,17 @@ class SelectQueryTest extends TestCase
      */
     public function testGetRepository(): void
     {
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
 
         $result = $query->getRepository();
-        $this->assertSame($this->table, $result);
+        $this->assertSame($this->collection, $result);
     }
 
     public function testSelectAlso(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = new UnhydratedSelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new UnhydratedSelectQuery($collection);
         $results = $query
             ->selectAlso(['extra' => 'id'])
             ->where(['author_id' => 3])
@@ -178,7 +178,7 @@ class SelectQueryTest extends TestCase
             $results,
         );
 
-        $query = new UnhydratedSelectQuery($table);
+        $query = new UnhydratedSelectQuery($collection);
         $results = $query
             ->select('id')
             ->selectAlso(['extra' => 'id'])
@@ -190,7 +190,7 @@ class SelectQueryTest extends TestCase
             $results,
         );
 
-        $query = new UnhydratedSelectQuery($table);
+        $query = new UnhydratedSelectQuery($collection);
         $results = $query
             ->selectAlso(['extra' => 'id'])
             ->select('id')
@@ -211,10 +211,10 @@ class SelectQueryTest extends TestCase
     public function testContainResultFetchingOneLevel(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $table->belongsTo('authors', ['strategy' => $strategy]);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection->belongsTo('authors', ['strategy' => $strategy]);
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain('authors')
             ->hydrate(false)
@@ -268,14 +268,14 @@ class SelectQueryTest extends TestCase
     public function testHasManyEagerLoadingNoHydration(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'propertyName' => 'articles',
             'strategy' => $strategy,
             'sort' => ['articles.id' => 'asc'],
         ]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
 
         $results = $query->select()
             ->contain('articles')
@@ -328,14 +328,14 @@ class SelectQueryTest extends TestCase
         ];
         $this->assertEquals($expected, $results);
 
-        $results = $query->setRepository($table)
+        $results = $query->setRepository($collection)
             ->select()
             ->contain(['articles' => ['conditions' => ['articles.id' => 2]]])
             ->hydrate(false)
             ->toArray();
         $expected[0]['articles'] = [];
         $this->assertEquals($expected, $results);
-        $this->assertEquals($table->getAssociation('articles')->getStrategy(), $strategy);
+        $this->assertEquals($collection->getAssociation('articles')->getStrategy(), $strategy);
     }
 
     /**
@@ -345,14 +345,14 @@ class SelectQueryTest extends TestCase
     #[DataProvider('strategiesProviderHasMany')]
     public function testHasManyEagerLoadingCount(string $strategy): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'property' => 'articles',
             'strategy' => $strategy,
             'sort' => ['articles.id' => 'asc'],
         ]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
 
         $query = $query->select()
             ->contain('articles');
@@ -375,11 +375,11 @@ class SelectQueryTest extends TestCase
     public function testHasManyEagerLoadingFieldsAndOrderNoHydration(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', ['propertyName' => 'articles'] + ['strategy' => $strategy]);
+        $collection->hasMany('articles', ['propertyName' => 'articles'] + ['strategy' => $strategy]);
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain([
                 'articles' => [
@@ -426,15 +426,15 @@ class SelectQueryTest extends TestCase
     public function testHasManyEagerLoadingDeep(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $article = $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'propertyName' => 'articles',
             'strategy' => $strategy,
             'sort' => ['articles.id' => 'asc'],
         ]);
         $article->belongsTo('authors');
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
 
         $results = $query->select()
             ->contain(['articles' => ['authors']])
@@ -604,16 +604,16 @@ class SelectQueryTest extends TestCase
     public function testBelongsToManyEagerLoadingNoHydration(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
             'table' => 'articles_tags',
         ]);
-        $table->belongsToMany('Tags', [
+        $collection->belongsToMany('Tags', [
             'strategy' => $strategy,
             'sort' => 'tag_id',
         ]);
-        $query = new UnhydratedSelectQuery($table);
+        $query = new UnhydratedSelectQuery($collection);
 
         $results = $query->select()->contain('Tags')->toArray();
         $expected = [
@@ -712,7 +712,7 @@ class SelectQueryTest extends TestCase
             ],
         ];
         $this->assertEquals($expected, $results);
-        $this->assertEquals($table->getAssociation('Tags')->getStrategy(), $strategy);
+        $this->assertEquals($collection->getAssociation('Tags')->getStrategy(), $strategy);
     }
 
     /**
@@ -721,11 +721,11 @@ class SelectQueryTest extends TestCase
     public function testFilteringByHasManyNoHydration(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new UnhydratedSelectQuery($this->table);
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
+        $query = new UnhydratedSelectQuery($this->collection);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
 
-        $results = $query->setRepository($table)
+        $results = $query->setRepository($collection)
             ->select()
             ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => 4]))
             ->toArray();
@@ -758,11 +758,11 @@ class SelectQueryTest extends TestCase
     public function testFilteringByHasManyHydration(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = new SelectQuery($table);
-        $table->hasMany('Comments');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($collection);
+        $collection->hasMany('Comments');
 
-        $result = $query->setRepository($table)
+        $result = $query->setRepository($collection)
             ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => 4]))
             ->first();
         $this->assertInstanceOf(Entity::class, $result);
@@ -779,15 +779,15 @@ class SelectQueryTest extends TestCase
     public function testFilteringByBelongsToManyNoHydration(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new SelectQuery($this->table);
-        $table = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($this->collection);
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
             'table' => 'articles_tags',
         ]);
-        $table->belongsToMany('Tags');
+        $collection->belongsToMany('Tags');
 
-        $results = $query->setRepository($table)->select()
+        $results = $query->setRepository($collection)->select()
             ->matching('Tags', fn($q) => $q->where(['Tags.id' => 3]))
             ->hydrate(false)
             ->toArray();
@@ -811,7 +811,7 @@ class SelectQueryTest extends TestCase
         ];
         $this->assertEquals($expected, $results);
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->matching('Tags', fn($q) => $q->where(['Tags.name' => 'tag2']))
             ->hydrate(false)
@@ -843,13 +843,13 @@ class SelectQueryTest extends TestCase
     public function testMatchingDotNotation(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new SelectQuery($this->table);
-        $table = $this->getCollectionLocator()->get('authors');
+        $query = new SelectQuery($this->collection);
+        $collection = $this->getCollectionLocator()->get('authors');
         $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles');
+        $collection->hasMany('articles');
         $this->getCollectionLocator()->get('articles')->belongsToMany('tags');
 
-        $results = $query->setRepository($table)
+        $results = $query->setRepository($collection)
             ->select()
             ->hydrate(false)
             ->matching('articles.tags', fn($q) => $q->where(['tags.id' => 2]))
@@ -888,7 +888,7 @@ class SelectQueryTest extends TestCase
     public function testSetResult(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
 
         $results = new ResultSet([]);
         $query->setResult($results);
@@ -932,7 +932,7 @@ class SelectQueryTest extends TestCase
     public function testApplyOptions(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $this->table->belongsTo('articles');
+        $this->collection->belongsTo('articles');
         $typeMap = new TypeMap([
             'foo.id' => 'integer',
             'id' => 'integer',
@@ -964,7 +964,7 @@ class SelectQueryTest extends TestCase
             'contain' => ['articles'],
             'join' => ['table_a' => ['conditions' => ['a > b']]],
         ];
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
 
         $this->assertEquals(['field_a', 'field_b'], $query->clause('select'));
@@ -1003,7 +1003,7 @@ class SelectQueryTest extends TestCase
             'orderBy' => ['field_a'],
             'groupBy' => ['field_b'],
         ];
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
 
         $this->assertEquals(['field_a', 'field_b'], $query->clause('select'));
@@ -1031,7 +1031,7 @@ class SelectQueryTest extends TestCase
     public function testApplyOptionsPageIsLast(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $opts = [
             'page' => 3,
             'limit' => 5,
@@ -1050,7 +1050,7 @@ class SelectQueryTest extends TestCase
         $options = [
             'fields' => null,
         ];
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
         $this->assertEquals([], $query->clause('select'));
     }
@@ -1061,7 +1061,7 @@ class SelectQueryTest extends TestCase
     public function testGetOptions(): void
     {
         $options = ['doABarrelRoll' => true, 'fields' => ['id', 'name']];
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
 
         $expected = ['doABarrelRoll' => true];
@@ -1081,7 +1081,7 @@ class SelectQueryTest extends TestCase
         };
         $mapper2 = function (): void {
         };
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $this->assertSame($query, $query->mapReduce($mapper1));
         $this->assertEquals(
             [['mapper' => $mapper1, 'reducer' => null]],
@@ -1112,7 +1112,7 @@ class SelectQueryTest extends TestCase
         };
         $reducer2 = function (): void {
         };
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $this->assertSame($query, $query->mapReduce($mapper1, $reducer1));
         $this->assertEquals(
             [['mapper' => $mapper1, 'reducer' => $reducer1]],
@@ -1142,7 +1142,7 @@ class SelectQueryTest extends TestCase
         };
         $reducer2 = function (): void {
         };
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
         $this->assertEquals($query, $query->mapReduce($mapper1, $reducer1));
         $this->assertEquals(
             [['mapper' => $mapper1, 'reducer' => $reducer1]],
@@ -1162,8 +1162,8 @@ class SelectQueryTest extends TestCase
     public function testResultsAreWrappedInMapReduce(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
         $query->mapReduce(function (array $v, $k, $mr): void {
             $mr->emit($v['_id']);
@@ -1188,8 +1188,8 @@ class SelectQueryTest extends TestCase
      */
     public function testFirstDirtyQuery(): void
     {
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $result = $query->select(['_id'])->hydrate(false)->first();
         $this->assertEquals(['_id' => '000000000000000000000001'], $result);
         $this->assertEquals(1, $query->clause('limit'));
@@ -1203,8 +1203,8 @@ class SelectQueryTest extends TestCase
     public function testFirstCleanQuery(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $query->select(['_id'])->toArray();
 
         $first = $query->hydrate(false)->first();
@@ -1218,8 +1218,8 @@ class SelectQueryTest extends TestCase
     public function testFirstSameResult(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $query->select(['_id'])->toArray();
 
         $first = $query->hydrate(false)->first();
@@ -1240,8 +1240,8 @@ class SelectQueryTest extends TestCase
             $mapReduce->emit(count($values));
         };
 
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $query->select(['_id'])
             ->hydrate(false)
             ->mapReduce($map, $reduce);
@@ -1256,8 +1256,8 @@ class SelectQueryTest extends TestCase
     public function testFirstUnbuffered(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($collection);
         $query->select(['id']);
 
         $first = $query->hydrate(false)->first();
@@ -1271,8 +1271,8 @@ class SelectQueryTest extends TestCase
     public function testHydrateSimple(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $query = new SelectQuery($collection);
         $results = $query->select()->toArray();
 
         $this->assertCount(3, $results);
@@ -1294,12 +1294,12 @@ class SelectQueryTest extends TestCase
     public function testHydrateHasMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'sort' => ['articles.id' => 'asc'],
         ]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain('articles')
             ->toArray();
@@ -1334,13 +1334,13 @@ class SelectQueryTest extends TestCase
     public function testHydrateBelongsToMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
             'table' => 'articles_tags',
         ]);
-        $table->belongsToMany('Tags');
-        $query = new SelectQuery($table);
+        $collection->belongsToMany('Tags');
+        $query = new SelectQuery($collection);
 
         $results = $query
             ->select()
@@ -1380,12 +1380,12 @@ class SelectQueryTest extends TestCase
     public function testFormatResultsBelongsToMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags', [
             'table' => 'articles_tags',
         ]);
-        $table->belongsToMany('Tags');
+        $collection->belongsToMany('Tags');
 
         $articlesTags
             ->getEventManager()
@@ -1399,7 +1399,7 @@ class SelectQueryTest extends TestCase
                 });
             });
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
 
         $results = $query
             ->select()
@@ -1444,11 +1444,11 @@ class SelectQueryTest extends TestCase
     public function testBelongsToManyWithPreservedKeys(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags', ['className' => TagsTable::class]);
-        $table->belongsToMany('Tags');
+        $collection->belongsToMany('Tags');
 
-        $first = $table->find()
+        $first = $collection->find()
             ->where(['Articles.id' => 1])
             ->contain([
                 'Tags' => ['finder' => 'slugged'],
@@ -1467,11 +1467,11 @@ class SelectQueryTest extends TestCase
     public function testHydrateBelongsTo(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
         $this->getCollectionLocator()->get('authors');
-        $table->belongsTo('authors', ['strategy' => $strategy]);
+        $collection->belongsTo('authors', ['strategy' => $strategy]);
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain('authors')
             ->orderBy(['articles.id' => 'asc'])
@@ -1491,13 +1491,13 @@ class SelectQueryTest extends TestCase
     public function testHydrateDeep(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
+        $collection = $this->getCollectionLocator()->get('authors');
         $article = $this->getCollectionLocator()->get('articles');
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'sort' => ['articles.id' => 'asc'],
         ]);
         $article->belongsTo('authors', ['strategy' => $strategy]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
 
         $results = $query->select()
             ->contain(['articles' => ['authors']])
@@ -1519,11 +1519,11 @@ class SelectQueryTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         // phpcs:ignore
         $class = (new class extends Entity {})::class;
-        $table = $this->getCollectionLocator()->get('articles', [
+        $collection = $this->getCollectionLocator()->get('articles', [
             'table' => 'articles',
             'entityClass' => '\\' . $class,
         ]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()->toArray();
 
         $this->assertCount(3, $results);
@@ -1550,16 +1550,16 @@ class SelectQueryTest extends TestCase
         $authorEntity = (new class extends Entity {})::class;
         $articleEntity = (new class extends Entity {})::class;
         // phpcs:enable
-        $table = $this->getCollectionLocator()->get('authors', [
+        $collection = $this->getCollectionLocator()->get('authors', [
             'entityClass' => '\\' . $authorEntity,
         ]);
         $this->getCollectionLocator()->get('articles', [
             'entityClass' => '\\' . $articleEntity,
         ]);
-        $table->hasMany('articles', [
+        $collection->hasMany('articles', [
             'sort' => ['articles.id' => 'asc'],
         ]);
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain('articles')
             ->toArray();
@@ -1589,13 +1589,13 @@ class SelectQueryTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         // phpcs:ignore
         $authorEntity = (new class extends Entity {})::class;
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
         $this->getCollectionLocator()->get('authors', [
             'entityClass' => '\\' . $authorEntity,
         ]);
-        $table->belongsTo('authors');
+        $collection->belongsTo('authors');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->select()
             ->contain('authors')
             ->orderBy(['articles.id' => 'asc'])
@@ -1611,11 +1611,11 @@ class SelectQueryTest extends TestCase
     public function testCount(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $result = $table->find('all')->count();
+        $collection = $this->getCollectionLocator()->get('articles');
+        $result = $collection->find('all')->count();
         $this->assertSame(3, $result);
 
-        $query = $table->find('all')
+        $query = $collection->find('all')
             ->where(['id >' => 1])
             ->limit(1);
         $result = $query->count();
@@ -1632,9 +1632,9 @@ class SelectQueryTest extends TestCase
     public function testCountWithRebinding(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->where('id >= :start')
             ->where('id <= :end')
             ->bind(':start', 1, 'integer')
@@ -1655,10 +1655,10 @@ class SelectQueryTest extends TestCase
      */
     public function testCountWithContain(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $result = $table->find('all')
+        $result = $collection->find('all')
             ->contain([
                 'Authors' => [
                     'fields' => ['name'],
@@ -1674,11 +1674,11 @@ class SelectQueryTest extends TestCase
     public function testCountWithSubselect(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
-        $table->hasMany('ArticlesTags');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
+        $collection->hasMany('ArticlesTags');
 
-        $counter = $table->ArticlesTags->find();
+        $counter = $collection->ArticlesTags->find();
         $counter->select([
             'total' => $counter->func()->count('*'),
         ])
@@ -1687,7 +1687,7 @@ class SelectQueryTest extends TestCase
                 'ArticlesTags.article_id' => new IdentifierExpression('Articles.id'),
             ]);
 
-        $result = $table->find('all')
+        $result = $collection->find('all')
             ->select([
                 'Articles.title',
                 'tag_count' => $counter,
@@ -1703,8 +1703,8 @@ class SelectQueryTest extends TestCase
     public function testCountWithExpressions(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = $table->find();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find();
         $query->select([
             'title' => $query->func()->concat(
                 ['title' => 'identifier', 'test'],
@@ -1721,16 +1721,16 @@ class SelectQueryTest extends TestCase
      */
     public function testCountBeforeFind(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->getEventManager()
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->getEventManager()
             ->on('Model.beforeFind', function (EventInterface $event, $query): void {
                 $query
                     ->limit(1)
                     ->orderBy(['Articles.title' => 'DESC']);
             });
 
-        $query = $table->find();
+        $query = $collection->find();
         $result = $query->count();
         $this->assertSame(3, $result);
     }
@@ -1742,15 +1742,15 @@ class SelectQueryTest extends TestCase
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $callCount = 0;
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->getEventManager()
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->getEventManager()
             ->on('Model.beforeFind', function (EventInterface $event, $query) use (&$callCount): void {
                 $valueBinder = new ValueBinder();
                 $query->sql($valueBinder);
                 $callCount++;
             });
 
-        $query = $table->find();
+        $query = $collection->find();
         $valueBinder = new ValueBinder();
         $query->sql($valueBinder);
         $this->assertSame(1, $callCount);
@@ -1762,8 +1762,8 @@ class SelectQueryTest extends TestCase
     public function testCountWithGroup(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $query = $table->find('all');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $query = $collection->find('all');
         $query->select(['author_id', 's' => $query->func()->sum('id')])
             ->groupBy(['author_id']);
         $result = $query->count();
@@ -1777,8 +1777,8 @@ class SelectQueryTest extends TestCase
     public function testCountWithCustomCounter(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $query = $table->find('all');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $query = $collection->find('all');
         $query
             ->select(['author_id', 's' => $query->func()->sum('id')])
             ->where(['id >' => 2])
@@ -1798,8 +1798,8 @@ class SelectQueryTest extends TestCase
      */
     public function testSelectRandom(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $query = $table->selectQuery();
+        $collection = $this->getCollectionLocator()->get('articles');
+        $query = $collection->selectQuery();
 
         $query->select(['s' => $query->func()->rand()]);
 
@@ -1818,9 +1818,9 @@ class SelectQueryTest extends TestCase
     public function testUpdate(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
 
-        $result = $table->updateQuery()
+        $result = $collection->updateQuery()
             ->set(['title' => 'First'])
             ->execute();
 
@@ -1834,9 +1834,9 @@ class SelectQueryTest extends TestCase
     public function testInsert(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
 
-        $result = $table->insertQuery()
+        $result = $collection->insertQuery()
             ->insert(['title'])
             ->values(['title' => 'First'])
             ->values(['title' => 'Second'])
@@ -1854,9 +1854,9 @@ class SelectQueryTest extends TestCase
     public function testDelete(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('articles');
 
-        $result = $table->deleteQuery()
+        $result = $collection->deleteQuery()
             ->where(['id >=' => 1])
             ->execute();
 
@@ -1869,7 +1869,7 @@ class SelectQueryTest extends TestCase
      */
     public function testClearContain(): void
     {
-        $query = new SelectQuery($this->table);
+        $query = new SelectQuery($this->collection);
 
         $query->contain([
             'Articles',
@@ -1918,8 +1918,8 @@ class SelectQueryTest extends TestCase
     public function testCacheWriteIntegration(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($collection);
 
         $query->select(['id', 'title']);
 
@@ -1946,8 +1946,8 @@ class SelectQueryTest extends TestCase
     public function testCacheIntegrationWithFormatResults(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($collection);
         $cacher = new FileEngine();
         $cacher->init();
 
@@ -1957,7 +1957,7 @@ class SelectQueryTest extends TestCase
             ->cache('my_key', $cacher);
 
         $expected = $query->toArray();
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $results = $query->cache('my_key', $cacher)->toArray();
         $this->assertSame($expected, $results);
     }
@@ -1967,11 +1967,11 @@ class SelectQueryTest extends TestCase
      */
     public function testContainOverwrite(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->belongsTo('Authors');
 
-        $query = $table->find();
+        $query = $collection->find();
         $query->contain(['Comments']);
         $this->assertEquals(['Comments'], array_keys($query->getContain()));
 
@@ -1988,10 +1988,10 @@ class SelectQueryTest extends TestCase
     public function testContainWithClosure(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $query
             ->select()
             ->contain([
@@ -1999,8 +1999,8 @@ class SelectQueryTest extends TestCase
             ]);
 
         $ids = [];
-        foreach ($query as $entity) {
-            foreach ((array)$entity->articles as $article) {
+        foreach ($query as $document) {
+            foreach ((array)$document->articles as $article) {
                 $ids[] = $article->getId();
             }
         }
@@ -2015,17 +2015,17 @@ class SelectQueryTest extends TestCase
     public function testContainClosureSignature(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $query
             ->select()
             ->contain('articles', fn($q) => $q->where(['articles.id' => 1]));
 
         $ids = [];
-        foreach ($query as $entity) {
-            foreach ((array)$entity->articles as $article) {
+        foreach ($query as $document) {
+            foreach ((array)$document->articles as $article) {
                 $ids[] = $article->id;
             }
         }
@@ -2035,10 +2035,10 @@ class SelectQueryTest extends TestCase
 
     public function testContainAutoFields(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $query
             ->select()
             ->contain('articles', fn($q) => $q->select(['test' => '(SELECT 20)'])
@@ -2055,10 +2055,10 @@ class SelectQueryTest extends TestCase
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(DatabaseException::class);
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany('Articles');
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany('Articles');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $query->select()
             ->contain([
                 'Articles' => [
@@ -2076,10 +2076,10 @@ class SelectQueryTest extends TestCase
     public function testContainWithQueryBuilderJoinableAssociation(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasOne('Articles');
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasOne('Articles');
 
-        $query = new SelectQuery($table);
+        $query = new SelectQuery($collection);
         $query->select()
             ->contain([
                 'Articles' => [
@@ -2130,8 +2130,8 @@ class SelectQueryTest extends TestCase
         };
         $callback2 = function (): void {
         };
-        $table = $this->getCollectionLocator()->get('authors');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $query = new SelectQuery($collection);
         $this->assertSame($query, $query->formatResults($callback1));
         $this->assertSame([$callback1], $query->getResultFormatters());
         $this->assertSame($query, $query->formatResults($callback2));
@@ -2318,8 +2318,8 @@ class SelectQueryTest extends TestCase
     public function testQueryWithFormatter(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $query = new SelectQuery($collection);
         $query->select()->formatResults(function ($results): CollectionInterface {
             $this->assertInstanceOf(ResultSet::class, $results);
 
@@ -2334,8 +2334,8 @@ class SelectQueryTest extends TestCase
     public function testQueryWithStackedFormatters(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $query = new SelectQuery($table);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $query = new SelectQuery($collection);
         $query->select()->formatResults(function ($results): CollectionInterface {
             $this->assertInstanceOf(ResultSet::class, $results);
 
@@ -2360,10 +2360,10 @@ class SelectQueryTest extends TestCase
     public function testCountWithContainCallingAll(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->select(['id', 'title'])
             ->contain('authors')
             ->limit(2);
@@ -2457,10 +2457,10 @@ class SelectQueryTest extends TestCase
     public function testFormatBelongsToRecords(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->contain([
                 'authors' => fn($q) => $q
                     ->formatResults(fn($authors) => $authors->map(function ($author) {
@@ -2488,9 +2488,9 @@ class SelectQueryTest extends TestCase
     public function testFormatDeepAssociationRecords(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('ArticlesTags');
-        $table->belongsTo('Articles');
-        $table->getAssociation('Articles')->getTarget()->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('ArticlesTags');
+        $collection->belongsTo('Articles');
+        $collection->getAssociation('Articles')->getTarget()->belongsTo('Authors');
 
         $builder = (fn($q) => $q
             ->formatResults(fn($results) => $results->map(function ($result) {
@@ -2503,7 +2503,7 @@ class SelectQueryTest extends TestCase
 
                 return $result;
             })));
-        $query = $table->find()
+        $query = $collection->find()
             ->contain(['Articles' => $builder, 'Articles.Authors' => $builder])
             ->orderBy(['ArticlesTags.article_id' => 'ASC']);
 
@@ -2524,14 +2524,14 @@ class SelectQueryTest extends TestCase
      */
     public function testFormatDeepDistantAssociationRecords(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $articles = $table->getAssociation('articles')->getTarget();
+        $articles = $collection->getAssociation('articles')->getTarget();
         $articles->hasMany('articlesTags');
         $articles->getAssociation('articlesTags')->getTarget()->belongsTo('tags');
 
-        $query = $table->find()->contain([
+        $query = $collection->find()->contain([
             'articles.articlesTags.tags' => fn($q) => $q->formatResults(fn($results) => $results->map(function ($tag) {
                 $tag->name .= ' - visited';
 
@@ -2557,16 +2557,16 @@ class SelectQueryTest extends TestCase
     public function testCustomFinderInBelongsTo(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('ArticlesTags');
-        $table->belongsTo('Articles', [
+        $collection = $this->getCollectionLocator()->get('ArticlesTags');
+        $collection->belongsTo('Articles', [
             'className' => ArticlesTable::class,
             'finder' => 'published',
         ]);
-        $result = $table->find()->contain('Articles');
+        $result = $collection->find()->contain('Articles');
         $this->assertCount(4, $result->all()->extract('article')->filter()->toArray());
-        $table->Articles->updateAll(['published' => 'N'], ['1 = 1']);
+        $collection->Articles->updateAll(['published' => 'N'], ['1 = 1']);
 
-        $result = $table->find()->contain('Articles');
+        $result = $collection->find()->contain('Articles');
         $this->assertCount(0, $result->all()->extract('article')->filter()->toArray());
     }
 
@@ -2577,10 +2577,10 @@ class SelectQueryTest extends TestCase
     public function testContainSelectedFields(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->contain(['Authors'])
             ->orderBy(['Authors.id' => 'asc'])
             ->select(['Authors.id']);
@@ -2596,11 +2596,11 @@ class SelectQueryTest extends TestCase
     public function testContainWithOnlyNullableFields(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
         // First, let's test with a regular field to ensure our fix works
-        $query = $table->find()
+        $query = $collection->find()
             ->contain(['Authors' => fn($q) => $q->select(['Authors.name'])])
             ->where(['Articles.id' => 1]);
 
@@ -2626,11 +2626,11 @@ class SelectQueryTest extends TestCase
     public function testContainInAssociationQuery(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('ArticlesTags');
-        $table->belongsTo('Articles');
-        $table->getAssociation('Articles')->getTarget()->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('ArticlesTags');
+        $collection->belongsTo('Articles');
+        $collection->getAssociation('Articles')->getTarget()->belongsTo('Authors');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->orderBy(['Articles.id' => 'ASC'])
             ->contain([
                 'Articles' => fn($q) => $q->contain('Authors'),
@@ -2647,14 +2647,14 @@ class SelectQueryTest extends TestCase
     public function testContainInAssociationMatching(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $articles = $table->getAssociation('articles')->getTarget();
+        $articles = $collection->getAssociation('articles')->getTarget();
         $articles->hasMany('articlesTags');
         $articles->getAssociation('articlesTags')->getTarget()->belongsTo('tags');
 
-        $query = $table->find()->matching('articles.articlesTags', fn($q) => $q->matching('tags', fn($q) => $q->where(['tags.name' => 'tag3'])));
+        $query = $collection->find()->matching('articles.articlesTags', fn($q) => $q->matching('tags', fn($q) => $q->where(['tags.name' => 'tag3'])));
 
         $results = $query->toArray();
         $this->assertCount(1, $results);
@@ -2667,10 +2667,10 @@ class SelectQueryTest extends TestCase
     public function testDebugInfo(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = $table->find()
+        $query = $collection->find()
             ->where(['id > ' => 1])
             ->hydrate(false)
             ->matching('articles')
@@ -2714,7 +2714,7 @@ class SelectQueryTest extends TestCase
             'mapReducers' => 1,
             'contain' => [],
             'extraOptions' => ['foo' => 'bar'],
-            'repository' => $table,
+            'repository' => $collection,
         ];
         $result = $query->__debugInfo();
 
@@ -2736,10 +2736,10 @@ class SelectQueryTest extends TestCase
     public function testEagerLoaded(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = $table->find()->contain([
+        $query = $collection->find()->contain([
             'articles' => function ($q) {
                 $this->assertTrue($q->isEagerLoaded());
 
@@ -2748,7 +2748,7 @@ class SelectQueryTest extends TestCase
         ]);
         $this->assertFalse($query->isEagerLoaded());
 
-        $table->getEventManager()->on('Model.beforeFind', function ($e, $q, $o, bool $primary): void {
+        $collection->getEventManager()->on('Model.beforeFind', function ($e, $q, $o, bool $primary): void {
             $this->assertTrue($primary);
         });
 
@@ -2766,10 +2766,10 @@ class SelectQueryTest extends TestCase
     public function testIsEagerLoaded(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $query = $table->find()->contain([
+        $query = $collection->find()->contain([
             'articles' => function ($q) {
                 $this->assertTrue($q->isEagerLoaded());
 
@@ -2778,7 +2778,7 @@ class SelectQueryTest extends TestCase
         ]);
         $this->assertFalse($query->isEagerLoaded());
 
-        $table->getEventManager()->on('Model.beforeFind', function ($e, $q, $o, bool $primary): void {
+        $collection->getEventManager()->on('Model.beforeFind', function ($e, $q, $o, bool $primary): void {
             $this->assertTrue($primary);
         });
 
@@ -2795,8 +2795,8 @@ class SelectQueryTest extends TestCase
     public function testColumnsFromJoin(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $query = $table->find();
+        $collection = $this->getCollectionLocator()->get('articles');
+        $query = $collection->find();
         $results = $query
             ->select(['title', 'person.name'])
             ->join([
@@ -2824,11 +2824,11 @@ class SelectQueryTest extends TestCase
     public function testRepeatedAssociationAliases(string $strategy): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('ArticlesTags');
-        $table->belongsTo('Articles', ['strategy' => $strategy]);
-        $table->belongsTo('Tags', ['strategy' => $strategy]);
+        $collection = $this->getCollectionLocator()->get('ArticlesTags');
+        $collection->belongsTo('Articles', ['strategy' => $strategy]);
+        $collection->belongsTo('Tags', ['strategy' => $strategy]);
         $this->getCollectionLocator()->get('Tags')->belongsToMany('Articles');
-        $results = $table
+        $results = $collection
             ->find()
             ->contain(['Articles', 'Tags.Articles'])
             ->hydrate(false)
@@ -2847,10 +2847,10 @@ class SelectQueryTest extends TestCase
      */
     public function testAssociationKeyPresent(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasOne('ArticlesTags', ['strategy' => 'select']);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasOne('ArticlesTags', ['strategy' => 'select']);
 
-        $article = $table->find()->where(['id' => 3])
+        $article = $collection->find()->where(['id' => 3])
             ->hydrate(false)
             ->contain('ArticlesTags')
             ->first();
@@ -2864,10 +2864,10 @@ class SelectQueryTest extends TestCase
     public function testJsonSerialize(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
         $this->assertEquals(
-            json_encode($table->find()),
-            json_encode($table->find()->toArray()),
+            json_encode($collection->find()),
+            json_encode($collection->find()->toArray()),
         );
     }
 
@@ -2876,8 +2876,8 @@ class SelectQueryTest extends TestCase
      */
     public function testAutoFields(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
-        $result = $table->find('all')
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $result = $collection->find('all')
             ->select(['myField' => '(SELECT 20)'])
             ->enableAutoFields()
             ->hydrate(false)
@@ -2894,10 +2894,10 @@ class SelectQueryTest extends TestCase
     public function testAutoFieldsWithAssociations(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $result = $table->find()
+        $result = $collection->find()
             ->select(['myField' => '(SELECT 2 + 2)'])
             ->enableAutoFields()
             ->hydrate(false)
@@ -2917,10 +2917,10 @@ class SelectQueryTest extends TestCase
     public function testAutoFieldsWithContainQueryBuilder(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $result = $table->find()
+        $result = $collection->find()
             ->select(['myField' => '(SELECT 2 + 2)'])
             ->enableAutoFields()
             ->hydrate(false)
@@ -2943,9 +2943,9 @@ class SelectQueryTest extends TestCase
      */
     public function testAutoFieldsCount(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $result = $table->find()
+        $result = $collection->find()
             ->select(['myField' => '(SELECT (2 + 2))'])
             ->enableAutoFields()
             ->count();
@@ -2959,10 +2959,10 @@ class SelectQueryTest extends TestCase
     public function testCleanCopy(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
 
-        $query = $table->find();
+        $query = $collection->find();
         $query->offset(10)
             ->limit(1)
             ->orderBy(['Articles.id' => 'DESC'])
@@ -2993,8 +2993,8 @@ class SelectQueryTest extends TestCase
     public function testCleanCopyRetainsBindings(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = $table->find();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find();
         $query->offset(10)
             ->limit(1)
             ->where(['Articles.id BETWEEN :start AND :end'])
@@ -3012,16 +3012,16 @@ class SelectQueryTest extends TestCase
     public function testCleanCopyBeforeFind(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->getEventManager()
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->getEventManager()
             ->on('Model.beforeFind', function (EventInterface $event, $query): void {
                 $query
                     ->limit(5)
                     ->orderBy(['Articles.title' => 'DESC']);
             });
 
-        $query = $table->find();
+        $query = $collection->find();
         $query->offset(10)
             ->limit(1)
             ->orderBy(['Articles.id' => 'DESC'])
@@ -3040,14 +3040,14 @@ class SelectQueryTest extends TestCase
     public function testContainFinderBelongsTo(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo(
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo(
             'Authors',
             ['className' => AuthorsTable::class],
         );
         $authorId = 1;
 
-        $resultWithoutAuthor = $table->find('all')
+        $resultWithoutAuthor = $collection->find('all')
             ->where(['Articles.author_id' => $authorId])
             ->contain([
                 'Authors' => [
@@ -3055,7 +3055,7 @@ class SelectQueryTest extends TestCase
                 ],
             ]);
 
-        $resultWithAuthor = $table->find('all')
+        $resultWithAuthor = $collection->find('all')
             ->where(['Articles.author_id' => $authorId])
             ->contain([
                 'Authors' => [
@@ -3073,21 +3073,21 @@ class SelectQueryTest extends TestCase
     public function testContainFinderHasMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany(
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany(
             'Articles',
             ['className' => ArticlesTable::class],
         );
 
-        $newArticle = $table->newDocument([
+        $newArticle = $collection->newDocument([
             'author_id' => 1,
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
             'published' => 'N',
         ]);
-        $table->save($newArticle);
+        $collection->save($newArticle);
 
-        $resultWithArticles = $table->find('all')
+        $resultWithArticles = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => [
@@ -3095,7 +3095,7 @@ class SelectQueryTest extends TestCase
                 ],
             ]);
 
-        $resultWithArticlesArray = $table->find('all')
+        $resultWithArticlesArray = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => [
@@ -3103,7 +3103,7 @@ class SelectQueryTest extends TestCase
                 ],
             ]);
 
-        $resultWithArticlesArrayOptions = $table->find('all')
+        $resultWithArticlesArrayOptions = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => [
@@ -3115,7 +3115,7 @@ class SelectQueryTest extends TestCase
                 ],
             ]);
 
-        $resultWithoutArticles = $table->find('all')
+        $resultWithoutArticles = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => [
@@ -3127,7 +3127,7 @@ class SelectQueryTest extends TestCase
                 ],
             ]);
 
-        $resultWithSlugIndexedArticles = $table->find('all')
+        $resultWithSlugIndexedArticles = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => [
@@ -3159,21 +3159,21 @@ class SelectQueryTest extends TestCase
     public function testContainFinderHasManyClosure(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Authors');
-        $table->hasMany(
+        $collection = $this->getCollectionLocator()->get('Authors');
+        $collection->hasMany(
             'Articles',
             ['className' => ArticlesTable::class],
         );
 
-        $newArticle = $table->newDocument([
+        $newArticle = $collection->newDocument([
             'author_id' => 1,
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
             'published' => 'N',
         ]);
-        $table->save($newArticle);
+        $collection->save($newArticle);
 
-        $resultWithArticles = $table->find('all')
+        $resultWithArticles = $collection->find('all')
             ->where(['id' => 1])
             ->contain([
                 'Articles' => fn($q) => $q->find('published'),
@@ -3189,8 +3189,8 @@ class SelectQueryTest extends TestCase
     public function testCustomBindings(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $query = $table->find()->where(['id >' => 1]);
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find()->where(['id >' => 1]);
         $query->where(fn(QueryExpression $exp) => $exp->add('author_id = :author'));
         $query->bind(':author', 1, 'integer');
         $this->assertEquals(1, $query->count());
@@ -3204,10 +3204,10 @@ class SelectQueryTest extends TestCase
     public function testContainWithCustomJoinType(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors');
 
-        $articles = $table->find()
+        $articles = $collection->find()
             ->contain([
                 'Authors' => [
                     'joinType' => 'inner',
@@ -3228,11 +3228,11 @@ class SelectQueryTest extends TestCase
     public function testContainWithStrategyOverride(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->belongsTo('Authors', [
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->belongsTo('Authors', [
             'joinType' => 'INNER',
         ]);
-        $articles = $table->find()
+        $articles = $collection->find()
             ->contain([
                 'Authors' => [
                     'strategy' => 'select',
@@ -3254,12 +3254,12 @@ class SelectQueryTest extends TestCase
     public function testMatchingWithContain(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $query = new SelectQuery($this->table);
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $query = new SelectQuery($this->collection);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
         $this->getCollectionLocator()->get('articles')->belongsToMany('tags');
 
-        $result = $query->setRepository($table)
+        $result = $query->setRepository($collection)
             ->select()
             ->matching('articles.tags', fn($q) => $q->where(['tags.id' => 2]))
             ->contain('articles')
@@ -3277,10 +3277,10 @@ class SelectQueryTest extends TestCase
     public function testNotSoFarMatchingWithContainOnTheSameAssociation(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tags');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tags');
 
-        $result = $table->find()
+        $result = $collection->find()
             ->matching('tags', fn($q) => $q->where(['tags.id' => 2]))
             ->contain('tags')
             ->first();
@@ -3297,14 +3297,14 @@ class SelectQueryTest extends TestCase
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $big = '1234567890123456789.2';
-        $table = $this->getCollectionLocator()->get('Datatypes');
-        $entity = $table->newDocument([]);
-        $entity->cost = $big;
-        $entity->tiny = 1;
-        $entity->small = 10;
+        $collection = $this->getCollectionLocator()->get('Datatypes');
+        $document = $collection->newDocument([]);
+        $document->cost = $big;
+        $document->tiny = 1;
+        $document->small = 10;
 
-        $table->save($entity);
-        $out = $table->find()
+        $collection->save($document);
+        $out = $collection->find()
             ->where([
                 'cost' => $big,
             ])
@@ -3313,10 +3313,10 @@ class SelectQueryTest extends TestCase
         $this->assertSame($big, $out->cost);
 
         $small = '0.1234567890123456789';
-        $entity = $table->newDocument(['fraction' => $small]);
+        $document = $collection->newDocument(['fraction' => $small]);
 
-        $table->save($entity);
-        $out = $table->find()
+        $collection->save($document);
+        $out = $collection->find()
             ->where([
                 'fraction' => $small,
             ])
@@ -3325,10 +3325,10 @@ class SelectQueryTest extends TestCase
         $this->assertMatchesRegularExpression('/^0?\.1234567890123456789$/', $out->fraction);
 
         $small = 0.1234567890123456789;
-        $entity = $table->newDocument(['fraction' => $small]);
+        $document = $collection->newDocument(['fraction' => $small]);
 
-        $table->save($entity);
-        $out = $table->find()
+        $collection->save($document);
+        $out = $collection->find()
             ->where([
                 'fraction' => $small,
             ])
@@ -3345,18 +3345,18 @@ class SelectQueryTest extends TestCase
     public function testSelectWithTableAndAssociationInstance(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
 
-        $result = $table
+        $result = $collection
             ->find()
             ->select(fn($q): array => ['foo' => $q->expr('1 + 1')])
-            ->select($table)
-            ->select($table->authors)
+            ->select($collection)
+            ->select($collection->authors)
             ->contain(['authors'])
             ->first();
 
-        $expected = $table
+        $expected = $collection
             ->find()
             ->select(fn($q): array => ['foo' => $q->expr('1 + 1')])
             ->enableAutoFields()
@@ -3373,8 +3373,8 @@ class SelectQueryTest extends TestCase
     public function testSelectTypeInferSimpleAliases(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('comments');
-        $result = $table
+        $collection = $this->getCollectionLocator()->get('comments');
+        $result = $collection
             ->find()
             ->select(['created', 'updated_time' => 'updated'])
             ->first();
@@ -3389,11 +3389,11 @@ class SelectQueryTest extends TestCase
     public function testLeftJoinWith(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
-        $table->articles->deleteAll(['author_id' => 4]);
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+        $collection->articles->deleteAll(['author_id' => 4]);
 
-        $results = $table
+        $results = $collection
             ->find()
             ->select(['total_articles' => 'count(articles.id)'])
             ->enableAutoFields()
@@ -3410,7 +3410,7 @@ class SelectQueryTest extends TestCase
         $fields = ['total_articles', 'id', 'name'];
         $this->assertEquals($fields, array_keys($results->first()->toArray()));
 
-        $results = $table
+        $results = $collection
             ->find()
             ->leftJoinWith('articles')
             ->where(['articles.id IS' => null]);
@@ -3418,7 +3418,7 @@ class SelectQueryTest extends TestCase
         $this->assertEquals([2, 4], $results->all()->extract('id')->toList());
         $this->assertEquals(['id', 'name'], array_keys($results->first()->toArray()));
 
-        $results = $table
+        $results = $collection
             ->find()
             ->leftJoinWith('articles')
             ->where(['articles.id IS NOT' => null])
@@ -3435,11 +3435,11 @@ class SelectQueryTest extends TestCase
     public function testLeftJoinWithNested(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $articles = $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->select([
                 'authors.id',
@@ -3463,11 +3463,11 @@ class SelectQueryTest extends TestCase
     public function testLeftJoinWithSelect(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $articles = $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->leftJoinWith('articles.tags', fn($q) => $q
                 ->select(['articles.id', 'articles.title', 'tags.name'])
@@ -3492,10 +3492,10 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWithAutoFields(): void
     {
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsTo('authors');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsTo('authors');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->leftJoinWith('authors', fn($q) => $q->enableAutoFields())
             ->all();
@@ -3508,16 +3508,16 @@ class SelectQueryTest extends TestCase
     public function testLeftJoinWithAndContainOnOptionalAssociation(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles', ['table' => 'articles']);
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles', ['table' => 'articles']);
+        $collection->belongsTo('Authors');
 
-        $newArticle = $table->newDocument([
+        $newArticle = $collection->newDocument([
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
             'published' => 'N',
         ]);
-        $table->save($newArticle);
-        $results = $table
+        $collection->save($newArticle);
+        $results = $collection
             ->unhydratedFind()
             ->contain('Authors')
             ->leftJoinWith('Authors')
@@ -3566,7 +3566,7 @@ class SelectQueryTest extends TestCase
             ],
         ];
         $this->assertEquals($expected, $results->toList());
-        $results = $table
+        $results = $collection
             ->unhydratedFind()
             ->contain('Authors')
             ->leftJoinWith('Authors')
@@ -3585,7 +3585,7 @@ class SelectQueryTest extends TestCase
         $this->assertEquals($expected, $results->toList());
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The `Tags` association is not defined on `Articles`.');
-        $table
+        $collection
             ->unhydratedFind()
             ->contain('Tags')
             ->leftJoinWith('Tags')
@@ -3598,10 +3598,10 @@ class SelectQueryTest extends TestCase
     public function testInnerJoinWith(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->innerJoinWith('articles', fn($q) => $q->where(['articles.title' => 'Third Article']));
         $expected = [
@@ -3619,11 +3619,11 @@ class SelectQueryTest extends TestCase
     public function testInnerJoinWithNested(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $articles = $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->innerJoinWith('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']));
         $expected = [
@@ -3640,16 +3640,16 @@ class SelectQueryTest extends TestCase
      */
     public function testInnerJoinWithSelect(): void
     {
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $results = $table
+        $results = $collection
             ->find()
             ->enableAutoFields()
             ->innerJoinWith('articles', fn($q) => $q->select(['id', 'author_id', 'title', 'body', 'published']))
             ->toArray();
 
-        $expected = $table
+        $expected = $collection
             ->find()
             ->matching('articles')
             ->toArray();
@@ -3681,10 +3681,10 @@ class SelectQueryTest extends TestCase
     public function testNotMatching(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->notMatching('articles')
             ->orderBy(['authors.id'])
@@ -3696,7 +3696,7 @@ class SelectQueryTest extends TestCase
         ];
         $this->assertEquals($expected, $results);
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->notMatching('articles', fn($q) => $q->where(['articles.author_id' => 1]))
             ->orderBy(['authors.id'])
@@ -3715,10 +3715,10 @@ class SelectQueryTest extends TestCase
     public function testNotMatchingBelongsToMany(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('articles');
-        $table->belongsToMany('tags');
+        $collection = $this->getCollectionLocator()->get('articles');
+        $collection->belongsToMany('tags');
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->notMatching('tags', fn($q) => $q->where(['tags.name' => 'tag2']));
 
@@ -3749,11 +3749,11 @@ class SelectQueryTest extends TestCase
     public function testNotMatchingDeep(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $articles = $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->select('authors.id')
             ->notMatching('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']))
@@ -3761,7 +3761,7 @@ class SelectQueryTest extends TestCase
 
         $this->assertEquals([1, 2, 4], $results->all()->extract('id')->toList());
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->notMatching('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']))
             ->matching('articles')
@@ -3777,11 +3777,11 @@ class SelectQueryTest extends TestCase
     public function testNotMatchingNested(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('authors');
-        $articles = $table->hasMany('articles');
+        $collection = $this->getCollectionLocator()->get('authors');
+        $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
-        $results = $table->find()
+        $results = $collection->find()
             ->hydrate(false)
             ->matching('articles', fn(SelectQuery $q): SelectQuery => $q->notMatching('tags', fn(SelectQuery $q): SelectQuery => $q->where(['tags.name' => 'tag3'])))
             ->orderBy(['authors.id' => 'ASC', 'articles.id' => 'ASC']);
@@ -3808,10 +3808,10 @@ class SelectQueryTest extends TestCase
     public function testSelectAllExcept(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $result = $table
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $result = $collection
             ->find()
-            ->selectAllExcept($table, ['body']);
+            ->selectAllExcept($collection, ['body']);
         $selectedFields = $result->clause('select');
         $expected = [
             'Articles__id' => 'Articles.id',
@@ -3829,16 +3829,16 @@ class SelectQueryTest extends TestCase
     public function testSelectAllExceptWithContains(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
-        $table->hasMany('Comments');
-        $table->belongsTo('Authors');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
+        $collection->belongsTo('Authors');
 
-        $result = $table
+        $result = $collection
             ->find()
             ->contain([
-                'Comments' => fn(SelectQuery $query): SelectQuery => $query->selectAllExcept($table->Comments, ['published']),
+                'Comments' => fn(SelectQuery $query): SelectQuery => $query->selectAllExcept($collection->Comments, ['published']),
             ])
-            ->selectAllExcept($table, ['body'])
+            ->selectAllExcept($collection, ['body'])
             ->first();
         $this->assertNull($result->comments[0]->published);
         $this->assertNull($result->body);
@@ -3853,12 +3853,12 @@ class SelectQueryTest extends TestCase
     public function testSelectAllExceptWithMulitpleCalls(): void
     {
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $result = $table
+        $result = $collection
             ->find()
-            ->selectAllExcept($table, ['body'])
-            ->selectAllExcept($table, ['published']);
+            ->selectAllExcept($collection, ['body'])
+            ->selectAllExcept($collection, ['published']);
         $selectedFields = $result->clause('select');
         $expected = [
             'Articles__id' => 'Articles.id',
@@ -3869,10 +3869,10 @@ class SelectQueryTest extends TestCase
         ];
         $this->assertEquals($expected, $selectedFields);
 
-        $result = $table
+        $result = $collection
             ->find()
-            ->selectAllExcept($table, ['body'])
-            ->selectAllExcept($table, ['published', 'body']);
+            ->selectAllExcept($collection, ['body'])
+            ->selectAllExcept($collection, ['published', 'body']);
         $selectedFields = $result->clause('select');
         $expected = [
             'Articles__id' => 'Articles.id',
@@ -3882,10 +3882,10 @@ class SelectQueryTest extends TestCase
         ];
         $this->assertEquals($expected, $selectedFields);
 
-        $result = $table
+        $result = $collection
             ->find()
-            ->selectAllExcept($table, ['body'])
-            ->selectAllExcept($table, ['published', 'body'], true);
+            ->selectAllExcept($collection, ['body'])
+            ->selectAllExcept($collection, ['published', 'body'], true);
         $selectedFields = $result->clause('select');
         $expected = [
             'Articles__id' => 'Articles.id',
@@ -3934,9 +3934,9 @@ class SelectQueryTest extends TestCase
      */
     public function testWith(): void
     {
-        $table = $this->getCollectionLocator()->get('Articles');
+        $collection = $this->getCollectionLocator()->get('Articles');
 
-        $query = $table->find();
+        $query = $collection->find();
         $window = (new Window())
             ->partitionBy('$author_id')
             ->sortBy(['_id' => 1])

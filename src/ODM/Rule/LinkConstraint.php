@@ -51,11 +51,11 @@ class LinkConstraint
      *
      * Performs the actual link check.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The entity involved in the operation.
+     * @param \Cake\Datasource\EntityInterface $document The entity involved in the operation.
      * @param array<string, mixed> $options Options passed from the rules checker.
      * @return bool Whether the check was successful.
      */
-    public function __invoke(EntityInterface $entity, array $options): bool
+    public function __invoke(EntityInterface $document, array $options): bool
     {
         $collection = $options['repository'] ?? null;
         if (!$collection instanceof BaseCollection) {
@@ -69,7 +69,7 @@ class LinkConstraint
             $association = $collection->getAssociation($association);
         }
 
-        $count = $this->countLinks($association, $entity);
+        $count = $this->countLinks($association, $document);
 
         if (
             (
@@ -100,20 +100,20 @@ class LinkConstraint
      * - `belongsToMany`: junction links resolved through the join collection.
      *
      * @param \Crustum\Mongo\ODM\Association $association The association for which to count links.
-     * @param \Cake\Datasource\EntityInterface $entity The entity involved in the operation.
+     * @param \Cake\Datasource\EntityInterface $document The entity involved in the operation.
      * @return int The number of links.
      */
-    protected function countLinks(Association $association, EntityInterface $entity): int
+    protected function countLinks(Association $association, EntityInterface $document): int
     {
         if ($association instanceof BelongsToMany) {
             $source = $association->getSource();
             $primaryKey = (array)$source->getPrimaryKey();
 
-            if (count(array_filter($entity->extract($primaryKey), static fn(mixed $value): bool => $value !== null)) !== count($primaryKey)) {
+            if (count(array_filter($document->extract($primaryKey), static fn(mixed $value): bool => $value !== null)) !== count($primaryKey)) {
                 return 0;
             }
 
-            $conditions = array_combine($primaryKey, $entity->extract($primaryKey));
+            $conditions = array_combine($primaryKey, $document->extract($primaryKey));
 
             return $source
                 ->find()
@@ -130,7 +130,7 @@ class LinkConstraint
             $targetKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
         }
 
-        $sourceValues = $entity->extract($sourceKeys);
+        $sourceValues = $document->extract($sourceKeys);
         if (count(array_filter($sourceValues, static fn(mixed $value): bool => $value !== null)) !== count($sourceKeys)) {
             return 0;
         }

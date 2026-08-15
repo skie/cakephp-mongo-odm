@@ -55,18 +55,18 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
     public function testSaveAssociatedOnlyEntitiesAppend(): void
     {
         $connection = ConnectionManager::get('test_mongo');
-        /** @var \Cake\Test\TestCase\ORM\Association\MockedCollection&\Mockery\MockInterface $table */
+        /** @var \Cake\Test\TestCase\ORM\Association\MockedCollection&\Mockery\MockInterface $collection */
         $target = new MockedCollection(['collection' => 'tags', 'connection' => $connection]);
         $target->setPrimaryKey('_id');
 
-        $table = Mockery::mock($target)->makePartial();
+        $collection = Mockery::mock($target)->makePartial();
 
         $config = [
-            'target' => $table,
+            'target' => $collection,
             'saveStrategy' => BelongsToMany::SAVE_APPEND,
         ];
 
-        $entity = new Document([
+        $document = new Document([
             '_id' => '000000000000000000000001',
             'title' => 'First Post',
             'tags' => [
@@ -75,10 +75,10 @@ class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
             ],
         ]);
 
-        $table->shouldReceive('saveAssociated')->never();
+        $collection->shouldReceive('saveAssociated')->never();
 
         $association = new BelongsToMany('Tags', $this->article, $config);
-        $association->saveAssociated($entity);
+        $association->saveAssociated($document);
     }
 }
 

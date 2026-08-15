@@ -60,15 +60,15 @@ class BelongsTo extends Association
     /**
      * Saves the associated target document and back-fills the foreign key.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        $targetEntity = $entity->get($this->getProperty());
+        $targetEntity = $document->get($this->getProperty());
         if (!$targetEntity instanceof EntityInterface) {
-            return $entity;
+            return $document;
         }
 
         $saved = $this->getTarget()->save($targetEntity, $options);
@@ -81,9 +81,9 @@ class BelongsTo extends Association
             is_string(...),
         ));
         $reference = $saved->extract((array)$this->getBindingKey());
-        $entity->patch(array_combine($foreignKey, $reference), ['guard' => false]);
+        $document->patch(array_combine($foreignKey, $reference), ['guard' => false]);
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -134,11 +134,11 @@ class BelongsTo extends Association
     /**
      * BelongsTo associations are never cleared in a cascading delete scenario.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The entity that started the cascaded delete.
+     * @param \Cake\Datasource\EntityInterface $document The entity that started the cascaded delete.
      * @param array<string, mixed> $options The options for the original delete.
      * @return bool Success.
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         return true;
     }

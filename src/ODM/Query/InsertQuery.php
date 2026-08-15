@@ -25,7 +25,7 @@ class InsertQuery extends DatabaseInsertQuery
     /**
      * Constructor.
      *
-     * Accepts either a `BaseCollection` (cake-compatible: `new InsertQuery($table)`)
+     * Accepts either a `BaseCollection` (cake-compatible: `new InsertQuery($collection)`)
      * or the low-level `(connection, collection, repository)` signature.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection|\Crustum\Mongo\Database\Connection|null $connection Repository or connection.

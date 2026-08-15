@@ -70,6 +70,18 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **ODM copy-artifact rename (entity/table → document/collection)** — `tools/rename-odm-copy-artifacts.php`
+  renames ODM-local variables and event payload keys that were copied verbatim
+  from cake60: `$entity`→`$document`, `$table`→`$collection`, `->entity`→`->document`,
+  and event payload key `'entity'`→`'document'` (`Collection.beforeSave`/
+  `afterSave`/`beforeDelete`/`afterDelete`/`afterMarshal`/`beforeRules`/
+  `afterRules`/`afterSaveCommit`/`afterDeleteCommit`). Applied across
+  `src/ODM` and ODM tests. Deliberately untouched: `View\Form\DocumentContext`
+  (`'entity'` is the FormHelper/ContextFactory contract), `src/Orm` bridge
+  (real SQL ORM `Table`/`Entity`), `EntityTrait` method prefixes
+  (`entityHas`/`entityGet`/…), and class/interface names (`EntityInterface`,
+  `Cake\ORM\Table`). `PersistenceFailedException` property/getter renamed
+  `$entity`/`getEntity()` → `$document`/`getDocument()` (no releases, no BC).
 - **`BaseCollection::_processSave()`** now routes parent/child association saves
   through `AssociationCollection::saveParents()/saveChildren()` (cake60 parity)
   instead of its own loops: nested `associated` options (`'authors.supervisors'`

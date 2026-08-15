@@ -203,18 +203,18 @@ class HasMany extends Association
      * With the replace strategy, targets removed from the source property are
      * unlinked before saving the remaining ones.
      *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
+     * @param \Cake\Datasource\EntityInterface $document The source document.
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
-    public function saveAssociated(EntityInterface $entity, array $options = []): EntityInterface|false
+    public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
-        $targetEntities = $entity->get($this->getProperty());
+        $targetEntities = $document->get($this->getProperty());
 
         $isEmpty = in_array($targetEntities, [null, [], '', false], true);
         if ($isEmpty) {
-            if ($entity->isNew() || $this->getSaveStrategy() !== self::SAVE_REPLACE) {
-                return $entity;
+            if ($document->isNew() || $this->getSaveStrategy() !== self::SAVE_REPLACE) {
+                return $document;
             }
 
             $targetEntities = [];
@@ -233,7 +233,7 @@ class HasMany extends Association
         ));
         $foreignKeyReference = array_combine(
             $foreignKeys,
-            $entity->extract((array)$this->getBindingKey()),
+            $document->extract((array)$this->getBindingKey()),
         );
 
         $options['_sourceTable'] = $this->getSource();
@@ -249,11 +249,11 @@ class HasMany extends Association
             $targetEntities = iterator_to_array($targetEntities);
         }
 
-        if (!$this->saveTarget($foreignKeyReference, $entity, $targetEntities, $options)) {
+        if (!$this->saveTarget($foreignKeyReference, $document, $targetEntities, $options)) {
             return false;
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -272,23 +272,23 @@ class HasMany extends Association
         array $options,
     ): bool {
         $foreignKey = array_keys($foreignKeyReference);
-        $table = $this->getTarget();
+        $collection = $this->getTarget();
         $original = $entities;
 
-        foreach ($entities as $k => $entity) {
-            if (!$entity instanceof EntityInterface) {
+        foreach ($entities as $k => $document) {
+            if (!$document instanceof EntityInterface) {
                 break;
             }
 
             if (!empty($options['atomic'])) {
-                $entity = clone $entity;
+                $document = clone $document;
             }
 
-            if ($foreignKeyReference !== $entity->extract($foreignKey)) {
-                $entity->patch($foreignKeyReference, ['guard' => false]);
+            if ($foreignKeyReference !== $document->extract($foreignKey)) {
+                $document->patch($foreignKeyReference, ['guard' => false]);
             }
 
-            $saved = $table->save($entity, $options);
+            $saved = $collection->save($document, $options);
             if ($saved instanceof EntityInterface) {
                 $entities[$k] = $saved;
 
@@ -296,7 +296,7 @@ class HasMany extends Association
             }
 
             if (!empty($options['atomic']) && isset($original[$k]) && $original[$k] instanceof EntityInterface) {
-                $original[$k]->setErrors($entity->getErrors());
+                $original[$k]->setErrors($document->getErrors());
 
                 return false;
             }
@@ -345,7 +345,7 @@ class HasMany extends Association
             if ($this->getCascadeCallbacks()) {
                 $related = array_filter(
                     $target->find('all')->where($conditions)->toArray(),
-                    static fn(mixed $entity): bool => $entity instanceof EntityInterface,
+                    static fn(mixed $document): bool => $document instanceof EntityInterface,
                 );
                 if ($target->deleteMany($related, $options) === false) {
                     return false;
@@ -406,15 +406,15 @@ class HasMany extends Association
             // already exist in the current set (cake60 reject semantics).
             $targetEntities = array_values(array_filter(
                 $targetEntities,
-                function (mixed $entity) use ($currentEntities, $pkFields): bool {
-                    if (!$entity instanceof EntityInterface || $entity->isNew()) {
+                function (mixed $document) use ($currentEntities, $pkFields): bool {
+                    if (!$document instanceof EntityInterface || $document->isNew()) {
                         return true;
                     }
 
                     return !array_any(
                         $currentEntities,
                         fn(mixed $cEntity): bool => $cEntity instanceof EntityInterface
-                            && $entity->extract($pkFields) === $cEntity->extract($pkFields),
+                            && $document->extract($pkFields) === $cEntity->extract($pkFields),
                     );
                 },
             ));
@@ -469,12 +469,12 @@ class HasMany extends Association
 
         $remaining = array_values(array_filter(
             $currentEntities,
-            static function (mixed $entity) use ($targetIds): bool {
-                if (!$entity instanceof EntityInterface || $entity->get('_id') === null) {
+            static function (mixed $document) use ($targetIds): bool {
+                if (!$document instanceof EntityInterface || $document->get('_id') === null) {
                     return true;
                 }
 
-                return !in_array($entity->get('_id'), $targetIds, true);
+                return !in_array($document->get('_id'), $targetIds, true);
             },
         ));
 
@@ -587,8 +587,8 @@ class HasMany extends Association
     /**
      * @inheritDoc
      */
-    public function cascadeDelete(EntityInterface $entity, array $options = []): bool
+    public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
-        return (new DependentDeleteHelper())->cascadeDelete($this, $entity, $options);
+        return (new DependentDeleteHelper())->cascadeDelete($this, $document, $options);
     }
 }

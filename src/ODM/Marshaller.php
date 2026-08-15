@@ -49,15 +49,15 @@ class Marshaller
     public function one(array $data, array $options = []): Document
     {
         [$data, $options] = $this->prepare($data, $options);
-        $entity = $this->newDocument($options);
+        $document = $this->newDocument($options);
 
-        $errors = $this->validate($data, $options, true, $entity);
-        $properties = $this->marshalProperties($data, $options, $errors, $entity);
-        $this->patch($entity, $properties, $options);
-        $entity->setErrors($errors);
-        $this->dispatchAfterMarshal($entity, $data, $options);
+        $errors = $this->validate($data, $options, true, $document);
+        $properties = $this->marshalProperties($data, $options, $errors, $document);
+        $this->patch($document, $properties, $options);
+        $document->setErrors($errors);
+        $this->dispatchAfterMarshal($document, $data, $options);
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -82,21 +82,21 @@ class Marshaller
     /**
      * Merges input data into an existing document.
      *
-     * @param \Crustum\Mongo\ODM\Document $entity Document to update.
+     * @param \Crustum\Mongo\ODM\Document $document Document to update.
      * @param array<string, mixed> $data Data to marshal.
      * @param array<string, mixed> $options Marshalling options.
      * @return \Crustum\Mongo\ODM\Document
      */
-    public function merge(Document $entity, array $data, array $options = []): Document
+    public function merge(Document $document, array $data, array $options = []): Document
     {
         [$data, $options] = $this->prepare($data, $options + ['isMerge' => true]);
-        $errors = $this->validate($data, $options, $entity->isNew(), $entity);
-        $properties = $this->marshalProperties($data, $options, $errors, $entity);
-        $this->patch($entity, $properties, $options);
-        $entity->setErrors($errors);
-        $this->dispatchAfterMarshal($entity, $data, $options);
+        $errors = $this->validate($data, $options, $document->isNew(), $document);
+        $properties = $this->marshalProperties($data, $options, $errors, $document);
+        $this->patch($document, $properties, $options);
+        $document->setErrors($errors);
+        $this->dispatchAfterMarshal($document, $data, $options);
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -128,12 +128,12 @@ class Marshaller
         }
 
         $result = [];
-        foreach ($entities as $entity) {
-            if (!$entity instanceof Document) {
+        foreach ($entities as $document) {
+            if (!$document instanceof Document) {
                 continue;
             }
 
-            $id = $entity->getId();
+            $id = $document->getId();
             if ($id === null) {
                 continue;
             }
@@ -142,22 +142,22 @@ class Marshaller
                 continue;
             }
 
-            $result[] = $this->merge($entity, $indexed[$id], $options);
+            $result[] = $this->merge($document, $indexed[$id], $options);
             unset($indexed[$id]);
         }
 
         foreach (array_keys($indexed) as $id) {
             try {
-                $entity = $this->collection->get($id);
+                $document = $this->collection->get($id);
             } catch (Throwable) {
                 continue;
             }
 
-            if (!$entity instanceof Document) {
+            if (!$document instanceof Document) {
                 continue;
             }
 
-            $result[] = $this->merge($entity, $indexed[$id], $options);
+            $result[] = $this->merge($document, $indexed[$id], $options);
             unset($indexed[$id]);
         }
 
@@ -178,15 +178,15 @@ class Marshaller
     private function newDocument(array $options): Document
     {
         $class = $this->collection->getDocumentClass();
-        $entity = new $class();
-        assert($entity instanceof Document);
-        $entity->setSource($this->collection->getRegistryAlias());
+        $document = new $class();
+        assert($document instanceof Document);
+        $document->setSource($this->collection->getRegistryAlias());
 
         if (array_key_exists('markNew', $options) && $options['markNew'] !== null) {
-            $entity->setNew((bool)$options['markNew']);
+            $document->setNew((bool)$options['markNew']);
         }
 
-        return $entity;
+        return $document;
     }
 
     /**
@@ -212,10 +212,10 @@ class Marshaller
      * @param array<string, mixed> $data The input data.
      * @param array<string, mixed> $options The marshalling options.
      * @param bool $isNew Whether the document is new.
-     * @param \Crustum\Mongo\ODM\Document $entity The document being marshalled.
+     * @param \Crustum\Mongo\ODM\Document $document The document being marshalled.
      * @return array<string, mixed>
      */
-    private function validate(array $data, array $options, bool $isNew, Document $entity): array
+    private function validate(array $data, array $options, bool $isNew, Document $document): array
     {
         $validator = $options['validate'] ?? true;
         if ($validator === false) {
@@ -232,7 +232,7 @@ class Marshaller
             throw new RuntimeException('validate must be a boolean, a string or a validator object.');
         }
 
-        return $validator->validate($data, $isNew, ['entity' => $entity]);
+        return $validator->validate($data, $isNew, ['document' => $document]);
     }
 
     /**
@@ -284,7 +284,7 @@ class Marshaller
             $property = $association->getProperty();
 
             if (($options['isMerge'] ?? false)) {
-                $map[$alias] = $map[$property] = (fn(mixed $value, Document $entity): mixed => $this->mergeAssociation($entity, $association, $value, $nestedOptions + ['associated' => []]));
+                $map[$alias] = $map[$property] = (fn(mixed $value, Document $document): mixed => $this->mergeAssociation($document, $association, $value, $nestedOptions + ['associated' => []]));
 
                 continue;
             }
@@ -305,10 +305,10 @@ class Marshaller
      * @param array<string, mixed> $data The input data.
      * @param array<string, mixed> $options The marshalling options.
      * @param array<string, mixed> $errors Validation errors.
-     * @param \Crustum\Mongo\ODM\Document $entity The document being marshalled.
+     * @param \Crustum\Mongo\ODM\Document $document The document being marshalled.
      * @return array<string, mixed>
      */
-    private function marshalProperties(array $data, array $options, array $errors, Document $entity): array
+    private function marshalProperties(array $data, array $options, array $errors, Document $document): array
     {
         $map = $this->buildPropertyMap($data, $options);
         $properties = [];
@@ -320,7 +320,7 @@ class Marshaller
             $callback = $map[$field] ?? null;
             $properties[$field] = $callback === null
                 ? $value
-                : $callback($value, $entity);
+                : $callback($value, $document);
         }
 
         $fields = $options['fieldList'] ?? $options['fields'] ?? null;
@@ -421,13 +421,13 @@ class Marshaller
      * Existing associated documents are merged by `_id`; missing ones are
      * marshalled as new documents.
      *
-     * @param \Crustum\Mongo\ODM\Document $entity The source document.
+     * @param \Crustum\Mongo\ODM\Document $document The source document.
      * @param \Crustum\Mongo\ODM\Association $association The association.
      * @param mixed $value The incoming value.
      * @param array<string, mixed> $options Marshaller options.
      * @return mixed
      */
-    private function mergeAssociation(Document $entity, Association $association, mixed $value, array $options): mixed
+    private function mergeAssociation(Document $document, Association $association, mixed $value, array $options): mixed
     {
         if (!is_array($value)) {
             return $value;
@@ -435,7 +435,7 @@ class Marshaller
 
         $type = $association->type();
         $property = $association->getProperty();
-        $existing = $entity->get($property);
+        $existing = $document->get($property);
         $many = $type === 'oneToMany' || $type === 'manyToMany';
         $target = $association->getTarget();
         $marshaller = $target->marshaller();
@@ -489,15 +489,15 @@ class Marshaller
      * listener signature requires the entity first (matching cake's
      * `compact('entity', 'data', 'options')`).
      *
-     * @param \Crustum\Mongo\ODM\Document $entity The marshalled document.
+     * @param \Crustum\Mongo\ODM\Document $document The marshalled document.
      * @param array<string, mixed> $data The input data.
      * @param array<string, mixed> $options Marshaller options.
      * @return void
      */
-    private function dispatchAfterMarshal(Document $entity, array $data, array $options = []): void
+    private function dispatchAfterMarshal(Document $document, array $data, array $options = []): void
     {
         $this->collection->dispatchEvent('Collection.afterMarshal', [
-            'entity' => $entity,
+            'document' => $document,
             'data' => new ArrayObject($data),
             'options' => new ArrayObject($options),
         ]);
@@ -506,14 +506,14 @@ class Marshaller
     /**
      * Patches the marshalled properties onto the document.
      *
-     * @param \Crustum\Mongo\ODM\Document $entity The document to patch.
+     * @param \Crustum\Mongo\ODM\Document $document The document to patch.
      * @param array<string, mixed> $properties The properties to assign.
      * @param array<string, mixed> $options The marshalling options.
      * @return void
      */
-    private function patch(Document $entity, array $properties, array $options): void
+    private function patch(Document $document, array $properties, array $options): void
     {
-        $entity->patch($properties, ['guard' => true, 'asOriginal' => !($options['isMerge'] ?? false)]);
+        $document->patch($properties, ['guard' => true, 'asOriginal' => !($options['isMerge'] ?? false)]);
     }
 
     /**
@@ -535,14 +535,14 @@ class Marshaller
      * @param string $event The event name.
      * @param mixed $data The event data.
      * @param mixed $options The marshalling options.
-     * @param \Crustum\Mongo\ODM\Document|null $entity The marshalled document.
+     * @param \Crustum\Mongo\ODM\Document|null $document The marshalled document.
      * @return void
      */
-    private function dispatch(string $event, mixed $data, mixed $options, ?Document $entity = null): void
+    private function dispatch(string $event, mixed $data, mixed $options, ?Document $document = null): void
     {
         $payload = ['data' => $data, 'options' => $options];
-        if ($entity instanceof Document) {
-            $payload['entity'] = $entity;
+        if ($document instanceof Document) {
+            $payload['entity'] = $document;
         }
 
         $this->collection->dispatchEvent($event, $payload);
