@@ -17,7 +17,7 @@ class SchemaFields
      *
      * @param string $file Path to `schema-dump-mongo.lock`
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null, embedded?: array{many: bool, key: string, fields: list<array{name: string, type: string, nullable: bool, primaryKey: bool}>}}> Field definitions keyed by field name
      */
     public static function fromLockFile(string $file, string $collection): array
     {
@@ -39,7 +39,7 @@ class SchemaFields
      *
      * @param \Crustum\Mongo\Database\Connection $connection The connection
      * @param string $collection Collection name
-     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null}> Field definitions keyed by field name
+     * @return array<string, array{bsonType: string, nullable: bool, enum: list<mixed>|null, embedded?: array{many: bool, key: string, fields: list<array{name: string, type: string, nullable: bool, primaryKey: bool}>}}> Field definitions keyed by field name
      */
     public static function fromConnection(Connection $connection, string $collection): array
     {

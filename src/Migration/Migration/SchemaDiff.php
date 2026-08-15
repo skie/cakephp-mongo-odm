@@ -117,7 +117,7 @@ class SchemaDiff
      *
      * @param string $name Collection name
      * @param array<string, mixed> $definition Collection definition
-     * @return list<array<string, mixed>>
+     * @return list<array{type: string, collection: string, name: string, key: array<string, mixed>, options: array<string, mixed>}>
      */
     protected function desiredIndexOps(string $name, array $definition): array
     {
@@ -135,7 +135,7 @@ class SchemaDiff
      * @param string $name Collection name
      * @param string $indexName Index name
      * @param array<string, mixed> $indexDef Index definition
-     * @return array<string, mixed>
+     * @return array{type: string, collection: string, name: string, key: array<string, mixed>, options: array<string, mixed>}
      */
     protected function createIndexOp(string $name, string $indexName, array $indexDef): array
     {

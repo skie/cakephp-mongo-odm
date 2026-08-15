@@ -63,24 +63,22 @@ trait SnapshotTrait
      * Parses the connection, plugin and source options into a new argv array.
      *
      * @param \Cake\Console\Arguments $args The command arguments
-     * @return array<int, string>
+     * @return list<string>
      */
     protected function parseOptions(Arguments $args): array
     {
         $newArgs = [];
-        if ($args->getOption('connection')) {
-            $newArgs[] = '--connection';
-            $newArgs[] = $args->getOption('connection');
-        }
+        foreach (['connection', 'plugin', 'source'] as $name) {
+            $option = $args->getOption($name);
+            if (!is_string($option)) {
+                continue;
+            }
+            if ($option === '') {
+                continue;
+            }
 
-        if ($args->getOption('plugin')) {
-            $newArgs[] = '--plugin';
-            $newArgs[] = $args->getOption('plugin');
-        }
-
-        if ($args->getOption('source')) {
-            $newArgs[] = '--source';
-            $newArgs[] = $args->getOption('source');
+            $newArgs[] = '--' . $name;
+            $newArgs[] = $option;
         }
 
         return $newArgs;

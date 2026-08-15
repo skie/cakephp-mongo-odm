@@ -1123,10 +1123,11 @@ class MongoModelCommand extends BakeCommand
      * Detects embedded field definitions from a live CollectionSchema.
      *
      * Reuses `SchemaFields::fromSchema()` on the validator so `bake mongo_model`
-     * and `bake document` agree on the embedded detection rule.
+     * and `bake document` agree on the embedded detection rule. Only fields
+     * carrying an embedded definition are returned, keyed by field name.
      *
      * @param \Crustum\Mongo\Database\Schema\CollectionSchema $schema The schema.
-     * @return array<string, array<string, mixed>>
+     * @return array<string, array{many: bool, key: string, fields: list<array{name: string, type: string, nullable: bool, primaryKey: bool}>}> Embedded definitions keyed by field name.
      */
     protected function embeddedFields(CollectionSchema $schema): array
     {
@@ -1137,7 +1138,14 @@ class MongoModelCommand extends BakeCommand
         ];
         $fields = SchemaFields::fromSchema($dump, 'collection');
 
-        return array_column($fields, 'embedded', 'name');
+        $embedded = [];
+        foreach ($fields as $fieldName => $definition) {
+            if (isset($definition['embedded'])) {
+                $embedded[(string)$fieldName] = $definition['embedded'];
+            }
+        }
+
+        return $embedded;
     }
 
     /**

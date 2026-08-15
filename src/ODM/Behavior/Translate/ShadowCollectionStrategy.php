@@ -405,7 +405,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
 
             /** @var \Cake\Datasource\EntityInterface|null $translation */
             $translation = $this->translationCollection->find()
-                ->select(array_merge(['_shadow_id', 'locale'], $fields))
+                ->select(array_merge(['_id', '_shadow_id', 'locale'], $fields))
                 ->where($where)
                 ->first();
         }
@@ -585,7 +585,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
      */
     protected function bundleTranslatedFields(EntityInterface $entity): void
     {
-        /** @var array<string, \Crustum\Mongo\ODM\Document> $translations */
+        /** @var array<string, \Cake\Datasource\EntityInterface|array<string, mixed>> $translations */
         $translations = $entity->has('_translations') ? (array)$entity->get('_translations') : [];
 
         if (!$translations && !$entity->isDirty('_translations')) {
@@ -600,6 +600,10 @@ class ShadowCollectionStrategy extends AbstractStrategy
         }
 
         foreach ($translations as $lang => $translation) {
+            if (!$translation instanceof EntityInterface) {
+                continue;
+            }
+
             if ($translation->isNew()) {
                 $update = [
                     'locale' => $lang,
