@@ -34,7 +34,7 @@ class ArticlesCollection extends BaseCollection
 
     public function findSlugged(SelectQuery $query): SelectQuery
     {
-        return $query->formatResults(fn($results) => $results->indexBy(fn(array $row): string => Text::slug($row['title'])));
+        return $query->formatResults(fn($results) => $results->indexBy(fn($row): string => Text::slug($row->title)));
     }
 
     public function doSomething(): void

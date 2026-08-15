@@ -953,6 +953,13 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             return $this->results instanceof ResultSetInterface ? $this->results : new ResultSet($this->results);
         }
 
+        if ($this->cacher instanceof QueryCacher) {
+            $cached = $this->cacher->fetch($this);
+            if ($cached !== null) {
+                return $cached instanceof ResultSet ? $cached : new ResultSet($cached);
+            }
+        }
+
         $this->addDefaultFields();
 
         $builder = $this->getBuilder();
@@ -969,13 +976,6 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
 
         if ($this->repository instanceof BaseCollection) {
             $this->eagerLoader->attachAssociations($this, $this->repository);
-        }
-
-        if ($this->cacher instanceof QueryCacher) {
-            $cached = $this->cacher->fetch($this);
-            if ($cached !== null) {
-                return $cached instanceof ResultSet ? $cached : new ResultSet($cached);
-            }
         }
 
         $rows = parent::execute();

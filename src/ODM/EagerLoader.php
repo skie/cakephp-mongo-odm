@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Datasource\QueryInterface;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 
@@ -77,6 +78,7 @@ class EagerLoader
         'foreignKey' => true,
         'limit' => true,
         'skip' => true,
+        'finder' => true,
     ];
 
     /**
@@ -522,6 +524,14 @@ class EagerLoader
         $target = $association->getTarget();
         $config = array_intersect_key($options, $this->containOptions);
         $config += ['strategy' => $this->defaultStrategy($association)];
+        if (isset($config['finder']) && is_array($config['finder'])) {
+            $finderName = array_key_first($config['finder']);
+            $finderOptions = $config['finder'][$finderName] ?? [];
+            $config['finder'] = fn(): QueryInterface => $association->find((string)$finderName, ...(array)$finderOptions);
+        } elseif (isset($config['finder']) && is_string($config['finder'])) {
+            $finderName = $config['finder'];
+            $config['finder'] = fn(): QueryInterface => $association->find($finderName);
+        }
         $config = $this->applyQueryBuilder($config, $target);
         $loadable = new EagerLoadable($alias, $association, $config, $aliasPath, $propertyPath, false, $config['matching'] ?? null, $alias);
 

@@ -13,10 +13,10 @@ class AuthorsCollection extends BaseCollection
         $this->hasMany('Articles');
     }
 
-    public function findByAuthor(SelectQuery $query, ?int $authorId = null): SelectQuery
+    public function findByAuthor(SelectQuery $query, string|int $authorId = null): SelectQuery
     {
         if ($authorId !== null) {
-            $query->where(['articles.id' => $authorId]);
+            $query->where(['_id' => $authorId]);
         }
 
         return $query;
