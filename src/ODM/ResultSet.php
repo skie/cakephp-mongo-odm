@@ -450,6 +450,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             $propertyName = $instance->getProperty();
             $junctionKey = $instance instanceof BelongsToMany ? '_join_' . $propertyName : null;
             $negateMatch = (bool)($assoc['config']['negateMatch'] ?? false);
+            $fields = $assoc['config']['fields'] ?? null;
 
             if (!array_key_exists($propertyName, $row)) {
                 if ($junctionKey !== null && array_key_exists($junctionKey, $row)) {
@@ -463,6 +464,17 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                     unset($row[$junctionKey]);
                 }
                 unset($row[$propertyName]);
+                continue;
+            }
+
+            // `joinWith`/`innerJoinWith` matching with `fields => false` is a
+            // filter only: the joined row is not exposed (cake parity). An
+            // explicit `select()` in the builder re-enables it via `fields`.
+            if ($fields === false) {
+                unset($row[$propertyName]);
+                if ($junctionKey !== null) {
+                    unset($row[$junctionKey]);
+                }
                 continue;
             }
 

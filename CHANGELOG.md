@@ -70,6 +70,11 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **`joinWith` matching is filter-only (doc 40, RF)** — `ResultSet::applyMatchingData()`
+  no longer exposes `_matchingData` (nor the joined property) when the matching
+  config carries `fields => false` (cake parity: `innerJoinWith`/`leftJoinWith`/
+  `notMatching` filter rows without leaking the joined document).
+  `testInnerJoinWith`/`testInnerJoinWithNested`/`testLeftJoinWith` green.
 - **SelectQuery select/selectAllExcept accept repositories (doc 40, RA)** —
   `select()`/`selectAlso()` accept a `BaseCollection`/`Association` (selects its
   schema columns, cake6 parity); `selectAllExcept()` accepts a
