@@ -153,6 +153,7 @@ class DocumentCommand extends BakeCommand
             $field['embeddedMany'] = $embedded['many'];
             $field['embeddedKey'] = $embedded['key'];
         }
+
         unset($field);
 
         return $fields;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Migration\Adapter;
 
 use Cake\TestSuite\TestCase;
-use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
+use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
 use PHPUnit\Framework\Attributes\CoversClass;

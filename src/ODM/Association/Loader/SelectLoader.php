@@ -50,6 +50,7 @@ class SelectLoader implements LoaderInterface
             if (!$query instanceof QueryInterface) {
                 return $entities;
             }
+
             if ($query instanceof SelectQuery) {
                 $query->eagerLoaded(true);
             }
@@ -58,6 +59,7 @@ class SelectLoader implements LoaderInterface
             if ($query instanceof Query && $parentQuery instanceof Query) {
                 $query->setConnectionRole($parentQuery->getConnectionRole());
             }
+
             if ($query instanceof SelectQuery && $parentQuery instanceof SelectQuery) {
                 $query->hydrate($parentQuery->isHydrationEnabled());
             }
@@ -293,9 +295,11 @@ class SelectLoader implements LoaderInterface
             if (!is_array($target) && !($target instanceof ArrayAccess)) {
                 return $entities;
             }
+
             if (!isset($target[$key])) {
                 return $entities;
             }
+
             $target = &$target[$key];
         }
 

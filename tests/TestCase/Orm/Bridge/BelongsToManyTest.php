@@ -10,6 +10,7 @@ use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
+use TestApp\Model\Table\BridgeOrdersTable;
 
 /**
  * Tests the Direction-1 BelongsToMany bridge association (SQL row ↔ Mongo docs).
@@ -47,7 +48,7 @@ class BelongsToManyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
+        $this->Orders = $this->fetchTable(BridgeOrdersTable::class);
         $this->Tags = $this->getCollectionLocator()->get('BridgeTags');
         $this->Junction = $this->getCollectionLocator()->get('OrdersTags');
 

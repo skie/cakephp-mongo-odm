@@ -33,10 +33,10 @@ class CommentsTranslationsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'locale' => 'eng', 'id' => '000000000000000000000001', 'comment' => 'Comment #1'],
-        ['_id' => '000000000000000000000002', 'locale' => 'eng', 'id' => '000000000000000000000002', 'comment' => 'Comment #2'],
-        ['_id' => '000000000000000000000003', 'locale' => 'eng', 'id' => '000000000000000000000003', 'comment' => 'Comment #3'],
-        ['_id' => '000000000000000000000004', 'locale' => 'eng', 'id' => '000000000000000000000004', 'comment' => 'Comment #4'],
-        ['_id' => '000000000000000000000005', 'locale' => 'spa', 'id' => '000000000000000000000004', 'comment' => 'Comentario #4'],
+        ['_id' => '000000000000000000000001', 'locale' => 'eng', '_shadow_id' => '000000000000000000000001', 'comment' => 'Comment #1'],
+        ['_id' => '000000000000000000000002', 'locale' => 'eng', '_shadow_id' => '000000000000000000000002', 'comment' => 'Comment #2'],
+        ['_id' => '000000000000000000000003', 'locale' => 'eng', '_shadow_id' => '000000000000000000000003', 'comment' => 'Comment #3'],
+        ['_id' => '000000000000000000000004', 'locale' => 'eng', '_shadow_id' => '000000000000000000000004', 'comment' => 'Comment #4'],
+        ['_id' => '000000000000000000000005', 'locale' => 'spa', '_shadow_id' => '000000000000000000000004', 'comment' => 'Comentario #4'],
     ];
 }

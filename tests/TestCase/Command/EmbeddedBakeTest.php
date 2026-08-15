@@ -11,6 +11,7 @@ use Crustum\Mongo\Migration\Util\SchemaFields;
 use Crustum\Mongo\ODM\Association\EmbedMany;
 use Crustum\Mongo\ODM\Attribute\Embedded;
 use Crustum\Mongo\ODM\BaseCollection;
+use TestApp\Model\Document\Address;
 use TestApp\Model\Document\Article;
 use TestApp\Model\Document\BakeEmbeddedAddress;
 
@@ -250,9 +251,9 @@ class EmbeddedBakeTest extends TestCase
         $this->assertSame('EmbedMany', $data['embedded'][0]['type']);
         $this->assertSame('Address', $data['embedded'][0]['documentClass']);
         $this->assertSame(
-            'TestApp\Model\Document\Address',
+            Address::class,
             $data['embedded'][0]['documentClassFqn'],
         );
-        $this->assertContains('TestApp\Model\Document\Address', $data['embeddedImports']);
+        $this->assertContains(Address::class, $data['embeddedImports']);
     }
 }

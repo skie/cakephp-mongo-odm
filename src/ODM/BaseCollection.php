@@ -2868,7 +2868,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
     /**
      * Gets a marshaller bound to this collection.
      *
-     * @return \Crustum\Mongo\ODM\Marshaller
+     * @return \Crustum\Mongo\ODM\Marshaller<\Cake\Datasource\EntityInterface>
      */
     public function marshaller(): Marshaller
     {

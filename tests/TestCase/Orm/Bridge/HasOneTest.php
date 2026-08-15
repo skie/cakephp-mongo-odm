@@ -11,6 +11,7 @@ use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\Order;
+use TestApp\Model\Table\BridgeOrdersTable;
 
 /**
  * Tests the Direction-1 HasOne bridge association (Mongo doc → SQL row).
@@ -42,7 +43,7 @@ class HasOneTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
+        $this->Orders = $this->fetchTable(BridgeOrdersTable::class);
         $this->Posts = $this->getCollectionLocator()->get('BridgePosts');
 
         $this->Posts->deleteAll([]);

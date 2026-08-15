@@ -105,7 +105,7 @@ class MongoControllerCommand extends BakeCommand
         $components = $this->getComponents($args);
 
         $prefix = $this->getPrefix($args);
-        if ($prefix) {
+        if ($prefix !== '' && $prefix !== '0') {
             $prefix = '\\' . str_replace('/', '\\', $prefix);
         }
 

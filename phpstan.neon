@@ -66,5 +66,11 @@ parameters:
             identifier: trait.unused
             path: src/ODM/CollectionEventsTrait.php
             reportUnmatched: false
+        -
+            # Public library trait: consumed by app documents that mix in the
+            # translation helpers (TranslateTestEntity etc. live in test_app).
+            identifier: trait.unused
+            path: src/ODM/Behavior/Translate/TranslateTrait.php
+            reportUnmatched: false
 
 services:

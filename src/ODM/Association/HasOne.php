@@ -144,6 +144,7 @@ class HasOne extends Association
         if (!empty($options['lookupPrefix'])) {
             $localKey = $options['lookupPrefix'] . '.' . $localKey;
         }
+
         $builder
             ->lookup($this->getTarget()->getCollection())
             ->localField($localKey)
@@ -154,6 +155,7 @@ class HasOne extends Association
         if (!empty($options['matching']) && !empty($options['conditions'])) {
             $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
         }
+
         $this->applyPipelineOptions($builder, $options);
 
         return $builder->getPipeline();

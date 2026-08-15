@@ -377,6 +377,7 @@ class EagerLoader
                             $found = true;
                             break;
                         }
+
                         if (is_array($result) && array_key_exists($keyField, $result)) {
                             $found = true;
                             break;
@@ -573,6 +574,7 @@ class EagerLoader
             $finderName = $config['finder'];
             $config['finder'] = fn(): QueryInterface => $association->find($finderName);
         }
+
         $config = $this->applyQueryBuilder($config, $target);
         $nestedMatching = $config['_matching'] ?? [];
         unset($config['_matching']);
@@ -686,12 +688,14 @@ class EagerLoader
             if ($matching && $parentProperty !== null) {
                 $config['lookupPrefix'] = $parentProperty;
             }
+
             // Deep `notMatching('a.b', ...)`: the negation applies at the
             // deepest matching node; outer nodes unwind with preserve-null and
             // defer the null-check to their children.
             if ($matching && $this->hasMatchingChildren($loadable)) {
                 $config['deferNegateMatch'] = true;
             }
+
             $stages = $association->buildPipeline($config);
             if ($stages !== []) {
                 $query->pipeline($stages);

@@ -57,6 +57,7 @@ class UpgradeCommandTest extends TestCase
         $command = new UpgradeCommand();
         $out = new StubConsoleOutput();
         $out->setOutputAs(StubConsoleOutput::PLAIN);
+
         $io = new ConsoleIo($out, $out, new StubConsoleInput([]));
 
         $command->run($argv, $io);
@@ -92,6 +93,7 @@ class UpgradeCommandTest extends TestCase
                 break;
             }
         }
+
         $this->assertTrue($hasUnique);
     }
 

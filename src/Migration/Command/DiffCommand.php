@@ -13,8 +13,8 @@ use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Migration\SchemaDiff;
 use Crustum\Mongo\Migration\Migration\SchemaDumper;
-use Crustum\Mongo\Migration\Util\Util;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
+use Crustum\Mongo\Migration\Util\Util;
 use RuntimeException;
 
 /**

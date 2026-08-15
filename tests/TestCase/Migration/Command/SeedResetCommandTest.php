@@ -63,6 +63,7 @@ class SeedResetCommandTest extends TestCase
         $command = new SeedResetCommand();
         $out = new StubConsoleOutput();
         $out->setOutputAs(StubConsoleOutput::PLAIN);
+
         $io = new ConsoleIo($out, $out, new StubConsoleInput($input));
 
         $command->run($argv, $io);

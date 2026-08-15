@@ -11,8 +11,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration;
 
 use Cake\Console\ConsoleIo;
-use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Db\Collection;
 
 /**

@@ -1109,7 +1109,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
-        $query->mapReduce(function ($v, $k, $mr): void {
+        $query->mapReduce(function (array $v, $k, $mr): void {
             $mr->emit($v['_id']);
         });
         $query->mapReduce(
@@ -3058,7 +3058,7 @@ class SelectQueryTest extends TestCase
     {
         $collection = $this->getCollectionLocator()->get('Articles');
         $query = $collection->find()->where(['_id >' => '000000000000000000000001']);
-        $query->where(fn(QueryExpression $exp) => $exp->eq('author_id', '000000000000000000000001'));
+        $query->where(fn(QueryExpression $exp): QueryExpression => $exp->eq('author_id', '000000000000000000000001'));
         $this->assertEquals(1, $query->count());
         $this->assertEquals('000000000000000000000003', $query->first()->_id);
     }

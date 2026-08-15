@@ -185,7 +185,7 @@ class MongoTemplateCommand extends BakeCommand
         }
 
         $prefix = $this->getPrefix($args);
-        if ($prefix) {
+        if ($prefix !== '' && $prefix !== '0') {
             $prefix .= '/';
         }
 
@@ -421,7 +421,7 @@ class MongoTemplateCommand extends BakeCommand
         }
 
         $prefix = $this->getPrefix($args);
-        if ($prefix) {
+        if ($prefix !== '' && $prefix !== '0') {
             $path .= $prefix . DIRECTORY_SEPARATOR;
         }
 

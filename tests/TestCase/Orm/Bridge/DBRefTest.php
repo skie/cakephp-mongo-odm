@@ -10,6 +10,7 @@ use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\File;
+use TestApp\Model\Table\FilesTable;
 
 /**
  * Tests the Direction-1 DBRef bridge association (SQL column → Mongo doc).
@@ -40,7 +41,7 @@ class DBRefTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Files = $this->fetchTable('TestApp\Model\Table\FilesTable');
+        $this->Files = $this->fetchTable(FilesTable::class);
         $this->Target = $this->getCollectionLocator()->get('Files');
 
         $this->Target->deleteAll([]);

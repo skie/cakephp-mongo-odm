@@ -17,6 +17,7 @@ use Throwable;
  * delegates association values to the target collection marshaller. MongoDB
  * identifiers remain in the canonical `_id` property.
  *
+ * @template TDocument of \Cake\Datasource\EntityInterface
  * @see cake60/src/ORM/Marshaller.php
  * @see src/ODM/Marshaller.php
  */
@@ -294,6 +295,13 @@ class Marshaller
                 $value,
                 $nestedOptions + ['associated' => []],
             );
+        }
+
+        foreach ($this->collection->behaviors()->loaded() as $name) {
+            $behavior = $this->collection->behaviors()->get($name);
+            if ($behavior instanceof PropertyMarshalInterface) {
+                $map += $behavior->buildMarshalMap($this, $map, $options);
+            }
         }
 
         return $map;

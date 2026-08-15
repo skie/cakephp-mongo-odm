@@ -157,11 +157,13 @@ class BelongsTo extends Association
         if (!empty($options['lookupPrefix'])) {
             $localKey = $options['lookupPrefix'] . '.' . $localKey;
         }
+
         $negateMatch = !empty($options['negateMatch']);
         $pipeline = [];
         if ($negateMatch && !empty($options['conditions'])) {
             $pipeline[] = ['$match' => $this->normalizePipelineConditions($options['conditions'])];
         }
+
         $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
             ->localField($localKey)
@@ -170,6 +172,7 @@ class BelongsTo extends Association
         if ($pipeline !== []) {
             $lookup->pipeline($pipeline);
         }
+
         $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
 
         if ($negateMatch) {
@@ -178,6 +181,7 @@ class BelongsTo extends Association
             if (!empty($options['matching']) && !empty($options['conditions'])) {
                 $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
             }
+
             $this->applyPipelineOptions($builder, $options);
         }
 

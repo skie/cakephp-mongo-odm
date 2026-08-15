@@ -39,6 +39,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(new ExistsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
@@ -59,6 +60,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(new ExistsInNullable(['author_id', 'site_id'], 'SiteAuthors', [
@@ -81,6 +83,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(new ExistsInNullable(['author_id', 'site_id'], 'SiteAuthors'));
@@ -101,6 +104,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(
@@ -126,6 +130,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(
@@ -159,6 +164,7 @@ class ExistsInNullableTest extends TestCase
         ];
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(new ExistsInNullable(['author_id', 'site_id'], 'SiteAuthors', [
@@ -211,6 +217,7 @@ class ExistsInNullableTest extends TestCase
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
+
         $rules = $collection->rulesChecker();
 
         $rules->add(

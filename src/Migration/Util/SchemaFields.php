@@ -151,6 +151,7 @@ class SchemaFields
             if (!is_array($nestedTypes)) {
                 $nestedTypes = [$nestedTypes];
             }
+
             $nonNull = array_values(array_filter(
                 $nestedTypes,
                 static fn(mixed $t): bool => is_string($t) && $t !== 'null',

@@ -12,6 +12,7 @@ use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use TestApp\Model\Entity\File;
 use TestApp\Model\Entity\Order;
+use TestApp\Model\Table\BridgeOrdersTable;
 
 /**
  * Tests the P5 cascade delete matrix across the bridge association types.
@@ -40,7 +41,7 @@ class CascadeDeleteTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
+        $this->Orders = $this->fetchTable(BridgeOrdersTable::class);
 
         foreach (['BridgePosts', 'BridgeProfiles', 'BridgeTags', 'OrdersTags', 'Files'] as $alias) {
             $collection = $this->getCollectionLocator()->get($alias);

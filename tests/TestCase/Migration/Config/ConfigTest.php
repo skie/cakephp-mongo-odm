@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\Migration\Config;
 
-use InvalidArgumentException;
 use Crustum\Mongo\Migration\Config\Config;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use UnexpectedValueException;
 

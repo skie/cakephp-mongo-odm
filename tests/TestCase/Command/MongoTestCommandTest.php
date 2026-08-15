@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\Command;
 use Cake\Core\Exception\CakeException;
 use Crustum\Mongo\Command\Bake\MongoTestCommand;
 use TestApp\Model\Collection\ArticlesCollection;
+use TestApp\Model\Document\Article;
 
 /**
  * MongoTestCommandTest class
@@ -28,11 +29,11 @@ class MongoTestCommandTest extends TestCase
     {
         $command = new MongoTestCommand();
         $this->assertSame(
-            'TestApp\Model\Collection\ArticlesCollection',
+            ArticlesCollection::class,
             $command->getRealClassName('Collection', 'Articles'),
         );
         $this->assertSame(
-            'TestApp\Model\Document\Article',
+            Article::class,
             $command->getRealClassName('Document', 'Article'),
         );
         $this->assertSame(
@@ -84,13 +85,13 @@ class MongoTestCommandTest extends TestCase
     public function testTestCaseFileName(): void
     {
         $command = new MongoTestCommand();
-        $result = $command->testCaseFileName('Collection', 'TestApp\Model\Collection\ArticlesCollection');
+        $result = $command->testCaseFileName('Collection', ArticlesCollection::class);
         $this->assertPathEquals(
             ROOT . DS . 'tests' . DS . 'TestCase' . DS . 'Model' . DS . 'Collection' . DS . 'ArticlesCollectionTest.php',
             $result,
         );
 
-        $result = $command->testCaseFileName('Document', 'TestApp\Model\Document\Article');
+        $result = $command->testCaseFileName('Document', Article::class);
         $this->assertPathEquals(
             ROOT . DS . 'tests' . DS . 'TestCase' . DS . 'Model' . DS . 'Document' . DS . 'ArticleTest.php',
             $result,

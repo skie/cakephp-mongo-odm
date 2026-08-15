@@ -33,6 +33,6 @@ class AuthorsTranslationsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'locale' => 'eng', 'id' => '000000000000000000000001', 'name' => 'May-rianoh'],
+        ['_id' => '000000000000000000000001', 'locale' => 'eng', '_shadow_id' => '000000000000000000000001', 'name' => 'May-rianoh'],
     ];
 }

@@ -63,6 +63,7 @@ class SchemaDumperTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
+
         parent::tearDown();
     }
 

@@ -177,9 +177,10 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         foreach ($row as $field => $value) {
             $typeName = $schema->getColumnType((string)$field);
-            if ($typeName === null && $this->query !== null) {
+            if ($typeName === null && $this->query instanceof SelectQuery) {
                 $typeName = $this->query->getTypeMap()->type((string)$field);
             }
+
             if ($typeName === null) {
                 if ($value instanceof BSONDocument || $value instanceof BSONArray) {
                     $row[$field] = self::bsonToArray($value);
@@ -213,6 +214,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         if ($value instanceof BSONArray) {
             return array_map([self::class, 'bsonToArray'], $value->getArrayCopy());
         }
+
         if ($value instanceof BSONDocument) {
             $out = [];
             foreach ($value as $k => $v) {
@@ -221,12 +223,15 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
             return $out;
         }
+
         if (is_array($value)) {
             return array_map([self::class, 'bsonToArray'], $value);
         }
+
         if ($value instanceof ObjectId) {
             return (string)$value;
         }
+
         if ($value instanceof UTCDateTime) {
             return new CakeDateTime($value->toDateTime());
         }
@@ -471,6 +476,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 if ($junctionKey !== null && array_key_exists($junctionKey, $row)) {
                     unset($row[$junctionKey]);
                 }
+
                 continue;
             }
 
@@ -478,6 +484,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 if ($junctionKey !== null) {
                     unset($row[$junctionKey]);
                 }
+
                 unset($row[$propertyName]);
                 continue;
             }
@@ -490,10 +497,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 if ($junctionKey !== null) {
                     unset($row[$junctionKey]);
                 }
+
                 continue;
             }
 
-            $matchingKey = (string)$assoc['nestKey'];
+            $matchingKey = $assoc['nestKey'];
             $row['_matchingData'][$matchingKey] = $row[$propertyName];
             unset($row[$propertyName]);
 
@@ -515,6 +523,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 if ($selected === null && isset($junctionRows[0])) {
                     $selected = (array)$junctionRows[0];
                 }
+
                 if (is_array($selected)) {
                     unset($selected['_id']);
                 }

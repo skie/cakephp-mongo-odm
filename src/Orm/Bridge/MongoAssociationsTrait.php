@@ -167,10 +167,16 @@ trait MongoAssociationsTrait
             if (!$entity->isDirty($property)) {
                 continue;
             }
+
             $value = $entity->get($property);
-            if ($value === null || $value === []) {
+            if ($value === null) {
                 continue;
             }
+
+            if ($value === []) {
+                continue;
+            }
+
             $bridgeDirty[$property] = $value;
         }
 
@@ -186,12 +192,14 @@ trait MongoAssociationsTrait
                 if (!array_key_exists($property, $bridgeDirty)) {
                     continue;
                 }
+
                 try {
                     $association->save($entity, $bridgeDirty[$property]);
                 } catch (Throwable $e) {
                     $errors[$property] = $e->getMessage();
                 }
             }
+
             if ($errors !== []) {
                 $entity->setErrors($errors);
 
@@ -222,16 +230,18 @@ trait MongoAssociationsTrait
     {
         $options['atomic'] = false;
 
-        $deleted = $this->getConnection()->transactional(function () use ($entity, $options) {
+        return $this->getConnection()->transactional(function () use ($entity, $options) {
             $errors = [];
             foreach ($this->getBridgeAssociations() as $association) {
                 if (!$association->getDependent()) {
                     continue;
                 }
+
                 if (!$association->cascadeDelete($entity, $options)) {
                     $errors[] = $association->getProperty();
                 }
             }
+
             if ($errors !== []) {
                 $entity->setError('_bridge', sprintf(
                     'Cascade delete failed for: %s',
@@ -243,8 +253,6 @@ trait MongoAssociationsTrait
 
             return $this->delete($entity, $options);
         });
-
-        return $deleted;
     }
 
     /**

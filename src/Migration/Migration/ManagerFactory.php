@@ -14,10 +14,10 @@ use Cake\Console\ConsoleIo;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
-use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Config\Config;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
+use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use RuntimeException;
 
 /**

@@ -14,7 +14,6 @@ use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
-use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
@@ -94,11 +93,6 @@ class UpgradeCommand extends Command
         ]);
         $manager = $factory->createManager($io);
         $connection = $manager->getEnvironment()->getAdapter()->getConnection();
-        if (!$connection instanceof Connection) {
-            $io->error(sprintf('Connection `%s` is not a Mongo connection.', $args->getOption('connection')));
-
-            return self::CODE_ERROR;
-        }
 
         $journal = $connection->getCollection(CakeMongoAdapter::MIGRATION_COLLECTION);
 

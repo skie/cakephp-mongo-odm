@@ -38,7 +38,7 @@ class ProxyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Orders = $this->fetchTable('TestApp\Model\Table\OrdersTable');
+        $this->Orders = $this->fetchTable(OrdersTable::class);
     }
 
     /**

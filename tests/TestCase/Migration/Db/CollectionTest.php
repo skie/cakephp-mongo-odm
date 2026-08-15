@@ -70,6 +70,7 @@ class CollectionTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
+
         parent::tearDown();
     }
 
@@ -324,6 +325,7 @@ class CollectionTest extends TestCase
         $replay = new Collection($name, [], $recording);
         $replay->addField('name', 'string');
         $replay->create();
+
         $recording->executeInvertedCommands();
 
         $this->assertFalse($this->adapter->hasCollection($name));

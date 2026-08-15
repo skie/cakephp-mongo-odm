@@ -74,6 +74,7 @@ class MigrationsTest extends TestCase
         if (in_array('mig_articles', $this->manager->listCollections(), true)) {
             $this->manager->dropCollection('mig_articles');
         }
+
         $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
@@ -128,7 +129,7 @@ class MigrationsTest extends TestCase
      */
     public function testMarkMigrated(): void
     {
-        $this->assertTrue($this->migrations->markMigrated(null));
+        $this->assertTrue($this->migrations->markMigrated());
 
         $status = $this->migrations->status(['format' => 'json']);
         $this->assertSame(['up', 'up'], array_column($status, 'status'));

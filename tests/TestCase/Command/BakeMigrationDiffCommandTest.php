@@ -27,6 +27,7 @@ class BakeMigrationDiffCommandTest extends TestCase
         foreach (glob(CONFIG . 'MongoMigrations' . DS . '*_bake_schema_sync*.php') ?: [] as $file) {
             unlink($file);
         }
+
         $lock = CONFIG . 'MongoMigrations' . DS . 'schema-dump-mongo.lock';
         if (file_exists($lock)) {
             unlink($lock);

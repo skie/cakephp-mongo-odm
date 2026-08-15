@@ -33,6 +33,6 @@ class SpecialTagsTranslationsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'id' => '000000000000000000000002', 'locale' => 'eng', 'extra_info' => 'Translated Info'],
+        ['_id' => '000000000000000000000001', '_shadow_id' => '000000000000000000000002', 'locale' => 'eng', 'extra_info' => 'Translated Info'],
     ];
 }

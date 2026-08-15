@@ -92,7 +92,7 @@ class EmbedManySaveTest extends TestCase
 
         $user = $users->get('000000000000000000000001');
         $user->set('addresses', []);
-        $user->set('profile', null);
+        $user->set('profile');
 
         $users->save($user);
 

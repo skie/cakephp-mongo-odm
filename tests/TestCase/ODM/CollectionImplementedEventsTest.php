@@ -57,12 +57,19 @@ class CollectionImplementedEventsTest extends TestCase
 class ImplementedEventsCollection extends BaseCollection
 {
     public function buildValidator(): void {}
+
     public function beforeMarshal(): void {}
+
     public function beforeFind(): void {}
+
     public function beforeSave(): void {}
+
     public function afterSave(): void {}
+
     public function beforeDelete(): void {}
+
     public function afterDelete(): void {}
+
     public function afterRules(): void {}
 }
 
@@ -70,4 +77,5 @@ class ImplementedAllEventsCollection extends BaseCollection
 {
     use CollectionEventsTrait;
 }
+
 // phpcs:enable

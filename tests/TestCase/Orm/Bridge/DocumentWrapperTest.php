@@ -13,6 +13,7 @@ use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
 use Crustum\Mongo\Orm\Bridge\Row\DocumentWrapper;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use TestApp\Model\Entity\Order;
+use TestApp\Model\Table\BridgeOrdersTable;
 
 /**
  * Tests the P6 DocumentWrapper (ODM Document → ORM Entity adapter) and the
@@ -40,7 +41,7 @@ class DocumentWrapperTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
+        $this->Orders = $this->fetchTable(BridgeOrdersTable::class);
         $this->Posts = $this->getCollectionLocator()->get('BridgePosts');
 
         $this->Posts->deleteAll([]);

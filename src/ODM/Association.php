@@ -822,6 +822,7 @@ abstract class Association
         if (!empty($options['conditions'])) {
             $builder->match($this->normalizePipelineConditions($options['conditions'], (bool)($options['matching'] ?? false)));
         }
+
         if (!empty($options['fields'])) {
             $fields = (array)$options['fields'];
             if (array_is_list($fields)) {

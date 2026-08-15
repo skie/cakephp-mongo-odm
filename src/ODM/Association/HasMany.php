@@ -347,11 +347,8 @@ class HasMany extends Association
                     $target->find('all')->where($conditions)->toArray(),
                     static fn(mixed $document): bool => $document instanceof EntityInterface,
                 );
-                if ($target->deleteMany($related, $options) === false) {
-                    return false;
-                }
 
-                return true;
+                return $target->deleteMany($related, $options) !== false;
             }
 
             $this->deleteAll($conditions);
@@ -589,6 +586,7 @@ class HasMany extends Association
         if (!empty($options['lookupPrefix'])) {
             $localKey = $options['lookupPrefix'] . '.' . $localKey;
         }
+
         $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
             ->localField($localKey)
@@ -655,6 +653,7 @@ class HasMany extends Association
             foreach ($this->normalizeSort($options['sort']) as $field => $direction) {
                 $sort[$this->resolvePipelineField((string)$field)] = $direction;
             }
+
             $stages[] = ['$sort' => $sort];
         }
 
@@ -668,9 +667,11 @@ class HasMany extends Association
             foreach ($fields as $field => $value) {
                 $project[$this->resolvePipelineField((string)$field)] = $value;
             }
+
             if (!array_key_exists('_id', $project)) {
                 $project['_id'] = 0;
             }
+
             $stages[] = ['$project' => $project];
         }
 

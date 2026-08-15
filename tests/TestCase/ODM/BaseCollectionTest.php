@@ -540,6 +540,7 @@ class BaseCollectionTest extends TestCase
     {
         $collection = new BaseCollection(['collection' => 'stuff']);
         $collection->setSchemaFromArray(['id' => ['type' => 'integer']]);
+
         $schema = $collection->getSchema();
         $this->assertInstanceOf(CollectionSchema::class, $schema);
         $this->assertSame(['id'], $schema->columns());
@@ -1741,12 +1742,12 @@ class BaseCollectionTest extends TestCase
         $collection = $this->getCollectionLocator()->get('CustomCookies');
         $this->assertSame('TestApp\Model\Document\CustomCookie', $collection->getDocumentClass());
 
-        if (!class_exists('TestApp\Model\Document\Address')) {
-            class_alias($class, 'TestApp\Model\Document\Address');
+        if (!class_exists(Address::class)) {
+            class_alias($class, Address::class);
         }
 
         $collection = $this->getCollectionLocator()->get('Addresses');
-        $this->assertSame('TestApp\Model\Document\Address', $collection->getDocumentClass());
+        $this->assertSame(Address::class, $collection->getDocumentClass());
     }
 
     /**

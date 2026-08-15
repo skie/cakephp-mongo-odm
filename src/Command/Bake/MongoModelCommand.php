@@ -154,6 +154,7 @@ class MongoModelCommand extends BakeCommand
 
         $contextBuilder = new MongoCollectionContext();
         $contextBuilder->plugin = $this->plugin;
+
         $context = $contextBuilder->build($collectionObject);
         $associationInfo = $this->getAssociationInfo($collectionObject);
 
@@ -1160,6 +1161,7 @@ class MongoModelCommand extends BakeCommand
             $field['embeddedMany'] = $embedded['many'];
             $field['embeddedKey'] = $embedded['key'];
         }
+
         unset($field);
 
         return $fields;

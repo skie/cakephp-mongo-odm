@@ -296,7 +296,7 @@ return [
     'articles_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'title' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
         ],
@@ -308,7 +308,7 @@ return [
     'articles_more_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'title' => ['bsonType' => 'string'],
             'subtitle' => ['bsonType' => 'string'],
             'body' => ['bsonType' => 'string'],
@@ -320,7 +320,7 @@ return [
     'comments_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'comment' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -330,7 +330,7 @@ return [
     'tags_shadow_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'name' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -340,7 +340,7 @@ return [
     'authors_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'name' => ['bsonType' => 'string'],
         ],
         'indexes' => [
@@ -350,7 +350,7 @@ return [
     'special_tags_translations' => [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
-            'id' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
             'extra_info' => ['bsonType' => 'string'],
         ],
         'indexes' => [

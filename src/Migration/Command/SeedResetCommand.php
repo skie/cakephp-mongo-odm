@@ -120,6 +120,7 @@ class SeedResetCommand extends Command
 
                     return self::CODE_ERROR;
                 }
+
                 $seedsToReset[$normalizedName] = $seeds[$normalizedName];
             }
         }
@@ -136,6 +137,7 @@ class SeedResetCommand extends Command
         foreach ($seedsToReset as $seed) {
             $io->out('  - ' . Util::getSeedDisplayName($seed->getName()));
         }
+
         $io->out('');
 
         if (!$config->isDryRun()) {
@@ -154,6 +156,7 @@ class SeedResetCommand extends Command
                 if (!$config->isDryRun()) {
                     $adapter->removeSeedFromLog($seed);
                 }
+
                 $io->info(sprintf('Reset: %s seed', $seedName));
                 $count++;
             } else {

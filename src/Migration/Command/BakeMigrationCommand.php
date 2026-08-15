@@ -17,9 +17,9 @@ use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
-use Crustum\Mongo\Migration\Util\Util;
 use Crustum\Mongo\Migration\Util\ColumnParser;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
+use Crustum\Mongo\Migration\Util\Util;
 use RuntimeException;
 
 /**

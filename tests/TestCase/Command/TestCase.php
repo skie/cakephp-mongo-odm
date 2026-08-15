@@ -64,6 +64,7 @@ abstract class TestCase extends BaseTestCase
                 unlink($file);
             }
         }
+
         $this->generatedFiles = [];
     }
 

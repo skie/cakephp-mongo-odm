@@ -13,14 +13,14 @@ namespace Crustum\Mongo\Migration\Migration;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
+use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Migration\SeedInterface;
+use Crustum\Mongo\Migration\Util\Util;
 use DateTime;
 use Exception;
 use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
-use Crustum\Mongo\Migration\MigrationInterface;
-use Crustum\Mongo\Migration\SeedInterface;
-use Crustum\Mongo\Migration\Util\Util;
 
 /**
  * Migration manager.

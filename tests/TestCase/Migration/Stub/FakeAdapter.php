@@ -181,8 +181,8 @@ class FakeAdapter implements AdapterInterface
         $this->record('createIndex', func_get_args());
         $indexName = $options['name'] ?? (is_string($key) ? $key . '_1' : implode('_', array_map(
             fn(string $field, int|string $dir): string => $field . '_' . $dir,
-            array_keys((array)$key),
-            (array)$key,
+            array_keys($key),
+            $key,
         )));
         $this->collections[$name]['indexes'][$indexName] = ['key' => $key] + $options;
 

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\Command;
 use Cake\Console\CommandInterface;
 use Crustum\Mongo\Command\Bake\CollectionCommand;
 use ReflectionClass;
+use TestApp\Model\Document\Article;
 
 /**
  * CollectionCommandTest class
@@ -69,7 +70,7 @@ class CollectionCommandTest extends TestCase
         $method = (new ReflectionClass($command))->getMethod('documentClassFor');
 
         $this->assertSame(
-            'TestApp\Model\Document\Article',
+            Article::class,
             $method->invoke($command, 'Articles', 'TestApp'),
         );
         $this->assertNull($method->invoke($command, 'Products', 'TestApp'));

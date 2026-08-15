@@ -10,6 +10,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\Migrations;
 use Crustum\Mongo\Migration\TestSuite\Migrator;
+use Migrator\MigratorPlugin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Depends;
 
@@ -104,7 +105,7 @@ class MigratorTest extends TestCase
 
         require_once ROOT . DS . 'tests' . DS . 'test_app' . DS . 'Plugin' . DS . 'Migrator' . DS . 'src' . DS . 'MigratorPlugin.php';
 
-        Plugin::getCollection()->add(new \Migrator\MigratorPlugin([
+        Plugin::getCollection()->add(new MigratorPlugin([
             'name' => 'Migrator',
             'path' => ROOT . DS . 'tests' . DS . 'test_app' . DS . 'Plugin' . DS . 'Migrator' . DS,
         ]));
@@ -122,6 +123,7 @@ class MigratorTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
+
         $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }

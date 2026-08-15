@@ -148,11 +148,11 @@ class SeedStatusCommand extends Command
         $io->out('');
 
         $maxNameLength = max(array_map(fn(array $s): int => strlen($s['seedName']), $statuses));
-        $maxPluginLength = max(array_map(fn(array $s): int => strlen((string)($s['plugin'] ?? '')), $statuses));
+        $maxPluginLength = max(array_map(fn(array $s): int => strlen($s['plugin'] ?? ''), $statuses));
 
         foreach ($statuses as $status) {
             $seedName = str_pad($status['seedName'], $maxNameLength);
-            $plugin = $status['plugin'] ? str_pad((string)$status['plugin'], $maxPluginLength) : str_repeat(' ', $maxPluginLength);
+            $plugin = $status['plugin'] ? str_pad($status['plugin'], $maxPluginLength) : str_repeat(' ', $maxPluginLength);
             $idempotent = $status['idempotent'] ? ' <info>(idempotent)</info>' : '';
 
             if ($status['status'] === 'executed') {

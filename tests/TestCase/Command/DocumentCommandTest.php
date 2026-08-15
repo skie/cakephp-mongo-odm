@@ -60,7 +60,7 @@ class DocumentCommandTest extends TestCase
         $result = file_get_contents($this->generatedFile);
 
         // author_id is objectId and nullable per schema_mongo (multi-type bsonType)
-        $this->assertStringContainsString('#[Field(name: \'author_id\', type: CollectionSchemaInterface::TYPE_OBJECTID, nullable: true)]', $result);
+        $this->assertStringContainsString("#[Field(name: 'author_id', type: CollectionSchemaInterface::TYPE_OBJECTID, nullable: true)]", $result);
     }
 
     /**

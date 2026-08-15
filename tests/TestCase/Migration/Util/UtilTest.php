@@ -4,19 +4,14 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Migration\Util;
 
 use Cake\TestSuite\TestCase;
+use Crustum\Mongo\Migration\Util\Util;
 use DateTime;
 use DateTimeZone;
-use Crustum\Mongo\Migration\Util\Util;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
 class UtilTest extends TestCase
 {
-    private function getCorrectedPath(string $path): string
-    {
-        return str_replace('/', DIRECTORY_SEPARATOR, $path);
-    }
-
     public function testGetCurrentTimestamp(): void
     {
         $dt = new DateTime('now', new DateTimeZone('UTC'));

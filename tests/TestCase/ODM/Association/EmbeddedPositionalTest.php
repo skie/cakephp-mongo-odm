@@ -132,6 +132,7 @@ class EmbeddedPositionalTest extends TestCase
         $association = $users->getAssociation('Addresses');
         $validator = new Validator();
         $validator->add('city', 'notBlank', ['rule' => 'notBlank']);
+
         $association->setEmbeddedValidator($validator);
 
         $parent = $users->get('000000000000000000000002');
@@ -154,6 +155,7 @@ class EmbeddedPositionalTest extends TestCase
         $association = $users->getAssociation('Addresses');
         $validator = new Validator();
         $validator->add('city', 'notBlank', ['rule' => 'notBlank']);
+
         $association->setEmbeddedValidator($validator);
 
         $parentValidator = $users->getValidator();

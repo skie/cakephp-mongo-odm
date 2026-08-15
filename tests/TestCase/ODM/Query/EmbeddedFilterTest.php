@@ -105,9 +105,7 @@ class EmbeddedFilterTest extends TestCase
     {
         $users = $this->users();
         $result = $users->find()
-            ->where(function ($exp) {
-                return $exp->eq('addresses.city', 'SF');
-            })
+            ->where(fn($exp) => $exp->eq('addresses.city', 'SF'))
             ->toArray();
 
         $this->assertCount(1, $result);

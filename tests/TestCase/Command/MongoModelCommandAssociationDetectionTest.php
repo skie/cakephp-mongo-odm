@@ -54,6 +54,7 @@ class MongoModelCommandAssociationDetectionTest extends TestCase
         foreach ($expectedContains as $needle) {
             $this->assertStringContainsString($needle, $contents);
         }
+
         foreach ($expectedNotContains as $needle) {
             $this->assertStringNotContainsString($needle, $contents);
         }

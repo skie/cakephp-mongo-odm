@@ -62,6 +62,7 @@ class SeedStatusCommandTest extends TestCase
         $command = new SeedStatusCommand();
         $out = new StubConsoleOutput();
         $out->setOutputAs(StubConsoleOutput::PLAIN);
+
         $io = new ConsoleIo($out, $out, new StubConsoleInput([]));
 
         $command->run($argv, $io);

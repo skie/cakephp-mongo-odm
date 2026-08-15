@@ -205,6 +205,7 @@ class CounterCacheBehavior extends Behavior
             if (!is_string($assoc)) {
                 continue;
             }
+
             if (!$this->collection->hasAssociation($assoc)) {
                 continue;
             }

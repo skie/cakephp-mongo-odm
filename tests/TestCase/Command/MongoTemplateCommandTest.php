@@ -113,6 +113,7 @@ class MongoTemplateCommandTest extends TestCase
     {
         $command = new MongoTemplateCommand();
         $command->controllerName = 'Posts';
+
         $args = new Arguments([], [], []);
 
         $result = $command->getTemplatePath($args);
@@ -138,6 +139,7 @@ class MongoTemplateCommandTest extends TestCase
 
         $command = new MongoTemplateCommand();
         $command->controllerName = 'Posts';
+
         $args = new Arguments([], [], []);
         $io = new ConsoleIo(new StubConsoleOutput(), new StubConsoleOutput(), new StubConsoleInput([]));
         $vars = [
@@ -188,6 +190,7 @@ class MongoTemplateCommandTest extends TestCase
 
         $command->controller($args, 'Products');
         $command->model('Products');
+
         $content = $command->getContent($args, $io, 'index');
 
         $this->assertIsString($content);

@@ -11,12 +11,12 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Migration;
 
 use Cake\Console\ConsoleIo;
+use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
 use Crustum\Mongo\Migration\Db\Adapter\RecordingAdapter;
-use Crustum\Mongo\Migration\Config\ConfigInterface;
-use RuntimeException;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Migration\SeedInterface;
+use RuntimeException;
 
 /**
  * Migration environment.
@@ -170,6 +170,7 @@ class Environment
         if ($seed->isIdempotent()) {
             $adapter->removeSeedFromLog($seed);
         }
+
         $adapter->seedExecuted($seed, date('Y-m-d H:i:s'));
 
         if ($atomic) {

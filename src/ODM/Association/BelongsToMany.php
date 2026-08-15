@@ -897,9 +897,7 @@ class BelongsToMany extends Association
             return $this->junctionCollection;
         }
 
-        if ($collection instanceof BaseCollection) {
-            $collection = $collection;
-        } else {
+        if (!$collection instanceof BaseCollection) {
             $through = $collection ?? $this->through;
             if ($through instanceof BaseCollection) {
                 $collection = $through;
@@ -1706,6 +1704,7 @@ class BelongsToMany extends Association
         if (!empty($options['lookupPrefix'])) {
             $localKey = $options['lookupPrefix'] . '.' . $localKey;
         }
+
         $builder
             ->lookup($through)
             ->localField($localKey)
@@ -1720,6 +1719,7 @@ class BelongsToMany extends Association
         if ($negateMatch && is_array($targetConditions) && $targetConditions !== []) {
             $targetPipeline[] = ['$match' => $this->normalizePipelineConditions($targetConditions)];
         }
+
         $lookupTags = $builder
             ->lookup($target->getCollection())
             ->localField($join . '.' . $targetForeignKey)
@@ -1728,6 +1728,7 @@ class BelongsToMany extends Association
         if ($targetPipeline !== []) {
             $lookupTags->pipeline($targetPipeline);
         }
+
         if (!empty($options['matching'])) {
             $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => $negateMatch]);
         }

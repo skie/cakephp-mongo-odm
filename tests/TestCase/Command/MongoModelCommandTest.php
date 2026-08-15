@@ -104,6 +104,7 @@ class MongoModelCommandTest extends TestCase
         $schema = new CollectionSchema('products');
         $schema->addField('name', ['type' => 'string']);
         $schema->addField('price', ['type' => 'integer']);
+
         $collection->setSchema($schema);
 
         $args = new Arguments([], ['display-field' => 'price'], []);
@@ -125,6 +126,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('_id', ['type' => 'objectid']);
         $schema->addField('name', ['type' => 'string']);
         $schema->addField('price', ['type' => 'integer']);
+
         $collection->setSchema($schema);
 
         $command = new MongoModelCommand();
@@ -158,6 +160,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('name', ['type' => 'string']);
         $schema->addField('price', ['type' => 'integer']);
         $schema->addField('category', ['type' => 'integer']);
+
         $collection->setSchema($schema);
 
         $args = new Arguments([], ['fields' => 'name, price  , , category'], []);
@@ -177,6 +180,7 @@ class MongoModelCommandTest extends TestCase
         $schema = new CollectionSchema('users');
         $schema->addField('username', ['type' => 'string']);
         $schema->addField('password', ['type' => 'string']);
+
         $collection->setSchema($schema);
 
         $args = new Arguments([], [], []);
@@ -211,6 +215,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('username', ['type' => 'string']);
         $schema->addField('password', ['type' => 'string']);
         $schema->addField('token', ['type' => 'string']);
+
         $collection->setSchema($schema);
 
         $args = new Arguments([], ['hidden' => 'username, token'], []);
@@ -268,6 +273,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('_id', ['type' => 'objectid']);
         $schema->addField('name', ['type' => 'string']);
         $schema->addField('price', ['type' => 'integer', 'null' => true]);
+
         $collection->setSchema($schema);
 
         $command = new MongoModelCommand();
@@ -311,6 +317,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('username', ['type' => 'string']);
         $schema->addField('country_id', ['type' => 'objectid']);
         $schema->addIndex('users_username', ['key' => ['username' => 1], 'unique' => true]);
+
         $collection->setSchema($schema);
 
         $associations = [
@@ -351,6 +358,7 @@ class MongoModelCommandTest extends TestCase
         $schema->addField('user_id', ['type' => 'objectid']);
         $schema->addIndex('unique_title', ['key' => ['title' => 1], 'unique' => true]);
         $schema->addIndex('unique_composite', ['key' => ['title' => 1, 'user_id' => 1], 'unique' => true]);
+
         $collection->setSchema($schema);
 
         $command = new MongoModelCommand();
@@ -384,6 +392,7 @@ class MongoModelCommandTest extends TestCase
         $collection = new BaseCollection(['alias' => 'Posts', 'collection' => 'posts']);
         $schema = new CollectionSchema('posts');
         $schema->addField('created', ['type' => 'date']);
+
         $collection->setSchema($schema);
         $result = $command->getBehaviors($collection);
         $this->assertEquals(['Timestamp' => []], $result);
@@ -391,6 +400,7 @@ class MongoModelCommandTest extends TestCase
         $collection = new BaseCollection(['alias' => 'Tags', 'collection' => 'tags']);
         $schema = new CollectionSchema('tags');
         $schema->addField('name', ['type' => 'string']);
+
         $collection->setSchema($schema);
         $result = $command->getBehaviors($collection);
         $this->assertEquals([], $result);
@@ -423,6 +433,7 @@ class MongoModelCommandTest extends TestCase
 
         $command = new MongoModelCommand();
         $command->applyAssociations($collection, $assocs);
+
         $new = $collection->associations()->keys();
         $expected = ['Users', 'Comments'];
         $this->assertEquals($expected, $new);

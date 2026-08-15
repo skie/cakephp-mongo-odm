@@ -43,6 +43,7 @@ class TimedOutputAdapterTest extends TestCase
         $this->fake = new FakeAdapter();
         $this->out = new StubConsoleOutput();
         $this->out->setOutputAs(StubConsoleOutput::PLAIN);
+
         $this->adapter = new TimedOutputAdapter($this->fake);
     }
 
@@ -71,7 +72,7 @@ class TimedOutputAdapterTest extends TestCase
         $this->adapter->createCollection('mig_articles');
 
         $output = implode("\n", $this->out->messages());
-        $this->assertStringContainsString(' -- createCollection(\'mig_articles\')', $output);
+        $this->assertStringContainsString(" -- createCollection('mig_articles')", $output);
 
         $this->assertArrayHasKey('mig_articles', $this->fake->collections);
     }

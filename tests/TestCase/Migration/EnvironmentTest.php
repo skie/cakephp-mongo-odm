@@ -8,10 +8,10 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
-use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\BaseMigration;
 use Crustum\Mongo\Migration\BaseSeed;
 use Crustum\Mongo\Migration\Config\Config;
+use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Migration\Environment;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
@@ -83,6 +83,7 @@ class EnvironmentTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
+
         $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
@@ -178,6 +179,7 @@ class EnvironmentTest extends TestCase
     {
         $stub = new FakeAdapter();
         $stub->versions = [20110301080000];
+
         $this->environment->setAdapter($stub);
 
         $this->assertSame(20110301080000, $this->environment->getCurrentVersion());
@@ -239,6 +241,7 @@ class EnvironmentTest extends TestCase
     {
         $stub = new FakeAdapter();
         $stub->transactionSupport = true;
+
         $this->environment->setAdapter($stub);
 
         $migration = new class (20110301080000) extends BaseMigration {
@@ -267,6 +270,7 @@ class EnvironmentTest extends TestCase
     {
         $stub = new FakeAdapter();
         $stub->transactionSupport = true;
+
         $this->environment->setAdapter($stub);
 
         $migration = new class (20110301080000) extends BaseMigration {
@@ -323,6 +327,7 @@ class EnvironmentTest extends TestCase
     {
         $stub = new FakeAdapter();
         $stub->createCollection('mig_env_change');
+
         $this->environment->setAdapter($stub);
 
         $migration = new class (20130301080000) extends BaseMigration {

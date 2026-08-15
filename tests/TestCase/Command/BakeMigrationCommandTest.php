@@ -41,6 +41,7 @@ class BakeMigrationCommandTest extends TestCase
         foreach (glob(CONFIG . 'MongoMigrations' . DS . '*_bake_*.php') ?: [] as $file) {
             unlink($file);
         }
+
         foreach (glob(CONFIG . 'MongoMigrations' . DS . '*_add_price_to_products.php') ?: [] as $file) {
             unlink($file);
         }

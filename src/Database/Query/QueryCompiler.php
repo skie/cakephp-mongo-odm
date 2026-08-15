@@ -217,6 +217,7 @@ class QueryCompiler
             if ($overwrite) {
                 $this->filter = [];
             }
+
             foreach ($parsed as $field => $condition) {
                 $this->filter[(string)$field] = $condition;
             }
@@ -482,6 +483,7 @@ class QueryCompiler
             if ($overwrite) {
                 $this->having = [];
             }
+
             foreach ($parsed as $field => $condition) {
                 $this->having[(string)$field] = $condition;
             }
@@ -806,7 +808,11 @@ class QueryCompiler
             }
 
             $operator = key($value);
-            if (!is_string($operator) || !str_starts_with($operator, '$')) {
+            if (!is_string($operator)) {
+                continue;
+            }
+
+            if (!str_starts_with($operator, '$')) {
                 continue;
             }
 

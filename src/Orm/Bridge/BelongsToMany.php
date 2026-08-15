@@ -153,6 +153,7 @@ class BelongsToMany extends Association
             if ($sourceValue === null) {
                 continue;
             }
+
             $targetKey = $link instanceof EntityInterface
                 ? $link->get($this->getTargetForeignKey())
                 : ($link[$this->getTargetForeignKey()] ?? null);
@@ -184,7 +185,7 @@ class BelongsToMany extends Association
                 ? $target->get($arrayField)
                 : ($target[$arrayField] ?? []);
             foreach ((array)$ids as $id) {
-                if (in_array((string)$id, array_map('strval', $keys), true)) {
+                if (in_array((string)$id, array_map(strval(...), $keys), true)) {
                     $result[(string)$id][] = $target;
                 }
             }
@@ -204,9 +205,7 @@ class BelongsToMany extends Association
             return $this->through->getCollection();
         }
 
-        return $this->through !== null
-            ? (string)$this->through
-            : ($this->junctionCollectionName ?? $this->defaultJunctionName());
+        return $this->through ?? $this->junctionCollectionName ?? $this->defaultJunctionName();
     }
 
     /**

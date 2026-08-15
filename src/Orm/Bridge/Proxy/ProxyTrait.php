@@ -100,7 +100,7 @@ trait ProxyTrait
         $empty = $bridge->getEmptyValue();
         $nestKey = (string)($options['nestKey'] ?? $this->getName());
 
-        return function (array $row) use ($map, $sourceAlias, $sourceKey, $empty, $nestKey) {
+        return function (array $row) use ($map, $sourceAlias, $sourceKey, $empty, $nestKey): array {
             $value = $row[$sourceAlias . '__' . $sourceKey] ?? null;
             $row[$nestKey] = $value !== null ? ($map[(string)$value] ?? $empty) : $empty;
 

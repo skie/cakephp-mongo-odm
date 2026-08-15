@@ -440,13 +440,21 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      */
     protected function registerSelectAliasTypes(array $fields): void
     {
-        if ($this->repository === null) {
+        if (!$this->repository instanceof BaseCollection) {
             return;
         }
 
         $schema = $this->repository->getSchema();
         foreach ($fields as $key => $value) {
-            if (!is_string($key) || !is_string($value) || str_starts_with($value, '$')) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            if (!is_string($value)) {
+                continue;
+            }
+
+            if (str_starts_with($value, '$')) {
                 continue;
             }
 
@@ -454,13 +462,14 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             if (str_contains($source, '.')) {
                 $source = substr($source, (int)strrpos($source, '.') + 1);
             }
+
             if ($source === 'id') {
                 $source = '_id';
             }
 
             $type = $schema->getColumnType($source);
             if ($type !== null) {
-                $this->getTypeMap()->addDefaults([(string)$key => $type]);
+                $this->getTypeMap()->addDefaults([$key => $type]);
             }
         }
     }
@@ -582,7 +591,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             return 0;
         }
 
-        if ($this->counter !== null) {
+        if ($this->counter instanceof Closure) {
             $counter = $this->counter;
             $clone = clone $this;
             $clone->counter = null;
@@ -801,6 +810,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
         if ($stages !== []) {
             $this->builder->removePipelineStages($stages);
         }
+
         $this->eagerLoader->clearAttachedPipeline();
     }
 

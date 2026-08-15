@@ -71,6 +71,7 @@ class HasMany extends Association
             if (!is_array($data)) {
                 continue;
             }
+
             $data[$this->foreignKey()] = $fkValue;
             $documents[] = $collection->newDocument($data);
         }

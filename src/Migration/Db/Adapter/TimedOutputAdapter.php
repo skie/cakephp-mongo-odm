@@ -60,6 +60,7 @@ class TimedOutputAdapter extends AdapterWrapper
 
                 $outArr[] = "'" . $arg . "'";
             }
+
             $this->getIo()?->verbose(' -- ' . $command . '(' . implode(', ', $outArr) . ')');
 
             return;

@@ -70,6 +70,7 @@ class CakeMongoAdapterTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
+
         $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
@@ -270,6 +271,7 @@ class CakeMongoAdapterTest extends TestCase
         $this->adapter->migrated($migration2, MigrationInterface::UP, 'a', 'b');
 
         $this->adapter->setBreakpoint($migration);
+
         $log = $this->adapter->getVersionLog();
         $this->assertSame(1, $log[20260811000000]['breakpoint']);
         $this->assertSame(0, $log[20260811000001]['breakpoint']);
@@ -298,7 +300,7 @@ class CakeMongoAdapterTest extends TestCase
     public function testPluginIsolation(): void
     {
         $pluginAdapter = new CakeMongoAdapter($this->connection, 'Migrator');
-        $appAdapter = new CakeMongoAdapter($this->connection, null);
+        $appAdapter = new CakeMongoAdapter($this->connection);
 
         $pluginMigration = new class (20260811000000) extends BaseMigration {
         };
@@ -364,7 +366,7 @@ class CakeMongoAdapterTest extends TestCase
     public function testSeedLogPluginIsolation(): void
     {
         $pluginAdapter = new CakeMongoAdapter($this->connection, 'Migrator');
-        $appAdapter = new CakeMongoAdapter($this->connection, null);
+        $appAdapter = new CakeMongoAdapter($this->connection);
         $seed = new SeedLogSeed();
 
         $pluginAdapter->seedExecuted($seed, 'a');

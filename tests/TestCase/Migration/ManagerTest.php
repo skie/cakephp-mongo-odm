@@ -100,14 +100,11 @@ class ManagerTest extends TestCase
      */
     protected function cleanup(): void
     {
-        if ($this->connection === null) {
-            return;
-        }
-
         $collections = $this->connection->getSchemaCollection()->listCollections();
         if (in_array('mig_products', $collections, true)) {
             $this->connection->getDatabase()->dropCollection('mig_products');
         }
+
         $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
@@ -679,6 +676,7 @@ class ManagerTest extends TestCase
         foreach ($migrations as $migration) {
             $this->assertInstanceOf(ConsoleIo::class, $migration->getIo());
         }
+
         foreach ($seeds as $seed) {
             $this->assertInstanceOf(ConsoleIo::class, $seed->getIo());
         }
@@ -835,4 +833,3 @@ class ManagerTest extends TestCase
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 }
-

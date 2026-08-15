@@ -130,7 +130,7 @@ class MongoCollectionContext
         $singular = Inflector::camelize(Inflector::singularize($fieldName));
         $namespace = Configure::read('App.namespace');
         if ($this->plugin) {
-            $namespace = str_replace('/', '\\', trim((string)$this->plugin, '\\'));
+            $namespace = str_replace('/', '\\', trim($this->plugin, '\\'));
         }
 
         $fqn = sprintf('%s\Model\Document\%s', $namespace, $singular);

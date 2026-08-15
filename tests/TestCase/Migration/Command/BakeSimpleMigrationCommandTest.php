@@ -35,6 +35,7 @@ class BakeSimpleMigrationCommandTest extends TestCase
                 unlink($file);
             }
         }
+
         parent::tearDown();
     }
 
@@ -49,6 +50,7 @@ class BakeSimpleMigrationCommandTest extends TestCase
         $command = new BakeSimpleMigrationCommand();
         $out = new StubConsoleOutput();
         $out->setOutputAs(StubConsoleOutput::PLAIN);
+
         $io = new ConsoleIo($out, $out, new StubConsoleInput([]));
 
         $command->run($argv, $io);
