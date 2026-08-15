@@ -3578,7 +3578,7 @@ class SelectQueryTest extends TestCase
 
         $results = $collection->find()
             ->hydrate(false)
-            ->notMatching('articles', fn($q) => $q->where(['articles.author_id' => 1]))
+            ->notMatching('articles', fn($q) => $q->where(['articles.author_id' => '000000000000000000000001']))
             ->orderBy(['authors.id'])
             ->toArray();
         $expected = [
