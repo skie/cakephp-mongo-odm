@@ -70,6 +70,11 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **BelongsToMany matching `_matchingData` (doc 40, G3)** —
+  `ResultSet::groupResult()` (hydrated) and `applyMatchingData()` (unhydrated)
+  add `_matchingData.<JunctionAlias>` for BelongsToMany matching, selecting the
+  junction row whose target FK matches the matched tag (and dropping `_id`);
+  `_join_*` is removed. `testFilteringByBelongsToManyNoHydration` green.
 - **BelongsToMany contain conditions (doc 40, G2/G3)** —
   `BelongsToMany::buildPipeline()` filters the joined target array element-wise
   (`$filter` on `$$item.<field>`) for non-matching containment `conditions`
