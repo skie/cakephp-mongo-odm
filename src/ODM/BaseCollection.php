@@ -2030,6 +2030,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             return false;
         }
 
+        $options['associated'] = $this->associations->normalizeKeys($options['associated']);
         $event = $this->dispatchEvent('Collection.beforeSave', ['entity' => $entity, 'options' => $options]);
         if ($event->isStopped()) {
             $result = $event->getResult();
@@ -2051,7 +2052,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             return $result;
         }
 
-        $saved = $this->saveParents($entity, $options);
+        $saved = $this->associations->saveParents(
+            $this,
+            $entity,
+            $options['associated'],
+            ['_primary' => false] + $options->getArrayCopy(),
+        );
         if (!$saved) {
             return false;
         }
@@ -2095,11 +2101,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function onSaveSuccess(EntityInterface $entity, ArrayObject $options): bool
     {
-        $success = $this->saveChildren($entity, $options);
+        $success = $this->associations->saveChildren(
+            $this,
+            $entity,
+            $options['associated'],
+            ['_primary' => false] + $options->getArrayCopy(),
+        );
 
         if (!$success && $options['atomic']) {
             return false;
         }
+
+        $this->dispatchEvent('Collection.afterSave', ['entity' => $entity, 'options' => $options]);
 
         $connection = $this->getConnection();
         if ($options['atomic'] && $connection instanceof Connection && !$connection->inTransaction()) {
@@ -2607,109 +2620,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         $this->dispatchEvent('Collection.afterDelete', ['entity' => $entity, 'options' => $options]);
 
         return true;
-    }
-
-    /**
-     * Saves parent associations before the owning document is persisted.
-     * ODM extension — the cake analog is the `saveParents` helper inside
-     * `Table::_processSave()`.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
-     * @param \ArrayObject<string, mixed> $options Save options.
-     * @return bool
-     */
-    protected function saveParents(EntityInterface $entity, ArrayObject $options): bool
-    {
-        $associated = $this->normalizeAssociated((array)$options['associated']);
-        foreach ($this->associations->type(BelongsTo::class) as $association) {
-            if (!$entity->isDirty($association->getProperty())) {
-                continue;
-            }
-
-            if (!$this->isAssociated($associated, $association)) {
-                continue;
-            }
-
-            if ($association->saveAssociated($entity, $options->getArrayCopy()) === false) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Saves child associations after the owning document is persisted.
-     * ODM extension — the cake analog is the `saveChildren` helper inside
-     * `Table::_processSave()`.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity The source document.
-     * @param \ArrayObject<string, mixed> $options Save options.
-     * @return bool
-     */
-    protected function saveChildren(EntityInterface $entity, ArrayObject $options): bool
-    {
-        $associated = $this->normalizeAssociated((array)$options['associated']);
-        foreach ($this->associations as $association) {
-            if ($association instanceof BelongsTo) {
-                continue;
-            }
-
-            if ($association instanceof Embedded) {
-                continue;
-            }
-
-            if (!$entity->isDirty($association->getProperty())) {
-                continue;
-            }
-
-            if (!$this->isAssociated($associated, $association)) {
-                continue;
-            }
-
-            if ($association->saveAssociated($entity, $options->getArrayCopy()) === false) {
-                return false;
-            }
-        }
-
-        $this->dispatchEvent('Collection.afterSave', ['entity' => $entity, 'options' => $options]);
-
-        return true;
-    }
-
-    /**
-     * Normalizes an associated option into a list of association aliases.
-     * ODM extension — no direct cake analog.
-     *
-     * @param array<int|string, mixed> $associated The associated option.
-     * @return array<string>
-     */
-    protected function normalizeAssociated(array $associated): array
-    {
-        if (in_array(true, $associated, true)) {
-            return $this->associations->keys();
-        }
-
-        $result = [];
-        foreach ($associated as $key => $value) {
-            $result[] = is_int($key) ? (string)$value : $key;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Whether an association is included in the associated option.
-     * ODM extension — no direct cake analog.
-     *
-     * @param array<string> $associated Normalized associated list.
-     * @param \Crustum\Mongo\ODM\Association $association The association.
-     * @return bool
-     */
-    protected function isAssociated(array $associated, Association $association): bool
-    {
-        return in_array($association->getName(), $associated, true)
-            || in_array($association->getProperty(), $associated, true);
     }
 
     /**

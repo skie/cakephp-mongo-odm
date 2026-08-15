@@ -43,7 +43,7 @@ class HasOneTest extends TestCase
     {
         parent::setUp();
         $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
-        $this->Posts = $this->getCollectionLocator()->get('Posts');
+        $this->Posts = $this->getCollectionLocator()->get('BridgePosts');
 
         $this->Posts->deleteAll([]);
         $this->Posts->saveOrFail($this->Posts->newDocument(['order_id' => 1, 'title' => 'order one post']));
@@ -68,6 +68,7 @@ class HasOneTest extends TestCase
     public function testLoadHasOne(): void
     {
         $association = new HasOne('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'post',
         ]);
@@ -87,6 +88,7 @@ class HasOneTest extends TestCase
     public function testLoadHasOneNoMatch(): void
     {
         $association = new HasOne('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'post',
         ]);
@@ -105,6 +107,7 @@ class HasOneTest extends TestCase
     public function testLoadHasOnePerRow(): void
     {
         $association = new HasOne('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'post',
         ]);
@@ -139,6 +142,7 @@ class HasOneTest extends TestCase
     public function testFindReturnsLazyQuery(): void
     {
         $association = new HasOne('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
         ]);
 

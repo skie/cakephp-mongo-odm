@@ -792,6 +792,10 @@ class QueryCompiler
             return $value->getConditions();
         }
 
+        if ($type === 'array') {
+            return $value;
+        }
+
         if (is_array($value)) {
             if (array_is_list($value)) {
                 return array_map(fn(mixed $item): mixed => $this->castValue($item, $type), $value);

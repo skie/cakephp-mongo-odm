@@ -43,7 +43,7 @@ class HasManyTest extends TestCase
     {
         parent::setUp();
         $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
-        $this->Posts = $this->getCollectionLocator()->get('Posts');
+        $this->Posts = $this->getCollectionLocator()->get('BridgePosts');
 
         $this->Posts->deleteAll([]);
         $this->Posts->saveOrFail($this->Posts->newDocument(['order_id' => 1, 'title' => 'order one post']));
@@ -69,6 +69,7 @@ class HasManyTest extends TestCase
     public function testLoadHasMany(): void
     {
         $association = new HasMany('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'posts',
         ]);
@@ -91,6 +92,7 @@ class HasManyTest extends TestCase
     public function testLoadHasManyNoMatch(): void
     {
         $association = new HasMany('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'posts',
         ]);
@@ -109,6 +111,7 @@ class HasManyTest extends TestCase
     public function testLoadHasManyGroupsByKey(): void
     {
         $association = new HasMany('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'posts',
         ]);
@@ -143,6 +146,7 @@ class HasManyTest extends TestCase
     public function testFindReturnsLazyQuery(): void
     {
         $association = new HasMany('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
         ]);
 

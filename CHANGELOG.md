@@ -70,6 +70,21 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **`BaseCollection::_processSave()`** now routes parent/child association saves
+  through `AssociationCollection::saveParents()/saveChildren()` (cake60 parity)
+  instead of its own loops: nested `associated` options (`'authors.supervisors'`
+  dot-notation, contain-style arrays) are normalized via `normalizeKeys()` and
+  propagated to the nested `save()`. `Collection.afterSave` fires once per saved
+  document from `onSaveSuccess()` (was inside the old `saveChildren()`). Removed
+  the now-dead `saveParents()`/`saveChildren()`/`normalizeAssociated()`/
+  `isAssociated()` collection-local helpers.
+- **Array-typed fields** — `Database\Query\QueryCompiler::castValue()` and
+  `ODM\Query\CommonQueryTrait::convertValueToDatabase()` no longer wrap
+  scalar/list values when the schema type is `array`: a field declared
+  `bsonType: array` now persists `[1,2]` as `[1,2]` (was `[[1],[2]]` — each
+  element re-wrapped by `ArrayType::toDatabase()`) and `where(['field' => 1])`
+  compiles to `{field: 1}` instead of `{field: [1]}`. This unblocked
+  BelongsToMany array-pivot `$pull`/load against schematized collections.
 - **`bake mongo_enum`**: int enum cases without an explicit value now
   auto-increment (`foo,bar,bar_baz:9 -i` → `Foo=0, Bar=1, BarBaz=9`), matching
   `Bake\Utility\Model\EnumParser`.

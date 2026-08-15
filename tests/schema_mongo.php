@@ -518,4 +518,25 @@ return [
             'audits_foreign_key' => ['key' => ['foreign_key' => 1]],
         ],
     ],
+    'bridge_posts' => [
+        'fields' => [
+            'order_id' => ['bsonType' => ['int', 'null']],
+            'title' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [],
+    ],
+    'bridge_tags' => [
+        'fields' => [
+            'name' => ['bsonType' => 'string'],
+            'bridge_order_ids' => ['bsonType' => 'array'],
+        ],
+        'indexes' => [],
+    ],
+    'bridge_profiles' => [
+        'fields' => [
+            'order_id' => ['bsonType' => ['int', 'null']],
+            'bio' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [],
+    ],
 ];

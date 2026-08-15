@@ -41,7 +41,7 @@ class DocumentWrapperTest extends TestCase
     {
         parent::setUp();
         $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
-        $this->Posts = $this->getCollectionLocator()->get('Posts');
+        $this->Posts = $this->getCollectionLocator()->get('BridgePosts');
 
         $this->Posts->deleteAll([]);
         $this->Posts->saveOrFail($this->Posts->newDocument(['order_id' => 1, 'title' => 'wrapped']));
@@ -84,6 +84,7 @@ class DocumentWrapperTest extends TestCase
         $this->Posts->saveOrFail($this->Posts->newDocument(['_id' => '000000000000000000000099', 'order_id' => 1, 'title' => 'w']));
 
         $association = new HasMany('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'order_id',
             'property' => 'posts',
             'autoWrap' => true,
@@ -107,6 +108,7 @@ class DocumentWrapperTest extends TestCase
         $this->Posts->saveOrFail($this->Posts->newDocument(['_id' => '000000000000000000000099', 'order_id' => 1, 'title' => 'raw']));
 
         $association = new BelongsTo('Posts', $this->Orders, [
+            'className' => 'BridgePosts',
             'foreignKey' => 'post_id',
             'bindingKey' => '_id',
             'property' => 'post',

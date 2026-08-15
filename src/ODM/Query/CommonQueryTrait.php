@@ -243,6 +243,10 @@ trait CommonQueryTrait
             return null;
         }
 
+        if ($type === 'array' && is_array($value)) {
+            return $value;
+        }
+
         if (is_array($value)) {
             if (array_is_list($value)) {
                 return array_map(

@@ -42,7 +42,7 @@ class CascadeDeleteTest extends TestCase
         parent::setUp();
         $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
 
-        foreach (['Posts', 'Profiles', 'Tags', 'OrdersTags', 'Files'] as $alias) {
+        foreach (['BridgePosts', 'BridgeProfiles', 'BridgeTags', 'OrdersTags', 'Files'] as $alias) {
             $collection = $this->getCollectionLocator()->get($alias);
             $collection->deleteAll([]);
             $this->collections[$alias] = $collection;
@@ -67,11 +67,11 @@ class CascadeDeleteTest extends TestCase
      */
     public function testHasOneDeletesTarget(): void
     {
-        $this->collections['Profiles']->saveOrFail(
-            $this->collections['Profiles']->newDocument(['order_id' => 1, 'bio' => 'x']),
+        $this->collections['BridgeProfiles']->saveOrFail(
+            $this->collections['BridgeProfiles']->newDocument(['order_id' => 1, 'bio' => 'x']),
         );
 
-        $association = new HasOne('Profiles', $this->Orders, [
+        $association = new HasOne('BridgeProfiles', $this->Orders, [
             'foreignKey' => 'order_id',
             'property' => 'profile',
             'dependent' => true,
@@ -79,7 +79,7 @@ class CascadeDeleteTest extends TestCase
 
         $order = new Order(['id' => 1]);
         $this->assertTrue($association->cascadeDelete($order));
-        $this->assertCount(0, $this->collections['Profiles']->find()->where(['order_id' => 1])->toArray());
+        $this->assertCount(0, $this->collections['BridgeProfiles']->find()->where(['order_id' => 1])->toArray());
     }
 
     /**
@@ -89,11 +89,11 @@ class CascadeDeleteTest extends TestCase
      */
     public function testHasOneNoopWithoutDependent(): void
     {
-        $this->collections['Profiles']->saveOrFail(
-            $this->collections['Profiles']->newDocument(['order_id' => 1, 'bio' => 'x']),
+        $this->collections['BridgeProfiles']->saveOrFail(
+            $this->collections['BridgeProfiles']->newDocument(['order_id' => 1, 'bio' => 'x']),
         );
 
-        $association = new HasOne('Profiles', $this->Orders, [
+        $association = new HasOne('BridgeProfiles', $this->Orders, [
             'foreignKey' => 'order_id',
             'property' => 'profile',
             'dependent' => false,
@@ -101,7 +101,7 @@ class CascadeDeleteTest extends TestCase
 
         $order = new Order(['id' => 1]);
         $association->cascadeDelete($order);
-        $this->assertCount(1, $this->collections['Profiles']->find()->where(['order_id' => 1])->toArray());
+        $this->assertCount(1, $this->collections['BridgeProfiles']->find()->where(['order_id' => 1])->toArray());
     }
 
     /**
@@ -112,12 +112,12 @@ class CascadeDeleteTest extends TestCase
     public function testHasManyDeletesTargets(): void
     {
         foreach ([1, 1, 2] as $orderId) {
-            $this->collections['Posts']->saveOrFail(
-                $this->collections['Posts']->newDocument(['order_id' => $orderId, 'title' => 'p']),
+            $this->collections['BridgePosts']->saveOrFail(
+                $this->collections['BridgePosts']->newDocument(['order_id' => $orderId, 'title' => 'p']),
             );
         }
 
-        $association = new HasMany('Posts', $this->Orders, [
+        $association = new HasMany('BridgePosts', $this->Orders, [
             'foreignKey' => 'order_id',
             'property' => 'posts',
             'dependent' => true,
@@ -125,8 +125,8 @@ class CascadeDeleteTest extends TestCase
 
         $order = new Order(['id' => 1]);
         $this->assertTrue($association->cascadeDelete($order));
-        $this->assertCount(0, $this->collections['Posts']->find()->where(['order_id' => 1])->toArray());
-        $this->assertCount(1, $this->collections['Posts']->find()->where(['order_id' => 2])->toArray());
+        $this->assertCount(0, $this->collections['BridgePosts']->find()->where(['order_id' => 1])->toArray());
+        $this->assertCount(1, $this->collections['BridgePosts']->find()->where(['order_id' => 2])->toArray());
     }
 
     /**
@@ -136,11 +136,11 @@ class CascadeDeleteTest extends TestCase
      */
     public function testHasManyNullifies(): void
     {
-        $this->collections['Posts']->saveOrFail(
-            $this->collections['Posts']->newDocument(['order_id' => 1, 'title' => 'p']),
+        $this->collections['BridgePosts']->saveOrFail(
+            $this->collections['BridgePosts']->newDocument(['order_id' => 1, 'title' => 'p']),
         );
 
-        $association = new HasMany('Posts', $this->Orders, [
+        $association = new HasMany('BridgePosts', $this->Orders, [
             'foreignKey' => 'order_id',
             'property' => 'posts',
             'dependent' => 'nullify',
@@ -149,7 +149,7 @@ class CascadeDeleteTest extends TestCase
         $order = new Order(['id' => 1]);
         $association->cascadeDelete($order);
 
-        $docs = $this->collections['Posts']->find()->toArray();
+        $docs = $this->collections['BridgePosts']->find()->toArray();
         $this->assertCount(1, $docs);
         $this->assertNull($docs[0]->get('order_id'));
     }
@@ -165,7 +165,7 @@ class CascadeDeleteTest extends TestCase
             $this->collections['OrdersTags']->newDocument(['bridge_order_id' => 1, 'tag_id' => '000000000000000000000001']),
         );
 
-        $association = new BelongsToMany('Tags', $this->Orders, [
+        $association = new BelongsToMany('BridgeTags', $this->Orders, [
             'pivot' => BelongsToMany::PIVOT_JUNCTION,
             'junctionCollection' => 'OrdersTags',
             'dependent' => true,
@@ -183,11 +183,11 @@ class CascadeDeleteTest extends TestCase
      */
     public function testBelongsToManyArrayPivotPullsSourceId(): void
     {
-        $this->collections['Tags']->saveOrFail(
-            $this->collections['Tags']->newDocument(['_id' => '000000000000000000000001', 'name' => 't', 'bridge_order_ids' => [1, 2]]),
+        $this->collections['BridgeTags']->saveOrFail(
+            $this->collections['BridgeTags']->newDocument(['_id' => '000000000000000000000001', 'name' => 't', 'bridge_order_ids' => [1, 2]]),
         );
 
-        $association = new BelongsToMany('Tags', $this->Orders, [
+        $association = new BelongsToMany('BridgeTags', $this->Orders, [
             'pivot' => BelongsToMany::PIVOT_ARRAY,
             'dependent' => true,
         ]);
@@ -195,7 +195,7 @@ class CascadeDeleteTest extends TestCase
         $order = new Order(['id' => 1]);
         $association->cascadeDelete($order);
 
-        $docs = $this->collections['Tags']->find()->toArray();
+        $docs = $this->collections['BridgeTags']->find()->toArray();
         $this->assertSame([2], $docs[0]->get('bridge_order_ids'));
     }
 

@@ -48,7 +48,7 @@ class BelongsToManyTest extends TestCase
     {
         parent::setUp();
         $this->Orders = $this->fetchTable('TestApp\Model\Table\BridgeOrdersTable');
-        $this->Tags = $this->getCollectionLocator()->get('Tags');
+        $this->Tags = $this->getCollectionLocator()->get('BridgeTags');
         $this->Junction = $this->getCollectionLocator()->get('OrdersTags');
 
         $this->Tags->deleteAll([]);
@@ -81,8 +81,11 @@ class BelongsToManyTest extends TestCase
     public function testLoadViaJunction(): void
     {
         $association = new BelongsToMany('Tags', $this->Orders, [
+            'className' => 'BridgeTags',
             'pivot' => BelongsToMany::PIVOT_JUNCTION,
             'junctionCollection' => 'OrdersTags',
+            'sourceForeignKey' => 'bridge_order_id',
+            'targetForeignKey' => 'tag_id',
         ]);
 
         $order = new Order(['id' => 1, 'customer_name' => 'alice']);
@@ -103,8 +106,11 @@ class BelongsToManyTest extends TestCase
     public function testLoadViaJunctionNoLinks(): void
     {
         $association = new BelongsToMany('Tags', $this->Orders, [
+            'className' => 'BridgeTags',
             'pivot' => BelongsToMany::PIVOT_JUNCTION,
             'junctionCollection' => 'OrdersTags',
+            'sourceForeignKey' => 'bridge_order_id',
+            'targetForeignKey' => 'tag_id',
         ]);
 
         $order = new Order(['id' => 99, 'customer_name' => 'nobody']);
@@ -127,6 +133,7 @@ class BelongsToManyTest extends TestCase
         $this->Tags->saveOrFail($this->Tags->newDocument(['_id' => '000000000000000000000003', 'name' => 'archived', 'bridge_order_ids' => [2]]));
 
         $association = new BelongsToMany('Tags', $this->Orders, [
+            'className' => 'BridgeTags',
             'pivot' => BelongsToMany::PIVOT_ARRAY,
         ]);
 
