@@ -70,6 +70,18 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Deep `notMatching()` preserves no-match rows (doc 40, RF)** —
+  `EagerLoader::setMatching()` merges options correctly (`$options + $defaults`,
+  so an explicit `negateMatch` from `notMatching()` is no longer dropped); a
+  matching node with matching children defers its negation (`deferNegateMatch`)
+  to the deepest node, unwinding outer associations with
+  `preserveNullAndEmptyArrays`. `testNotMatchingDeep` green (authors without
+  articles now survive the anti-join).
+- **Contain inside a `joinWith` builder raises `DatabaseException` (doc 40,
+  RF)** — `EagerLoader::applyQueryBuilder()` rejects nested `contain()` when
+  the association is matched via `$lookup` (cake60 JOIN-strategy parity);
+  `SelectQuery::sql()` attaches eager associations so the exception fires and
+  the compiled pipeline reflects the lookup stages.
 - **`joinWith` matching is filter-only (doc 40, RF)** — `ResultSet::applyMatchingData()`
   no longer exposes `_matchingData` (nor the joined property) when the matching
   config carries `fields => false` (cake parity: `innerJoinWith`/`leftJoinWith`/

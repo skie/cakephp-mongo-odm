@@ -602,7 +602,7 @@ class HasMany extends Association
         }
 
         $pipelineOptions = $options;
-        if (!empty($options['matching']) && !empty($options['negateMatch'])) {
+        if (!empty($options['matching']) && !empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {
             $lookup->pipeline($this->buildLookupPipeline($options));
             $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
             $builder->match([$this->getProperty() => null]);
@@ -624,7 +624,7 @@ class HasMany extends Association
         unset($pipelineOptions['fields']);
         $this->applyPipelineOptions($builder, $pipelineOptions);
 
-        if (!empty($options['negateMatch'])) {
+        if (!empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {
             $builder->match([$this->getProperty() => null]);
         }
 

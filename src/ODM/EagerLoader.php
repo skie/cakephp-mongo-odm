@@ -143,7 +143,9 @@ class EagerLoader
     public function setMatching(string $associationPath, ?callable $builder = null, array $options = []): static
     {
         $this->matching ??= new static();
-        $sharedOptions = ['negateMatch' => false, 'matching' => true] + $options;
+        // `$options` first so an explicit `negateMatch`/`joinType`/`fields`
+        // from `notMatching()`/`joinWith()` wins over the defaults.
+        $sharedOptions = $options + ['negateMatch' => false, 'matching' => true];
 
         $contains = [];
         $nested = &$contains;
@@ -684,6 +686,12 @@ class EagerLoader
             if ($matching && $parentProperty !== null) {
                 $config['lookupPrefix'] = $parentProperty;
             }
+            // Deep `notMatching('a.b', ...)`: the negation applies at the
+            // deepest matching node; outer nodes unwind with preserve-null and
+            // defer the null-check to their children.
+            if ($matching && $this->hasMatchingChildren($loadable)) {
+                $config['deferNegateMatch'] = true;
+            }
             $stages = $association->buildPipeline($config);
             if ($stages !== []) {
                 $query->pipeline($stages);
@@ -694,6 +702,23 @@ class EagerLoader
         foreach ($loadable->associations() as $nested) {
             $this->dispatch($nested, $query, $association->getProperty());
         }
+    }
+
+    /**
+     * Whether a loadable carries nested matching children.
+     *
+     * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The loadable node.
+     * @return bool
+     */
+    private function hasMatchingChildren(EagerLoadable $loadable): bool
+    {
+        foreach ($loadable->associations() as $child) {
+            if (!empty($child->getConfig()['matching'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

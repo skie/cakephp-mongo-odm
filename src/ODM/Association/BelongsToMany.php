@@ -1713,6 +1713,7 @@ class BelongsToMany extends Association
             ->alias($join);
 
         $negateMatch = !empty($options['negateMatch']);
+        $deferNegateMatch = !empty($options['deferNegateMatch']);
         $pipelineOptions = $options + $this->associationPipelineOptions();
         $targetConditions = $pipelineOptions['conditions'] ?? [];
         $targetPipeline = [];
@@ -1756,7 +1757,7 @@ class BelongsToMany extends Association
         $pipelineFields = $pipelineOptions['fields'] ?? null;
         unset($pipelineOptions['fields']);
 
-        if ($negateMatch) {
+        if ($negateMatch && !$deferNegateMatch) {
             unset($pipelineOptions['conditions']);
             $this->applyPipelineOptions($builder, $pipelineOptions);
             $builder->match([$this->getProperty() => null]);
