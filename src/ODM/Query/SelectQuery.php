@@ -56,6 +56,20 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     protected bool $beforeFindFired = false;
 
     /**
+     * Whether this query is being executed as part of an eager load.
+     *
+     * @var bool
+     */
+    protected bool $eagerLoaded = false;
+
+    /**
+     * Custom count callback.
+     *
+     * @var \Closure|null
+     */
+    protected ?Closure $counter = null;
+
+    /**
      * Result formatters applied after hydration.
      *
      * @var array<int, callable>
@@ -198,6 +212,76 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function isAutoFieldsEnabled(): ?bool
     {
         return $this->autoFields;
+    }
+
+    /**
+     * Returns whether this query is part of an eager load.
+     *
+     * @return bool
+     */
+    public function isEagerLoaded(): bool
+    {
+        return $this->eagerLoaded;
+    }
+
+    /**
+     * Marks this query as being executed as part of an eager load.
+     *
+     * @param bool $value Whether the query is eagerly loaded.
+     * @return $this
+     */
+    public function eagerLoaded(bool $value): static
+    {
+        $this->eagerLoaded = $value;
+
+        return $this;
+    }
+
+    /**
+     * Marks the query dirty so the next `all()` re-executes it.
+     *
+     * @return $this
+     */
+    public function clearResult(): static
+    {
+        $this->dirty();
+
+        return $this;
+    }
+
+    /**
+     * Sets a custom callback used by `count()`.
+     *
+     * @param \Closure|null $counter The counter callable.
+     * @return $this
+     */
+    public function counter(?Closure $counter): static
+    {
+        $this->counter = $counter;
+
+        return $this;
+    }
+
+    /**
+     * Returns a clean clone of this query for sub-query use.
+     *
+     * The clone keeps the repository, projections, conditions and eager
+     * loader, but drops offset/limit/order, auto fields and formatters so it
+     * can be reused (cake6 `SelectQuery::cleanCopy()` parity).
+     *
+     * @return static
+     */
+    public function cleanCopy(): static
+    {
+        $clone = clone $this;
+        $clone->disableAutoFields();
+        $clone->limit(null);
+        $clone->orderBy([], true);
+        $clone->offset(null);
+        $clone->mapReduce(null, null, true);
+        $clone->formatResults(null, true);
+
+        return $clone;
     }
 
     /**
@@ -375,6 +459,14 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         $connection = $this->getConnection();
         if (!$connection instanceof Connection) {
             return 0;
+        }
+
+        if ($this->counter !== null) {
+            $counter = $this->counter;
+            $clone = clone $this;
+            $clone->counter = null;
+
+            return (int)$counter($clone);
         }
 
         $builder = $this->getBuilder();
@@ -840,7 +932,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
             $repository->dispatchEvent('Collection.beforeFind', [
                 $this,
                 new ArrayObject($this->getOptions()),
-                true,
+                !$this->eagerLoaded,
             ]);
         }
     }

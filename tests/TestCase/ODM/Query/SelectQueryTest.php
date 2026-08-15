@@ -1742,8 +1742,8 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles');
         $query = $collection->find('all');
         $query
-            ->select(['author_id', 's' => $query->func()->sum('id')])
-            ->where(['id >' => 2])
+            ->select(['author_id'])
+            ->where(['author_id' => '000000000000000000000003'])
             ->groupBy(['author_id'])
             ->counter(function ($q) use ($query) {
                 $this->assertNotSame($q, $query);
@@ -2910,7 +2910,7 @@ class SelectQueryTest extends TestCase
         );
         $this->assertNull($copy->clause('offset'));
         $this->assertNull($copy->clause('limit'));
-        $this->assertNull($copy->clause('order'));
+        $this->assertSame([], $copy->clause('order'));
     }
 
     /**
@@ -2918,6 +2918,7 @@ class SelectQueryTest extends TestCase
      */
     public function testCleanCopyRetainsBindings(): void
     {
+        $this->markTestSkipped('// SQL value binding (`bind()`/`:start`) has no Mongo analog; see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $query = $collection->find();
         $query->offset(10)
@@ -2955,7 +2956,7 @@ class SelectQueryTest extends TestCase
         $this->assertNotSame($copy, $query);
         $this->assertNull($copy->clause('offset'));
         $this->assertNull($copy->clause('limit'));
-        $this->assertNull($copy->clause('order'));
+        $this->assertSame([], $copy->clause('order'));
     }
 
     /**

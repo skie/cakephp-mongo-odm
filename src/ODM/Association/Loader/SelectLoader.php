@@ -7,6 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
 use Crustum\Mongo\Database\Query\Query;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use Traversable;
 
 /**
@@ -47,6 +48,9 @@ class SelectLoader implements LoaderInterface
             $query = $options['finder']();
             if (!$query instanceof QueryInterface) {
                 return $entities;
+            }
+            if ($query instanceof SelectQuery) {
+                $query->eagerLoaded(true);
             }
 
             $parentQuery = $options['query'] ?? null;

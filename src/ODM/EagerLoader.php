@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
-use Crustum\Mongo\Database\Query\SelectQuery;
+use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 
 /**
@@ -196,7 +196,7 @@ class EagerLoader
     /**
      * Attaches in-pipeline strategies and records external strategies.
      *
-     * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
      * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
      * @return void
      */
@@ -241,7 +241,7 @@ class EagerLoader
      * from the source primary key (`_id`), which cake requires to be selected
      * explicitly — omitting it is a real "Unable to load" error.
      *
-     * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
      * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
      * @return void
      */
@@ -303,7 +303,7 @@ class EagerLoader
      * association property. Embedded and lookup associations are handled
      * during pipeline construction and produce no external load.
      *
-     * @param \Crustum\Mongo\Database\Query\SelectQuery $query   The executed source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query   The executed source query.
      * @param iterable<array-key, mixed>                $results The hydrated result documents.
      * @return iterable<array-key, mixed>
      */
@@ -568,6 +568,7 @@ class EagerLoader
         }
 
         $query = $target->query();
+        $query->eagerLoaded(true);
         ($config['queryBuilder'])($query);
         $compiled = $query->compile();
         $config['conditions'] ??= $compiled['filter'] ?? [];
@@ -581,7 +582,7 @@ class EagerLoader
      * Dispatches one normalized node and all of its descendants.
      *
      * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The node to dispatch.
-     * @param \Crustum\Mongo\Database\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
      * @return void
      */
     private function dispatch(EagerLoadable $loadable, SelectQuery $query): void
