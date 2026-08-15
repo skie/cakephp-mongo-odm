@@ -39,7 +39,7 @@
             $this->Flash->error({% if plugin %}__d('{{ plugin }}', {% else %}__({% endif %}'The {{ singularHumanName|lower }} could not be saved. Please, try again.'));
         }
 {% for assoc in belongsTo|merge(belongsToMany) %}
-    {%~ set otherName = MongoBake.mongoGetAssociatedTableAlias(modelObj, assoc) %}
+    {%~ set otherName = MongoBake.mongoGetAssociatedCollectionAlias(modelObj, assoc) %}
     {%~ set otherPlural = otherName|variable %}
     {%~ if otherPlural == singularName %}
         {%~ set otherPlural = otherPlural ~ 'List' %}

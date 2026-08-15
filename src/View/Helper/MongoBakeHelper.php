@@ -118,7 +118,7 @@ class MongoBakeHelper extends BakeHelper
      * @param string $assoc Association name.
      * @return string
      */
-    public function mongoGetAssociatedTableAlias(BaseCollection $collection, string $assoc): string
+    public function mongoGetAssociatedCollectionAlias(BaseCollection $collection, string $assoc): string
     {
         $association = $collection->getAssociation($assoc);
 

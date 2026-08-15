@@ -5,7 +5,7 @@
  * Ported from cakephp/bake `Model/table.twig` for MongoDB.
  */
 #}
-{% set annotations = MongoDocBlock.buildTableAnnotations(associations, associationInfo, behaviors, document, namespace) %}
+{% set annotations = MongoDocBlock.buildCollectionAnnotations(associations, associationInfo, behaviors, document, namespace) %}
 {% set generatedFunctions = ['initialize'] %}
 {%~ set usesMongoProvider = false %}
 {%~ for field, rules in validation|default([]) %}

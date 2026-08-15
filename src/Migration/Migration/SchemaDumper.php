@@ -61,7 +61,7 @@ class SchemaDumper
                 continue;
             }
 
-            if (in_array($name, ['_migrations', '_seeds'], true)) {
+            if (in_array($name, ['cake_migrations', '_seeds'], true)) {
                 continue;
             }
 

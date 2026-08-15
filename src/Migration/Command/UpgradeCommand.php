@@ -20,11 +20,6 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Upgrades the migration journal to the unified-ledger shape.
- *
- * The Mongo journal has no legacy SQL `phinxlog` tables to migrate (doc 24 §2),
- * so unlike the reference `UpgradeCommand` this is an idempotent ensure: it
- * backfills the `plugin` field (null) on entries written before plugin
- * attribution existed and creates the `(version, plugin)` unique index.
  */
 class UpgradeCommand extends Command
 {
@@ -105,7 +100,7 @@ class UpgradeCommand extends Command
             return self::CODE_ERROR;
         }
 
-        $journal = $connection->getCollection(CakeMongoAdapter::MIGRATION_TABLE);
+        $journal = $connection->getCollection(CakeMongoAdapter::MIGRATION_COLLECTION);
 
         $missingPluginFilter = ['plugin' => ['$exists' => false]];
         $stale = $journal->countDocuments($missingPluginFilter);

@@ -32,7 +32,7 @@ class UpgradeCommandTest extends TestCase
     {
         parent::setUp();
         $this->connection = ConnectionManager::get('test_mongo');
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
     }
 
     /**
@@ -42,7 +42,7 @@ class UpgradeCommandTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         parent::tearDown();
     }
 
@@ -71,7 +71,7 @@ class UpgradeCommandTest extends TestCase
      */
     public function testUpgradeBackfillsPluginAndEnsuresIndex(): void
     {
-        $this->connection->getCollection('_migrations')->insertOne([
+        $this->connection->getCollection('cake_migrations')->insertOne([
             'version' => 20260811000000,
             'migration_name' => 'LegacyEntry',
         ]);
@@ -80,12 +80,12 @@ class UpgradeCommandTest extends TestCase
 
         $this->assertStringContainsString('Journal upgraded', $output);
 
-        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20260811000000]);
+        $entry = $this->connection->getCollection('cake_migrations')->findOne(['version' => 20260811000000]);
         $this->assertArrayHasKey('plugin', $entry);
         $this->assertNull($entry['plugin']);
 
         $hasUnique = false;
-        foreach ($this->connection->getCollection('_migrations')->listIndexes() as $index) {
+        foreach ($this->connection->getCollection('cake_migrations')->listIndexes() as $index) {
             $key = $index->getKey();
             if (($key['version'] ?? null) === 1 && ($key['plugin'] ?? null) === 1 && $index->isUnique()) {
                 $hasUnique = true;
@@ -102,7 +102,7 @@ class UpgradeCommandTest extends TestCase
      */
     public function testUpgradeDryRun(): void
     {
-        $this->connection->getCollection('_migrations')->insertOne([
+        $this->connection->getCollection('cake_migrations')->insertOne([
             'version' => 20260811000000,
             'migration_name' => 'LegacyEntry',
         ]);
@@ -111,7 +111,7 @@ class UpgradeCommandTest extends TestCase
 
         $this->assertStringContainsString('DRY RUN', $output);
 
-        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20260811000000]);
+        $entry = $this->connection->getCollection('cake_migrations')->findOne(['version' => 20260811000000]);
         $this->assertArrayNotHasKey('plugin', $entry);
     }
 }

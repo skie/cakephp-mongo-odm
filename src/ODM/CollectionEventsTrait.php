@@ -106,7 +106,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.afterSaveCommit event is fired after the transaction in which the save operation is wrapped has been
      * committed. It's also triggered for non atomic saves where database operations are implicitly committed. The event
-     * is triggered only for the primary table on which save() is directly called. The event is not triggered if a
+     * is triggered only for the primary collection on which save() is directly called. The event is not triggered if a
      * transaction is started before calling save.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.
@@ -147,7 +147,7 @@ trait CollectionEventsTrait
     /**
      * The Collection.afterDeleteCommit event is fired after the transaction in which the delete operation is wrapped has
      * been committed. It's also triggered for non atomic deletes where database operations are implicitly committed.
-     * The event is triggered only for the primary table on which delete() is directly called. The event is not
+     * The event is triggered only for the primary collection on which delete() is directly called. The event is not
      * triggered if a transaction is started before calling delete.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event Model event.

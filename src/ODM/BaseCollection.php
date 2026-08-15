@@ -1051,8 +1051,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     public function addAssociations(array $params): static
     {
-        foreach ($params as $assocType => $tables) {
-            foreach ($tables as $associated => $options) {
+        foreach ($params as $assocType => $collections) {
+            foreach ($collections as $associated => $options) {
                 if (is_int($associated)) {
                     $associated = $options;
                     $options = [];
@@ -3110,7 +3110,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      *
      * ```
      * $validator->add('email', [
-     *  'unique' => ['rule' => 'validateUnique', 'provider' => 'table']
+     *  'unique' => ['rule' => 'validateUnique', 'provider' => 'collection']
      * ])
      * ```
      *
@@ -3120,7 +3120,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * $validator->add('email', [
      *  'unique' => [
      *      'rule' => ['validateUnique', ['scope' => 'site_id']],
-     *      'provider' => 'table'
+     *      'provider' => 'collection'
      *  ]
      * ]);
      * ```

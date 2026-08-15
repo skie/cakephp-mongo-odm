@@ -21,14 +21,14 @@ use MongoDB\Collection;
  *
  * Replaces the SQL `Migrations\Db\Adapter\AdapterInterface`: instead of SQL
  * statements, DDL is executed through the `SchemaManager` and the migration
- * journal lives in a Mongo `_migrations` collection.
+ * journal lives in a Mongo `cake_migrations` collection.
  */
 interface AdapterInterface
 {
     /**
      * The name of the migration journal collection.
      */
-    public const MIGRATION_TABLE = '_migrations';
+    public const MIGRATION_COLLECTION = 'cake_migrations';
 
     /**
      * The name of the seed execution log collection.
@@ -152,7 +152,7 @@ interface AdapterInterface
     public function getVersionLog(): array;
 
     /**
-     * Records a migration as run in the `_migrations` collection.
+     * Records a migration as run in the `cake_migrations` collection.
      *
      * @param \Crustum\Mongo\Migration\MigrationInterface $migration Migration
      * @param string $direction Direction ('up' or 'down')

@@ -49,7 +49,7 @@ class MongoControllerCommand extends BakeCommand
      *
      * @var array<string>
      */
-    public array $skipCollections = ['_migrations', '_seeds', 'system'];
+    public array $skipCollections = ['cake_migrations', '_seeds', 'system'];
 
     /**
      * @inheritDoc

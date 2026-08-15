@@ -49,9 +49,9 @@ class MongoCollectionContext
         $rulesChecker = $schema instanceof CollectionSchema ? $this->rules($schema, $associations) : [];
         $behaviors = $schema instanceof CollectionSchema ? $this->behaviors($schema) : [];
         $hidden = $this->hiddenFields($schema);
-        $table = $collection->getCollection();
+        $collectionName = $collection->getCollection();
 
-        return ['associations' => $associations, 'associationInfo' => $associationInfo, 'embedded' => $embedded, 'embeddedImports' => $embeddedImports, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'table' => $table, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden];
+        return ['associations' => $associations, 'associationInfo' => $associationInfo, 'embedded' => $embedded, 'embeddedImports' => $embeddedImports, 'primaryKey' => $primaryKey, 'displayField' => $displayField, 'collection' => $collectionName, 'fields' => $fields, 'validation' => $validation, 'rulesChecker' => $rulesChecker, 'behaviors' => $behaviors, 'hidden' => $hidden];
     }
 
     /**
@@ -310,7 +310,7 @@ class MongoCollectionContext
 
             $keyFields = array_keys($index->getKey());
             if ($keyFields === [$fieldName]) {
-                $rules['unique'] = ['rule' => 'validateUnique', 'provider' => 'table'];
+                $rules['unique'] = ['rule' => 'validateUnique', 'provider' => 'collection'];
             }
         }
 

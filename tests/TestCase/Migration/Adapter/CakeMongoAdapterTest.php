@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 /**
  * Tests the Mongo migration adapter against a real database.
  *
- * Covers DDL through the SchemaManager and the `_migrations` journal.
+ * Covers DDL through the SchemaManager and the `cake_migrations` journal.
  */
 #[CoversClass(CakeMongoAdapter::class)]
 class CakeMongoAdapterTest extends TestCase
@@ -54,7 +54,7 @@ class CakeMongoAdapterTest extends TestCase
         $this->connection = ConnectionManager::get('test_mongo');
         $this->manager = new SchemaManager($this->connection);
         $this->adapter = new CakeMongoAdapter($this->connection);
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
@@ -70,7 +70,7 @@ class CakeMongoAdapterTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
     }

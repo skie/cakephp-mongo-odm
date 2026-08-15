@@ -59,7 +59,7 @@ class Environment
      *
      * @var string
      */
-    protected string $migrationTable = '_migrations';
+    protected string $migrationTable = 'cake_migrations';
 
     /**
      * The adapter.

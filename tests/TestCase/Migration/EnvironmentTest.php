@@ -67,7 +67,7 @@ class EnvironmentTest extends TestCase
         $this->connection = ConnectionManager::get('test_mongo');
         $this->manager = new SchemaManager($this->connection);
         $this->adapter = new CakeMongoAdapter($this->connection);
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
@@ -83,7 +83,7 @@ class EnvironmentTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
         parent::tearDown();
     }

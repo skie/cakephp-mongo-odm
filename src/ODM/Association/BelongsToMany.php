@@ -58,7 +58,7 @@ class BelongsToMany extends Association
      *
      * @var string|null
      */
-    protected ?string $junctionTableName = null;
+    protected ?string $junctionCollectionName = null;
 
     /**
      * Join collection instance resolved by {@see junction()}.
@@ -111,7 +111,7 @@ class BelongsToMany extends Association
         }
 
         if (isset($options['joinCollection'])) {
-            $this->junctionTableName((string)$options['joinCollection']);
+            $this->junctionCollectionName((string)$options['joinCollection']);
         }
     }
 
@@ -121,22 +121,22 @@ class BelongsToMany extends Association
      * @param string|null $name The junction collection name.
      * @return string
      */
-    protected function junctionTableName(?string $name = null): string
+    protected function junctionCollectionName(?string $name = null): string
     {
         if ($name === null) {
-            if ($this->junctionTableName === null) {
+            if ($this->junctionCollectionName === null) {
                 $names = array_map(
                     Inflector::underscore(...),
                     [$this->getSource()->getCollection(), $this->getTarget()->getCollection()],
                 );
                 sort($names);
-                $this->junctionTableName = implode('_', $names);
+                $this->junctionCollectionName = implode('_', $names);
             }
 
-            return $this->junctionTableName;
+            return $this->junctionCollectionName;
         }
 
-        return $this->junctionTableName = $name;
+        return $this->junctionCollectionName = $name;
     }
 
     /**
@@ -413,7 +413,7 @@ class BelongsToMany extends Association
      *
      * ### Options
      *
-     * Additionally to the default options accepted by `Table::delete()`, the following
+     * Additionally to the default options accepted by `Collection::delete()`, the following
      * keys are supported:
      *
      * - cleanProperty: Whether to remove all the objects in `$targetEntities` that
@@ -578,7 +578,7 @@ class BelongsToMany extends Association
      * @param \Cake\Datasource\EntityInterface $sourceEntity the entity from source collection in this
      *   association
      * @param array<\Cake\Datasource\EntityInterface> $targetEntities list of entities to link to the source entity
-     * @param array<string, mixed> $options list of options accepted by `Table::save()`
+     * @param array<string, mixed> $options list of options accepted by `BaseCollection::save()`
      * @return bool success
      */
     protected function saveLinks(EntityInterface $sourceEntity, array $targetEntities, array $options): bool
@@ -757,7 +757,7 @@ class BelongsToMany extends Association
      * @param array<\Cake\Datasource\EntityInterface> $jointEntities link documents that should be persisted
      * @param array<int, mixed> $targetEntities entities in target collection that are related to
      *   the `$jointEntities`
-     * @param array<string, mixed> $options list of options accepted by `Table::delete()`
+     * @param array<string, mixed> $options list of options accepted by `BaseCollection::delete()`
      * @return array<int, mixed>|false Array of entities not deleted or false in case of deletion failure.
      */
     protected function diffLinks(
@@ -969,18 +969,18 @@ class BelongsToMany extends Association
         $target = $this->getTarget();
         if ($source->getAlias() === $target->getAlias()) {
             throw new InvalidArgumentException(sprintf(
-                'The `%s` association on `%s` cannot target the same table.',
+                'The `%s` association on `%s` cannot target the same collection.',
                 $this->getName(),
                 $source->getAlias(),
             ));
         }
 
-        $tableName = $this->junctionTableName();
-        $alias = Inflector::camelize($tableName);
+        $collectionName = $this->junctionCollectionName();
+        $alias = Inflector::camelize($collectionName);
         $locator = $this->getCollectionLocator();
         $config = [];
         if (!$locator->exists($alias)) {
-            $config = ['collection' => $tableName, 'allowFallbackClass' => true];
+            $config = ['collection' => $collectionName, 'allowFallbackClass' => true];
         }
 
         $collection = $locator->get($alias, $config);

@@ -87,7 +87,7 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Tests that setClassName() succeeds before the target table is resolved.
+     * Tests that setClassName() succeeds before the target collection is resolved.
      */
     public function testSetClassNameBeforeTarget(): void
     {
@@ -97,29 +97,29 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Tests that setClassName() fails after the target table is resolved.
+     * Tests that setClassName() fails after the target collection is resolved.
      */
     public function testSetClassNameAfterTarget(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The class name `' . AuthorsCollection::class . "` doesn't match the target table class name of");
+        $this->expectExceptionMessage('The class name `' . AuthorsCollection::class . "` doesn't match the target collection class name of");
         $this->association->getTarget();
         $this->association->setClassName(AuthorsCollection::class);
     }
 
     /**
-     * Tests that setClassName() fails after the target table is resolved.
+     * Tests that setClassName() fails after the target collection is resolved.
      */
     public function testSetClassNameWithShortSyntaxAfterTarget(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("The class name `Authors` doesn't match the target table class name of");
+        $this->expectExceptionMessage("The class name `Authors` doesn't match the target collection class name of");
         $this->association->getTarget();
         $this->association->setClassName('Authors');
     }
 
     /**
-     * Tests that setClassName() succeeds if name equals target table's class name.
+     * Tests that setClassName() succeeds if name equals target collection's class name.
      */
     public function testSetClassNameToTargetClassName(): void
     {
@@ -129,7 +129,7 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Tests that setClassName() succeeds if the short name resolves to the target table's class name.
+     * Tests that setClassName() succeeds if the short name resolves to the target collection's class name.
      */
     public function testSetClassNameWithShortSyntaxToTargetClassName(): void
     {
@@ -165,10 +165,10 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Tests that an exception is thrown when invalid target table is fetched
+     * Tests that an exception is thrown when invalid target collection is fetched
      * from a registry.
      */
-    public function testInvalidTableFetchedFromRegistry(): void
+    public function testInvalidCollectionFetchedFromRegistry(): void
     {
         $this->expectException(DatabaseException::class);
 
@@ -191,9 +191,9 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Tests that a descendant table could be fetched from a registry.
+     * Tests that a descendant collection could be fetched from a registry.
      */
-    public function testTargetTableDescendant(): void
+    public function testTargetCollectionDescendant(): void
     {
         $this->getCollectionLocator()->get('Test', [
             'className' => TestCollection::class,
@@ -382,11 +382,11 @@ class AssociationTest extends TestCase
     }
 
     /**
-     * Test that warning is shown if property name clashes with table field.
+     * Test that warning is shown if property name clashes with collection field.
      */
     public function testPropertyNameClash(): void
     {
-        $this->expectWarningMessageMatches('/^Association property name `foo` clashes with field of same name of table `test`/', function (): void {
+        $this->expectWarningMessageMatches('/^Association property name `foo` clashes with field of same name of collection `test`/', function (): void {
             $this->source->setSchemaFromArray(['foo' => ['type' => 'string']]);
             $this->association->setProperty('foo');
             $this->association->getProperty('foo');

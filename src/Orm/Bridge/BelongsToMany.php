@@ -14,7 +14,7 @@ use function Cake\Core\pluginSplit;
  * BelongsToMany cross-boundary association (Direction 1).
  *
  * N:N between a SQL source row and Mongo target documents, supported by two
- * pivot designs (see doc 29 §5.4):
+ * pivot designs:
  *
  * - **junction** (default): a junction collection `{source}_{target}` holding
  *   `{source}_id` / `{target}_id` links. Load resolves the junction rows for

@@ -122,7 +122,7 @@ class MigratorTest extends TestCase
                 $this->manager->dropCollection($name);
             }
         }
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
@@ -240,7 +240,7 @@ class MigratorTest extends TestCase
         $this->assertContains('mig_migrator', $this->manager->listCollections());
         $this->assertContains('mig_migrator2', $this->manager->listCollections());
         $this->assertSame(0, $this->connection->getCollection('mig_migrator')->countDocuments());
-        $this->assertSame(2, $this->connection->getCollection('_migrations')->countDocuments());
+        $this->assertSame(2, $this->connection->getCollection('cake_migrations')->countDocuments());
     }
 
     /**
@@ -251,15 +251,15 @@ class MigratorTest extends TestCase
     public function testGetJournalAndNonJournalCollections(): void
     {
         $this->connection->getCollection('mig_sample')->insertOne(['x' => 1]);
-        $this->connection->getCollection('_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
+        $this->connection->getCollection('cake_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
 
         $migrator = $this->makeInspectableMigrator();
 
-        $this->assertContains('_migrations', $migrator->exposedGetJournalCollections('migrator'));
+        $this->assertContains('cake_migrations', $migrator->exposedGetJournalCollections('migrator'));
 
         $nonJournal = $migrator->exposedGetNonJournalCollections('migrator');
         $this->assertContains('mig_sample', $nonJournal);
-        $this->assertNotContains('_migrations', $nonJournal);
+        $this->assertNotContains('cake_migrations', $nonJournal);
         $this->assertNotContains('_seeds', $nonJournal);
 
         $skipped = $migrator->exposedGetNonJournalCollections('migrator', ['mig_sample*']);
@@ -277,11 +277,11 @@ class MigratorTest extends TestCase
         $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
         $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
-        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+        $this->connection->getCollection('cake_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
 
         $migrator->run(['plugin' => 'Migrator', 'connection' => 'migrator']);
 
-        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20211001000000]);
+        $entry = $this->connection->getCollection('cake_migrations')->findOne(['version' => 20211001000000]);
         $this->assertNotNull($entry);
         $this->assertSame($yesterday, $entry['end_time']);
     }
@@ -307,12 +307,12 @@ class MigratorTest extends TestCase
         $migrator->runMany($options, false);
 
         $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
-        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+        $this->connection->getCollection('cake_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
 
         $migrator->runMany($options, false);
 
         foreach ([20211001000000, 20211002000000] as $version) {
-            $entry = $this->connection->getCollection('_migrations')->findOne(['version' => $version]);
+            $entry = $this->connection->getCollection('cake_migrations')->findOne(['version' => $version]);
             $this->assertNotNull($entry);
             $this->assertSame($yesterday, $entry['end_time']);
         }
@@ -334,14 +334,14 @@ class MigratorTest extends TestCase
         $migrator->runMany($options, false);
 
         $yesterday = date('Y-m-d H:i:s', strtotime('-1 day'));
-        $this->connection->getCollection('_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
+        $this->connection->getCollection('cake_migrations')->updateMany([], ['$set' => ['end_time' => $yesterday]]);
 
         // Roll back the second set (no plugin) so its migration is down again.
         (new Migrations(['connection' => 'migrator']))->rollback(['source' => 'Migrations2']);
 
         $migrator->runMany($options, false);
 
-        $entry = $this->connection->getCollection('_migrations')->findOne(['version' => 20211002000000]);
+        $entry = $this->connection->getCollection('cake_migrations')->findOne(['version' => 20211002000000]);
         $this->assertNotNull($entry);
         $this->assertNotSame($yesterday, $entry['end_time']);
     }

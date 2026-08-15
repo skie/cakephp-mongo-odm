@@ -153,13 +153,13 @@ class MongoTemplateCommand extends BakeCommand
      */
     public function model(string $name): void
     {
-        $tableName = $this->_camelize($name);
+        $modelName = $this->_camelize($name);
         $plugin = $this->plugin;
         if ($plugin) {
             $plugin .= '.';
         }
 
-        $this->modelName = $plugin . $tableName;
+        $this->modelName = $plugin . $modelName;
     }
 
     /**
@@ -172,9 +172,9 @@ class MongoTemplateCommand extends BakeCommand
      */
     public function controller(Arguments $args, string $name, ?string $controller = null): void
     {
-        $tableName = $this->_camelize($name);
+        $modelName = $this->_camelize($name);
         if (empty($controller)) {
-            $controller = $tableName;
+            $controller = $modelName;
         }
 
         $this->controllerName = $controller;

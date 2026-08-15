@@ -1295,7 +1295,7 @@ class Manager
      */
     public function getSchemaTableName(): string
     {
-        return $this->getEnvironment()->getAdapter()::MIGRATION_TABLE;
+        return $this->getEnvironment()->getAdapter()::MIGRATION_COLLECTION;
     }
 
     /**

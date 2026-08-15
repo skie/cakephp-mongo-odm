@@ -292,7 +292,7 @@ abstract class Association
             in_array($this->propertyName, $this->getSource()->getSchema()->columns(), true)
         ) {
             triggerWarning(sprintf(
-                'Association property name `%s` clashes with field of same name of table `%s`.',
+                'Association property name `%s` clashes with field of same name of collection `%s`.',
                 $this->propertyName,
                 $this->getSource()->getCollection(),
             ));
@@ -858,7 +858,7 @@ abstract class Association
 
     /**
      * Proxies the isset call to the target collection. This is handy to check if the
-     * target table has another association with the passed name
+     * target collection has another association with the passed name
      *
      * @param string $property the property name
      * @return bool true if the association exists
@@ -905,7 +905,7 @@ abstract class Association
             $this->target::class !== App::className($className, 'Model/Collection', 'Collection')
         ) {
             throw new InvalidArgumentException(sprintf(
-                "The class name `%s` doesn't match the target table class name of `%s`.",
+                "The class name `%s` doesn't match the target collection class name of `%s`.",
                 $className,
                 $this->target::class,
             ));

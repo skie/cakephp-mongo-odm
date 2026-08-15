@@ -77,7 +77,7 @@ class ManagerFactoryTest extends TestCase
 
         $this->assertSame('TestPlugin', $config['plugin']);
         $this->assertSame('MongoMigrations', $config['source']);
-        $this->assertSame('_migrations', $config['environment']['migration_table']);
+        $this->assertSame('cake_migrations', $config['environment']['migration_table']);
     }
 
     /**

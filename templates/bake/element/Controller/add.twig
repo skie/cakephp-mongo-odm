@@ -38,7 +38,7 @@
 {% set associations = associations|merge(MongoBake.mongoAliasExtractor(modelObj, 'BelongsToMany')) %}
 
 {%- for assoc in associations %}
-    {%~ set otherName = MongoBake.mongoGetAssociatedTableAlias(modelObj, assoc) %}
+    {%~ set otherName = MongoBake.mongoGetAssociatedCollectionAlias(modelObj, assoc) %}
     {%~ set otherPlural = otherName|variable %}
     {%~ if otherPlural == singularName %}
         {%~ set otherPlural = otherPlural ~ 'List' %}

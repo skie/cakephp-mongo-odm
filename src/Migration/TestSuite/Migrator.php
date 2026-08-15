@@ -218,7 +218,7 @@ class Migrator
 
         return array_values(array_filter(
             $manager->listCollections(),
-            fn(string $name): bool => $name === '_migrations' || $name === '_seeds',
+            fn(string $name): bool => $name === 'cake_migrations' || $name === '_seeds',
         ));
     }
 
@@ -237,7 +237,7 @@ class Migrator
         }
 
         $manager = new SchemaManager($conn);
-        $skip[] = '_migrations';
+        $skip[] = 'cake_migrations';
         $skip[] = '_seeds';
 
         return array_values(array_filter(

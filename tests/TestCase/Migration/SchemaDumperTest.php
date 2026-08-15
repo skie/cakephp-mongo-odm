@@ -109,12 +109,12 @@ class SchemaDumperTest extends TestCase
         $name = 'mig_dump_all';
         $this->created[] = $name;
         $this->manager->createCollection($name);
-        $this->connection->getCollection('_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
+        $this->connection->getCollection('cake_migrations')->insertOne(['version' => 1, 'migration_name' => 'x']);
 
         $schema = $this->dumper->dumpAll();
 
         $this->assertArrayHasKey($name, $schema);
-        $this->assertArrayNotHasKey('_migrations', $schema);
+        $this->assertArrayNotHasKey('cake_migrations', $schema);
         $this->assertArrayNotHasKey('_seeds', $schema);
     }
 

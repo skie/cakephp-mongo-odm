@@ -33,7 +33,7 @@ abstract class AbstractConfigTestCase extends TestCase
                 'seeds' => $this->getSeedPath(),
             ],
             'environment' => [
-                'migration_table' => '_migrations',
+                'migration_table' => 'cake_migrations',
                 'adapter' => 'mongo',
                 'connection' => 'test_mongo',
             ],
@@ -48,7 +48,7 @@ abstract class AbstractConfigTestCase extends TestCase
                 'seeds' => $this->getSeedPath(),
             ],
             'environment' => [
-                'migration_table' => '_migrations',
+                'migration_table' => 'cake_migrations',
                 'adapter' => 'mongo',
                 'connection' => 'test_mongo',
             ],

@@ -19,7 +19,9 @@
 #}
 {{ element('Bake.file_header', {
     namespace: "#{namespace}\\Controller#{prefix}",
-    classImports: (plugin or prefix) ? ["#{baseNamespace}\\Controller\\AppController"] : [],
+    classImports: (plugin or prefix)
+        ? ["Crustum\\Mongo\\ODM\\Locator\\CollectionAwareTrait", "#{baseNamespace}\\Controller\\AppController"]
+        : ["Crustum\\Mongo\\ODM\\Locator\\CollectionAwareTrait"],
 }) }}
 {% set has_login = 'login' in actions and Bake.hasPlugin('Authentication') %}
 {% set include_initialize = components or helpers or has_login %}
@@ -38,6 +40,8 @@
  */
 class {{ name }}Controller extends AppController
 {
+    use CollectionAwareTrait;
+
 {% if include_initialize %}
     /**
      * Initialize controller

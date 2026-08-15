@@ -21,7 +21,7 @@ use MongoDB\Collection;
  * Mongo migration adapter.
  *
  * Executes DDL through the `SchemaManager` and keeps the migration journal in
- * a Mongo `_migrations` collection. Replaces the SQL
+ * a Mongo `cake_migrations` collection. Replaces the SQL
  * `Migrations\Db\Adapter\AbstractAdapter`.
  */
 class CakeMongoAdapter implements AdapterInterface
@@ -470,7 +470,7 @@ class CakeMongoAdapter implements AdapterInterface
      */
     protected function migrationLog(): Collection
     {
-        $collection = $this->connection->getCollection(self::MIGRATION_TABLE);
+        $collection = $this->connection->getCollection(self::MIGRATION_COLLECTION);
 
         if (!$this->journalIndexEnsured) {
             $collection->createIndex(

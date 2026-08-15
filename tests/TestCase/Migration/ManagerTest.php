@@ -108,7 +108,7 @@ class ManagerTest extends TestCase
         if (in_array('mig_products', $collections, true)) {
             $this->connection->getDatabase()->dropCollection('mig_products');
         }
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
@@ -140,7 +140,7 @@ class ManagerTest extends TestCase
             'environment' => [
                 'connection' => 'test_mongo',
                 'adapter' => 'mongo',
-                'migration_table' => '_migrations',
+                'migration_table' => 'cake_migrations',
             ],
         ];
     }
@@ -725,7 +725,7 @@ class ManagerTest extends TestCase
         $this->manager->setConfig(new Config($configArray));
 
         $this->connection->getDatabase()->dropCollection('mig_should_execute');
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $this->manager->migrate(20201207205056);
@@ -735,7 +735,7 @@ class ManagerTest extends TestCase
         $this->assertTrue(in_array('mig_should_execute', $this->connection->getSchemaCollection()->listCollections(), true));
 
         $this->connection->getDatabase()->dropCollection('mig_should_execute');
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 
@@ -752,7 +752,7 @@ class ManagerTest extends TestCase
 
         $this->connection->getDatabase()->dropCollection('mig_info');
         $this->connection->getDatabase()->dropCollection('mig_users');
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
 
         $manager = new SchemaManager($this->connection);
@@ -769,7 +769,7 @@ class ManagerTest extends TestCase
         $this->assertFalse(in_array('mig_info', $manager->listCollections(), true));
         $this->assertFalse(in_array('mig_users', $manager->listCollections(), true));
 
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 

@@ -68,7 +68,7 @@ class MongoDocBlockHelper extends DocBlockHelper
     }
 
     /**
-     * Builds table annotations for a Collection.
+     * Builds collection annotations for a Collection.
      *
      * @param array<string, array<string, array<string, mixed>>> $associations Associations data.
      * @param array<string, array<string, string>> $associationInfo Association info map.
@@ -77,7 +77,7 @@ class MongoDocBlockHelper extends DocBlockHelper
      * @param string $namespace App namespace.
      * @return array<int, string>
      */
-    public function buildTableAnnotations(
+    public function buildCollectionAnnotations(
         array $associations,
         array $associationInfo,
         array $behaviors,
@@ -89,8 +89,8 @@ class MongoDocBlockHelper extends DocBlockHelper
             foreach ($assocs as $assoc) {
                 $typeStr = Inflector::camelize($type);
                 if (isset($associationInfo[$assoc['alias']])) {
-                    $tableFqn = $associationInfo[$assoc['alias']]['targetFqn'];
-                    $annotations[] = "@property {$tableFqn}&\Crustum\Mongo\ODM\Association\\{$typeStr} \${$assoc['alias']}";
+                    $targetFqn = $associationInfo[$assoc['alias']]['targetFqn'];
+                    $annotations[] = "@property {$targetFqn}&\Crustum\Mongo\ODM\Association\\{$typeStr} \${$assoc['alias']}";
                 }
             }
         }

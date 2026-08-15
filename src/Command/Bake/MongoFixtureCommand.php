@@ -74,9 +74,9 @@ class MongoFixtureCommand extends BakeCommand
             $namespace = $this->_pluginNamespace($this->plugin) . '\Test\Fixture';
         }
 
-        $table = (string)$args->getOption('table');
-        if ($table === '') {
-            $table = Inflector::underscore(Inflector::pluralize($name));
+        $collectionName = (string)$args->getOption('collection');
+        if ($collectionName === '') {
+            $collectionName = Inflector::underscore(Inflector::pluralize($name));
         }
 
         $fields = [];
@@ -99,7 +99,7 @@ class MongoFixtureCommand extends BakeCommand
             ->set('name', $name)
             ->set('namespace', $namespace)
             ->set('plugin', $this->plugin)
-            ->set('table', $table)
+            ->set('collection', $collectionName)
             ->set('fields', $fields)
             ->set('records', $records)
             ->set('hasRecords', $records !== [])
@@ -207,7 +207,7 @@ class MongoFixtureCommand extends BakeCommand
                 'help' => 'Name of the fixture to bake (e.g., Articles). "Fixture" suffix is added automatically.',
                 'required' => true,
             ])
-            ->addOption('table', [
+            ->addOption('collection', [
                 'help' => 'The collection name if it does not follow conventions.',
                 'default' => '',
             ]);

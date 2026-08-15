@@ -74,7 +74,7 @@ class MigrationsTest extends TestCase
         if (in_array('mig_articles', $this->manager->listCollections(), true)) {
             $this->manager->dropCollection('mig_articles');
         }
-        $this->connection->getCollection('_migrations')->deleteMany([]);
+        $this->connection->getCollection('cake_migrations')->deleteMany([]);
         $this->connection->getCollection('_seeds')->deleteMany([]);
     }
 

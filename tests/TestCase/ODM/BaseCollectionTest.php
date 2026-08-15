@@ -6087,8 +6087,8 @@ class BaseCollectionTest extends TestCase
     {
         $collection = $this->getCollectionLocator()->get('Users');
         $validator = new Validator();
-        $validator->setProvider('table', $collection);
-        $validator->add('username', 'unique', ['rule' => 'validateUnique', 'provider' => 'table']);
+        $validator->setProvider('collection', $collection);
+        $validator->add('username', 'unique', ['rule' => 'validateUnique', 'provider' => 'collection']);
 
         $data = ['username' => ['larry', 'notthere']];
         $this->assertNotEmpty($validator->validate($data));
@@ -6117,10 +6117,10 @@ class BaseCollectionTest extends TestCase
         $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $collection = $this->getCollectionLocator()->get('Users');
         $validator = new Validator();
-        $validator->setProvider('table', $collection);
+        $validator->setProvider('collection', $collection);
         $validator->add('username', 'unique', [
             'rule' => ['validateUnique', ['derp' => 'erp', 'scope' => 'id']],
-            'provider' => 'table',
+            'provider' => 'collection',
         ]);
         $data = ['username' => 'larry', '_id' => '000000000000000000000003'];
         $this->assertNotEmpty($validator->validate($data));
@@ -6148,7 +6148,7 @@ class BaseCollectionTest extends TestCase
         $collection->save($document);
 
         $validator = new Validator();
-        $validator->setProvider('table', $collection);
+        $validator->setProvider('collection', $collection);
         $validator->add('site_id', 'unique', [
             'rule' => [
                 'validateUnique',
@@ -6157,7 +6157,7 @@ class BaseCollectionTest extends TestCase
                     'scope' => ['author_id'],
                 ],
             ],
-            'provider' => 'table',
+            'provider' => 'collection',
             'message' => 'Must be unique.',
         ]);
 

@@ -69,7 +69,7 @@ class MongoModelCommand extends BakeCommand
      *
      * @var array<string>
      */
-    public array $skipCollections = ['_migrations', '_seeds', 'system'];
+    public array $skipCollections = ['cake_migrations', '_seeds', 'system'];
 
     /**
      * @inheritDoc
@@ -498,28 +498,28 @@ class MongoModelCommand extends BakeCommand
     public function findBelongsToMany(BaseCollection $model, string $collectionName, array $associations): array
     {
         $foreignKey = $this->_modelKey($collectionName);
-        $tables = $this->listAll();
+        $collections = $this->listAll();
 
-        foreach ($tables as $otherCollectionName) {
-            $assocTable = null;
+        foreach ($collections as $otherCollectionName) {
+            $assocCollection = null;
             $offset = strpos($otherCollectionName, $collectionName . '_');
             $otherOffset = strpos($otherCollectionName, '_' . $collectionName);
 
             if ($offset !== false) {
-                $assocTable = substr($otherCollectionName, strlen($collectionName . '_'));
+                $assocCollection = substr($otherCollectionName, strlen($collectionName . '_'));
             } elseif ($otherOffset !== false) {
-                $assocTable = substr($otherCollectionName, 0, $otherOffset);
+                $assocCollection = substr($otherCollectionName, 0, $otherOffset);
             }
 
-            if (!$assocTable) {
+            if (!$assocCollection) {
                 continue;
             }
 
-            if (!in_array($assocTable, $tables, true)) {
+            if (!in_array($assocCollection, $collections, true)) {
                 continue;
             }
 
-            $habtmName = $this->_camelize($assocTable);
+            $habtmName = $this->_camelize($assocCollection);
             $associations['belongsToMany'][] = [
                 'alias' => $habtmName,
                 'foreignKey' => $foreignKey,
@@ -541,14 +541,14 @@ class MongoModelCommand extends BakeCommand
      */
     public function isPossibleBelongsToManyRelation(string $sourceCollection, string $targetCollection): bool
     {
-        $tables = $this->listAll();
+        $collections = $this->listAll();
 
-        $pregTableName = preg_quote($sourceCollection, '/');
-        $pregPattern = "/^{$pregTableName}_|_{$pregTableName}$/";
+        $pregCollectionName = preg_quote($sourceCollection, '/');
+        $pregPattern = "/^{$pregCollectionName}_|_{$pregCollectionName}$/";
 
         if (preg_match($pregPattern, $targetCollection) === 1) {
-            $possibleBTMTargetTable = preg_replace($pregPattern, '', $targetCollection);
-            if (in_array($possibleBTMTargetTable, $tables, true)) {
+            $possibleBTMTargetCollection = preg_replace($pregPattern, '', $targetCollection);
+            if (in_array($possibleBTMTargetCollection, $collections, true)) {
                 return true;
             }
         }
@@ -852,7 +852,7 @@ class MongoModelCommand extends BakeCommand
         }
 
         if (isset($metaData['unique']) && $metaData['unique'] === true) {
-            $validation['unique'] = ['rule' => 'validateUnique', 'provider' => 'table'];
+            $validation['unique'] = ['rule' => 'validateUnique', 'provider' => 'collection'];
         }
 
         return $validation;

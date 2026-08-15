@@ -29,13 +29,13 @@
  */
 class {{ name }}Fixture extends TestFixture
 {
-{% if table %}
+{% if collection %}
     /**
-     * Table name
+     * Collection name
      *
      * @var string
      */
-    public string $table = '{{ table|raw }}';
+    public string $collection = '{{ collection|raw }}';
 {% endif %}
 
 {%- if import %}
