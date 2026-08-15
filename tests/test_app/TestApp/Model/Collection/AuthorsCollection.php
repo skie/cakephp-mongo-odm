@@ -31,9 +31,9 @@ class AuthorsCollection extends BaseCollection
         }));
     }
 
-    public function findWithIdArgument(SelectQuery $query, int $id): SelectQuery
+    public function findWithIdArgument(SelectQuery $query, string|int $id): SelectQuery
     {
-        return $query->where(['id' => $id]);
+        return $query->where(['_id' => $id]);
     }
 
     public function findCustom(SelectQuery $query, array $id = [], bool $second = true): SelectQuery

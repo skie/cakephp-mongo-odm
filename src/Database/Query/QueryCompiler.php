@@ -295,7 +295,9 @@ class QueryCompiler
                 $resolvedValue = is_string($value) && !str_starts_with($value, '$')
                     ? $this->resolveField($value)
                     : $value;
-                $projection[$this->resolveField($key)] = $resolvedValue;
+                $projection[$this->resolveField($key)] = is_string($resolvedValue) && preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $resolvedValue)
+                    ? '$' . $resolvedValue
+                    : $resolvedValue;
             }
         }
 

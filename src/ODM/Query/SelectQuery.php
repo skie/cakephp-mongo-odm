@@ -9,6 +9,7 @@ use Cake\Database\ExpressionInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
+use Cake\Datasource\ResultSetInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\SelectQuery as DatabaseSelectQuery;
@@ -791,6 +792,33 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Pre-sets the result set returned by `all()`, skipping the database query.
+     *
+     * Used by `Collection.beforeFind` handlers to override the query results
+     * (cake6 `SelectQuery::setResult()` parity). The iterable is decorated
+     * through the ODM result pipeline (hydration, formatting) before being
+     * cached on the query.
+     *
+     * @param iterable<mixed> $results The results to return.
+     * @return $this
+     */
+    public function setResult(iterable $results): static
+    {
+        $resultSet = new ResultSet($results, $this);
+
+        foreach ($this->formatters as $formatter) {
+            $formatted = $formatter($resultSet, $this);
+            $resultSet = $formatted instanceof ResultSet
+                ? $formatted
+                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, $this);
+        }
+
+        $this->results = $resultSet;
+
+        return $this;
+    }
+
+    /**
      * Triggers the `Collection.beforeFind` event on the query's repository.
      *
      * Fires at most once per query execution (cake6 `SelectQuery::triggerBeforeFind()`
@@ -829,7 +857,23 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function execute(): mixed
     {
         $this->triggerBeforeFind();
+        if ($this->results !== null) {
+            return $this->results instanceof ResultSetInterface ? $this->results : new ResultSet($this->results);
+        }
+
         $this->addDefaultFields();
+
+        $builder = $this->getBuilder();
+        $projection = $builder->getProjection();
+        if (
+            $projection !== []
+            && $this->autoFields !== true
+            && $builder->getGroup() === []
+            && $builder->getHaving() === []
+            && !array_key_exists('_id', $projection)
+        ) {
+            $builder->select(['_id' => 0], false);
+        }
 
         if ($this->repository instanceof BaseCollection) {
             $this->eagerLoader->attachAssociations($this, $this->repository);

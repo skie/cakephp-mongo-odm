@@ -600,7 +600,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllNoFieldsAndNoHydration(): void
     {
-        $this->markTestSkipped('// Unhydrated results return raw strings for datetime fields (F16, needs unhydrated type casting); see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -635,7 +634,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllSomeFieldsNoHydration(): void
     {
-        $this->markTestSkipped('// Mongo projection semantics gap (F16): ODM select() must exclude `_id` and alias fields without leaking into the Database QueryCompiler layer.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -658,10 +656,10 @@ class BaseCollectionTest extends TestCase
             ->enableHydration(false)
             ->toArray();
         $expected = [
-            ['foo' => 'garrett', 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO'],
-            ['foo' => 'larry', 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO'],
-            ['foo' => 'mariano', 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO'],
-            ['foo' => 'nate', 'password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO'],
+            ['password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO', 'foo' => 'garrett'],
+            ['password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO', 'foo' => 'larry'],
+            ['password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO', 'foo' => 'mariano'],
+            ['password' => '$2a$10$u05j8FjsvLBNdfhBhc21LOuVMpzpabVXQ9OpC2wO3pSO0q6t7HHMO', 'foo' => 'nate'],
         ];
         $this->assertSame($expected, $results);
     }
@@ -672,16 +670,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindAllConditionAutoTypes(): void
     {
-        $this->markTestSkipped('// DateTime condition casting in where() is not applied for datetime fields (F16); see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
         ]);
         $query = $collection->find('all')
-            ->select(['id', 'username'])
+            ->select(['_id', 'username'])
             ->where(['created >=' => new DateTime('2010-01-22 00:00')])
             ->enableHydration(false)
-            ->orderBy('id');
+            ->orderBy('_id');
         $expected = [
             ['_id' => '000000000000000000000003', 'username' => 'larry'],
             ['_id' => '000000000000000000000004', 'username' => 'garrett'],
@@ -690,12 +687,12 @@ class BaseCollectionTest extends TestCase
 
         $query = $collection->find()
             ->enableHydration(false)
-            ->select(['id', 'username'])
+            ->select(['_id', 'username'])
             ->where(['OR' => [
                 'created >=' => new DateTime('2010-01-22 00:00'),
                 'users.created' => new DateTime('2008-03-17 01:18:23'),
             ]])
-            ->orderBy('id');
+            ->orderBy('_id');
         $expected = [
             ['_id' => '000000000000000000000002', 'username' => 'nate'],
             ['_id' => '000000000000000000000003', 'username' => 'larry'],
@@ -709,7 +706,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindBeforeFindEventMutateQuery(): void
     {
-        $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind); see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -731,7 +727,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindBeforeFindEventOverrideReturn(): void
     {
-        $this->markTestSkipped('// Collection.beforeFind event not dispatched by ODM SelectQuery (no triggerBeforeFind/setResult); see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -878,7 +873,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testSelfJoinAssociations(): void
     {
-        $this->markTestSkipped('// Eager loader FK-selection check: select() must auto-include the binding key for contained associations (F17); see 18-orm-tests-port-plan.md.');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $options = ['className' => 'Categories'];
         $Categories->hasMany('Children', ['foreignKey' => 'parent_id'] + $options);
@@ -897,11 +891,6 @@ class BaseCollectionTest extends TestCase
             '_id' => '000000000000000000000002',
             'parent_id' => '000000000000000000000001',
             'name' => 'Category 1.1',
-            'parent' => [
-                '_id' => '000000000000000000000001',
-                'parent_id' => '000000000000000000000000',
-                'name' => 'Category 1',
-            ],
             'children' => [
                 [
                     '_id' => '000000000000000000000007',
@@ -914,13 +903,18 @@ class BaseCollectionTest extends TestCase
                     'name' => 'Category 1.1.2',
                 ],
             ],
+            'parent' => [
+                '_id' => '000000000000000000000001',
+                'parent_id' => '0',
+                'name' => 'Category 1',
+            ],
         ];
 
-        $fields = ['id', 'parent_id', 'name'];
+        $fields = ['_id', 'parent_id', 'name'];
         $result = $Categories->find('all')
-            ->select(['Categories.id', 'Categories.parent_id', 'Categories.name'])
+            ->select(['Categories._id', 'Categories.parent_id', 'Categories.name'])
             ->contain(['Children' => ['fields' => $fields], 'Parent' => ['fields' => $fields]])
-            ->where(['Categories.id' => '000000000000000000000002'])
+            ->where(['Categories._id' => '000000000000000000000002'])
             ->first()
             ->toArray();
 
@@ -952,7 +946,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testHasManyWithClassName(): void
     {
-        $this->markTestSkipped('// Eager loader FK-selection check: select() must auto-include the binding key for contained associations (F17); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->hasMany('Comments', [
             'conditions' => ['published' => 'Y'],
@@ -967,13 +960,6 @@ class BaseCollectionTest extends TestCase
         $expected = [
             '_id' => '000000000000000000000001',
             'title' => 'First Article',
-            'unaproved_comments' => [
-                [
-                    '_id' => '000000000000000000000004',
-                    'article_id' => '000000000000000000000001',
-                    'comment' => 'Fourth Comment for First Article',
-                ],
-            ],
             'comments' => [
                 [
                     '_id' => '000000000000000000000001',
@@ -991,12 +977,19 @@ class BaseCollectionTest extends TestCase
                     'comment' => 'Third Comment for First Article',
                 ],
             ],
+            'unaproved_comments' => [
+                [
+                    '_id' => '000000000000000000000004',
+                    'article_id' => '000000000000000000000001',
+                    'comment' => 'Fourth Comment for First Article',
+                ],
+            ],
         ];
         $result = $collection->find()
-            ->select(['id', 'title'])
+            ->select(['_id', 'title'])
             ->contain([
-                'Comments' => ['fields' => ['id', 'article_id', 'comment']],
-                'UnapprovedComments' => ['fields' => ['id', 'article_id', 'comment']],
+                'Comments' => ['fields' => ['_id', 'article_id', 'comment']],
+                'UnapprovedComments' => ['fields' => ['_id', 'article_id', 'comment']],
             ])
             ->where(['_id' => '000000000000000000000001'])
             ->first();
@@ -1114,7 +1107,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUpdateAll(): void
     {
-        $this->markTestSkipped('// Mongo projection semantics gap (F16): select() must exclude `_id` from results; see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'users',
             'connection' => $this->connection,
@@ -1132,7 +1124,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame(3, $result);
 
         $result = $collection->find('all')
-            ->select(['username', '_id' => '000000000000000000000000'])
+            ->select(['username', '_id' => 0])
             ->orderBy(['_id' => 'asc'])
             ->enableHydration(false)
             ->toArray();
@@ -1328,12 +1320,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindTypedParameters(): void
     {
-        $this->markTestSkipped('// Finder filters `where([\'id\' => $id])` but Mongo documents store identity in `_id` (no id→_id automap); see 18-orm-tests-port-plan.md.');
-        $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', 2)->first();
-        $this->assertSame(2, $author->getId());
+        $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', '000000000000000000000002')->first();
+        $this->assertSame('000000000000000000000002', $author->getId());
 
-        $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', id: 2)->first();
-        $this->assertSame(2, $author->getId());
+        $author = $this->getCollectionLocator()->get('Authors')->find('WithIdArgument', id: '000000000000000000000002')->first();
+        $this->assertSame('000000000000000000000002', $author->getId());
     }
 
     /**
@@ -1515,7 +1506,7 @@ class BaseCollectionTest extends TestCase
             ],
         ];
         $results = $collection->find('all')
-            ->select(['id', 'parent_id', 'name'])
+            ->select(['_id', 'parent_id', 'name'])
             ->enableHydration(false)
             ->find('threaded')
             ->toArray();
