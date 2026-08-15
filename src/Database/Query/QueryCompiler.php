@@ -214,7 +214,12 @@ class QueryCompiler
         if (is_array($conditions)) {
             $conditions = $this->castConditions($conditions, $types);
             $parsed = $this->expressionBuilder->parse($conditions);
-            $this->filter = $overwrite ? $parsed : array_merge_recursive($this->filter, $parsed);
+            if ($overwrite) {
+                $this->filter = [];
+            }
+            foreach ($parsed as $field => $condition) {
+                $this->filter[(string)$field] = $condition;
+            }
         }
 
         return $this;
@@ -473,7 +478,12 @@ class QueryCompiler
         if (is_array($conditions)) {
             $conditions = $this->castConditions($conditions, $types);
             $parsed = $this->expressionBuilder->parse($conditions);
-            $this->having = $overwrite ? $parsed : array_merge_recursive($this->having, $parsed);
+            if ($overwrite) {
+                $this->having = [];
+            }
+            foreach ($parsed as $field => $condition) {
+                $this->having[(string)$field] = $condition;
+            }
         }
 
         return $this;
