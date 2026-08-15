@@ -19,6 +19,7 @@ use Crustum\Mongo\ODM\EagerLoader;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use InvalidArgumentException;
+use JsonSerializable;
 use Psr\SimpleCache\CacheInterface;
 use Throwable;
 use Traversable;
@@ -31,7 +32,7 @@ use Traversable;
  *
  * @see cake60/src/ORM/Query/SelectQuery.php
  */
-class SelectQuery extends DatabaseSelectQuery implements QueryInterface
+class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, QueryInterface
 {
     use CommonQueryTrait;
 
@@ -1002,6 +1003,16 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
         $this->triggerBeforeFind();
 
         return parent::sql();
+    }
+
+    /**
+     * Returns the executed results for JSON serialization.
+     *
+     * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
+     */
+    public function jsonSerialize(): ResultSetInterface
+    {
+        return $this->all();
     }
 
     /**

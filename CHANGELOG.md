@@ -70,6 +70,10 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **SelectQuery implements JsonSerializable (doc 40, G4)** —
+  `SelectQuery` now implements `JsonSerializable` (cake60 ORM parity) and
+  `jsonSerialize()` returns `all()`, so `json_encode($query)` yields the
+  results instead of `{}`. `testJsonSerialize` green.
 - **BelongsToMany matching `_matchingData` (doc 40, G3)** —
   `ResultSet::groupResult()` (hydrated) and `applyMatchingData()` (unhydrated)
   add `_matchingData.<JunctionAlias>` for BelongsToMany matching, selecting the
