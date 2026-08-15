@@ -15,6 +15,8 @@ use Crustum\Mongo\ODM\Association\Embedded;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use IteratorIterator;
+use MongoDB\BSON\ObjectId;
+use MongoDB\Model\BSONArray;
 use MongoDB\Model\BSONDocument;
 
 /**
@@ -125,6 +127,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         if (!$this->query || !$this->query->isHydrationEnabled() || $this->query->isDtoProjectionEnabled()) {
             if (is_array($result) || $result instanceof BSONDocument) {
                 $data = $this->convertRow((array)$result);
+                $data = $this->deconstructBelongsToMany($data);
 
                 return $this->hydrated[$index] = $data;
             }
@@ -154,12 +157,28 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             return $row;
         }
 
+        return $this->convertRowWith($row, $repository);
+    }
+
+    /**
+     * Converts a row through a specific repository type map.
+     *
+     * @param array<string, mixed> $row The row data.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The repository whose schema drives casting.
+     * @return array<string, mixed>
+     */
+    protected function convertRowWith(array $row, BaseCollection $repository): array
+    {
         $schema = $repository->getSchema();
         $driver = $repository->getConnection()?->getDriver();
 
         foreach ($row as $field => $value) {
             $typeName = $schema->getColumnType((string)$field);
             if ($typeName === null) {
+                if ($value instanceof BSONDocument || $value instanceof BSONArray) {
+                    $row[$field] = self::bsonToArray($value);
+                }
+
                 continue;
             }
 
@@ -171,6 +190,35 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
 
         return $row;
+    }
+
+    /**
+     * Recursively converts BSON values into plain arrays.
+     *
+     * @param mixed $value The BSON value to convert.
+     * @return mixed
+     */
+    protected static function bsonToArray(mixed $value): mixed
+    {
+        if ($value instanceof BSONArray) {
+            return array_map([self::class, 'bsonToArray'], $value->getArrayCopy());
+        }
+        if ($value instanceof BSONDocument) {
+            $out = [];
+            foreach ($value as $k => $v) {
+                $out[$k] = self::bsonToArray($v);
+            }
+
+            return $out;
+        }
+        if (is_array($value)) {
+            return array_map([self::class, 'bsonToArray'], $value);
+        }
+        if ($value instanceof ObjectId) {
+            return (string)$value;
+        }
+
+        return $value;
     }
 
     /**
@@ -352,6 +400,72 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             'markNew' => false,
             'markClean' => true,
         ]);
+    }
+
+    /**
+     * Deconstructs belongsToMany join data on an unhydrated row.
+     *
+     * Lookup pipelines expose the joined target rows under the property and the
+     * junction rows under `_join_<property>`. Hydration handles this in
+     * `groupResult()`; arrays must resolve `_joinData` the same way and drop
+     * the intermediate `_join_` field.
+     *
+     * @param array<string, mixed> $row The converted row data.
+     * @return array<string, mixed>
+     */
+    protected function deconstructBelongsToMany(array $row): array
+    {
+        foreach ($this->_containMap as $assoc) {
+            if (!empty($assoc['matching'])) {
+                continue;
+            }
+
+            $instance = $assoc['instance'];
+            if (!$instance instanceof BelongsToMany) {
+                continue;
+            }
+
+            $propertyName = $instance->getProperty();
+            if (!array_key_exists($propertyName, $row)) {
+                continue;
+            }
+
+            $junctionKey = '_join_' . $propertyName;
+            $junctionRows = (array)($row[$junctionKey] ?? []);
+            $junction = $instance->junction();
+            $target = $instance->getTarget();
+            $targetFk = $instance->getTargetForeignKey();
+            $junctionProperty = $instance->getJunctionProperty();
+            $junctionMap = [];
+            foreach ($junctionRows as $junctionRow) {
+                $junctionRow = $this->convertRowWith((array)$junctionRow, $junction);
+                unset($junctionRow['_id']);
+                $joinKey = (string)($junctionRow[$targetFk] ?? $junctionRow['_id'] ?? '');
+                if ($joinKey === '') {
+                    continue;
+                }
+
+                $junctionMap[$joinKey] = $junctionRow;
+            }
+
+            $tags = (array)($row[$propertyName] ?? []);
+            $row[$propertyName] = array_map(
+                function (mixed $item) use ($target, $junctionMap, $junctionProperty): mixed {
+                    $item = $this->convertRowWith(is_array($item) ? $item : (array)$item, $target);
+                    $joinKey = (string)($item['_id'] ?? '');
+                    if ($joinKey !== '' && isset($junctionMap[$joinKey])) {
+                        $item[$junctionProperty] = $junctionMap[$joinKey];
+                    }
+
+                    return $item;
+                },
+                $tags,
+            );
+
+            unset($row[$junctionKey]);
+        }
+
+        return $row;
     }
 
     /**

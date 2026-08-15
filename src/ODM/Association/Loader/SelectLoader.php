@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association\Loader;
 
+use ArrayAccess;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
@@ -56,6 +57,9 @@ class SelectLoader implements LoaderInterface
             $parentQuery = $options['query'] ?? null;
             if ($query instanceof Query && $parentQuery instanceof Query) {
                 $query->setConnectionRole($parentQuery->getConnectionRole());
+            }
+            if ($query instanceof SelectQuery && $parentQuery instanceof SelectQuery) {
+                $query->hydrate($parentQuery->isHydrationEnabled());
             }
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'
@@ -160,27 +164,145 @@ class SelectLoader implements LoaderInterface
             $property = (string)$options['nestKey'];
             $many = ($options['associationType'] ?? '') === 'oneToMany'
                 || ($options['associationType'] ?? '') === 'manyToMany';
-            foreach ($sourceEntities as $sourceEntity) {
+
+            $loadedMap = [];
+            foreach ($sourceEntities as $i => $sourceEntity) {
                 if ($disabledKey) {
-                    $loaded = $many ? $map['*'] : ($map['*'][0] ?? null);
+                    $loadedMap[$i] = $many ? $map['*'] : ($map['*'][0] ?? null);
                 } else {
                     $value = $sourceEntity instanceof EntityInterface
                         ? $sourceEntity->get($sourceKey)
                         : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
                     $key = $value === null ? '' : (string)$value;
-                    $loaded = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+                    $loadedMap[$i] = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+                }
+            }
+
+            $sourcePaths = $sourcePath === ''
+                ? []
+                : $this->collectSourcePaths($entities, $sourcePath);
+
+            foreach ($loadedMap as $i => $loaded) {
+                if ($sourcePath === '') {
+                    $sourceEntity = $sourceEntities[$i] ?? null;
+                    if ($sourceEntity instanceof EntityInterface) {
+                        $sourceEntity->set($property, $loaded);
+                        $sourceEntity->setDirty($property, false);
+                    } elseif (is_array($sourceEntity) && is_array($entities)) {
+                        $entities[$i][$property] = $loaded;
+                    }
+
+                    continue;
                 }
 
-                if ($sourceEntity instanceof EntityInterface) {
-                    $sourceEntity->set($property, $loaded);
-                    $sourceEntity->setDirty($property, false);
-                } elseif (is_array($sourceEntity)) {
-                    $sourceEntity[$property] = $loaded;
+                $path = $sourcePaths[$i] ?? null;
+                if ($path === null) {
+                    continue;
                 }
+
+                $entities = $this->setByPath($entities, $path, $property, $loaded);
             }
 
             return $entities;
         };
+    }
+
+    /**
+     * Collects the nested property paths for each source entity.
+     *
+     * For a nested association the dotted `sourcePath` is walked on each root
+     * result; each visited entity records the key/index path that leads to it
+     * inside the original result, so associations can be injected by reference.
+     *
+     * @param iterable<mixed> $entities The result set.
+     * @param string $sourcePath The dotted property path to the parent entities.
+     * @return array<int, list<int|string>>
+     */
+    protected function collectSourcePaths(iterable $entities, string $sourcePath): array
+    {
+        $segments = explode('.', $sourcePath);
+
+        $paths = [];
+        foreach ($entities as $rootIndex => $root) {
+            $this->walkSourcePaths($root, $segments, [$rootIndex], $paths);
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Recursively walks a property path collecting key paths to leaves.
+     *
+     * @param mixed $document The current value.
+     * @param array<int, string> $segments The remaining path segments.
+     * @param list<int|string> $path The accumulated key path.
+     * @param array<int, list<int|string>> $paths The collected paths.
+     * @return void
+     */
+    protected function walkSourcePaths(mixed $document, array $segments, array $path, array &$paths): void
+    {
+        $segment = array_shift($segments);
+        if ($segment === null) {
+            if ($document instanceof EntityInterface || is_array($document)) {
+                $paths[] = $path;
+            }
+
+            return;
+        }
+
+        $value = $document instanceof EntityInterface
+            ? $document->get($segment)
+            : (is_array($document) ? ($document[$segment] ?? null) : null);
+
+        if ($value === null) {
+            return;
+        }
+
+        if (is_iterable($value) && !($value instanceof EntityInterface) && !is_array($value)) {
+            $value = iterator_to_array($value, false);
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            foreach ($value as $itemKey => $item) {
+                $this->walkSourcePaths($item, $segments, [...$path, $segment, $itemKey], $paths);
+            }
+
+            return;
+        }
+
+        $this->walkSourcePaths($value, $segments, [...$path, $segment], $paths);
+    }
+
+    /**
+     * Sets a nested property by key path, mutating the original structure.
+     *
+     * @param iterable<mixed> $entities The result set (array by reference).
+     * @param list<int|string> $path The key path to the target entity.
+     * @param string $property The property to set.
+     * @param mixed $loaded The value to inject.
+     * @return iterable<mixed> The (possibly rewritten) result set.
+     */
+    protected function setByPath(iterable $entities, array $path, string $property, mixed $loaded): iterable
+    {
+        $target = &$entities;
+        foreach ($path as $key) {
+            if (!is_array($target) && !($target instanceof ArrayAccess)) {
+                return $entities;
+            }
+            if (!isset($target[$key])) {
+                return $entities;
+            }
+            $target = &$target[$key];
+        }
+
+        if ($target instanceof EntityInterface) {
+            $target->set($property, $loaded);
+            $target->setDirty($property, false);
+        } elseif (is_array($target)) {
+            $target[$property] = $loaded;
+        }
+
+        return $entities;
     }
 
     /**
@@ -197,11 +319,10 @@ class SelectLoader implements LoaderInterface
     protected function collectSourceEntities(iterable $entities, string $sourcePath): array
     {
         if ($sourcePath === '') {
-            return is_array($entities) ? array_values($entities) : iterator_to_array($entities, false);
+            return is_array($entities) ? $entities : iterator_to_array($entities, false);
         }
 
         $segments = explode('.', $sourcePath);
-        array_pop($segments);
         $collected = [];
         foreach ($entities as $document) {
             $this->walkSourcePath($document, $segments, $collected);

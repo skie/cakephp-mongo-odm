@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use Cake\Datasource\QueryInterface;
+use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 
@@ -60,6 +61,13 @@ class EagerLoader
      * @var bool
      */
     private bool $pipelineAttached = false;
+
+    /**
+     * Aggregation stages added to the query by this loader.
+     *
+     * @var list<array<int|string, mixed>>
+     */
+    private array $attachedPipeline = [];
 
     /**
      * Options accepted by association containment configuration.
@@ -234,6 +242,27 @@ class EagerLoader
     }
 
     /**
+     * Returns the aggregation stages this loader attached to a query.
+     *
+     * @return list<array<int|string, mixed>>
+     */
+    public function getAttachedPipeline(): array
+    {
+        return $this->attachedPipeline;
+    }
+
+    /**
+     * Clears the tracked attached stages.
+     *
+     * @return void
+     */
+    public function clearAttachedPipeline(): void
+    {
+        $this->attachedPipeline = [];
+        $this->pipelineAttached = false;
+    }
+
+    /**
      * Ensures belongsTo foreign keys are present in the projection.
      *
      * A `belongsTo` association reads its key from the source row, so an
@@ -345,6 +374,10 @@ class EagerLoader
                             $found = true;
                             break;
                         }
+                        if (is_array($result) && array_key_exists($keyField, $result)) {
+                            $found = true;
+                            break;
+                        }
                     }
 
                     if (!$found) {
@@ -354,10 +387,15 @@ class EagerLoader
                 }
             }
 
+            $propertyPath = $loadable->propertyPath() ?? '';
+            $sourcePath = str_contains($propertyPath, '.')
+                ? implode('.', array_slice(explode('.', $propertyPath), 0, -1))
+                : '';
+
             $callback = $instance->eagerLoader($loadable->getConfig() + [
                 'query' => $query,
                 'contain' => $loadable->associations(),
-                'sourcePath' => $loadable->propertyPath(),
+                'sourcePath' => $sourcePath,
             ]);
             $results = $callback($results);
         }
@@ -604,12 +642,20 @@ class EagerLoader
 
         $strategy = $loadable->getConfig()['strategy'];
         $matching = (bool)($loadable->getConfig()['matching'] ?? false);
-        if (!$matching && ($strategy === 'select' || $strategy === 'reference')) {
+        $isNested = str_contains($loadable->propertyPath() ?? '', '.');
+        if (!$matching && $association instanceof BelongsToMany) {
+            $stages = $association->buildPipeline($loadable->getConfig());
+            if ($stages !== []) {
+                $query->pipeline($stages);
+                $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
+            }
+        } elseif (!$matching && ($strategy === 'select' || $strategy === 'reference' || $isNested)) {
             $this->external[] = $loadable;
         } else {
             $stages = $association->buildPipeline($loadable->getConfig());
             if ($stages !== []) {
                 $query->pipeline($stages);
+                $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
             }
         }
 

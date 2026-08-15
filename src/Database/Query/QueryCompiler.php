@@ -558,6 +558,26 @@ class QueryCompiler
     }
 
     /**
+     * Removes previously attached aggregation pipeline stages.
+     *
+     * @param list<array<int|string, mixed>> $stages Stages to remove.
+     * @return $this
+     */
+    public function removePipelineStages(array $stages): static
+    {
+        if ($stages === []) {
+            return $this;
+        }
+
+        $this->pipeline = array_values(array_filter(
+            $this->pipeline,
+            static fn(array $stage): bool => !in_array($stage, $stages, true),
+        ));
+
+        return $this;
+    }
+
+    /**
      * Appends a `$count` stage returning the number of documents so far.
      *
      * Renders as `['$count' => $field]` via the aggregation `Count` stage so the

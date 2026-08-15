@@ -124,7 +124,8 @@ class BelongsTo extends Association
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];
-        if ($this->getStrategy() === self::STRATEGY_LOOKUP) {
+        $isNestedLoad = !empty($options['sourcePath']);
+        if ($this->getStrategy() === self::STRATEGY_LOOKUP && !$isNestedLoad) {
             return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
         }
 

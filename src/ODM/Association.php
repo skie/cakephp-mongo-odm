@@ -17,6 +17,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
+use MongoDB\BSON\ObjectId;
+use MongoDB\Driver\Exception\InvalidArgumentException as InvalidArgumentExceptionDriver;
 use function Cake\Core\pluginSplit;
 use function Cake\Core\triggerWarning;
 
@@ -818,20 +820,30 @@ abstract class Association
     protected function applyPipelineOptions(AggregationBuilder $builder, array $options): void
     {
         if (!empty($options['conditions'])) {
-            $builder->match(is_array($options['conditions']) ? $options['conditions'] : []);
+            $builder->match($this->normalizePipelineConditions($options['conditions']));
         }
-
         if (!empty($options['fields'])) {
             $fields = (array)$options['fields'];
             if (array_is_list($fields)) {
                 $fields = array_fill_keys($fields, 1);
             }
 
-            $builder->project($fields);
+            $normalizedFields = [];
+            foreach ($fields as $field => $value) {
+                $normalizedFields[$this->resolvePipelineField((string)$field)] = $value;
+            }
+
+            $builder->project($normalizedFields);
         }
 
         if (!empty($options['sort'])) {
-            $builder->sort($this->normalizeSort($options['sort']));
+            $sort = $this->normalizeSort($options['sort']);
+            $normalizedSort = [];
+            foreach ($sort as $field => $direction) {
+                $normalizedSort[$this->resolvePipelineField((string)$field)] = $direction;
+            }
+
+            $builder->sort($normalizedSort);
         }
 
         if (!empty($options['skip'])) {
@@ -840,6 +852,78 @@ abstract class Association
 
         if (!empty($options['limit'])) {
             $builder->limit((int)$options['limit']);
+        }
+    }
+
+    /**
+     * Strips the association alias prefix from pipeline condition fields.
+     *
+     * Match conditions inside a lookup pipeline address the target collection
+     * directly, so `Alias.field` keys must lose their alias (`articles._id`
+     * becomes `_id`). Logical groups (`OR`, `AND`, `$or`, ...) are normalized
+     * recursively.
+     *
+     * @param array<string, mixed> $conditions The raw conditions.
+     * @return array<string, mixed>
+     */
+    protected function normalizePipelineConditions(array $conditions): array
+    {
+        $alias = $this->getAlias() . '.';
+        $normalized = [];
+        foreach ($conditions as $field => $value) {
+            if (str_starts_with($field, $alias)) {
+                $field = substr($field, strlen($alias));
+            }
+
+            if (is_array($value) && in_array(strtoupper($field), ['OR', 'AND', 'NOT', '$OR', '$AND', '$NOT'], true)) {
+                $value = array_map(fn(array $group): array => $this->normalizePipelineConditions($group), $value);
+            } elseif (is_array($value) && array_is_list($value)) {
+                $value = array_map(
+                    fn(mixed $item): mixed => is_array($item) ? $this->normalizePipelineConditions($item) : $item,
+                    $value,
+                );
+            } else {
+                $value = $this->castPipelineValue($value);
+            }
+
+            $normalized[$field] = $value;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Resolves a pipeline field name against the target collection.
+     *
+     * @param string $field The raw field name.
+     * @return string The resolved Mongo field name.
+     */
+    protected function resolvePipelineField(string $field): string
+    {
+        $alias = $this->getAlias() . '.';
+        if (str_starts_with($field, $alias)) {
+            $field = substr($field, strlen($alias));
+        }
+
+        return $field === 'id' ? '_id' : $field;
+    }
+
+    /**
+     * Casts a pipeline match value to its database representation.
+     *
+     * @param mixed $value The raw value.
+     * @return mixed
+     */
+    protected function castPipelineValue(mixed $value): mixed
+    {
+        if (!is_string($value) || preg_match('/^[0-9a-f]{24}$/i', $value) !== 1) {
+            return $value;
+        }
+
+        try {
+            return new ObjectId($value);
+        } catch (InvalidArgumentExceptionDriver) {
+            return $value;
         }
     }
 

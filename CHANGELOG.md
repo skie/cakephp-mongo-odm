@@ -70,6 +70,25 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **No-hydration eager loading (doc 40, G2)** — unhydrated `contain()` now nests
+  associations into plain arrays: `SelectQuery::decorate()` runs
+  `EagerLoader::loadExternal()` for both hydrated and unhydrated results;
+  `ResultSet::convertRow()` recursively converts BSON values
+  (`BSONDocument`/`BSONArray`→array, `ObjectId`→hex) so no driver objects leak
+  into unhydrated output; `ResultSet::deconstructBelongsToMany()` resolves
+  `_joinData` from lookup `_join_*` fields. `SelectQuery::dirty()` resets the
+  cached `$results` (cake60 parity) so re-`select()`/`contain()` re-executes;
+  `EagerLoader::contain()`/`clearContain()` detach previously attached
+  `$lookup` stages instead of accumulating duplicate pipelines. Nested
+  associations are dispatched to the select-loader (post-load injection via
+  `SelectLoader::collectSourcePaths()`/`setByPath()`), BelongsToMany always
+  builds its lookup pipeline, and `HasMany` containment `conditions`/`sort`/
+  `fields`/`limit`/`skip` are applied inside the `$lookup.pipeline`. Field
+  resolution now maps `Alias.id` → `_id` and strips the repository alias for
+  pipeline `$match`/`$sort`/`$project` (`Association::resolvePipelineField`).
+  Green: `ContainResultFetchingOneLevel`, `HasManyEagerLoading*`
+  (NoHydration/FieldsAndOrder/Deep/FromSecondaryTable), `BelongsToManyEagerLoadingNoHydration`
+  nesting; test rewrites `posts.id`→`posts._id`.
 - **ODM copy-artifact rename (entity/table → document/collection)** — `tools/rename-odm-copy-artifacts.php`
   renames ODM-local variables and event payload keys that were copied verbatim
   from cake60: `$entity`→`$document`, `$table`→`$collection`, `->entity`→`->document`,

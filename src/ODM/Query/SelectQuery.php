@@ -250,6 +250,21 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Marks the query dirty, discarding any cached result.
+     *
+     * Resetting `$results` mirrors cake6 ORM `SelectQuery::dirty()`, so a
+     * re-executed query always reflects the latest clauses instead of serving
+     * the previously decorated ResultSet.
+     *
+     * @return void
+     */
+    protected function dirty(): void
+    {
+        $this->results = null;
+        parent::dirty();
+    }
+
+    /**
      * Sets a custom callback used by `count()`.
      *
      * @param \Closure|null $counter The counter callable.
@@ -562,7 +577,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     /**
      * Returns all results as a plain array.
      *
-     * @return array<int, mixed>
+     * @return array<int|string, mixed>
      */
     public function toArray(): array
     {
@@ -638,6 +653,8 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function contain(array|string $associations, Closure|bool $override = false): static
     {
+        $this->removeEagerPipeline();
+
         $queryBuilder = null;
         if ($override === true) {
             $this->eagerLoader->clearContain();
@@ -655,12 +672,27 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     }
 
     /**
+     * Removes previously attached eager-load pipeline stages.
+     *
+     * @return void
+     */
+    protected function removeEagerPipeline(): void
+    {
+        $stages = $this->eagerLoader->getAttachedPipeline();
+        if ($stages !== []) {
+            $this->builder->removePipelineStages($stages);
+        }
+        $this->eagerLoader->clearAttachedPipeline();
+    }
+
+    /**
      * Clears all configured containments.
      *
      * @return $this
      */
     public function clearContain(): static
     {
+        $this->removeEagerPipeline();
         $this->eagerLoader->clearContain();
 
         return $this;
@@ -1043,7 +1075,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     {
         $resultSet = new ResultSet($rows, $this);
 
-        if ($this->hydrate && $this->dtoClass === null) {
+        if ($this->dtoClass === null) {
             $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
             if (!$loaded instanceof ResultSet) {
                 $resultSet = new ResultSet($loaded, $this);

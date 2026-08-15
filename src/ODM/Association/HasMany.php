@@ -568,7 +568,8 @@ class HasMany extends Association
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];
-        if ($this->getStrategy() === self::STRATEGY_LOOKUP) {
+        $isNestedLoad = !empty($options['sourcePath']);
+        if ($this->getStrategy() === self::STRATEGY_LOOKUP && !$isNestedLoad) {
             return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
         }
 
@@ -584,7 +585,7 @@ class HasMany extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
-        $builder
+        $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
             ->localField($this->fieldName($this->getBindingKey()))
             ->foreignField($this->fieldName($this->getForeignKey()))
@@ -603,6 +604,9 @@ class HasMany extends Association
                 $pipelineOptions['conditions'],
                 $property,
             );
+        } elseif (empty($options['matching'])) {
+            $lookup->pipeline($this->buildLookupPipeline($pipelineOptions));
+            unset($pipelineOptions['conditions'], $pipelineOptions['sort'], $pipelineOptions['fields'], $pipelineOptions['skip'], $pipelineOptions['limit']);
         }
 
         unset($pipelineOptions['fields']);
@@ -613,6 +617,60 @@ class HasMany extends Association
         }
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Builds the inner lookup pipeline from containment options.
+     *
+     * Conditions, sort, projection and pagination apply to the joined target
+     * documents, so they become stages inside `$lookup` rather than after it —
+     * mirroring how cake applies `fields`/`conditions`/`sort`/`limit` to the
+     * target query of a HasMany join.
+     *
+     * @param array<string, mixed> $options Containment options.
+     * @return list<array<string, mixed>>
+     */
+    protected function buildLookupPipeline(array $options): array
+    {
+        $stages = [];
+
+        if (!empty($options['conditions'])) {
+            $stages[] = ['$match' => $this->normalizePipelineConditions($options['conditions'])];
+        }
+
+        if (!empty($options['sort'])) {
+            $sort = [];
+            foreach ($this->normalizeSort($options['sort']) as $field => $direction) {
+                $sort[$this->resolvePipelineField((string)$field)] = $direction;
+            }
+            $stages[] = ['$sort' => $sort];
+        }
+
+        if (!empty($options['fields'])) {
+            $fields = (array)$options['fields'];
+            if (array_is_list($fields)) {
+                $fields = array_fill_keys($fields, 1);
+            }
+
+            $project = [];
+            foreach ($fields as $field => $value) {
+                $project[$this->resolvePipelineField((string)$field)] = $value;
+            }
+            if (!array_key_exists('_id', $project)) {
+                $project['_id'] = 0;
+            }
+            $stages[] = ['$project' => $project];
+        }
+
+        if (!empty($options['skip'])) {
+            $stages[] = ['$skip' => (int)$options['skip']];
+        }
+
+        if (!empty($options['limit'])) {
+            $stages[] = ['$limit' => (int)$options['limit']];
+        }
+
+        return $stages;
     }
 
     /**

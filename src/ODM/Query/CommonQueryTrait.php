@@ -75,10 +75,33 @@ trait CommonQueryTrait
         }
 
         $this->setFieldResolver(
-            static fn(string $field): string => str_starts_with($field, $alias . '.')
-                    ? substr($field, strlen($alias) + 1)
-                    : $field,
+            static fn(string $field): string => self::resolveOdmField($field, $alias),
         );
+    }
+
+    /**
+     * Resolves a query field name for the bound repository.
+     *
+     * Strips the repository alias prefix (`Alias.field` → `field`) and maps the
+     * conventional primary-key alias `id` to the Mongo `_id` field, so cake
+     * style `orderBy('articles.id')` / `where(['id' => ...])` queries target
+     * the actual ObjectId key.
+     *
+     * @param string $field The raw field name.
+     * @param string $alias The repository alias.
+     * @return string The resolved Mongo field name.
+     */
+    protected static function resolveOdmField(string $field, string $alias): string
+    {
+        if (str_starts_with($field, $alias . '.')) {
+            $field = substr($field, strlen($alias) + 1);
+        }
+
+        if ($field === 'id') {
+            return '_id';
+        }
+
+        return $field;
     }
 
     /**

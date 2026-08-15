@@ -524,14 +524,14 @@ class SelectQueryTest extends TestCase
                     'name' => 'mariano',
                     'posts' => [
                         [
-                            'id' => '1',
+                            '_id' => '000000000000000000000001',
                             'title' => 'First Post',
                             'body' => 'First Post Body',
                             'author_id' => '000000000000000000000001',
                             'published' => 'Y',
                         ],
                         [
-                            'id' => '3',
+                            '_id' => '000000000000000000000003',
                             'title' => 'Third Post',
                             'body' => 'Third Post Body',
                             'author_id' => '000000000000000000000001',
@@ -571,14 +571,14 @@ class SelectQueryTest extends TestCase
                     'name' => 'mariano',
                     'posts' => [
                         [
-                            'id' => '1',
+                            '_id' => '000000000000000000000001',
                             'title' => 'First Post',
                             'body' => 'First Post Body',
                             'author_id' => '000000000000000000000001',
                             'published' => 'Y',
                         ],
                         [
-                            'id' => '3',
+                            '_id' => '000000000000000000000003',
                             'title' => 'Third Post',
                             'body' => 'Third Post Body',
                             'author_id' => '000000000000000000000001',
