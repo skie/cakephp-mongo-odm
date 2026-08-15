@@ -148,7 +148,7 @@ class RulesCheckerIntegrationTest extends TestCase
             ->rulesChecker()
             ->add(
                 function (Document $document, array $options) use ($collection): bool {
-                    $this->assertSame($collection, $options['_sourceTable']);
+                    $this->assertSame($collection, $options['sourceCollection']);
 
                     return $document->title === '1';
                 },

@@ -5135,7 +5135,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToInternalSaveAndDeleteCallsUsingBelongsToManyReplaceLinks(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $articles->Tags;
 
@@ -5191,7 +5190,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToImplicitHasManyDeletesUsingSaveReplace(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
 
         $articles = $authors->Articles;
@@ -5231,7 +5229,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToInternalSaveCallsUsingHasManyLink(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $authors->Articles;
 
@@ -5272,7 +5269,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToInternalSaveCallsUsingHasManyUnlink(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $authors->Articles;
         $articles->setDependent(true);
@@ -5307,7 +5303,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testOptionsBeingPassedToInternalSaveAndDeleteCallsUsingHasManyReplace(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $authors->Articles;
         $articles->setDependent(true);
@@ -5399,7 +5394,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testBackwardsCompatibilityForHasManyUnlinkCleanPropertyOption(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $authors = $this->getCollectionLocator()->get('Authors');
         $articles = $authors->Articles;
         $articles->setDependent(true);
@@ -5461,7 +5455,7 @@ class BaseCollectionTest extends TestCase
     #[DataProvider('providerForTestGet')]
     public function testGet(array $options): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// SQL primary-key schema constraints vs ODM `_id` (no id-_id automap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
@@ -5529,7 +5523,7 @@ class BaseCollectionTest extends TestCase
     #[DataProvider('providerForTestGetWithCache')]
     public function testGetWithCache(array $options, string $cacheKey, string $cacheConfig, int|string|DateTime $primaryKey): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// SQL primary-key schema constraints vs ODM `_id` (no id-_id automap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
@@ -5572,9 +5566,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetNotFoundException(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(RecordNotFoundException::class);
-        $this->expectExceptionMessage('Record not found in table `articles`.');
+        $this->expectExceptionMessage('Record not found in collection `articles`.');
         $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
@@ -5588,9 +5581,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetExceptionOnNoData(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidPrimaryKeyException::class);
-        $this->expectExceptionMessage('Record not found in table `articles` with primary key `[NULL]`.');
+        $this->expectExceptionMessage('Record not found in collection `articles` with primary key `[NULL]`.');
         $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
@@ -5604,9 +5596,8 @@ class BaseCollectionTest extends TestCase
      */
     public function testGetExceptionOnTooMuchData(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $this->expectException(InvalidPrimaryKeyException::class);
-        $this->expectExceptionMessage("Record not found in table `articles` with primary key `[1, 'two']`.");
+        $this->expectExceptionMessage("Record not found in collection `articles` with primary key `[1, 'two']`.");
         $collection = new BaseCollection([
             'name' => 'Articles',
             'connection' => $this->connection,
@@ -5739,7 +5730,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDebugInfo(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('articles');
         $articles->addBehavior('Timestamp');
 
@@ -5748,11 +5738,11 @@ class BaseCollectionTest extends TestCase
             'registryAlias' => 'articles',
             'collection' => 'articles',
             'alias' => 'articles',
-            'entityClass' => Article::class,
+            'documentClass' => Article::class,
             'associations' => ['Authors', 'Tags', 'ArticlesTags'],
             'behaviors' => ['Timestamp'],
-            'defaultConnection' => 'default',
-            'connectionName' => 'test',
+            'defaultConnection' => 'mongo',
+            'connectionName' => 'test_mongo',
         ];
         $this->assertEquals($expected, $result);
 
@@ -5762,11 +5752,11 @@ class BaseCollectionTest extends TestCase
             'registryAlias' => 'Foo.Articles',
             'collection' => 'articles',
             'alias' => 'Articles',
-            'entityClass' => Document::class,
+            'documentClass' => Document::class,
             'associations' => [],
             'behaviors' => [],
-            'defaultConnection' => 'default',
-            'connectionName' => 'test',
+            'defaultConnection' => 'mongo',
+            'connectionName' => 'test_mongo',
         ];
         $this->assertEquals($expected, $result);
     }
@@ -5819,7 +5809,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindOrCreateDefaults(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
 
         $callbackExecuted = false;
@@ -5837,12 +5826,12 @@ class BaseCollectionTest extends TestCase
         $this->assertSame('First Article', $article->title);
         $this->assertSame('New body', $article->body);
         $this->assertSame('N', $article->published);
-        $this->assertSame(2, $article->author_id);
+        $this->assertSame('000000000000000000000002', $article->author_id);
 
         $query = $articles->find()->where(['author_id' => '000000000000000000000002', 'title' => 'First Article']);
         $article = $articles->findOrCreate($query);
         $this->assertSame('First Article', $article->title);
-        $this->assertSame(2, $article->author_id);
+        $this->assertSame('000000000000000000000002', $article->author_id);
         $this->assertFalse($article->isNew());
     }
 
@@ -5906,7 +5895,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindOrCreateTransactions(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->getEventManager()->on('Collection.afterSaveCommit', function (EventInterface $event, EntityInterface $document, ArrayObject $options): void {
             $document->afterSaveCommit = true;
@@ -5974,7 +5962,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testFindOrCreatePatchableFields(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->setDocumentClass(ProtectedEntity::class);
 
@@ -6036,16 +6023,15 @@ class BaseCollectionTest extends TestCase
      */
     public function testInitializeEvent(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $count = 0;
         $cb = function (EventInterface $event) use (&$count): void {
             $count++;
         };
-        EventManager::instance()->on('Model.initialize', $cb);
+        EventManager::instance()->on('Collection.initialize', $cb);
         $this->getCollectionLocator()->get('Articles');
 
         $this->assertSame(1, $count, 'Callback should be called');
-        EventManager::instance()->off('Model.initialize', $cb);
+        EventManager::instance()->off('Collection.initialize', $cb);
     }
 
     /**
@@ -6066,12 +6052,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testBuildValidatorEvent(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $count = 0;
         $cb = function (EventInterface $event) use (&$count): void {
             $count++;
         };
-        EventManager::instance()->on('Model.buildValidator', $cb);
+        EventManager::instance()->on('Collection.buildValidator', $cb);
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->getValidator();
         $this->assertSame(1, $count, 'Callback should be called');
@@ -6114,12 +6099,11 @@ class BaseCollectionTest extends TestCase
      */
     public function testValidateUniqueScope(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
         $collection = $this->getCollectionLocator()->get('Users');
         $validator = new Validator();
         $validator->setProvider('collection', $collection);
         $validator->add('username', 'unique', [
-            'rule' => ['validateUnique', ['derp' => 'erp', 'scope' => 'id']],
+            'rule' => ['validateUnique', ['derp' => 'erp', 'scope' => '_id']],
             'provider' => 'collection',
         ]);
         $data = ['username' => 'larry', '_id' => '000000000000000000000003'];
@@ -6171,7 +6155,7 @@ class BaseCollectionTest extends TestCase
      */
     public function testCallbackArgumentTypes(): void
     {
-        $this->markTestSkipped('// F-hide-issues — ODM port gap, see 18-orm-tests-port-plan.md Red Test Inventory.');
+        $this->markTestSkipped('// Collection.beforeFind not dispatched by ODM SelectQuery (no triggerBeforeFind); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('articles');
         $collection->belongsTo('authors');
 
@@ -6200,7 +6184,7 @@ class BaseCollectionTest extends TestCase
 
         $buildValidatorCount = 0;
         $eventManager->on(
-            'Model.buildValidator',
+            'Collection.buildValidator',
             $callback = function (EventInterface $event, Validator $validator, $name) use (&$buildValidatorCount): void {
                 $this->assertIsString($name);
                 $buildValidatorCount++;
@@ -6214,7 +6198,7 @@ class BaseCollectionTest extends TestCase
         $beforeSaveCount = 0;
         $afterSaveCount = 0;
         $eventManager->on(
-            'Model.buildRules',
+            'Collection.buildRules',
             function (EventInterface $event, RulesChecker $rules) use (&$buildRulesCount): void {
                 $buildRulesCount++;
             },

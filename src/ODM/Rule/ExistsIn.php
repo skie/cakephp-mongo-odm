@@ -97,7 +97,7 @@ class ExistsIn
             $realTarget = $target;
         }
 
-        if (!empty($options['_sourceTable']) && $realTarget === $options['_sourceTable']) {
+        if (!empty($options['sourceCollection']) && $realTarget === $options['sourceCollection']) {
             return true;
         }
 

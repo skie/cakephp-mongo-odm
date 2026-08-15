@@ -325,36 +325,10 @@ class Marshaller
 
         $fields = $options['fieldList'] ?? $options['fields'] ?? null;
         if ($fields === null) {
-            return $this->filterPatchable($properties, $options);
-        }
-
-        return $this->filterPatchable(
-            array_intersect_key($properties, array_flip((array)$fields)),
-            $options,
-        );
-    }
-
-    /**
-     * Filters properties against the configured patchable fields.
-     *
-     * @param array<string, mixed> $properties The marshalled properties.
-     * @param array<string, mixed> $options The marshalling options.
-     * @return array<string, mixed>
-     */
-    private function filterPatchable(array $properties, array $options): array
-    {
-        if (!isset($options['patchableFields'])) {
             return $properties;
         }
 
-        $patchable = (array)$options['patchableFields'];
-        $default = (bool)($patchable['*'] ?? true);
-
-        return array_filter(
-            $properties,
-            static fn(mixed $value, string|int $field): bool => (bool)($patchable[$field] ?? $default),
-            ARRAY_FILTER_USE_BOTH,
-        );
+        return array_intersect_key($properties, array_flip((array)$fields));
     }
 
     /**
@@ -513,6 +487,10 @@ class Marshaller
      */
     private function patch(Document $document, array $properties, array $options): void
     {
+        foreach ((array)($options['patchableFields'] ?? []) as $field => $patchable) {
+            $document->setPatchable((string)$field, (bool)$patchable);
+        }
+
         $document->patch($properties, ['guard' => true, 'asOriginal' => !($options['isMerge'] ?? false)]);
     }
 

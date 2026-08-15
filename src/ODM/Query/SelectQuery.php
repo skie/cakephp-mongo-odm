@@ -315,7 +315,16 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     {
         $result = $this->all()->first();
         if ($result === null) {
-            throw new RecordNotFoundException('No result was found.');
+            $collection = '?';
+            $repository = $this->getRepository();
+            if (method_exists($repository, 'getCollection')) {
+                $collection = $repository->getCollection();
+            }
+
+            throw new RecordNotFoundException(sprintf(
+                'Record not found in collection `%s`.',
+                $collection,
+            ));
         }
 
         return $result;

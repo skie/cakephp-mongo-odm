@@ -34,6 +34,7 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
         has as protected entityHas;
         __isset as protected entityIsset;
         __get as protected entityGetMagic;
+        isAccessible as protected entityIsAccessible;
     }
 
     /**
@@ -77,6 +78,61 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
         if ($options['markClean']) {
             $this->clean();
         }
+    }
+
+    /**
+     * Fields that are patchable when guarding, overriding `$_accessible`.
+     *
+     * A null value falls back to the entity's accessible map; a boolean
+     * overrides it for that field. Populated via `setPatchable()` (cake 6
+     * `Entity::$patchable` port) so `patchableFields` in the marshaller can
+     * permit otherwise-protected fields.
+     *
+     * @var array<string, bool>
+     */
+    protected array $_patchable = [];
+
+    /**
+     * Sets whether a field is patchable when guarded.
+     *
+     * @param string $field Field name.
+     * @param bool $patchable Whether the field can be patched.
+     * @return $this
+     */
+    public function setPatchable(string $field, bool $patchable): static
+    {
+        $this->_patchable[$field] = $patchable;
+
+        return $this;
+    }
+
+    /**
+     * Gets the patchable override for a field, or null when not set.
+     *
+     * @param string $field Field name.
+     * @return bool|null
+     */
+    public function getPatchable(string $field): ?bool
+    {
+        return $this->_patchable[$field] ?? null;
+    }
+
+    /**
+     * Returns whether the field can be set when guarding.
+     *
+     * The `$_patchable` overrides win over `$_accessible` (cake 6 parity);
+     * otherwise the entity's accessible map decides.
+     *
+     * @param string $field Field name.
+     * @return bool
+     */
+    public function isAccessible(string $field): bool
+    {
+        if (array_key_exists($field, $this->_patchable)) {
+            return $this->_patchable[$field];
+        }
+
+        return $this->entityIsAccessible($field);
     }
 
     /**

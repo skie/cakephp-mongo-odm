@@ -236,7 +236,7 @@ class HasMany extends Association
             $document->extract((array)$this->getBindingKey()),
         );
 
-        $options['_sourceTable'] = $this->getSource();
+        $options['sourceCollection'] = $this->getSource();
 
         if (
             $this->saveStrategy === self::SAVE_REPLACE
@@ -457,6 +457,37 @@ class HasMany extends Association
             $options += ['cleanProperty' => true];
         }
 
+        if ($targetEntities === []) {
+            return true;
+        }
+
+        $foreignKey = array_values(array_filter(
+            (array)$this->getForeignKey(),
+            is_string(...),
+        ));
+        $target = $this->getTarget();
+        if ($this->getDependent() || !$this->foreignKeyAcceptsNull($target, $foreignKey)) {
+            $targetIds = [];
+            foreach ($targetEntities as $targetEntity) {
+                if ($targetEntity instanceof EntityInterface && $targetEntity->get('_id') !== null) {
+                    $targetIds[] = $targetEntity->get('_id');
+                }
+            }
+
+            $conditions = ['_id IN' => $targetIds];
+            if ($this->getCascadeCallbacks()) {
+                $related = array_filter(
+                    $target->find('all')->where($conditions)->toArray(),
+                    static fn(mixed $document): bool => $document instanceof EntityInterface,
+                );
+                if ($target->deleteMany($related, $options) === false) {
+                    return false;
+                }
+            } else {
+                $this->deleteAll($conditions);
+            }
+        }
+
         $property = $this->getProperty();
         $originalProperty = $sourceEntity->get($property);
         $currentEntities = (array)$sourceEntity->get($property);
@@ -507,7 +538,7 @@ class HasMany extends Association
         $sourceEntity->set($property, $targetEntities);
         $saveStrategy = $this->getSaveStrategy();
         $this->setSaveStrategy(self::SAVE_REPLACE);
-        $saved = $this->saveAssociated($sourceEntity, $options + ['replace' => true]);
+        $saved = $this->saveAssociated($sourceEntity, $options);
         $ok = $saved instanceof EntityInterface;
         $this->setSaveStrategy($saveStrategy);
 

@@ -33,7 +33,7 @@ trait AssociationsNormalizerTrait
         'junctionProperty' => 1,
         'onlyIds' => 1,
         'patchableFields' => 1,
-        'sourceTable' => 1,
+        'sourceCollection' => 1,
         'strictFields' => 1,
         'validate' => 1,
         '_cleanOnSuccess' => 1,
