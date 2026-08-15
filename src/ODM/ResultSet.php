@@ -251,7 +251,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         $map = [];
         foreach ($query->getEagerLoader()->associationsMap($repository) as $entry) {
-            $map[$entry['aliasPath']] = [
+            // A `matching()` + `contain()` on the same association yields two
+            // loadables sharing an aliasPath; keep both so `_matchingData` and
+            // the contained property can coexist (cake parity).
+            $key = $entry['aliasPath'] . ($entry['matching'] ? '#matching' : '');
+            $map[$key] = [
                 'instance' => $entry['instance'],
                 'config' => $entry['config'],
                 'nestKey' => $entry['nestKey'],
@@ -347,6 +351,13 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 }
 
                 unset($row[$propertyName]);
+                continue;
+            }
+
+            // A `contain()` on the same association that is `matching()`ed has
+            // its property provided by the external loader (the row value is the
+            // pipeline-matched document, not the contained collection).
+            if (in_array($propertyName, $this->dualMatchingProperties(), true)) {
                 continue;
             }
 
@@ -510,6 +521,30 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
 
         return $row;
+    }
+
+    /**
+     * Properties that are both `matching()`ed and `contain()`ed.
+     *
+     * @return list<string>
+     */
+    protected function dualMatchingProperties(): array
+    {
+        $matching = [];
+        foreach ($this->_containMap as $assoc) {
+            if (!empty($assoc['matching'])) {
+                $matching[] = $assoc['instance']->getProperty();
+            }
+        }
+
+        $dual = [];
+        foreach ($this->_containMap as $assoc) {
+            if (empty($assoc['matching']) && in_array($assoc['instance']->getProperty(), $matching, true)) {
+                $dual[] = $assoc['instance']->getProperty();
+            }
+        }
+
+        return array_values(array_unique($dual));
     }
 
     /**
