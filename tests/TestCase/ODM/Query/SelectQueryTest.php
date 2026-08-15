@@ -2255,10 +2255,10 @@ class SelectQueryTest extends TestCase
         $query->formatResults(fn($results) => $results->extract('name'));
 
         $expected = [
-            1 => 'mariano',
-            2 => 'nate',
-            3 => 'larry',
-            4 => 'garrett',
+            '000000000000000000000001' => 'mariano',
+            '000000000000000000000002' => 'nate',
+            '000000000000000000000003' => 'larry',
+            '000000000000000000000004' => 'garrett',
         ];
         $this->assertEquals($expected, $query->toArray());
     }
@@ -2384,7 +2384,11 @@ class SelectQueryTest extends TestCase
         $query->formatResults(fn($results) => $results->combine('id', 'author.idCopy'));
 
         $results = $query->toArray();
-        $expected = [1 => 3, 2 => 5, 3 => 3];
+        $expected = [
+            '000000000000000000000001' => 3,
+            '000000000000000000000002' => 5,
+            '000000000000000000000003' => 3,
+        ];
         $this->assertEquals($expected, $results);
     }
 
@@ -2419,7 +2423,12 @@ class SelectQueryTest extends TestCase
             $row->article->author->idCopy,
         )));
 
-        $expected = ['1 - 3 - 3', '2 - 3 - 3', '1 - 4 - 5', '3 - 4 - 5'];
+        $expected = [
+            '000000000000000000000001 - 3 - 3',
+            '000000000000000000000002 - 3 - 3',
+            '000000000000000000000001 - 4 - 5',
+            '000000000000000000000003 - 4 - 5',
+        ];
         $this->assertEquals($expected, $query->toArray());
     }
 
@@ -2488,7 +2497,7 @@ class SelectQueryTest extends TestCase
             ->orderBy(['Authors.id' => 'asc'])
             ->select(['Authors.id']);
         $results = $query->all()->extract('author.id')->toList();
-        $expected = [1, 1, 3];
+        $expected = ['000000000000000000000001', '000000000000000000000003', '000000000000000000000001'];
         $this->assertEquals($expected, $results);
     }
 
