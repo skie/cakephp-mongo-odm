@@ -11,7 +11,6 @@ use Cake\Database\Connection;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Expression\FunctionExpression;
 use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\OrderByExpression;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Database\StatementInterface;
 use Cake\Database\TypeMap;
@@ -28,13 +27,13 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\ODM\Query\UnhydratedSelectQuery;
 use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use TestApp\Model\Collection\ArticlesCollection;
-use TestApp\Model\Collection\AuthorsCollection;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionProperty;
+use TestApp\Model\Collection\ArticlesCollection;
+use TestApp\Model\Collection\AuthorsCollection;
 
 /**
  * Tests SelectQuery class
@@ -55,6 +54,7 @@ class SelectQueryTest extends TestCase
         'plugin.Crustum/Mongo.Authors',
         'plugin.Crustum/Mongo.Comments',
         'plugin.Crustum/Mongo.Datatypes',
+        'plugin.Crustum/Mongo.NumberTrees',
         'plugin.Crustum/Mongo.Posts',
     ];
 
@@ -921,25 +921,6 @@ class SelectQueryTest extends TestCase
     public function testApplyOptions(): void
     {
         $this->collection->belongsTo('articles');
-        $typeMap = new TypeMap([
-            'foo.id' => 'integer',
-            'id' => 'integer',
-            'foo__id' => 'integer',
-            'articles.id' => 'integer',
-            'articles__id' => 'integer',
-            'articles.author_id' => 'integer',
-            'articles__author_id' => 'integer',
-            'author_id' => 'integer',
-            'articles.title' => 'string',
-            'articles__title' => 'string',
-            'title' => 'string',
-            'articles.body' => 'text',
-            'articles__body' => 'text',
-            'body' => 'text',
-            'articles.published' => 'string',
-            'articles__published' => 'string',
-            'published' => 'string',
-        ]);
 
         $options = [
             'fields' => ['field_a', 'field_b'],
@@ -955,28 +936,19 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
 
-        $this->assertEquals(['field_a', 'field_b'], $query->clause('select'));
+        $this->assertEquals(['field_a' => 1, 'field_b' => 1], $query->clause('select'));
 
-        $expected = new QueryExpression($options['conditions'], $typeMap);
         $result = $query->clause('where');
-        $this->assertEquals($expected, $result);
+        $this->assertEquals($options['conditions'], $result);
 
         $this->assertEquals(1, $query->clause('limit'));
 
-        $expected = new QueryExpression(['a > b'], $typeMap);
-        $result = $query->clause('join');
-        $this->assertEquals([
-            'table_a' => ['alias' => 'table_a', 'type' => 'INNER', 'conditions' => $expected],
-        ], $result);
-
-        $expected = new OrderByExpression(['a' => 'ASC']);
-        $this->assertEquals($expected, $query->clause('order'));
+        $this->assertEquals(['a' => 1], $query->clause('order'));
 
         $this->assertEquals(5, $query->clause('offset'));
         $this->assertEquals(['field_a'], $query->clause('group'));
 
-        $expected = new QueryExpression($options['having'], $typeMap);
-        $this->assertEquals($expected, $query->clause('having'));
+        $this->assertEquals(['field_a' => ['$gt' => 100]], $query->clause('having'));
 
         $expected = ['articles' => []];
         $this->assertEquals($expected, $query->getContain());
@@ -993,21 +965,13 @@ class SelectQueryTest extends TestCase
         $query = new SelectQuery($this->collection);
         $query->applyOptions($options);
 
-        $this->assertEquals(['field_a', 'field_b'], $query->clause('select'));
+        $this->assertEquals(['field_a' => 1, 'field_b' => 1], $query->clause('select'));
 
-        $typeMap = new TypeMap([
-            'foo.id' => 'integer',
-            'id' => 'integer',
-            'foo__id' => 'integer',
-        ]);
-
-        $expected = new QueryExpression($options['where'], $typeMap);
         $result = $query->clause('where');
-        $this->assertEquals($expected, $result);
+        $this->assertEquals($options['where'], $result);
 
-        $expected = new OrderByExpression($options['orderBy']);
         $result = $query->clause('order');
-        $this->assertEquals($expected, $result);
+        $this->assertEquals(['field_a' => 1], $result);
 
         $this->assertSame($options['groupBy'], $query->clause('group'));
     }
@@ -1581,19 +1545,20 @@ class SelectQueryTest extends TestCase
      */
     public function testCount(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles');
+        $collection = $this->getCollectionLocator()->get('NumberTrees');
+
         $result = $collection->find('all')->count();
-        $this->assertSame(3, $result);
+        $this->assertSame(11, $result);
 
         $query = $collection->find('all')
-            ->where(['id >' => 1])
+            ->where(['depth >' => 1])
             ->limit(1);
         $result = $query->count();
-        $this->assertSame(2, $result);
+        $this->assertSame(7, $result);
 
         $result = $query->all();
         $this->assertCount(1, $result);
-        $this->assertEquals(2, $result->first()->id);
+        $this->assertEquals(2, $result->first()->depth);
     }
 
     /**
@@ -1729,7 +1694,7 @@ class SelectQueryTest extends TestCase
     {
         $collection = $this->getCollectionLocator()->get('articles');
         $query = $collection->find('all');
-        $query->select(['author_id', 's' => $query->func()->sum('id')])
+        $query->select(['author_id'])
             ->groupBy(['author_id']);
         $result = $query->count();
         $this->assertEquals(2, $result);

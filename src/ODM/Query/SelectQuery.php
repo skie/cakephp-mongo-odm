@@ -144,6 +144,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
     public function hydrate(bool $enable = true): static
     {
         $this->hydrate = $enable;
+        $this->dirty();
 
         return $this;
     }
@@ -339,13 +340,20 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function applyOptions(array $options): static
     {
+        ksort($options);
         foreach ($options as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+
             match ($key) {
                 'fields', 'select' => $this->select($value),
                 'conditions', 'where' => $this->where($value),
                 'limit' => $this->limit($value),
                 'offset', 'skip' => $this->skip($value),
                 'order', 'orderBy' => $this->orderBy($value),
+                'group', 'groupBy' => $this->groupBy($value),
+                'having' => $this->having($value),
                 'page' => $this->page($value),
                 'contain' => $this->contain($value),
                 default => $this->options([$key => $value]),
@@ -499,6 +507,7 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
                 $clone->eagerLoader->attachAssociations($clone, $clone->repository);
             }
 
+            $clone->select([], true);
             $clone->getBuilder()->count('total');
             $rows = $clone->parentExecute();
             if ($rows instanceof Traversable) {
@@ -928,6 +937,12 @@ class SelectQuery extends DatabaseSelectQuery implements QueryInterface
      */
     public function setResult(iterable $results): static
     {
+        if ($results instanceof ResultSetInterface) {
+            $this->results = $results;
+
+            return $this;
+        }
+
         $resultSet = new ResultSet($results, $this);
 
         foreach ($this->formatters as $formatter) {

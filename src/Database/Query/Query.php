@@ -8,6 +8,7 @@ use Cake\Database\ExpressionInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\Expression\OrderClauseExpression;
 use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\FunctionsBuilder;
 use Crustum\Mongo\Database\TypeMapTrait;
@@ -682,7 +683,11 @@ abstract class Query implements Stringable
             $field = $field($this->expr(), $this);
         }
 
-        return $this->orderBy([(string)$field => 'ASC'], $overwrite);
+        if ($field instanceof ExpressionInterface) {
+            return $this->orderBy(new OrderClauseExpression($field, 'ASC'), $overwrite);
+        }
+
+        return $this->orderBy([$field => 'ASC'], $overwrite);
     }
 
     /**
@@ -698,7 +703,11 @@ abstract class Query implements Stringable
             $field = $field($this->expr(), $this);
         }
 
-        return $this->orderBy([(string)$field => 'DESC'], $overwrite);
+        if ($field instanceof ExpressionInterface) {
+            return $this->orderBy(new OrderClauseExpression($field, 'DESC'), $overwrite);
+        }
+
+        return $this->orderBy([$field => 'DESC'], $overwrite);
     }
 
     /**
@@ -788,6 +797,7 @@ abstract class Query implements Stringable
             'select' => $this->builder->getProjection(),
             'order' => $this->builder->getSort(),
             'group' => $this->builder->getGroup(),
+            'having' => $this->builder->getHaving(),
             'limit' => $this->builder->getLimit(),
             'skip', 'offset' => $this->builder->getSkip(),
             'pipeline' => $this->builder->getPipeline(),

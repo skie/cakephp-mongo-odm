@@ -217,8 +217,8 @@ return [
         'fields' => [
             'name' => ['bsonType' => 'string'],
             'parent_id' => ['bsonType' => ['string', 'null']],
-            'lft' => ['bsonType' => 'string'],
-            'rght' => ['bsonType' => 'string'],
+            'lft' => ['bsonType' => 'int'],
+            'rght' => ['bsonType' => 'int'],
             'depth' => ['bsonType' => 'int'],
         ],
         'indexes' => [
@@ -242,8 +242,8 @@ return [
             'title' => ['bsonType' => 'string'],
             'url' => ['bsonType' => 'string'],
             'parent_id' => ['bsonType' => ['string', 'null']],
-            'lft' => ['bsonType' => 'string'],
-            'rght' => ['bsonType' => 'string'],
+            'lft' => ['bsonType' => 'int'],
+            'rght' => ['bsonType' => 'int'],
         ],
         'indexes' => [
             'menu_link_trees_menu' => ['key' => ['menu' => 1]],
@@ -365,7 +365,7 @@ return [
         'fields' => [
             'locale' => ['bsonType' => 'string'],
             'model' => ['bsonType' => 'string'],
-            'foreign_key' => ['bsonType' => 'int'],
+            'foreign_key' => ['bsonType' => 'objectId'],
             'field' => ['bsonType' => 'string'],
             'content' => ['bsonType' => 'string'],
         ],

@@ -70,6 +70,23 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **SelectQuery applyOptions/count/setResult/hydrate (doc 40, G4/G1)** —
+  `applyOptions()` now handles `group`/`groupBy`/`having` and skips `null`
+  values (cake60 parity); `clause('having')` added; `setResult()` keeps a
+  pre-built `ResultSet` (no double-wrap); `hydrate()`/`enableHydration()` mark
+  the query dirty so switching modes re-executes; `count()` with `group`/`having`
+  clears the projection before appending `$count` (the `$project` stage would
+  otherwise drop the count document). `testCount` rewritten onto `NumberTrees`
+  (`depth` numeric) instead of `id >` on ObjectId; `testCountWithGroup` drops
+  `sum('id')` (ObjectId sum). Tree fixtures (`NumberTreesFixture`,
+  `MenuLinkTreesFixture`) now store `lft`/`rght` as ints and `schema_mongo.php`
+  declares them `int`; `TranslatesFixture.foreign_key` now references hex `_id`
+  (schema `objectId`).
+- **Order expressions (doc 40, G4)** — added `Database\Expression\OrderByExpression`
+  and `OrderClauseExpression` (Mongo `$sort`-shaped `MongoExpressionInterface`
+  analogs of the cake classes); `QueryCompiler::orderBy()` unwraps them via
+  `getConditions()`, `Query::orderByAsc()/orderByDesc()` accept expression
+  fields. `clause('order')` returns the `$sort` map.
 - **No-hydration eager loading (doc 40, G2)** — unhydrated `contain()` now nests
   associations into plain arrays: `SelectQuery::decorate()` runs
   `EagerLoader::loadExternal()` for both hydrated and unhydrated results;

@@ -8,6 +8,8 @@ use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use Crustum\Mongo\Database\Expression\OrderByExpression;
+use Crustum\Mongo\Database\Expression\OrderClauseExpression;
 use Crustum\Mongo\Database\QueryBuilder as ExpressionBuilder;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use InvalidArgumentException;
@@ -323,7 +325,9 @@ class QueryCompiler
             $fields = $fields($this);
         }
 
-        if ($fields instanceof MongoExpressionInterface) {
+        if ($fields instanceof OrderByExpression || $fields instanceof OrderClauseExpression) {
+            $fields = $fields->getConditions();
+        } elseif ($fields instanceof MongoExpressionInterface) {
             $fields = array_fill_keys(array_keys($fields->getConditions()), 1);
         } elseif ($fields instanceof ExpressionInterface) {
             $this->assertMongoExpression($fields);
