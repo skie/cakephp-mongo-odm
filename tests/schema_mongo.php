@@ -72,6 +72,7 @@ return [
         'fields' => [
             'name' => ['bsonType' => 'string'],
             'description' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'tags_name' => ['key' => ['name' => 1]],
@@ -83,6 +84,8 @@ return [
             'user_id' => ['bsonType' => 'objectId'],
             'comment' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'comments_article_id' => ['key' => ['article_id' => 1]],
@@ -93,6 +96,8 @@ return [
         'fields' => [
             'parent_id' => ['bsonType' => ['string', 'int']],
             'name' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'categories_parent_id' => ['key' => ['parent_id' => 1]],
@@ -380,6 +385,8 @@ return [
             'user_id' => ['bsonType' => 'objectId'],
             'comment' => ['bsonType' => 'string'],
             'published' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'test_plugin_comments_article_id' => ['key' => ['article_id' => 1]],
@@ -389,6 +396,8 @@ return [
         'fields' => [
             'username' => ['bsonType' => 'string'],
             'password' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'auth_users_username' => ['key' => ['username' => 1]],
@@ -458,6 +467,8 @@ return [
         'fields' => [
             'comment_id' => ['bsonType' => 'objectId'],
             'attachment' => ['bsonType' => 'string'],
+            'created' => ['bsonType' => 'date'],
+            'updated' => ['bsonType' => 'date'],
         ],
         'indexes' => [
             'attachments_comment_id' => ['key' => ['comment_id' => 1]],

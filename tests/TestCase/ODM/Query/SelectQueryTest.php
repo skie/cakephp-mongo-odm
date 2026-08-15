@@ -719,7 +719,7 @@ class SelectQueryTest extends TestCase
 
         $results = $query->setRepository($collection)
             ->select()
-            ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => 4]))
+            ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => '000000000000000000000004']))
             ->toArray();
         $expected = [
             [
@@ -754,11 +754,11 @@ class SelectQueryTest extends TestCase
         $collection->hasMany('Comments');
 
         $result = $query->setRepository($collection)
-            ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => 4]))
+            ->matching('Comments', fn($q) => $q->where(['Comments.user_id' => '000000000000000000000004']))
             ->first();
         $this->assertInstanceOf(Document::class, $result);
         $this->assertInstanceOf(Document::class, $result->_matchingData['Comments']);
-        $this->assertIsInt($result->_matchingData['Comments']->id);
+        $this->assertIsString($result->_matchingData['Comments']->_id);
         $this->assertInstanceOf(DateTime::class, $result->_matchingData['Comments']->created);
     }
 

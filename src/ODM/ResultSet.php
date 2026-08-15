@@ -7,6 +7,7 @@ use Cake\Collection\CollectionTrait;
 use Cake\Collection\Iterator\BufferedIterator;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
+use Cake\I18n\DateTime as CakeDateTime;
 use Countable;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
@@ -16,6 +17,7 @@ use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use IteratorIterator;
 use MongoDB\BSON\ObjectId;
+use MongoDB\BSON\UTCDateTime;
 use MongoDB\Model\BSONArray;
 use MongoDB\Model\BSONDocument;
 
@@ -128,6 +130,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             if (is_array($result) || $result instanceof BSONDocument) {
                 $data = $this->convertRow((array)$result);
                 $data = $this->deconstructBelongsToMany($data);
+                $data = $this->applyMatchingData($data);
 
                 return $this->hydrated[$index] = $data;
             }
@@ -218,6 +221,9 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
         if ($value instanceof ObjectId) {
             return (string)$value;
+        }
+        if ($value instanceof UTCDateTime) {
+            return new CakeDateTime($value->toDateTime());
         }
 
         return $value;
@@ -322,7 +328,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
             if ($assoc['matching']) {
                 $target = $instance->getTarget();
-                $matching[$propertyName] = $this->hydrateRow((array)$row[$propertyName], $target);
+                $matching[$assoc['nestKey']] = $this->hydrateRow((array)$row[$propertyName], $target);
                 unset($row[$propertyName]);
                 continue;
             }
@@ -402,6 +408,37 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             'markNew' => false,
             'markClean' => true,
         ]);
+    }
+
+    /**
+     * Moves matching association rows into `_matchingData` on an unhydrated row.
+     *
+     * Matching pipelines expose the joined row under the association property;
+     * unhydrated output nests it under `_matchingData.<Alias>` (hydrated rows
+     * do this in `groupResult()`).
+     *
+     * @param array<string, mixed> $row The converted row data.
+     * @return array<string, mixed>
+     */
+    protected function applyMatchingData(array $row): array
+    {
+        foreach ($this->_containMap as $assoc) {
+            if (empty($assoc['matching'])) {
+                continue;
+            }
+
+            $instance = $assoc['instance'];
+            $propertyName = $instance->getProperty();
+            if (!array_key_exists($propertyName, $row)) {
+                continue;
+            }
+
+            $matchingKey = (string)$assoc['nestKey'];
+            $row['_matchingData'][$matchingKey] = $row[$propertyName];
+            unset($row[$propertyName]);
+        }
+
+        return $row;
     }
 
     /**

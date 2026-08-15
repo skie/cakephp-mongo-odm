@@ -70,6 +70,16 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Matching `_matchingData` + BSON date cast (doc 40, G3)** —
+  `ResultSet::groupResult()` and the new `applyMatchingData()` (unhydrated) key
+  `_matchingData` by the association **alias** (`Comments`) instead of the
+  property (`comments`), so matching rows nest like cake. `bsonToArray()`
+  converts `UTCDateTime` → `Cake\I18n\DateTime` (no BSON objects leak into
+  unhydrated output). `tests/schema_mongo.php` now declares `created`/`updated`
+  as `date` for `comments`, `tags`, `categories`, `test_plugin_comments`,
+  `auth_users`, `attachments` (fixtures store them as strings; `TestFixture`
+  casts them to BSON dates), so matching/contain rows hydrate datetimes.
+  `testFilteringByHasMany*` rewritten to hex `user_id`/`_id`.
 - **SelectQuery sql/selectAlso/convertRow (doc 40, G4/G1)** —
   `SelectQuery::sql()` fires `Collection.beforeFind` once (cake60 ORM parity);
   `selectAlso()` enables auto-fields so the remaining schema columns are
