@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\QueryInterface;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -629,6 +630,17 @@ class EagerLoader
         $query = $target->query();
         $query->eagerLoaded(true);
         ($config['queryBuilder'])($query);
+
+        // Matching (joinWith) loads through a `$lookup` pipeline; containing
+        // nested associations from inside that pipeline is not supported
+        // (cake60 `Association::attachTo()` JOIN-strategy parity).
+        if (!empty($config['matching']) && $query->getEagerLoader()->getContain() !== []) {
+            throw new DatabaseException(sprintf(
+                '`%s` association cannot contain() associations when using JOIN strategy.',
+                $target->getAlias(),
+            ));
+        }
+
         $compiled = $query->compile();
         $config['conditions'] ??= $compiled['filter'] ?? [];
         $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);

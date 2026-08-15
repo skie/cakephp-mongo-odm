@@ -1108,6 +1108,10 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     {
         $this->triggerBeforeFind();
 
+        if ($this->repository instanceof BaseCollection) {
+            $this->eagerLoader->attachAssociations($this, $this->repository);
+        }
+
         return parent::sql();
     }
 
