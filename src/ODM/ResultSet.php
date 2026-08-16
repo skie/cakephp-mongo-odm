@@ -9,6 +9,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\I18n\DateTime as CakeDateTime;
 use Countable;
+use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -140,11 +141,63 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         if (is_array($result) || $result instanceof BSONDocument) {
             $data = $this->convertRow((array)$result);
+            $data = $this->hydrateJoinData($data);
 
             return $this->hydrated[$index] = $this->groupResult($data);
         }
 
         return $this->hydrated[$index] = $result;
+    }
+
+    /**
+     * Hydrates ad-hoc `$lookup` join results into target Documents.
+     *
+     * The Database-layer join facade appends `$lookup` stages whose `as`
+     * aliases carry raw nested arrays. When the query knows those aliases
+     * (alias → target collection), each nested item becomes a hydrated
+     * Document of the target collection.
+     *
+     * @param array<string, mixed> $row The converted row data.
+     * @return array<string, mixed>
+     */
+    protected function hydrateJoinData(array $row): array
+    {
+        $query = $this->query;
+        if (!$query instanceof SelectQuery) {
+            return $row;
+        }
+
+        $joins = $query->getJoinAliases();
+        if ($joins === []) {
+            return $row;
+        }
+
+        $connection = $query->getConnection();
+        if (!$connection instanceof Connection) {
+            return $row;
+        }
+
+        foreach ($joins as $alias => $collection) {
+            if (!isset($row[$alias]) || !is_array($row[$alias])) {
+                continue;
+            }
+
+            $target = new BaseCollection([
+                'alias' => $alias,
+                'collection' => $collection,
+                'connection' => $connection,
+            ]);
+            if (array_is_list($row[$alias])) {
+                $row[$alias] = array_map(
+                    fn(mixed $item): EntityInterface => $this->hydrateRow((array)$item, $target),
+                    $row[$alias],
+                );
+            } else {
+                $row[$alias] = $this->hydrateRow($row[$alias], $target);
+            }
+        }
+
+        return $row;
     }
 
     /**

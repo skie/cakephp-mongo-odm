@@ -657,7 +657,12 @@ class BelongsToMany extends Association
 
             $joint = $document->get($jointProperty);
 
-            if (!($joint instanceof EntityInterface)) {
+            // `_joinData` hydration drops the junction `_id` (G9), so a joint
+            // without its primary key must be re-fetched by foreign keys before
+            // it can be deleted.
+            $junctionKey = $junction->getPrimaryKey();
+            $junctionKey = is_array($junctionKey) ? ($junctionKey[0] ?? null) : $junctionKey;
+            if (!($joint instanceof EntityInterface) || ($junctionKey !== null && !$joint->has($junctionKey))) {
                 $missing[] = $document->extract($primary);
                 continue;
             }

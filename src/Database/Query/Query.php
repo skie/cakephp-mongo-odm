@@ -62,6 +62,23 @@ abstract class Query implements Stringable
     protected ?FunctionsBuilder $functionsBuilder = null;
 
     /**
+     * Ad-hoc `$lookup` join aliases → target collections (join facade).
+     *
+     * @var array<string, string>
+     */
+    protected array $joinAliases = [];
+
+    /**
+     * Returns the ad-hoc join aliases (alias → target collection).
+     *
+     * @return array<string, string>
+     */
+    public function getJoinAliases(): array
+    {
+        return $this->joinAliases;
+    }
+
+    /**
      * The target collection name.
      *
      * @var string
@@ -324,6 +341,7 @@ abstract class Query implements Stringable
     protected function buildJoin(string|array $from, callable $builder, array $options, bool $left): static
     {
         $join = $this->normalizeJoin($from);
+        $this->joinAliases[$join['as']] = $join['collection'];
 
         $connection = $this->getConnection();
         if (!$connection instanceof Connection) {
