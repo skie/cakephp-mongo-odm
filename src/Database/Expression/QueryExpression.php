@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Expression;
 
+use Cake\Database\ExpressionInterface;
 use Closure;
 use Countable;
 
@@ -144,7 +145,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function gt(string $field, mixed $value): static
+    public function gt(ExpressionInterface|string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$gt'));
     }
@@ -152,11 +153,11 @@ class QueryExpression extends AbstractExpression implements Countable
     /**
      * Adds a new condition in the form "field >= value".
      *
-     * @param string $field Field to compare
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field to compare
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function gte(string $field, mixed $value): static
+    public function gte(ExpressionInterface|string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$gte'));
     }
@@ -164,11 +165,11 @@ class QueryExpression extends AbstractExpression implements Countable
     /**
      * Adds a new condition in the form "field < value".
      *
-     * @param string $field Field to compare
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field to compare
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function lt(string $field, mixed $value): static
+    public function lt(ExpressionInterface|string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$lt'));
     }
@@ -176,11 +177,11 @@ class QueryExpression extends AbstractExpression implements Countable
     /**
      * Adds a new condition in the form "field <= value".
      *
-     * @param string $field Field to compare
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field to compare
      * @param mixed $value The value to compare against
      * @return $this
      */
-    public function lte(string $field, mixed $value): static
+    public function lte(ExpressionInterface|string|IdentifierExpression $field, mixed $value): static
     {
         return $this->add(new ComparisonExpression($field, $value, '$lte'));
     }

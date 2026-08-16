@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Expression;
 
+use Cake\Database\ExpressionInterface;
+use Cake\Database\ValueBinder;
 use Closure;
 
 class ComparisonExpression extends AbstractExpression
@@ -24,9 +26,9 @@ class ComparisonExpression extends AbstractExpression
     /**
      * The field name, or an identifier reference for field-to-field comparisons.
      *
-     * @var \Crustum\Mongo\Database\Expression\IdentifierExpression|string
+     * @var \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string
      */
-    protected string|IdentifierExpression $field;
+    protected ExpressionInterface|string|IdentifierExpression $field;
 
     /**
      * The value to compare
@@ -45,11 +47,11 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Constructor
      *
-     * @param \Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field name or identifier reference.
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string $field Field name or identifier reference.
      * @param mixed $value Value to compare.
      * @param string $operator Comparison operator.
      */
-    public function __construct(string|IdentifierExpression $field, mixed $value, string $operator)
+    public function __construct(ExpressionInterface|string|IdentifierExpression $field, mixed $value, string $operator)
     {
         $this->field = $field;
         $this->value = $value;
@@ -59,9 +61,9 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Gets the compared field.
      *
-     * @return \Crustum\Mongo\Database\Expression\IdentifierExpression|string
+     * @return \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string
      */
-    public function getField(): string|IdentifierExpression
+    public function getField(): ExpressionInterface|string|IdentifierExpression
     {
         return $this->field;
     }
@@ -69,10 +71,10 @@ class ComparisonExpression extends AbstractExpression
     /**
      * Sets the compared field.
      *
-     * @param \Crustum\Mongo\Database\Expression\IdentifierExpression|string $field The field name or identifier reference.
+     * @param \Cake\Database\ExpressionInterface|\Crustum\Mongo\Database\Expression\IdentifierExpression|string $field The field name or identifier reference.
      * @return $this
      */
-    public function setField(string|IdentifierExpression $field): static
+    public function setField(ExpressionInterface|string|IdentifierExpression $field): static
     {
         $this->field = $field;
 
@@ -112,28 +114,33 @@ class ComparisonExpression extends AbstractExpression
             $value = $value->getConditions();
         }
 
-        if ($this->field instanceof IdentifierExpression) {
-            $fieldPath = $this->exprPath($this->field->getIdentifier());
+        $field = $this->field;
+        if ($field instanceof IdentifierExpression) {
+            $fieldPath = $this->exprPath($field->getIdentifier());
 
             return [
                 '$expr' => [$this->operator => [$fieldPath, $this->exprValue($value)]],
             ];
         }
 
+        if ($field instanceof ExpressionInterface) {
+            $field = (string)$field->sql(new ValueBinder());
+        }
+
         if ($value instanceof IdentifierExpression) {
             $valuePath = $this->exprPath($value->getIdentifier());
 
             return [
-                '$expr' => [$this->operator => ['$' . $this->field, $valuePath]],
+                '$expr' => [$this->operator => ['$' . $field, $valuePath]],
             ];
         }
 
         if ($this->operator === '$eq') {
-            return [$this->field => $value];
+            return [$field => $value];
         }
 
         return [
-            $this->field => [$this->operator => $value],
+            $field => [$this->operator => $value],
         ];
     }
 
