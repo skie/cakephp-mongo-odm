@@ -382,15 +382,12 @@ class ShadowCollectionStrategy extends AbstractStrategy
         $primaryKey = current((array)$this->collection->getPrimaryKey());
         $id = $entity->has($primaryKey) ? $entity->get($primaryKey) : null;
 
-        // When we have no key and bundled translations, we
-        // need to mark the entity dirty so the root
-        // entity persists. When $noFields holds and we reached this point
-        // there is at least one bundled translation ($noBundled was false).
+        // When we have no key and bundled translations, the root entity is
+        // still persisted: unlike SQL, `BaseCollection::insert()` always adds
+        // a generated `_id`, so no dirty placeholder fields are needed here.
+        // When $noFields holds and we reached this point there is at least one
+        // bundled translation ($noBundled was false).
         if ($noFields && !$id) {
-            foreach ($this->translatedFields() as $field) {
-                $entity->setDirty($field, true);
-            }
-
             return;
         }
 
@@ -598,16 +595,23 @@ class ShadowCollectionStrategy extends AbstractStrategy
                 $data = $translation instanceof EntityInterface
                     ? $translation->toArray()
                     : (is_array($translation) ? $translation : []);
-                unset($data['_id'], $data['_shadow_id']);
                 $locale = (string)($data['locale'] ?? '');
                 if ($locale === '') {
                     continue;
                 }
 
-                $result[$locale] = new $documentClass($data, [
+                $translationDocument = new $documentClass($data, [
                     'markClean' => true,
                     'markNew' => false,
                 ]);
+                // Keep `_id`/`_shadow_id` as hidden fields so existing
+                // translations can be updated on save, without leaking the
+                // technical keys into `toArray()` output.
+                $translationDocument->setHidden(array_intersect(
+                    ['_id', '_shadow_id'],
+                    array_keys($data),
+                ));
+                $result[$locale] = $translationDocument;
             }
 
             $row->set('_translations', $result)

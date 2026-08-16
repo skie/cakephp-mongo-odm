@@ -652,7 +652,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorEavTest
         $articles = $this->fetchCollection('Articles');
 
         // Remove all articles so we have a missing record.
-        $articles->deleteAll('1=1');
+        $articles->deleteAll([]);
 
         $articles->addBehavior('Translate');
         $articles->getBehavior('Translate')->setLocale('eng');

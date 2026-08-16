@@ -434,6 +434,14 @@ return [
         ],
         'indexes' => [],
     ],
+    'sections_translations' => [
+        'fields' => [
+            'locale' => ['bsonType' => 'string'],
+            '_shadow_id' => ['bsonType' => 'objectId'],
+            'title' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [],
+    ],
     'sections_members' => [
         'fields' => [
             'section_id' => ['bsonType' => 'objectId'],
