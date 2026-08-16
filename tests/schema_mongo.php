@@ -222,12 +222,15 @@ return [
         'fields' => [
             'name' => ['bsonType' => 'string'],
             'parent_id' => ['bsonType' => ['string', 'null']],
+            'ancestors' => ['bsonType' => 'array'],
             'lft' => ['bsonType' => 'int'],
             'rght' => ['bsonType' => 'int'],
             'depth' => ['bsonType' => 'int'],
+            'sort' => ['bsonType' => 'int'],
         ],
         'indexes' => [
             'number_trees_parent_id' => ['key' => ['parent_id' => 1]],
+            'number_trees_ancestors' => ['key' => ['ancestors' => 1]],
         ],
     ],
     'number_trees_articles' => [
@@ -247,11 +250,14 @@ return [
             'title' => ['bsonType' => 'string'],
             'url' => ['bsonType' => 'string'],
             'parent_id' => ['bsonType' => ['string', 'null']],
+            'ancestors' => ['bsonType' => 'array'],
             'lft' => ['bsonType' => 'int'],
             'rght' => ['bsonType' => 'int'],
+            'sort' => ['bsonType' => 'int'],
         ],
         'indexes' => [
             'menu_link_trees_menu' => ['key' => ['menu' => 1]],
+            'menu_link_trees_ancestors' => ['key' => ['ancestors' => 1]],
         ],
     ],
     'site_articles' => [
