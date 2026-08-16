@@ -703,13 +703,16 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     /**
      * Returns an array for serializing this object.
      *
-     * Hydrated values are stored so unserializing preserves Documents.
+     * Hydrated values are stored so unserializing preserves Documents. Keys are
+     * preserved (no `array_values()`) so formatter results such as
+     * `find('list')` / `combine()` keep their associative keys across a cache
+     * round-trip.
      *
-     * @return array<int, mixed>
+     * @return array<array-key, mixed>
      */
     public function __serialize(): array
     {
-        return array_values($this->toArray());
+        return $this->toArray();
     }
 
     /**
