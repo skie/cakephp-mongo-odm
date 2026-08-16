@@ -834,16 +834,22 @@ class QueryCompiler
         $group = ['_id' => $id];
 
         foreach ($this->projection as $field => $value) {
+            if (in_array($field, $this->group, true)) {
+                continue;
+            }
+
             if (!is_array($value)) {
+                // A plain field (functionally dependent on the group key) has
+                // no accumulator; keep the group's representative via `$first`.
+                if ($field !== '_id') {
+                    $group[$field] = ['$first' => '$' . $field];
+                }
+
                 continue;
             }
 
             $operator = key($value);
             if (!is_string($operator) || !str_starts_with($operator, '$')) {
-                continue;
-            }
-
-            if (in_array($field, $this->group, true)) {
                 continue;
             }
 
@@ -894,19 +900,25 @@ class QueryCompiler
     {
         $projection = [];
         foreach ($this->projection as $field => $value) {
-            $isAggregate = is_array($value)
-                && ($operator = key($value)) !== null
-                && is_string($operator)
-                && str_starts_with($operator, '$');
-
-            if ($isAggregate) {
-                $projection[$field] = 1;
-
+            if ($field === '_id') {
                 continue;
             }
 
             if (in_array($field, $this->group, true)) {
                 $projection[$field] = count($this->group) === 1 ? '$_id' : '$_id.' . $field;
+
+                continue;
+            }
+
+            $isAggregate = is_array($value)
+                && ($operator = key($value)) !== null
+                && is_string($operator)
+                && str_starts_with($operator, '$');
+
+            // Aggregate accumulators and plain `$first` fields are materialized
+            // by `$group`; project them through as-is.
+            if ($isAggregate || !is_array($value)) {
+                $projection[$field] = 1;
             }
         }
 
