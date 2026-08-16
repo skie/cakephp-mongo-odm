@@ -29,7 +29,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
     /**
      * The operator arguments.
      *
-     * @var list<mixed>
+     * @var array<int|string, mixed>
      */
     protected array $params;
 
@@ -42,7 +42,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
     public function __construct(string $name, array $params = [])
     {
         $this->name = ltrim($name, '$') === $name ? '$' . $name : $name;
-        $this->params = array_values($params);
+        $this->params = $params;
     }
 
     /**
@@ -126,7 +126,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
      * an empty argument list becomes an empty document (operators such as
      * `$rand` and `$rowNumber` require `{}`).
      *
-     * @param list<mixed> $params The arguments
+     * @param array<int|string, mixed> $params The arguments
      * @return mixed The rendered arguments
      */
     protected function normalize(array $params): mixed
@@ -137,14 +137,43 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
         }
 
         if ($count === 1) {
-            return $this->normalizeParam($params[0]);
+            return $this->normalizeParam(current($params));
         }
 
-        return array_map($this->normalizeParam(...), $params);
+        return array_map(
+            fn(mixed $param): mixed => $this->normalizeParam($param),
+            $this->normalizePairs($params),
+        );
+    }
+
+    /**
+     * Rewrites assoc params into a list of single-element assoc entries so
+     * `normalizeParam` can distinguish `[field => 'literal']` identifiers from
+     * plain values while iterating.
+     *
+     * @param array<int|string, mixed> $params The arguments
+     * @return list<mixed>
+     */
+    protected function normalizePairs(array $params): array
+    {
+        $out = [];
+        foreach ($params as $key => $value) {
+            if (is_string($key)) {
+                $out[] = [$key => $value];
+            } else {
+                $out[] = $value;
+            }
+        }
+
+        return $out;
     }
 
     /**
      * Renders a single argument, recursing into nested expressions and arrays.
+     *
+     * A `[field => 'literal']` entry marks an identifier argument (cake
+     * `FunctionExpression` type syntax): the key is a field path that becomes
+     * a `$field` operand, the `'literal'` value is only a type marker.
      *
      * @param mixed $param The argument
      * @return mixed The rendered argument
@@ -155,8 +184,29 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
             return $param->getConditions();
         }
 
-        if (is_array($param)) {
+        if (is_array($param) && $param !== [] && array_is_list($param)) {
             return array_map($this->normalizeParam(...), $param);
+        }
+
+        if (is_array($param) && $param !== [] && count($param) === 1) {
+            $key = array_key_first($param);
+            $value = $param[$key];
+            if (is_string($key) && in_array($value, ['literal', 'identifier'], true)) {
+                return '$' . $key;
+            }
+        }
+
+        if (is_array($param)) {
+            $out = [];
+            foreach ($param as $key => $value) {
+                if (is_string($key) && in_array($value, ['literal', 'identifier'], true)) {
+                    $out[] = '$' . $key;
+                } else {
+                    $out[$key] = $this->normalizeParam($value);
+                }
+            }
+
+            return $out;
         }
 
         return $param;

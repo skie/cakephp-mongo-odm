@@ -148,12 +148,69 @@ class ShadowCollectionStrategy extends AbstractStrategy
 
         if ($query->clause('select') !== []) {
             $query->select(['translation']);
+            $this->rewriteSelectTranslationFields($query);
         }
 
         $query->formatResults(
             fn(CollectionInterface $results): CollectionInterface => $this->rowMapper($results, $locale),
             SelectQuery::PREPEND,
         );
+    }
+
+    /**
+     * Rewrites `hasOneAlias.field` references inside select function
+     * expressions to the lookup field (`translation.field`).
+     *
+     * In SQL the translated field is referenced through the joined association
+     * alias (`ArticlesTranslation.title`); in the Mongo pipeline the joined
+     * translation document lives under the `translation` lookup field, so
+     * expression operands must point there instead.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array> $query The query.
+     * @return void
+     */
+    protected function rewriteSelectTranslationFields(SelectQuery $query): void
+    {
+        $hasOneAlias = $this->getConfig('hasOneAlias');
+        if (!is_string($hasOneAlias) || $hasOneAlias === '') {
+            return;
+        }
+
+        $select = $query->clause('select');
+        if (!is_array($select)) {
+            return;
+        }
+
+        $prefix = $hasOneAlias . '.';
+        $rewritten = false;
+        $walk = function (mixed $value) use (&$walk, $prefix, &$rewritten): mixed {
+            if (is_array($value)) {
+                foreach ($value as $k => $v) {
+                    $value[$k] = $walk($v);
+                }
+
+                return $value;
+            }
+
+            if (is_string($value) && str_starts_with($value, $prefix)) {
+                $rewritten = true;
+
+                return 'translation.' . substr($value, strlen($prefix));
+            }
+
+            if (is_string($value) && str_starts_with($value, '$' . $prefix)) {
+                $rewritten = true;
+
+                return '$translation.' . substr($value, strlen($prefix) + 1);
+            }
+
+            return $value;
+        };
+
+        $newSelect = $walk($select);
+        if ($rewritten) {
+            $query->select($newSelect, true);
+        }
     }
 
     /**

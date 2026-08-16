@@ -779,7 +779,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorEavTest
             'body' => 'Content #1',
             '_locale' => 'eng',
         ];
-        $this->assertSame(
+        $this->assertEqualsCanonicalizing(
             $expected,
             $result,
             'Including a function expression should work but requires referencing the used table aliases',
