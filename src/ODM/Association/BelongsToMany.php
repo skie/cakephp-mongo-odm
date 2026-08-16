@@ -616,6 +616,13 @@ class BelongsToMany extends Association
                 $joint->patch(array_merge($sourceKeys, $targetKeys), ['guard' => false]);
             }
 
+            // A hydrated `_joinData` from `groupResult` has no junction primary
+            // key (`_id` is stripped from `_joinData` for cake parity), so the
+            // link must be inserted, not updated.
+            if (!$joint->isNew() && !$joint->has($junction->getPrimaryKey())) {
+                $joint->setNew(true);
+            }
+
             $saved = $junction->save($joint, $options);
 
             if (!$saved && !empty($options['atomic'])) {

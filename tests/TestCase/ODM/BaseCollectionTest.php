@@ -4436,7 +4436,14 @@ class BaseCollectionTest extends TestCase
 
         $article = $collection->find('all')->where(['_id' => '000000000000000000000001'])->contain(['Tags'])->first();
         $this->assertEquals($article->tags[2]->getId(), $tags[0]->getId());
-        $this->assertEqualsCanonicalizing($article->tags[3]->toArray(), $tags[1]->toArray());
+        // `_joinData` on the freshly-linked in-memory tag carries the junction
+        // `_id`, while the re-fetched copy strips it (ODM hydrate parity);
+        // compare with the junction `_id` normalized out.
+        $loaded = $article->tags[3]->toArray();
+        unset($loaded['_joinData']['_id']);
+        $original = $tags[1]->toArray();
+        unset($original['_joinData']['_id']);
+        $this->assertEqualsCanonicalizing($loaded, $original);
     }
 
     /**
