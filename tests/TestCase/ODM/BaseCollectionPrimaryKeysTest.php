@@ -89,7 +89,7 @@ class BaseCollectionPrimaryKeysTest extends TestCase
         $first = new IntPrimaryItem(['name' => 'Auto 1']);
         $result = $collection->save($first);
         $this->assertNotFalse($result, 'Item should save.');
-        $this->assertNotNull($result->get('id'), 'Auto-increment id should be generated.');
+        $this->assertSame(1, $result->get('id'), 'First auto-increment id.');
         $this->assertNotNull($result->getId(), 'Mongo _id should be assigned.');
 
         $saved = $collection->find()->where(['id' => $result->get('id')])->first();
@@ -98,7 +98,7 @@ class BaseCollectionPrimaryKeysTest extends TestCase
         $second = new IntPrimaryItem(['name' => 'Auto 2']);
         $result = $collection->save($second);
         $this->assertNotFalse($result, 'Item should save.');
-        $this->assertGreaterThan($first->get('id'), (int)$result->get('id'), 'Sequential ids keep incrementing.');
+        $this->assertSame(2, $result->get('id'), 'Sequential ids keep incrementing.');
     }
 
     public function testIntSaveExisting(): void

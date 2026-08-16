@@ -594,4 +594,12 @@ return [
             'uuid_primary_items_id' => ['key' => ['id' => 1], 'options' => ['unique' => true]],
         ],
     ],
+    'cake_increment_ids' => [
+        'fields' => [
+            'value' => ['bsonType' => 'int'],
+        ],
+        'indexes' => [
+            'cake_increment_ids_key' => ['key' => ['_id' => 1], 'options' => ['unique' => true]],
+        ],
+    ],
 ];

@@ -2202,9 +2202,9 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * (Mongo assigns them). Delegates to the configured id generator / type.
      *
      * @param list<string> $primary The primary key columns.
-     * @return string|null The generated id, or null when not applicable.
+     * @return mixed The generated id, or null when not applicable.
      */
-    protected function newId(array $primary): ?string
+    protected function newId(array $primary): mixed
     {
         if (count($primary) !== 1) {
             return null;
@@ -2218,8 +2218,6 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
 
         $type = TypeFactory::build($typeName);
 
-        // Auto-increment primary keys generate the next sequential integer from
-        // a counter collection (keyed by this collection's name).
         if ($type instanceof AutoIncrementType) {
             $connection = $this->getConnection();
             if (!$connection instanceof Connection) {
@@ -2227,13 +2225,18 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             }
 
             $generator = new IncrementGenerator(
-                $connection->getCollection('doctrine_increment_ids'),
+                $connection->getCollection('cake_increment_ids'),
                 $this->getCollection(),
             );
 
-            return (string)$generator->generate();
+            return $generator->generate();
         }
 
+        // ObjectId / UUID identifiers surface as strings in the document and
+        // in result hydration (`ObjectIdType::toPHP`). Keep the string cast so
+        // a freshly saved document's `_id` matches what a subsequent read
+        // yields. Auto-increment (integer) primary keys skip this cast and
+        // stay integers.
         return (string)$type->newId();
     }
 
