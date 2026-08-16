@@ -39,6 +39,8 @@ class TypeFactory
         'json' => JsonType::class,
         'integer' => IntegerType::class,
         'int' => IntegerType::class,
+        'autoincrement' => AutoIncrementType::class,
+        'auto_increment' => AutoIncrementType::class,
         'int64' => Int64Type::class,
         'float' => FloatType::class,
         'boolean' => BooleanType::class,

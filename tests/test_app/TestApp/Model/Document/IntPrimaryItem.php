@@ -12,7 +12,7 @@ use Crustum\Mongo\ODM\Document;
  * key is the integer `id` field (the Mongo `_id` is separate).
  */
 #[DocumentAttribute(collection: 'int_primary_items', primaryKey: 'id')]
-#[Field(name: 'id', type: 'int', primaryKey: true)]
+#[Field(name: 'id', type: 'autoincrement', primaryKey: true)]
 #[Field(name: 'name', type: 'string')]
 class IntPrimaryItem extends Document
 {

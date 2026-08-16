@@ -28,7 +28,9 @@ use Cake\Validation\ValidatorAwareInterface;
 use Cake\Validation\ValidatorAwareTrait;
 use Closure;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Id\IncrementGenerator;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\Database\Type\AutoIncrementType;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -2158,8 +2160,12 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         if (!$document->has($primaryKey)) {
             $newId = $this->newId(array_values($primaryKey));
             if ($newId !== null) {
-                $document->set('_id', $newId);
-                $data['_id'] = $newId;
+                // Assign the generated id to the primary key field. For the
+                // default `_id` key this is `_id`; for an application-level
+                // natural key (`primaryKey => 'id'`) it is that field.
+                $keyField = $primaryKey[0] ?? '_id';
+                $document->set($keyField, $newId);
+                $data[$keyField] = $newId;
             }
         }
 
@@ -2211,6 +2217,22 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         $type = TypeFactory::build($typeName);
+
+        // Auto-increment primary keys generate the next sequential integer from
+        // a counter collection (keyed by this collection's name).
+        if ($type instanceof AutoIncrementType) {
+            $connection = $this->getConnection();
+            if (!$connection instanceof Connection) {
+                return null;
+            }
+
+            $generator = new IncrementGenerator(
+                $connection->getCollection('doctrine_increment_ids'),
+                $this->getCollection(),
+            );
+
+            return (string)$generator->generate();
+        }
 
         return (string)$type->newId();
     }

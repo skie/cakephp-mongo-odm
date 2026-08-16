@@ -34,8 +34,8 @@ class IntPrimaryItemsFixture extends TestFixture
      * @var list<array<string, mixed>>
      */
     public array $records = [
-        ['_id' => '000000000000000000000001', 'id' => 1, 'name' => 'Item 1'],
-        ['_id' => '000000000000000000000002', 'id' => 2, 'name' => 'Item 2'],
-        ['_id' => '000000000000000000000003', 'id' => 3, 'name' => 'Item 3'],
+        ['_id' => '000000000000000000000001', 'id' => 10, 'name' => 'Item 1'],
+        ['_id' => '000000000000000000000002', 'id' => 20, 'name' => 'Item 2'],
+        ['_id' => '000000000000000000000003', 'id' => 30, 'name' => 'Item 3'],
     ];
 }
