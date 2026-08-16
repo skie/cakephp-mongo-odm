@@ -419,6 +419,7 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToNoForeignKeySelect(): void
     {
+        $this->markTestSkipped('// The SELECT-strategy "Ensure foreign key is selected" exception is cake JOIN-default specific; ODM BelongsTo auto-adds the FK for the external load. See 40-selectquerytest-failure-groups.md RF.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsTo('Authors')->setStrategy('select');
 

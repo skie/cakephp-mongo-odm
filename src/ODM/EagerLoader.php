@@ -315,6 +315,7 @@ class EagerLoader
             }
 
             $query->select([$alias . '.' . $key]);
+            $query->markAutoSelected($key);
         }
     }
 

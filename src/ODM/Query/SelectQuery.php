@@ -7,6 +7,7 @@ use ArrayObject;
 use Cake\Collection\Iterator\MapReduce;
 use Cake\Database\ExpressionInterface;
 use Cake\Database\ValueBinder;
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Datasource\QueryCacher;
 use Cake\Datasource\QueryInterface;
@@ -147,6 +148,37 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * @var bool|null
      */
     protected ?bool $autoFields = null;
+
+    /**
+     * Fields the eager loader added to the projection automatically (foreign
+     * keys needed for external association loads). They are hidden from the
+     * hydrated result (cake parity: `select(['Authors.name'])` exposes only
+     * `author`, not the auto-selected `author_id`).
+     *
+     * @var list<string>
+     */
+    protected array $autoSelectedKeys = [];
+
+    /**
+     * Records a field the eager loader added to the projection automatically.
+     *
+     * @param string $field The resolved Mongo field name.
+     * @return void
+     */
+    public function markAutoSelected(string $field): void
+    {
+        $this->autoSelectedKeys[] = $field;
+    }
+
+    /**
+     * Returns fields auto-added to the projection by the eager loader.
+     *
+     * @return list<string>
+     */
+    public function getAutoSelectedKeys(): array
+    {
+        return $this->autoSelectedKeys;
+    }
 
     /**
      * Constructor.
@@ -1232,6 +1264,35 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     }
 
     /**
+     * Hides foreign keys the eager loader auto-added to the projection.
+     *
+     * The key stays on the document so external loaders can read it, but it is
+     * excluded from `toArray()`/JSON output (cake parity:
+     * `select(['Authors.name'])` exposes only `author`, not `author_id`).
+     *
+     * @param iterable<array-key, mixed> $results The loaded result rows.
+     * @return void
+     */
+    protected function hideAutoSelectedKeys(iterable $results): void
+    {
+        $autoKeys = $this->getAutoSelectedKeys();
+        if ($autoKeys === []) {
+            return;
+        }
+
+        foreach ($results as $result) {
+            if (!$result instanceof EntityInterface) {
+                continue;
+            }
+
+            $visible = array_values(array_diff($autoKeys, $result->getHidden()));
+            if ($visible !== []) {
+                $result->setHidden($visible, true);
+            }
+        }
+    }
+
+    /**
      * Hydrates, projects, and formats an executed row set.
      *
      * @param iterable<array-key, mixed> $rows Raw Mongo rows.
@@ -1246,6 +1307,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             if (!$loaded instanceof ResultSet) {
                 $resultSet = new ResultSet($loaded, $this);
             }
+            $this->hideAutoSelectedKeys($resultSet);
         }
 
         if ($this->mapReduce !== []) {
