@@ -906,7 +906,7 @@ class BaseCollectionTest extends TestCase
             ],
             'parent' => [
                 '_id' => '000000000000000000000001',
-                'parent_id' => '0',
+                'parent_id' => null,
                 'name' => 'Category 1',
             ],
         ];
@@ -1456,7 +1456,7 @@ class BaseCollectionTest extends TestCase
         $expected = [
             [
                 '_id' => '000000000000000000000001',
-                'parent_id' => '0',
+                'parent_id' => null,
                 'name' => 'Category 1',
                 'children' => [
                     [
@@ -1488,13 +1488,13 @@ class BaseCollectionTest extends TestCase
             ],
             [
                 '_id' => '000000000000000000000004',
-                'parent_id' => '0',
+                'parent_id' => null,
                 'name' => 'Category 2',
                 'children' => [],
             ],
             [
                 '_id' => '000000000000000000000005',
-                'parent_id' => '0',
+                'parent_id' => null,
                 'name' => 'Category 3',
                 'children' => [
                     [

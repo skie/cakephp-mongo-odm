@@ -915,22 +915,21 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithSelfReferentialAssociation(): void
     {
-        $this->markTestSkipped('F-subquery: unable to load association, FK not selected (ODM EagerLoader subquery gap); see 40-selectquerytest-failure-groups.md.');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $Categories->hasMany('ChildCategories', [
             'className' => 'Categories',
             'foreignKey' => 'parent_id',
-            'strategy' => Association::STRATEGY_SUBQUERY,
+            'strategy' => Association::STRATEGY_LOOKUP,
         ]);
 
         $Categories->ChildCategories->hasMany('ChildCategories', [
             'className' => 'Categories',
             'foreignKey' => 'parent_id',
-            'strategy' => Association::STRATEGY_SUBQUERY,
+            'strategy' => Association::STRATEGY_LOOKUP,
         ]);
 
         $result = $Categories->find()
-            ->where(['Categories.parent_id' => 0])
+            ->where(['Categories.parent_id' => null])
             ->contain('ChildCategories.ChildCategories')
             ->toArray();
 
@@ -965,7 +964,6 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithSelfReferentialAssociationAliasAlreadyUsingSubquerySuffix(): void
     {
-        $this->markTestSkipped('F-subquery: unable to load association, FK not selected (ODM EagerLoader subquery gap); see 40-selectquerytest-failure-groups.md.');
         $Categories = $this->getCollectionLocator()->get('Categories');
         $Categories->hasMany('Categories_subquery', [
             'className' => 'Categories',
@@ -980,7 +978,7 @@ class HasManyTest extends TestCase
         ]);
 
         $result = $Categories->find()
-            ->where(['Categories.parent_id' => 0])
+            ->where(['Categories.parent_id' => null])
             ->contain('Categories_subquery.Categories_subquery')
             ->toArray();
 

@@ -106,7 +106,8 @@ return [
     ],
     'categories' => [
         'fields' => [
-            'parent_id' => ['bsonType' => ['string', 'int']],
+            // null = root; string/objectId = parent hex FK (same pattern as number_trees).
+            'parent_id' => ['bsonType' => ['objectId', 'null']],
             'name' => ['bsonType' => 'string'],
             'created' => ['bsonType' => 'date'],
             'updated' => ['bsonType' => 'date'],
