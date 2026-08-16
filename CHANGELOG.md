@@ -70,6 +70,20 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **Associations fully green (doc 40 RF)** — HasMany/BelongsTo/HasOne/
+  BelongsToMany/SelectOrderGroupClause suites:
+  - `HasMany` test schemas type `_id`/FKs as `objectid` (not integer) — fixes
+    sorting/unlink/saveReplace integration tests; eager loader applies
+    `contain`, merges association + per-load conditions (closures preserved),
+    and calls `find('all')`.
+  - `BelongsTo::canBeJoined()` returns true; `foreignKey => false` loads by
+    conditions alone (SelectLoader conditions-only path); auto-selected FKs are
+    hidden from hydrated results via entity `_hidden` (checked as
+    `EntityInterface`, cake parity).
+  - `BelongsToMany::unlink()` re-fetches junction links that lack `_id` (the
+    hydration drops it) before `deleteMany`.
+  - The Database-layer join facade records `$lookup` aliases; `ResultSet`
+    hydrates the nested join arrays into target Documents.
 - **Deep `notMatching()` preserves no-match rows (doc 40, RF)** —
   `EagerLoader::setMatching()` merges options correctly (`$options + $defaults`,
   so an explicit `negateMatch` from `notMatching()` is no longer dropped); a
