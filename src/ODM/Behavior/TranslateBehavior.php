@@ -360,6 +360,14 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
 
         [, $alias] = pluginSplit($collection->getRegistryAlias());
 
-        return $alias !== '' ? $alias : Inflector::camelize($collection->getCollection() ?: $collection->getAlias());
+        // Generic (fallback) collections derive the reference name from the
+        // storage collection name rather than the alias, so a self-join
+        // (`belongsTo('Copy', ['className' => 'Articles'])`) resolves the
+        // same `articles_translations` table as its source (cake parity: the
+        // reference name is based on the target table class).
+        $collectionName = $collection->getCollection() ?: $alias;
+        $name = Inflector::camelize($collectionName);
+
+        return $name !== '' ? $name : $alias;
     }
 }
