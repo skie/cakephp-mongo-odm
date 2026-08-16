@@ -13,6 +13,17 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 
 ### Added
 - **`ODM\Query\UnhydratedSelectQuery` ported test suite** — `tests/TestCase/ODM/Query/UnhydratedSelectQueryTest.php` (9 tests): `unhydratedFind()` type contract, `first()`/`firstOrFail()` array/exception paths, `all()` iteration shape, `contain()` interop, hydration re-enable, finder receiving the unhydrated query, injected `QueryFactory` honoring, and the fresh-query finder guard.
+- **`ODM\Behavior\Translate\EmbedStrategy`** — translations stored inline in the
+  source document under the `_translations` embedded field (keyed by locale), so
+  no second collection / `$lookup` / association is needed. Same top-level
+  behavior API as the shadow strategy: active-locale merge on read, dirty root
+  fields folded into the active locale on save, `find('translations')`,
+  `onlyTranslated`/`filterByCurrentLocale`, `allowEmptyTranslations`, and
+  translated fields filterable/orderable by dotted paths
+  (`_translations.deu.title`). Row mapper hydrates locales into Documents
+  (hidden from `toArray()`) so patching preserves existing translations. Tests:
+  `TranslateBehaviorEmbedTest` extends the EAV base (68 pass / 1 skip) with a
+  dedicated `articles_embed` fixture/schema.
 - **`ODM\Behavior\TreeBehavior` — Ancestry Array pattern (no MPTT)** — stores
   `parent_id` + `ancestors[]` (plus optional `level`/`sort`), so subtrees are a
   single multikey lookup instead of `lft`/`rght` bookkeeping. Same top-level
