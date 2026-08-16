@@ -522,7 +522,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorEavTest
             ->enableHydration(false)
             ->toArray();
 
-        $this->assertSame(['000000000000000000000003', '000000000000000000000002', '000000000000000000000001'], Hash::extract($article, '{n}.id'));
+        $this->assertSame(['000000000000000000000003', '000000000000000000000002', '000000000000000000000001'], Hash::extract($article, '{n}._id'));
 
         $article = $collection->find('all')
             ->orderBy(['title' => 'asc'])
