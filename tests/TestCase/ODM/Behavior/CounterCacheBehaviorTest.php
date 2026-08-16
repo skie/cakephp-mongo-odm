@@ -455,12 +455,17 @@ class CounterCacheBehaviorTest extends TestCase
      */
     public function testLambdaSubquery(): void
     {
-        $this->markTestSkipped('ODM subquery-count gap: lambda returning SelectQuery: F35');
         $this->post->belongsTo('Users');
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => fn(EventInterface $event, EntityInterface $document, BaseCollection $collection): SelectQuery => $collection->getConnection()->selectQuery(4),
+                'posts_published' => function (
+                    EventInterface $event,
+                    EntityInterface $document,
+                    BaseCollection $collection,
+                ): SelectQuery {
+                    return $collection->getConnection()->selectQuery(4);
+                },
             ],
         ]);
 

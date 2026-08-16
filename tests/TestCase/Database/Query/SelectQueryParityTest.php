@@ -135,7 +135,7 @@ class SelectQueryParityTest extends TestCase
     }
 
     /**
-     * Test select() accepts a numeric field value.
+     * Test select() with a bare int is cake `SELECT 5` — a `$literal` constant.
      *
      * @return void
      */
@@ -144,7 +144,9 @@ class SelectQueryParityTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $query->select(5);
 
-        $this->assertOptions(['projection' => [5 => 1]], $query->compile());
+        $this->assertOptions([
+            'projection' => ['_c' => ['$literal' => 5]],
+        ], $query->compile());
     }
 
     /**

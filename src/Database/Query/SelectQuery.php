@@ -72,10 +72,6 @@ class SelectQuery extends Query implements IteratorAggregate
             $fields = $fields($this);
         }
 
-        if (is_float($fields) || is_int($fields)) {
-            $fields = (string)$fields;
-        }
-
         $this->builder->select($fields, $overwrite);
         $this->dirty();
 

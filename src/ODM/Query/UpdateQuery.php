@@ -5,8 +5,11 @@ namespace Crustum\Mongo\ODM\Query;
 
 use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Database\Query\UpdateQuery as DatabaseUpdateQuery;
 use Crustum\Mongo\ODM\BaseCollection;
+use InvalidArgumentException;
 
 /**
  * ODM update query bound to a repository schema.
@@ -51,6 +54,8 @@ class UpdateQuery extends DatabaseUpdateQuery
      * Adds a `$set` assignment, converting values through the schema type map.
      *
      * Accepts a `Document`/`EntityInterface` whose fields become the `$set` map.
+     * `SelectQuery` / expression values (cake subquery-in-SET) are materialized to
+     * BSON before type casting — classic Mongo `$set` cannot embed a query object.
      *
      * @param \Cake\Datasource\EntityInterface|array<string, mixed>|string $field Field name, map, or document.
      * @param mixed $value The value (when `$field` is a single name).
@@ -63,15 +68,64 @@ class UpdateQuery extends DatabaseUpdateQuery
         }
 
         if (is_array($field)) {
-            return parent::set($this->convertToDatabaseValues($field));
+            return parent::set($this->convertToDatabaseValues($this->resolveSetMap($field)));
         }
 
         if ($value !== null) {
-            $converted = $this->convertToDatabaseValues([$field => $value]);
+            $converted = $this->convertToDatabaseValues([$field => $this->resolveSetValue($value)]);
 
             return parent::set($field, $converted[$field]);
         }
 
         return parent::set($field);
+    }
+
+    /**
+     * Materializes expression / SelectQuery values in a `$set` map.
+     *
+     * @param array<string, mixed> $fields Field => value map.
+     * @return array<string, mixed>
+     */
+    protected function resolveSetMap(array $fields): array
+    {
+        foreach ($fields as $key => $value) {
+            $fields[$key] = $this->resolveSetValue($value);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Turns cake-style SET expressions into values Mongo `$set` can store.
+     *
+     * A `SelectQuery` used as an update value (CounterCache subquery) must select a
+     * single constant / `$literal` expression — there is no SQL subquery-in-SET.
+     *
+     * @param mixed $value The SET right-hand side.
+     * @return mixed
+     * @throws \InvalidArgumentException When a SelectQuery cannot be materialized.
+     */
+    protected function resolveSetValue(mixed $value): mixed
+    {
+        if ($value instanceof SelectQuery) {
+            $projection = $value->clause('select');
+            if (!is_array($projection) || $projection === []) {
+                throw new InvalidArgumentException(
+                    'SelectQuery used as an update value must select a single constant or expression.',
+                );
+            }
+
+            return $this->resolveSetValue(reset($projection));
+        }
+
+        if ($value instanceof MongoExpressionInterface) {
+            $value = $value->getConditions();
+        }
+
+        if (is_array($value) && count($value) === 1 && array_key_exists('$literal', $value)) {
+            return $value['$literal'];
+        }
+
+        return $value;
     }
 }
