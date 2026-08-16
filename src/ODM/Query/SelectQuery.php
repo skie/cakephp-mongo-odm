@@ -1320,11 +1320,19 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             $resultSet = new ResultSet($decorated, $this);
         }
 
+        // Hydrate rows once before formatting, so formatters operate on
+        // Documents. Formatting results (e.g. `find('list')` combine → plain
+        // arrays) must NOT be re-hydrated, or they would be wrapped into
+        // Documents again.
+        if ($this->dtoClass === null && $this->isHydrationEnabled()) {
+            $resultSet = new ResultSet($resultSet->toArray(), null);
+        }
+
         foreach ($this->formatters as $formatter) {
             $formatted = $formatter($resultSet, $this);
             $resultSet = $formatted instanceof ResultSet
                 ? $formatted
-                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, $this);
+                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, null);
         }
 
         if ($this->dtoClass !== null) {
