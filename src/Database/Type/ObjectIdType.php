@@ -86,7 +86,7 @@ class ObjectIdType extends BaseType
 
                 return $value;
             } catch (Exception) {
-                return $value;
+                return null;
             }
         }
 

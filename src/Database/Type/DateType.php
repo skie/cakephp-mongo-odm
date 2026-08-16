@@ -201,6 +201,22 @@ class DateType extends BaseType implements BatchCastingInterface
 
         $format = sprintf('%d-%02d-%02d', $value['year'], $value['month'], $value['day']);
 
+        if (isset($value['hour']) && is_numeric($value['hour'])) {
+            $hour = (int)$value['hour'];
+            if (isset($value['meridian']) && strtolower((string)$value['meridian']) === 'pm' && $hour < 12) {
+                $hour += 12;
+            }
+
+            $format .= sprintf(' %02d', $hour);
+            if (isset($value['minute']) && is_numeric($value['minute'])) {
+                $format .= sprintf(':%02d', (int)$value['minute']);
+            }
+
+            if (isset($value['second']) && is_numeric($value['second'])) {
+                $format .= sprintf(':%02d', (int)$value['second']);
+            }
+        }
+
         return new CakeDateTime($format);
     }
 

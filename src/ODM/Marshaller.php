@@ -276,8 +276,9 @@ class Marshaller
             $association = $this->resolveAssociation($alias);
             if (!$association instanceof Association) {
                 throw new InvalidArgumentException(sprintf(
-                    'Cannot marshal data for `%s` association. It is not associated.',
+                    'Cannot marshal data for `%s` association. It is not associated with `%s`.',
                     $alias,
+                    $this->collection->getAlias(),
                 ));
             }
 

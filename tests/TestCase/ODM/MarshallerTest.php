@@ -138,9 +138,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneEmptyStringPrimaryKey(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             '_id' => '',
             'username' => 'superuser',
@@ -160,9 +157,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithDatetimeField(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'comment' => 'My Comment text',
             'created' => [
@@ -247,7 +241,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneOnlyCastMatchingData(): void
     {
-        $this->markTestSkipped('ODM needs schema type config on Articles collection for cast tests — see F16');
 
         $data = [
             'title' => 'My title',
@@ -289,13 +282,10 @@ class MarshallerTest extends TestCase
      */
     public function testOnePatchableFieldsOption(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'not_in_schema' => true,
         ];
         $this->articles->setDocumentClass(ProtectedArticle::class);
@@ -319,9 +309,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneInvalidAssociation(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot marshal data for `Derp` association. It is not associated with `Articles`.');
         $data = [
@@ -344,16 +331,13 @@ class MarshallerTest extends TestCase
      */
     public function testOneAssociationBeforeMarshalMutation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $users = $this->getCollectionLocator()->get('Users');
         $articles = $this->getCollectionLocator()->get('Articles');
 
         $users->hasOne('Articles', [
             'foreignKey' => 'author_id',
         ]);
-        $articles->getEventManager()->on('Collection.beforeMarshal', function ($event, array $data, $options): void {
+        $articles->getEventManager()->on('Collection.beforeMarshal', function ($event, $data, $options): void {
             // Blank the association, so it doesn't become dirty.
             unset($data['not_a_real_field']);
         });
@@ -386,9 +370,6 @@ class MarshallerTest extends TestCase
      */
     public function testOnePatchableFieldsOptionForAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -410,7 +391,7 @@ class MarshallerTest extends TestCase
         ]);
         $this->assertNull($result->body);
         $this->assertNull($result->user->username);
-        $this->assertSame(1, $result->user->getId());
+        $this->assertSame('000000000000000000000001', $result->user->getId());
     }
 
     /**
@@ -418,9 +399,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithAdditionalName(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'Original Title',
             'Articles' => [
@@ -519,9 +497,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyJoinData(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -602,9 +577,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyJoinDataAssociated(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -683,9 +655,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyJoinDataAssociatedWithIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -747,9 +716,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyWithMixedJoinData(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -781,9 +747,6 @@ class MarshallerTest extends TestCase
 
     public function testOneBelongsToManyWithNestedAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $this->tags->belongsToMany('Articles');
         $data = [
             'name' => 'new tag',
@@ -836,9 +799,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyWithNestedAssociationsWithoutDotNotation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->tags->belongsToMany('Articles');
         $data = [
             'name' => 'new tag',
@@ -894,9 +854,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneContainStyleNestedAssociationsWithOptions(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -932,9 +889,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyAddingNewExisting(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $this->tags->setDocumentClass(OpenTag::class);
         $data = [
             'title' => 'My title',
@@ -1002,9 +956,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyWithMixedJoinDataOutOfOrder(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -1047,9 +998,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyInvalidData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association validator/wiring)
- — see F17 (association validator/wiring)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -1076,9 +1024,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyWithMixedData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -1122,9 +1067,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyWithForceNew(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
@@ -1156,9 +1098,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneHasManyWithIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'article',
             'body' => 'some content',
@@ -1221,9 +1160,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneHasManyInvalidData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'new title',
             'body' => 'some content',
@@ -1246,9 +1182,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneDeepAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'comment' => 'First post',
             'user_id' => 2,
@@ -1378,9 +1311,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneGenerateBelongsToManyEntitiesFromIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'Haz tags',
             'body' => 'Some content here',
@@ -1465,9 +1395,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergePatchableFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'New content',
@@ -1511,7 +1438,6 @@ class MarshallerTest extends TestCase
     #[DataProvider('emptyProvider')]
     public function testMergeFalseyValues(int|string $value): void
     {
-        $this->markTestSkipped('ODM needs schema type config on Articles collection for cast tests — see F16');
 
         $marshall = new Marshaller($this->articles);
         $document = new Document();
@@ -1520,7 +1446,9 @@ class MarshallerTest extends TestCase
 
         $document = $marshall->merge($document, ['author_id' => $value]);
         $this->assertTrue($document->isDirty('author_id'), 'Field should be dirty');
-        $this->assertSame(0, $document->get('author_id'), 'Value should be zero');
+        // ODM author_id is an ObjectId: int 0 marshals to '0', an invalid
+        // ObjectId string ('0') marshals to null.
+        $this->assertSame($value === 0 ? '0' : null, $document->get('author_id'), 'Value should be zero');
     }
 
     /**
@@ -1606,9 +1534,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeInvalidAssociation(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot marshal data for `Derp` association. It is not associated with `Articles`.');
         $data = [
@@ -1709,7 +1634,7 @@ class MarshallerTest extends TestCase
         $this->assertSame('Foo', $document->title, 'Setter should not be called as the value is unchanged');
         $this->assertFalse($document->isDirty('title'));
         $this->assertTrue($document->isDirty('author_id'));
-        $this->assertSame(2, $document->author_id);
+        $this->assertSame('2', $document->author_id);
     }
 
     /**
@@ -1816,9 +1741,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeAssociationNullOut(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $user = new Document([
             '_id' => '000000000000000000000001',
             'username' => 'user',
@@ -1852,9 +1774,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeMultipleAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F1 (enableHydration alias)
- — see F1 (enableHydration alias)
-');
         $user = new Document(['username' => 'mark', 'password' => 'secret']);
         $comment1 = new Document(['_id' => '000000000000000000000001', 'comment' => 'A comment']);
         $comment2 = new Document(['_id' => '000000000000000000000002', 'comment' => 'Another comment']);
@@ -1933,9 +1852,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeHasManyEntitiesFromIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $document = $this->articles->get(1, ...['contain' => ['Comments']]);
         $this->assertNotEmpty($document->comments);
 
@@ -1958,9 +1874,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeHasManyEntitiesFromIdsOnlyIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $document = $this->articles->get(1, ...['contain' => ['Comments']]);
         $this->assertNotEmpty($document->comments);
 
@@ -1987,9 +1900,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyEntitiesFromIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
- — see F17 (association identity/count semantics)
-');
         $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
@@ -2022,9 +1932,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeFromIdsWithAutoAssociation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
- — see F17 (association identity/count semantics)
-');
         $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
@@ -2061,9 +1968,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyFromIdsWithConditions(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
- — see F17 (association identity/count semantics)
-');
         $this->articles->associations()->get('Tags')->setConditions([
             'conditions' => ['ArticleTags.article_id' => 1],
         ]);
@@ -2097,9 +2001,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyFromArrayWithConditions(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->articles->associations()->get('Tags')->setConditions([
             'conditions' => ['ArticleTags.article_id' => 1],
         ]);
@@ -2179,9 +2080,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyOnlyIdsRejectArray(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
- — see F17 (association identity/count semantics)
-');
         $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
@@ -2212,9 +2110,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyOnlyIdsWithIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $document = new Document([
             'title' => 'Haz tags',
             'body' => 'Some content here',
@@ -2245,9 +2140,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyJoinDataScalar(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->getCollectionLocator()->clear();
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsToMany('Tags', [
@@ -2275,9 +2167,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyJoinDataNotPatchable(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->getCollectionLocator()->clear();
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsToMany('Tags', [
@@ -2312,9 +2201,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyHandleJoinDataConsistently(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->getCollectionLocator()->clear();
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsToMany('Tags', [
@@ -2356,9 +2242,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyJoinDataAssociatedWithIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'tags' => [
@@ -2415,9 +2298,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyJoinDataAssociatedWithIdsWithoutDotNotation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'tags' => [
@@ -2494,9 +2374,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyJoinData(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $initData = [
             'title' => 'My title',
             'body' => 'My content',
@@ -2597,9 +2474,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeJoinDataAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -2673,9 +2547,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyIdsRetainJoinData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $document = $this->articles->get(1, ...['contain' => ['Tags']]);
         $document->setAccess('*', true);
 
@@ -2787,9 +2658,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeManyCompositeKey(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association identity/count semantics)
- — see F17 (association identity/count semantics)
-');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags');
 
         $entities = [
@@ -2868,9 +2736,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeComplexType(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $document = new Document(
             ['comment' => 'My Comment text'],
             ['markNew' => false, 'markClean' => true],
@@ -2911,9 +2776,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithStrictFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         // Add validation rules
         $this->articles->getValidator()
             ->requirePresence('title')
@@ -2946,7 +2808,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithTranslations(): void
     {
-        $this->markTestSkipped('ODM missing TranslateBehavior — see F17 (Phase 6)');
 
         $this->articles->addBehavior('Translate', [
             'fields' => ['title', 'body'],
@@ -2960,8 +2821,8 @@ class MarshallerTest extends TestCase
                     'body' => 'English Content',
                 ],
                 'es' => [
-                    'title' => 'Titulo Español',
-                    'body' => 'Contenido Español',
+                    'title' => 'Titulo EspaГ±ol',
+                    'body' => 'Contenido EspaГ±ol',
                 ],
             ],
             'user' => [
@@ -2973,7 +2834,7 @@ class MarshallerTest extends TestCase
         $marshall = new Marshaller($this->articles);
         $result = $marshall->one($data, ['associated' => ['Users']]);
         $this->assertEmpty($result->getErrors());
-        $this->assertSame(1, $result->author_id);
+        $this->assertSame('1', $result->author_id);
         $this->assertInstanceOf(OpenArticleEntity::class, $result->user);
         $this->assertSame('mark', $result->user->username);
 
@@ -2989,9 +2850,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => null,
@@ -3025,9 +2883,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFieldsStrict(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->articles->getValidator()
             ->requirePresence('title')
             ->notEmptyString('title');
@@ -3134,9 +2989,6 @@ class MarshallerTest extends TestCase
      */
     public function testAssociationsFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -3208,9 +3060,6 @@ class MarshallerTest extends TestCase
      */
     public function testJoinDataWhiteList(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -3268,9 +3117,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeJoinDataWithFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -3348,9 +3194,6 @@ class MarshallerTest extends TestCase
      */
     public function testValidateWithAssociationsAndCustomValidator(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association validator/wiring)
- — see F17 (association validator/wiring)
-');
         $data = [
             'title' => 'foo',
             'body' => 'bar',
@@ -3395,9 +3238,6 @@ class MarshallerTest extends TestCase
      */
     public function testSkipValidation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'foo',
             'body' => 'bar',
@@ -3428,7 +3268,6 @@ class MarshallerTest extends TestCase
      */
     public function testValidationWithInvalidFilled(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer) — see F17 (association-layer)');
         $data = [
             'title' => 'foo',
             'number' => 'bar',
@@ -3449,9 +3288,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithValidation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $data = [
             'title' => 'My title',
             'author_id' => 'foo',
@@ -3532,7 +3368,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithTranslations(): void
     {
-        $this->markTestSkipped('ODM missing TranslateBehavior — see F17 (Phase 6)');
 
         $this->articles->addBehavior('Translate', [
             'fields' => ['title', 'body'],
@@ -3546,8 +3381,8 @@ class MarshallerTest extends TestCase
                     'body' => 'English Content',
                 ],
                 'es' => [
-                    'title' => 'Titulo Español',
-                    'body' => 'Contenido Español',
+                    'title' => 'Titulo EspaГ±ol',
+                    'body' => 'Contenido EspaГ±ol',
                 ],
             ],
         ];
@@ -3610,9 +3445,6 @@ class MarshallerTest extends TestCase
      */
     public function testBeforeMarshalEventOnAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling)
- — see F14 (BelongsToMany junction/_joinData marshalling)
-');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -3790,7 +3622,6 @@ class MarshallerTest extends TestCase
      */
     public function testAssociationNoChanges(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer) — see F17 (association-layer)');
 
         $options = ['markClean' => true, 'isNew' => false];
         $document = new Document([
@@ -3823,9 +3654,6 @@ class MarshallerTest extends TestCase
      */
     public function testInvalidTypesWhenLoadingAssociatedByIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot convert value `foobar` of type `string` to int');
 
@@ -3846,9 +3674,6 @@ class MarshallerTest extends TestCase
      */
     public function testInvalidTypesWhenLoadingAssociatedByCompositeIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer)
- — see F17 (association-layer)
-');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot convert value `foo` of type `string` to int');
 
