@@ -1048,7 +1048,7 @@ class MarshallerTest extends TestCase
 
         $this->assertSame($data['tags'][0]['name'], $article->tags[0]->name);
         $this->assertSame($data['tags'][1]['name'], $article->tags[1]->name);
-        $this->assertEquals($article->tags[2], $tags->get(1));
+        $this->assertEquals($article->tags[2], $tags->get('000000000000000000000001'));
 
         $this->assertTrue($article->tags[0]->isNew());
         $this->assertTrue($article->tags[1]->isNew());
@@ -1102,15 +1102,15 @@ class MarshallerTest extends TestCase
             'title' => 'article',
             'body' => 'some content',
             'comments' => [
-                '_ids' => [1, 2],
+                '_ids' => ['000000000000000000000001', '000000000000000000000002'],
             ],
         ];
 
         $marshaller = new Marshaller($this->articles);
         $article = $marshaller->one($data, ['associated' => ['Comments']]);
 
-        $this->assertEquals($article->comments[0], $this->comments->get(1));
-        $this->assertEquals($article->comments[1], $this->comments->get(2));
+        $this->assertEquals($article->comments[0], $this->comments->get('000000000000000000000001'));
+        $this->assertEquals($article->comments[1], $this->comments->get('000000000000000000000002'));
     }
 
     /**
@@ -1347,7 +1347,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz tags',
             'body' => 'Some content here',
-            'tags' => ['_ids' => [1, 2, 3]],
+            'tags' => ['_ids' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']],
         ];
         $marshall = new Marshaller($this->articles);
         $result = $marshall->one($data, ['associated' => ['Tags']]);
@@ -1852,11 +1852,11 @@ class MarshallerTest extends TestCase
      */
     public function testMergeHasManyEntitiesFromIds(): void
     {
-        $document = $this->articles->get(1, ...['contain' => ['Comments']]);
+        $document = $this->articles->get('000000000000000000000001', ...['contain' => ['Comments']]);
         $this->assertNotEmpty($document->comments);
 
         $marshall = new Marshaller($this->articles);
-        $data = ['comments' => ['_ids' => [1, 2, 3]]];
+        $data = ['comments' => ['_ids' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']]];
         $result = $marshall->merge($document, $data, ['associated' => ['Comments']]);
 
         $this->assertCount(3, $result->comments);
@@ -1874,13 +1874,13 @@ class MarshallerTest extends TestCase
      */
     public function testMergeHasManyEntitiesFromIdsOnlyIds(): void
     {
-        $document = $this->articles->get(1, ...['contain' => ['Comments']]);
+        $document = $this->articles->get('000000000000000000000001', ...['contain' => ['Comments']]);
         $this->assertNotEmpty($document->comments);
 
         $marshall = new Marshaller($this->articles);
         $data = [
             'comments' => [
-                '_ids' => [1],
+                '_ids' => ['000000000000000000000001'],
                 [
                     'comment' => 'Nope',
                 ],
@@ -1911,7 +1911,7 @@ class MarshallerTest extends TestCase
 
         $data = [
             'title' => 'Haz moar tags',
-            'tags' => ['_ids' => [1, 2, 3]],
+            'tags' => ['_ids' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']],
         ];
         $document->setAccess('*', true);
         $document->clean();
@@ -1943,7 +1943,7 @@ class MarshallerTest extends TestCase
 
         $data = [
             'title' => 'Haz moar tags',
-            'tags' => ['_ids' => [1, 2, 3]],
+            'tags' => ['_ids' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']],
         ];
         $document->setAccess('*', true);
         $document->clean();
@@ -1980,7 +1980,7 @@ class MarshallerTest extends TestCase
 
         $data = [
             'title' => 'Haz moar tags',
-            'tags' => ['_ids' => [1, 2, 3]],
+            'tags' => ['_ids' => ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003']],
         ];
         $document->setAccess('*', true);
         $document->clean();
@@ -2146,7 +2146,7 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $document = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get('000000000000000000000001', ...['contain' => 'Tags']);
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2173,7 +2173,7 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $document = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get('000000000000000000000001', ...['contain' => 'Tags']);
         // Make only specific fields patchable, but not _joinData.
         $document->tags[0]->setAccess('*', false);
         $document->tags[0]->setAccess(['article_id', 'tag_id'], true);
@@ -2191,8 +2191,8 @@ class MarshallerTest extends TestCase
         $this->assertTrue($document->tags[0]->isDirty('_joinData'));
         $this->assertTrue($result->tags[0]->_joinData->isDirty('author_id'), 'Field not modified');
         $this->assertTrue($result->tags[0]->_joinData->isDirty('highlighted'), 'Field not modified');
-        $this->assertSame(99, $result->tags[0]->_joinData->author_id);
-        $this->assertTrue($result->tags[0]->_joinData->highlighted);
+        $this->assertSame('99', $result->tags[0]->_joinData->author_id);
+        $this->assertSame('1', $result->tags[0]->_joinData->highlighted);
     }
 
     /**
@@ -2207,7 +2207,7 @@ class MarshallerTest extends TestCase
             'through' => 'SpecialTags',
         ]);
 
-        $document = $articles->get(1);
+        $document = $articles->get('000000000000000000000001');
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2222,7 +2222,7 @@ class MarshallerTest extends TestCase
         $this->assertTrue($result->tags[0]->_joinData->highlighted);
 
         // Also ensure merge() overwrites existing data.
-        $document = $articles->get(1, ...['contain' => 'Tags']);
+        $document = $articles->get('000000000000000000000001', ...['contain' => 'Tags']);
         $data = [
             'title' => 'Haz data',
             'tags' => [
@@ -2265,7 +2265,7 @@ class MarshallerTest extends TestCase
         $articlesTags->belongsTo('Users');
 
         $marshall = new Marshaller($this->articles);
-        $article = $this->articles->get(1, ...['associated' => 'Tags']);
+        $article = $this->articles->get('000000000000000000000001', ...['associated' => 'Tags']);
         $result = $marshall->merge($article, $data, ['associated' => ['Tags._joinData.Users']]);
 
         $this->assertTrue($result->isDirty('tags'));
@@ -2321,7 +2321,7 @@ class MarshallerTest extends TestCase
         $articlesTags->belongsTo('Users');
 
         $marshall = new Marshaller($this->articles);
-        $article = $this->articles->get(1, ...['associated' => 'Tags']);
+        $article = $this->articles->get('000000000000000000000001', ...['associated' => 'Tags']);
         $result = $marshall->merge($article, $data, ['associated' => [
             'Tags' => [
                 'associated' => [
@@ -2355,7 +2355,7 @@ class MarshallerTest extends TestCase
             $result->tags[1]->_joinData->user->username,
         );
 
-        $article = $this->articles->get(1, ...['associated' => 'Tags']);
+        $article = $this->articles->get('000000000000000000000001', ...['associated' => 'Tags']);
         $result = $marshall->merge($article, $data, ['associated' => [
             'Tags' => [
                 '_joinData' => ['Users'],
@@ -2547,7 +2547,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeBelongsToManyIdsRetainJoinData(): void
     {
-        $document = $this->articles->get(1, ...['contain' => ['Tags']]);
+        $document = $this->articles->get('000000000000000000000001', ...['contain' => ['Tags']]);
         $document->setAccess('*', true);
 
         $original = $document->tags[0]->_joinData;
