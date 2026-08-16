@@ -18,7 +18,7 @@ use TestApp\Model\Document\TranslateBakedArticle;
 /**
  * TranslateBehavior test case
  */
-class TranslateBehaviorShadowTableTest extends TranslateBehaviorEavTest
+class TranslateBehaviorShadowTableTest extends TranslateBehaviorBaseTest
 {
     protected array $fixtures = [
         'plugin.Crustum/Mongo.Articles',

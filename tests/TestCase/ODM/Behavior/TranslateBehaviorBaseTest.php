@@ -24,12 +24,11 @@ use TestApp\Model\Document\TranslateArticle;
 /**
  * Translate behavior test case
  *
- * The EAV strategy is SQL-specific (separate `i18n` collection, one row per
- * translated field, `unionAll`). It is not ported to Mongo; this class is
- * kept as the abstract base for the ShadowTable strategy tests, which inherit
- * its shared find/save/translate methods.
+ * Shared find/save/translate methods for the translate strategy tests. Each
+ * strategy test (`TranslateBehaviorShadowTableTest`, `TranslateBehaviorEmbedTest`)
+ * extends this base and overrides the storage-specific internals.
  */
-abstract class TranslateBehaviorEavTest extends TestCase
+abstract class TranslateBehaviorBaseTest extends TestCase
 {
     /**
      * fixtures
@@ -379,56 +378,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame('fr_FR', $collection->getBehavior('Translate')->getLocale());
     }
 
-    /**
-     * Tests translationField method for translated fields.
-     */
-    public function testTranslationFieldForTranslatedFields(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', [
-            'fields' => ['title', 'body'],
-            'defaultLocale' => 'en_US',
-        ]);
-
-        $expectedSameLocale = 'Articles.title';
-        $expectedOtherLocale = 'Articles_title_translation.content';
-
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedSameLocale, $field);
-
-        I18n::setLocale('es_ES');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedOtherLocale, $field);
-
-        I18n::setLocale('en');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedOtherLocale, $field);
-
-        $collection->removeBehavior('Translate');
-
-        $collection->addBehavior('Translate', [
-            'fields' => ['title', 'body'],
-            'defaultLocale' => 'de_DE',
-        ]);
-
-        I18n::setLocale('de_DE');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedSameLocale, $field);
-
-        I18n::setLocale('en_US');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedOtherLocale, $field);
-
-        $collection->getBehavior('Translate')->setLocale('de_DE');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedSameLocale, $field);
-
-        $collection->getBehavior('Translate')->setLocale('es');
-        $field = $collection->getBehavior('Translate')->translationField('title');
-        $this->assertSame($expectedOtherLocale, $field);
-    }
-
-    /**
+        /**
      * Tests translationField method for other fields.
      */
     public function testTranslationFieldForOtherFields(): void
@@ -471,57 +421,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame(3, $collection->find()->count());
     }
 
-    /**
-     * Tests that it is possible to get all translated fields at once
-     */
-    public function testFindTranslations(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'body']]);
-
-        $results = $collection->find('translations');
-        $expected = [
-            [
-                'eng' => ['title' => 'Title #1', 'body' => 'Content #1', 'description' => 'Description #1', 'locale' => 'eng'],
-                'deu' => ['title' => 'Titel #1', 'body' => 'Inhalt #1', 'locale' => 'deu'],
-                'cze' => ['title' => 'Titulek #1', 'body' => 'Obsah #1', 'locale' => 'cze'],
-                'spa' => ['body' => 'Contenido #1', 'locale' => 'spa', 'description' => ''],
-            ],
-            [
-                'eng' => ['title' => 'Title #2', 'body' => 'Content #2', 'locale' => 'eng'],
-                'deu' => ['title' => 'Titel #2', 'body' => 'Inhalt #2', 'locale' => 'deu'],
-                'cze' => ['title' => 'Titulek #2', 'body' => 'Obsah #2', 'locale' => 'cze'],
-            ],
-            [
-                'eng' => ['title' => 'Title #3', 'body' => 'Content #3', 'locale' => 'eng'],
-                'deu' => ['title' => 'Titel #3', 'body' => 'Inhalt #3', 'locale' => 'deu'],
-                'cze' => ['title' => 'Titulek #3', 'body' => 'Obsah #3', 'locale' => 'cze'],
-            ],
-        ];
-
-        $translations = $this->extractTranslations($results);
-        $this->assertEquals($expected, $translations->toArray());
-        $expected = [
-            '000000000000000000000001' => ['First Article' => 'First Article Body'],
-            '000000000000000000000002' => ['Second Article' => 'Second Article Body'],
-            '000000000000000000000003' => ['Third Article' => 'Third Article Body'],
-        ];
-
-        $grouped = $results->all()->combine('title', 'body', '_id');
-        $this->assertEquals($expected, $grouped->toArray());
-
-        $document = $collection->newDocument(['title' => 'Fourth Title']);
-        $collection->save($document);
-
-        $expected = [[]];
-        $result = $collection->find('translations')->where(['Articles.id' => $document->getId()])->all();
-        $this->assertEquals($expected, $this->extractTranslations($result)->toArray());
-
-        $document = $result->first();
-        $this->assertSame('Fourth Title', $document->title);
-    }
-
-    /**
+        /**
      * Tests that it is possible to request just a few translations
      */
     public function testFindFilteredTranslations(): void
@@ -952,171 +852,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame('Le contenu', $article->get('body'));
     }
 
-    /**
-     * Tests adding new translation to a record
-     */
-    public function testAllowEmptyFalse(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title'], 'allowEmptyTranslations' => false]);
-
-        $article = $collection->find()->first();
-        $this->assertSame('000000000000000000000001', $article->getId());
-
-        $article = $collection->patchDocument($article, [
-            '_translations' => [
-                'fra' => [
-                    'title' => '',
-                ],
-            ],
-        ]);
-
-        $collection->save($article);
-
-        $noFra = $collection->I18n->find()->where(['locale' => 'fra'])->first();
-        $this->assertEmpty($noFra);
-
-        $article = $collection->find()->where(['_id' => '000000000000000000000002'])->first();
-
-        $this->assertSame('Second Article', $article->get('title'));
-        $collection->patchDocument($article, ['title' => 'Second Article updated']);
-
-        $this->assertNotFalse($collection->save($article));
-    }
-
-    /**
-     * Tests adding new translation to a record with a missing translation
-     */
-    public function testAllowEmptyFalseWithNull(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'description'], 'allowEmptyTranslations' => false]);
-
-        $article = $collection->find()->first();
-        $this->assertSame('000000000000000000000001', $article->getId());
-
-        $article = $collection->patchDocument($article, [
-            '_translations' => [
-                'fra' => [
-                    'title' => 'Title',
-                ],
-            ],
-        ]);
-
-        $collection->save($article);
-
-        // Remove the Behavior to unset the content != '' condition
-        $collection->removeBehavior('Translate');
-
-        $fra = $collection->I18n->find()->where(['locale' => 'fra'])->first();
-        $this->assertNotEmpty($fra);
-    }
-
-    /**
-     * Tests adding new translation to a record
-     */
-    public function testMixedAllowEmptyFalse(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'body'], 'allowEmptyTranslations' => false]);
-
-        $article = $collection->find()->first();
-        $this->assertSame('000000000000000000000001', $article->getId());
-
-        $article = $collection->patchDocument($article, [
-            '_translations' => [
-                'fra' => [
-                    'title' => '',
-                    'body' => 'Bonjour',
-                ],
-            ],
-        ]);
-
-        $collection->save($article);
-
-        $fra = $collection->I18n->find()
-            ->where([
-                'locale' => 'fra',
-                'field' => 'body',
-            ])
-            ->first();
-        $this->assertSame('Bonjour', $fra->content);
-
-        // Remove the Behavior to unset the content != '' condition
-        $collection->removeBehavior('Translate');
-
-        $noTitle = $collection->I18n->find()
-            ->where([
-                'locale' => 'fra',
-                'field' => 'title',
-            ])
-            ->first();
-        $this->assertEmpty($noTitle);
-    }
-
-    /**
-     * Tests adding new translation to a record
-     */
-    public function testMultipleAllowEmptyFalse(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'body'], 'allowEmptyTranslations' => false]);
-
-        $article = $collection->find()->first();
-        $this->assertSame('000000000000000000000001', $article->getId());
-
-        $article = $collection->patchDocument($article, [
-            '_translations' => [
-                'fra' => [
-                    'title' => '',
-                    'body' => 'Bonjour',
-                ],
-                'de' => [
-                    'title' => 'Titel',
-                    'body' => 'Hallo',
-                ],
-            ],
-        ]);
-
-        $collection->save($article);
-
-        $fra = $collection->I18n->find()
-            ->where([
-                'locale' => 'fra',
-                'field' => 'body',
-            ])
-            ->first();
-        $this->assertSame('Bonjour', $fra->content);
-
-        $deTitle = $collection->I18n->find()
-            ->where([
-                'locale' => 'de',
-                'field' => 'title',
-            ])
-            ->first();
-        $this->assertSame('Titel', $deTitle->content);
-
-        $deBody = $collection->I18n->find()
-            ->where([
-                'locale' => 'de',
-                'field' => 'body',
-            ])
-            ->first();
-        $this->assertSame('Hallo', $deBody->content);
-
-        // Remove the Behavior to unset the content != '' condition
-        $collection->removeBehavior('Translate');
-
-        $noTitle = $collection->I18n->find()
-            ->where([
-                'locale' => 'fra',
-                'field' => 'title',
-            ])
-            ->first();
-        $this->assertEmpty($noTitle);
-    }
-
-    /**
+                    /**
      * Tests that it is possible to use the _locale property to specify the language
      * to use for saving an entity
      */
@@ -1166,24 +902,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame('Le titre', $article->get('title'));
     }
 
-    /**
-     * Tests that after deleting a translated entity, all translations are also removed
-     */
-    public function testDelete(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'body']]);
-
-        $article = $collection->find()->first();
-        $this->assertTrue($collection->delete($article));
-
-        $translations = $this->getCollectionLocator()->get('I18n')->find()
-            ->where(['model' => 'Articles', 'foreign_key' => $article->getId()])
-            ->count();
-        $this->assertSame(0, $translations);
-    }
-
-    /**
+        /**
      * Tests saving multiple translations at once when the translations already
      * exist in the database
      */
@@ -1274,64 +993,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame('Un artículo', $article->translation('spa')->title);
     }
 
-    /**
-     * Tests the use of `referenceName` config option.
-     */
-    public function testAutoReferenceName(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-
-        $collection->hasMany('OtherComments', ['className' => 'Comments']);
-        $collection->OtherComments->addBehavior(
-            'Translate',
-            ['fields' => ['comment']],
-        );
-
-        $items = $collection->OtherComments->associations();
-        $association = $items->getByProperty('comment_translation');
-        $this->assertNotEmpty($association, 'Translation association not found');
-
-        $found = false;
-        foreach ($association->getConditions() as $key => $value) {
-            if (str_contains((string)$key, 'comment_translation.model')) {
-                $found = true;
-                $this->assertSame('Comments', $value);
-                break;
-            }
-        }
-
-        $this->assertTrue($found, '`referenceName` field condition on a Translation association was not found');
-    }
-
-    /**
-     * Tests the use of unconventional `referenceName` config option.
-     */
-    public function testChangingReferenceName(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->setAlias('FavoritePost');
-        $collection->addBehavior(
-            'Translate',
-            ['fields' => ['body'], 'referenceName' => 'Posts'],
-        );
-
-        $items = $collection->associations();
-        $association = $items->getByProperty('body_translation');
-        $this->assertNotEmpty($association, 'Translation association not found');
-
-        $found = false;
-        foreach ($association->getConditions() as $key => $value) {
-            if (str_contains((string)$key, 'body_translation.model')) {
-                $found = true;
-                $this->assertSame('Posts', $value);
-                break;
-            }
-        }
-
-        $this->assertTrue($found, '`referenceName` field condition on a Translation association was not found');
-    }
-
-    /**
+            /**
      * Tests that onlyTranslated will remove records from the result set
      * if they are not fully translated
      */
@@ -1416,85 +1078,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame($article->title, $result->title);
     }
 
-    /**
-     * Test save new entity with _translations field
-     */
-    public function testSaveNewRecordWithTranslatesField(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->getValidator()->add('title', 'notBlank', ['rule' => 'notBlank']);
-        $collection->addBehavior('Translate', [
-            'defaultLocale' => 'en',
-            'fields' => ['title'],
-        ]);
-        $collection->setDocumentClass(TranslateArticle::class);
-
-        $article = $collection->patchDocument(
-            $collection->newEmptyDocument(),
-            [
-                '_translations' => ['en' => ['title' => '']],
-            ],
-        );
-        $this->assertSame(
-            ['notBlank' => 'The provided value is invalid'],
-            $article->getError('title'),
-        );
-
-        $data = [
-            'author_id' => '000000000000000000000001',
-            'published' => 'N',
-            '_translations' => [
-                'en' => [
-                    'title' => 'Title EN',
-                    'body' => 'Body EN',
-                ],
-                'es' => [
-                    'title' => 'Title ES',
-                ],
-                'fr' => [
-                    'title' => 'Title FR',
-                ],
-            ],
-        ];
-
-        $article = $collection->patchDocument($collection->newEmptyDocument(), $data);
-        $result = $collection->save($article);
-
-        $this->assertNotFalse($result);
-
-        $expected = [
-            [
-                'fr' => [
-                    'title' => 'Title FR',
-                    'locale' => 'fr',
-                ],
-                'es' => [
-                    'title' => 'Title ES',
-                    'locale' => 'es',
-                ],
-            ],
-        ];
-        $result = $collection->find('translations')->where(['Articles.id' => $result->getId()])->all();
-        $this->assertEquals($expected, $this->extractTranslations($result)->toArray());
-
-        $document = $result->first();
-        $this->assertSame('Title EN', $document->title);
-        $this->assertSame('Body EN', $document->body);
-
-        $data = [
-            'title' => 'New title',
-            'author_id' => '000000000000000000000001',
-            'published' => 'N',
-            '_translations' => null,
-        ];
-
-        $article = $collection->patchDocument($collection->newEmptyDocument(), $data);
-        $result = $collection->save($article);
-
-        $this->assertNotFalse($result);
-    }
-
-    /**
+        /**
      * Tests adding new translation to a record where the only field is the translated one and it's not the default locale
      */
     public function testSaveNewRecordWithOnlyTranslationsNotDefaultLocale(): void
@@ -1561,47 +1145,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
         $this->assertSame('Spanish Translation', $results['es']['title']);
     }
 
-    /**
-     * Test update entity with _translations field.
-     */
-    public function testSaveExistingRecordWithTranslatesField(): void
-    {
-        $collection = $this->getCollectionLocator()->get('Articles');
-        $collection->addBehavior('Translate', ['fields' => ['title', 'body']]);
-        $collection->setDocumentClass(TranslateArticle::class);
-
-        $data = [
-            'author_id' => '000000000000000000000001',
-            'published' => 'Y',
-            '_translations' => [
-                'eng' => [
-                    'title' => 'First Article1',
-                    'body' => 'First Article content has been updated',
-                ],
-                'spa' => [
-                    'title' => 'Mi nuevo titulo',
-                    'body' => 'Contenido Actualizado',
-                ],
-            ],
-        ];
-
-        $article = $collection->find()->first();
-        $article = $collection->patchDocument($article, $data);
-
-        $this->assertNotFalse($collection->save($article));
-
-        $results = $this->extractTranslations(
-            $collection->find('translations')->where(['_id' => '000000000000000000000001']),
-        )->first();
-
-        $this->assertSame('Mi nuevo titulo', $results['spa']['title']);
-        $this->assertSame('Contenido Actualizado', $results['spa']['body']);
-
-        $this->assertSame('First Article1', $results['eng']['title']);
-        $this->assertSame('Description #1', $results['eng']['description']);
-    }
-
-    /**
+        /**
      * Tests that default locale saves ok.
      */
     public function testSaveDefaultLocale(): void
