@@ -12,6 +12,7 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 ## Unreleased
 
 ### Added
+- **`ODM\Query\UnhydratedSelectQuery` ported test suite** — `tests/TestCase/ODM/Query/UnhydratedSelectQueryTest.php` (9 tests): `unhydratedFind()` type contract, `first()`/`firstOrFail()` array/exception paths, `all()` iteration shape, `contain()` interop, hydration re-enable, finder receiving the unhydrated query, injected `QueryFactory` honoring, and the fresh-query finder guard.
 - **`ODM\Behavior\TreeBehavior` — Ancestry Array pattern (no MPTT)** — stores
   `parent_id` + `ancestors[]` (plus optional `level`/`sort`), so subtrees are a
   single multikey lookup instead of `lft`/`rght` bookkeeping. Same top-level
