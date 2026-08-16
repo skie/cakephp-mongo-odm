@@ -74,8 +74,10 @@ trait CommonQueryTrait
             return;
         }
 
+        $primaryKey = $this->repository->getPrimaryKey();
+
         $this->setFieldResolver(
-            static fn(string $field): string => self::resolveOdmField($field, $alias),
+            static fn(string $field): string => self::resolveOdmField($field, $alias, $primaryKey),
         );
     }
 
@@ -85,19 +87,22 @@ trait CommonQueryTrait
      * Strips the repository alias prefix (`Alias.field` → `field`) and maps the
      * conventional primary-key alias `id` to the Mongo `_id` field, so cake
      * style `orderBy('articles.id')` / `where(['id' => ...])` queries target
-     * the actual ObjectId key.
+     * the actual ObjectId key. When the collection configures an application
+     * primary key named `id` (a natural key distinct from the Mongo `_id`),
+     * the mapping is disabled so `id` stays the natural-key field.
      *
      * @param string $field The raw field name.
      * @param string $alias The repository alias.
+     * @param array<string>|string $primaryKey The repository primary key.
      * @return string The resolved Mongo field name.
      */
-    protected static function resolveOdmField(string $field, string $alias): string
+    protected static function resolveOdmField(string $field, string $alias, array|string $primaryKey = '_id'): string
     {
         if (str_starts_with($field, $alias . '.')) {
             $field = substr($field, strlen($alias) + 1);
         }
 
-        if ($field === 'id') {
+        if ($field === 'id' && (string)$primaryKey === '_id') {
             return '_id';
         }
 
