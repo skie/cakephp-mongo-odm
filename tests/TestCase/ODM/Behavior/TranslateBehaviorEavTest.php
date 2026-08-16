@@ -1275,26 +1275,6 @@ abstract class TranslateBehaviorEavTest extends TestCase
     }
 
     /**
-     * Tests that translation queries are added to union queries as well.
-     */
-    public function testTranslationWithUnionQuery(): void
-    {
-        $this->markTestSkipped('SQL-only: UNION has no Mongo equivalent; use $or in a single query instead.');
-        $collection = $this->getCollectionLocator()->get('Comments');
-        /** @var \Crustum\Mongo\ODM\BaseCollection|\Cake\ORM\Behavior\TranslateBehavior $collection */
-        $collection->addBehavior('Translate', ['fields' => ['comment']]);
-        $collection->getBehavior('Translate')->setLocale('spa');
-        $query = $collection->find()->where(['Comments.id' => '000000000000000000000006']);
-        $query2 = $collection->find()->where(['Comments.id' => '000000000000000000000005']);
-        $query->union($query2);
-        $results = $query->all()->sortBy('id', SORT_ASC)->toList();
-        $this->assertCount(2, $results);
-
-        $this->assertSame('First Comment for Second Article', $results[0]->comment);
-        $this->assertSame('Second Comment for Second Article', $results[1]->comment);
-    }
-
-    /**
      * Tests the use of `referenceName` config option.
      */
     public function testAutoReferenceName(): void
