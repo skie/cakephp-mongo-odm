@@ -474,6 +474,10 @@ class Marshaller
             }
         }
 
+        // Restore the incoming data order (records are keyed by row index but
+        // may be inserted out of order).
+        ksort($records);
+
         return array_values($records);
     }
 

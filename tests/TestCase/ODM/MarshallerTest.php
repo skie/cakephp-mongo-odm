@@ -2122,7 +2122,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Haz moar tags',
             'tags' => [
-                '_ids' => [3],
+                '_ids' => ['000000000000000000000003'],
             ],
         ];
         $document->setAccess('*', true);
