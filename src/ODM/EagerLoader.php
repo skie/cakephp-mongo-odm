@@ -215,10 +215,11 @@ class EagerLoader
      */
     public function attachAssociations(SelectQuery $query, BaseCollection $repository): void
     {
-        $this->external = [];
         if ($this->pipelineAttached) {
             return;
         }
+
+        $this->external = [];
 
         foreach ($this->normalized($repository) as $loadable) {
             $this->dispatch($loadable, $query);
