@@ -12,6 +12,15 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
 ## Unreleased
 
 ### Added
+- **`ODM\Behavior\TreeBehavior` — Ancestry Array pattern (no MPTT)** — stores
+  `parent_id` + `ancestors[]` (plus optional `level`/`sort`), so subtrees are a
+  single multikey lookup instead of `lft`/`rght` bookkeeping. Same top-level
+  surface as cake's `TreeBehavior`: `path`/`children`/`treeList` finders,
+  `childCount()`/`getLevel()`/`moveUp()`/`moveDown()`/`removeFromTree()`/
+  `recover()`, `Collection.beforeSave`/`Collection.beforeDelete` maintenance,
+  plus `scope`/`cascadeCallbacks` config. Ported test suite (27 tests) in
+  `tests/TestCase/ODM/Behavior/TreeBehaviorTest.php`; the `NumberTrees`/
+  `MenuLinkTrees` fixtures and `schema_mongo.php` gained `ancestors`/`sort`.
 - `ODM\Association::attachTo()` — in-pipeline (lookup) association attach, the
   ODM analog of cake60 `Association::attachTo()`; registers the association on
   the query eager loader so `$lookup` stages build and results nest (doc 32).
