@@ -576,4 +576,22 @@ return [
         ],
         'indexes' => [],
     ],
+    'int_primary_items' => [
+        'fields' => [
+            'id' => ['bsonType' => 'int'],
+            'name' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [
+            'int_primary_items_id' => ['key' => ['id' => 1], 'options' => ['unique' => true]],
+        ],
+    ],
+    'uuid_primary_items' => [
+        'fields' => [
+            'id' => ['bsonType' => 'string'],
+            'name' => ['bsonType' => 'string'],
+        ],
+        'indexes' => [
+            'uuid_primary_items_id' => ['key' => ['id' => 1], 'options' => ['unique' => true]],
+        ],
+    ],
 ];
