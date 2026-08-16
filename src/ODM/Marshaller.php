@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
-use Cake\Datasource\InvalidPropertyInterface;
+use Cake\Datasource\EntityInterface;
 use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -323,9 +323,7 @@ class Marshaller
         $properties = [];
         foreach ($data as $field => $value) {
             if (isset($errors[$field]) && $errors[$field] !== []) {
-                if ($document instanceof InvalidPropertyInterface) {
-                    $document->setInvalidField($field, $value);
-                }
+                $document->setInvalidField($field, $value);
 
                 continue;
             }
@@ -392,7 +390,7 @@ class Marshaller
         $marshaller = $target->marshaller();
 
         if ($many) {
-            if ($type === 'manyToMany') {
+            if ($type === 'manyToMany' && $association instanceof BelongsToMany) {
                 return $this->belongsToMany($association, $value, $options);
             }
 
@@ -410,12 +408,12 @@ class Marshaller
      * Mirrors cake60 `Marshaller::belongsToMany()` for the ODM in-document
      * junction shape.
      *
-     * @param \Crustum\Mongo\ODM\Association $association The BelongsToMany association.
+     * @param \Crustum\Mongo\ODM\Association\BelongsToMany $association The BelongsToMany association.
      * @param array<int|string, mixed> $data The incoming rows.
      * @param array<string, mixed> $options Marshaller options.
      * @return array<int, \Crustum\Mongo\ODM\Document>
      */
-    private function belongsToMany(Association $association, array $data, array $options): array
+    private function belongsToMany(BelongsToMany $association, array $data, array $options): array
     {
         $associated = (array)($options['associated'] ?? []);
         $forceNew = (bool)($options['forceNew'] ?? false);
@@ -459,10 +457,6 @@ class Marshaller
             }
         }
 
-        if (!$association instanceof BelongsToMany) {
-            return array_values($records);
-        }
-
         $junctionProperty = $association->getJunctionProperty();
         $jointMarshaller = $association->junction()->marshaller();
         $nested = isset($associated[$junctionProperty]) && is_array($associated[$junctionProperty])
@@ -485,12 +479,12 @@ class Marshaller
      * options. Mirrors cake60 `Marshaller::mergeBelongsToMany()`.
      *
      * @param array<int, \Crustum\Mongo\ODM\Document> $original The existing related documents.
-     * @param \Crustum\Mongo\ODM\Association $association The BelongsToMany association.
+     * @param \Crustum\Mongo\ODM\Association\BelongsToMany $association The BelongsToMany association.
      * @param array<int|string, mixed> $value The incoming rows.
      * @param array<string, mixed> $options Marshaller options.
      * @return array<int, mixed>
      */
-    private function mergeBelongsToMany(array $original, Association $association, array $value, array $options): array
+    private function mergeBelongsToMany(array $original, BelongsToMany $association, array $value, array $options): array
     {
         $associated = (array)($options['associated'] ?? []);
         $junctionProperty = $association->getJunctionProperty();
@@ -498,7 +492,7 @@ class Marshaller
         if ($associated && !in_array($junctionProperty, $associated, true) && !isset($associated[$junctionProperty])) {
             $target = $association->getTarget();
 
-            return $target->marshaller()->mergeMany($original, $value, $options);
+            return $target->marshaller()->mergeMany($original, array_values($value), $options);
         }
 
         return $this->mergeJoinData($original, $association, $value, $options);
@@ -511,12 +505,12 @@ class Marshaller
      * junction shape.
      *
      * @param array<int, \Crustum\Mongo\ODM\Document> $original The existing related documents.
-     * @param \Crustum\Mongo\ODM\Association $association The BelongsToMany association.
+     * @param \Crustum\Mongo\ODM\Association\BelongsToMany $association The BelongsToMany association.
      * @param array<int|string, mixed> $value The incoming rows.
      * @param array<string, mixed> $options Marshaller options.
      * @return array<int, mixed>
      */
-    private function mergeJoinData(array $original, Association $association, array $value, array $options): array
+    private function mergeJoinData(array $original, BelongsToMany $association, array $value, array $options): array
     {
         $associated = (array)($options['associated'] ?? []);
         $junctionProperty = $association->getJunctionProperty();
@@ -525,15 +519,9 @@ class Marshaller
         foreach ($original as $entity) {
             $entity->setPatchable($junctionProperty, true);
             $joinData = $entity->get($junctionProperty);
-            if ($joinData instanceof EntityInterface) {
-                $extra[spl_object_hash($entity)] = $joinData;
+            if ($joinData instanceof Document) {
+                $extra[(string)$entity->get('_id')] = $joinData;
             }
-        }
-
-        if (!$association instanceof BelongsToMany) {
-            $target = $association->getTarget();
-
-            return $target->marshaller()->mergeMany($original, $value, $options);
         }
 
         $jointMarshaller = $association->junction()->marshaller();
@@ -543,10 +531,9 @@ class Marshaller
 
         $options['patchableFields'] = [$junctionProperty => true];
         $target = $association->getTarget();
-        $records = $target->marshaller()->mergeMany($original, $value, $options);
+        $records = $target->marshaller()->mergeMany($original, array_values($value), $options);
 
         foreach ($records as $record) {
-            $hash = spl_object_hash($record);
             $current = $record->get($junctionProperty);
 
             if ($current instanceof EntityInterface) {
@@ -558,8 +545,9 @@ class Marshaller
                 continue;
             }
 
-            if (isset($extra[$hash])) {
-                $record->set($junctionProperty, $jointMarshaller->merge($extra[$hash], $current, $nested));
+            $key = (string)$record->get('_id');
+            if (isset($extra[$key])) {
+                $record->set($junctionProperty, $jointMarshaller->merge($extra[$key], $current, $nested));
             } else {
                 $record->set($junctionProperty, $jointMarshaller->one($current, $nested));
             }
@@ -594,20 +582,21 @@ class Marshaller
         $marshaller = $target->marshaller();
 
         if ($many) {
-            $hasIds = array_key_exists('_ids', $value) && is_array($value['_ids']);
+            $hasIdsKey = array_key_exists('_ids', $value);
+            $hasIds = $hasIdsKey && is_array($value['_ids']);
             $onlyIds = !empty($options['onlyIds']);
             if ($hasIds) {
                 return $this->loadAssociatedByIds($association, $value['_ids']);
             }
-            if ($hasIds || $onlyIds) {
+            if ($hasIdsKey || $onlyIds) {
                 return [];
             }
 
-            if ($type === 'manyToMany') {
+            if ($type === 'manyToMany' && $association instanceof BelongsToMany) {
                 return $this->mergeBelongsToMany(is_array($existing) ? $existing : [], $association, $value, $options);
             }
 
-            return $marshaller->mergeMany(is_array($existing) ? $existing : [], $value, $options);
+            return $marshaller->mergeMany(is_array($existing) ? $existing : [], array_values($value), $options);
         }
 
         if ($existing instanceof Document) {
