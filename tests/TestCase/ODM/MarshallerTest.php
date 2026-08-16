@@ -1862,11 +1862,11 @@ class MarshallerTest extends TestCase
         $this->assertCount(3, $result->comments);
         $this->assertTrue($result->isDirty('comments'), 'Updated prop should be dirty');
         $this->assertInstanceOf(Document::class, $result->comments[0]);
-        $this->assertSame(1, $result->comments[0]->getId());
+        $this->assertSame('000000000000000000000001', $result->comments[0]->getId());
         $this->assertInstanceOf(Document::class, $result->comments[1]);
-        $this->assertSame(2, $result->comments[1]->getId());
+        $this->assertSame('000000000000000000000002', $result->comments[1]->getId());
         $this->assertInstanceOf(Document::class, $result->comments[2]);
-        $this->assertSame(3, $result->comments[2]->getId());
+        $this->assertSame('000000000000000000000003', $result->comments[2]->getId());
     }
 
     /**
@@ -2276,8 +2276,8 @@ class MarshallerTest extends TestCase
         $this->assertInstanceOf(Document::class, $result->tags[1]->_joinData->user);
         $this->assertFalse($result->tags[0]->isNew(), 'Should not be new, as id is in db.');
         $this->assertFalse($result->tags[1]->isNew(), 'Should not be new, as id is in db.');
-        $this->assertSame(1, $result->tags[0]->getId());
-        $this->assertSame(2, $result->tags[1]->getId());
+        $this->assertSame('000000000000000000000001', $result->tags[0]->getId());
+        $this->assertSame('000000000000000000000002', $result->tags[1]->getId());
 
         $this->assertSame(1, $result->tags[0]->_joinData->active);
         $this->assertSame(0, $result->tags[1]->_joinData->active);
@@ -2340,8 +2340,8 @@ class MarshallerTest extends TestCase
         $this->assertInstanceOf(Document::class, $result->tags[1]->_joinData->user);
         $this->assertFalse($result->tags[0]->isNew(), 'Should not be new, as id is in db.');
         $this->assertFalse($result->tags[1]->isNew(), 'Should not be new, as id is in db.');
-        $this->assertSame(1, $result->tags[0]->getId());
-        $this->assertSame(2, $result->tags[1]->getId());
+        $this->assertSame('000000000000000000000001', $result->tags[0]->getId());
+        $this->assertSame('000000000000000000000002', $result->tags[1]->getId());
 
         $this->assertSame(1, $result->tags[0]->_joinData->active);
         $this->assertSame(0, $result->tags[1]->_joinData->active);
