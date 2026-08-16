@@ -549,9 +549,10 @@ class ShadowCollectionStrategy extends AbstractStrategy
                 }
             },
         ]);
-        if ($query->clause('select') !== []) {
-            $query->select(['translations']);
-        }
+        // Always project the lookup result: when the query later adds a
+        // selective `select()` (e.g. through an eager-loaded association
+        // query builder), the `translations` field must survive the merge.
+        $query->selectAlso(['translations']);
 
         return $query->formatResults($this->groupTranslations(...), SelectQuery::PREPEND);
     }
