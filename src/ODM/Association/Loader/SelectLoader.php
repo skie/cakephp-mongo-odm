@@ -83,7 +83,10 @@ class SelectLoader implements LoaderInterface
             $rawSourceKey = $sourceHoldsForeignKey
                 ? ($options['foreignKey'] ?? '_id')
                 : ($options['bindingKey'] ?? '_id');
-            if (in_array($rawSourceKey, [false, null, ''], true)) {
+            // `foreignKey => false` disables FK matching: the association loads
+            // by conditions alone (cake parity) and attaches the single match.
+            $disableKey = in_array($rawSourceKey, [false, null, ''], true);
+            if ($disableKey && empty($options['conditions'])) {
                 return $entities;
             }
 
@@ -91,22 +94,26 @@ class SelectLoader implements LoaderInterface
             $sourceKey = (string)$rawSourceKey;
             $sourcePath = isset($options['sourcePath']) ? (string)$options['sourcePath'] : '';
             $sourceEntities = $this->collectSourceEntities($entities, $sourcePath);
-            foreach ($sourceEntities as $sourceEntity) {
-                $key = $sourceEntity instanceof EntityInterface
-                    ? $sourceEntity->get($sourceKey)
-                    : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
-                if ($key !== null) {
-                    $keys[(string)$key] = $key;
+            if (!$disableKey) {
+                foreach ($sourceEntities as $sourceEntity) {
+                    $key = $sourceEntity instanceof EntityInterface
+                        ? $sourceEntity->get($sourceKey)
+                        : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
+                    if ($key !== null) {
+                        $keys[(string)$key] = $key;
+                    }
                 }
             }
 
-            if ($keys === []) {
+            if (!$disableKey && $keys === []) {
                 return $entities;
             }
 
-            $targetKey = (string)($sourceHoldsForeignKey
-                ? ($options['bindingKey'] ?? '_id')
-                : ($options['foreignKey'] ?? '_id'));
+            $targetKey = $disableKey
+                ? ''
+                : (string)($sourceHoldsForeignKey
+                    ? ($options['bindingKey'] ?? '_id')
+                    : ($options['foreignKey'] ?? '_id'));
             $conditions = $options['conditions'] ?? [];
             if ($conditions instanceof Closure) {
                 // Let the query layer invoke the closure with (expression, query)
