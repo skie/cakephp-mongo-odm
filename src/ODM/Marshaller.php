@@ -383,10 +383,6 @@ class Marshaller
             }
         }
 
-        $alias = $association->getAlias();
-        $nested = is_array($options['associated'][$alias] ?? null)
-            ? $options['associated'][$alias]
-            : [];
         $target = $association->getTarget();
         $marshaller = $target->marshaller();
 
@@ -395,10 +391,10 @@ class Marshaller
                 return $this->belongsToMany($association, $value, $options);
             }
 
-            return $marshaller->many($value, $nested);
+            return $marshaller->many($value, $options);
         }
 
-        return $marshaller->one($value, $nested);
+        return $marshaller->one($value, $options);
     }
 
     /**
