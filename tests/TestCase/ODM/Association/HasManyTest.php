@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
-use Cake\Database\Driver\Sqlserver;
 use Cake\Database\Expression\OrderClauseExpression;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Database\Expression\TupleComparison;
@@ -787,8 +786,6 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithLimitAndOrder(): void
     {
-        $this->skipIf(ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver, 'Sql Server does not support ORDER BY on field not in GROUP BY');
-
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -838,11 +835,6 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingAndOrderOnSameAlias(): void
     {
-        $this->skipIf(
-            ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
-            'Sql Server does not provide a portable LENGTH() function',
-        );
-
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -867,7 +859,6 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingOnAggregateAlias(): void
     {
-        $this->markTestSkipped('F-subquery: unable to load association, FK not selected (ODM EagerLoader subquery gap); see 40-selectquerytest-failure-groups.md.');
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 
@@ -895,11 +886,6 @@ class HasManyTest extends TestCase
      */
     public function testSubqueryWithHavingOnSelectAlias(): void
     {
-        $this->skipIf(
-            ConnectionManager::get('test_mongo')->getDriver() instanceof Sqlserver,
-            'Sql Server does not provide a portable LENGTH() function',
-        );
-
         $Authors = $this->getCollectionLocator()->get('Authors');
         $Authors->Articles->setStrategy(Association::STRATEGY_SUBQUERY);
 

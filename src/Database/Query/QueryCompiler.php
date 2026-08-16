@@ -282,9 +282,13 @@ class QueryCompiler
             $fields = $fields($this);
         }
 
+        if (is_int($fields) || is_float($fields) || is_bool($fields)) {
+            $fields = ['_c' => ['$literal' => $fields]];
+        }
+
         if ($fields instanceof ExpressionInterface) {
             $this->assertMongoExpression($fields);
-            $fields = [$fields];
+            $fields = ['_c' => $fields];
         }
 
         if (!is_array($fields)) {
@@ -298,7 +302,13 @@ class QueryCompiler
             }
 
             if (is_numeric($key)) {
-                $projection[$this->resolveField((string)$value)] = 1;
+                if (is_array($value)) {
+                    $projection['_c' . (string)$key] = $this->resolveFieldRefs($value);
+                } elseif (is_int($value) || is_float($value) || is_bool($value)) {
+                    $projection['_c' . (string)$key] = ['$literal' => $value];
+                } else {
+                    $projection[$this->resolveField((string)$value)] = 1;
+                }
             } else {
                 $resolvedValue = is_string($value) && !str_starts_with($value, '$')
                     ? $this->resolveField($value)
@@ -772,6 +782,17 @@ class QueryCompiler
             $pipeline[] = ['$match' => $this->filter];
         }
 
+        // Split ad-hoc stages: joinWith/matching (`$lookup`/`$unwind`/`$match`
+        // prefix) must run before `$group` (SQL JOIN → GROUP BY), while stages
+        // like `$count` (performCount) must run after the grouped row set.
+        [$preGroup, $postGroup] = $headIsFixed
+            ? [[], $this->pipeline]
+            : $this->splitPipelineAroundGroup($this->pipeline);
+
+        foreach ($preGroup as $stage) {
+            $pipeline[] = $stage;
+        }
+
         if ($this->group !== []) {
             $pipeline[] = ['$group' => $this->buildGroupStage()];
         }
@@ -780,7 +801,7 @@ class QueryCompiler
             $pipeline[] = ['$match' => $this->having];
         }
 
-        foreach ($this->pipeline as $stage) {
+        foreach ($postGroup as $stage) {
             $pipeline[] = $stage;
         }
 
@@ -813,6 +834,36 @@ class QueryCompiler
             'pipeline' => $pipeline,
             'options' => $this->options,
         ];
+    }
+
+    /**
+     * Splits stored pipeline stages into pre-`$group` joins and post-`$group` work.
+     *
+     * A leading run of `$lookup` / `$unwind` / `$match` is treated as the
+     * joinWith/matching prefix (must precede GROUP BY). Everything after that
+     * prefix — notably `$count` from `performCount()` — stays after `$group`.
+     *
+     * @param list<array<string, mixed>> $stages The stored pipeline stages.
+     * @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>}
+     */
+    protected function splitPipelineAroundGroup(array $stages): array
+    {
+        $preGroup = [];
+        $postGroup = [];
+        $inJoinPrefix = true;
+
+        foreach ($stages as $stage) {
+            $key = is_array($stage) ? array_key_first($stage) : null;
+            if ($inJoinPrefix && in_array($key, ['$lookup', '$unwind', '$match'], true)) {
+                $preGroup[] = $stage;
+                continue;
+            }
+
+            $inJoinPrefix = false;
+            $postGroup[] = $stage;
+        }
+
+        return [$preGroup, $postGroup];
     }
 
     /**
@@ -925,10 +976,16 @@ class QueryCompiler
             }
         }
 
-        // Drop `_id` unless the source projection explicitly keeps it (the
-        // eager loader restores `_id: 1` so external HasMany/BTM loads can
-        // match on the grouped source key).
-        $projection['_id'] = (int)($this->projection['_id'] ?? 0) === 1 ? 1 : 0;
+        // Eager loaders (HasMany select/subquery) match on a scalar source `_id`.
+        // A multi-field `$group` stores the key as `_id: { _id: …, name: … }`;
+        // projecting `_id: 1` would keep that document and break FK collection.
+        if (count($this->group) > 1 && in_array('_id', $this->group, true)) {
+            $projection['_id'] = '$_id._id';
+        } elseif (count($this->group) === 1 && $this->group[0] === '_id') {
+            $projection['_id'] = '$_id';
+        } else {
+            $projection['_id'] = (int)($this->projection['_id'] ?? 0) === 1 ? 1 : 0;
+        }
 
         return $projection;
     }

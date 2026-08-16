@@ -1687,12 +1687,18 @@ class SelectQueryTest extends TestCase
 
     /**
      * Test that count() returns correct results with group by.
+     *
+     * cake60: `select(['author_id', 's' => sum('id')])->groupBy(['author_id'])`
+     * then `count()` = number of groups (subquery COUNT(*)).
      */
     public function testCountWithGroup(): void
     {
         $collection = $this->getCollectionLocator()->get('articles');
         $query = $collection->find('all');
-        $query->select(['author_id'])
+        $query->select([
+                'author_id',
+                's' => $query->func()->sum($query->identifier('_id')),
+            ])
             ->groupBy(['author_id']);
         $result = $query->count();
         $this->assertEquals(2, $result);
