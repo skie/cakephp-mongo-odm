@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM;
 use ArrayObject;
 use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Type\TypeFactory;
+use Crustum\Mongo\ODM\Association\BelongsToMany;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -23,6 +24,8 @@ use Throwable;
  */
 class Marshaller
 {
+    use AssociationsNormalizerTrait;
+
     /**
      * BaseCollection associated with this marshaller.
      *
@@ -262,12 +265,8 @@ class Marshaller
         }
 
         $associated = (array)($options['associated'] ?? []);
+        $associated = $this->normalizeAssociations($associated);
         foreach ($associated as $key => $nested) {
-            if (is_int($key) && is_scalar($nested)) {
-                $key = $nested;
-                $nested = [];
-            }
-
             $alias = (string)$key;
             if (str_starts_with($alias, '_')) {
                 continue;
@@ -392,10 +391,91 @@ class Marshaller
         $marshaller = $target->marshaller();
 
         if ($many) {
+            if ($type === 'manyToMany') {
+                return $this->belongsToMany($association, $value, $options);
+            }
+
             return $marshaller->many($value, $nested);
         }
 
         return $marshaller->one($value, $nested);
+    }
+
+    /**
+     * Marshals BelongsToMany input, resolving existing documents by primary key
+     * and attaching per-link junction data under the association's junction
+     * property (`_joinData`).
+     *
+     * Mirrors cake60 `Marshaller::belongsToMany()` for the ODM in-document
+     * junction shape.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The BelongsToMany association.
+     * @param array<int|string, mixed> $data The incoming rows.
+     * @param array<string, mixed> $options Marshaller options.
+     * @return array<int, \Crustum\Mongo\ODM\Document>
+     */
+    private function belongsToMany(Association $association, array $data, array $options): array
+    {
+        $associated = (array)($options['associated'] ?? []);
+        $forceNew = (bool)($options['forceNew'] ?? false);
+
+        $data = array_values($data);
+        $target = $association->getTarget();
+        $primaryKey = '_id';
+        $records = [];
+        $conditions = [];
+
+        foreach ($data as $i => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (isset($row[$primaryKey]) && $row[$primaryKey] !== '') {
+                $conditions[][$primaryKey] = $row[$primaryKey];
+                if ($forceNew) {
+                    $records[$i] = $this->one($row, $options);
+                }
+            } else {
+                $records[$i] = $this->one($row, $options);
+            }
+        }
+
+        if ($conditions !== []) {
+            $existing = [];
+            foreach ($target->find()->where(['OR' => $conditions])->all() as $document) {
+                $existing[(string)$document->get($primaryKey)] = $document;
+            }
+
+            foreach ($data as $i => $row) {
+                if (!isset($row[$primaryKey]) || $row[$primaryKey] === '') {
+                    continue;
+                }
+
+                $key = (string)$row[$primaryKey];
+                if (isset($existing[$key])) {
+                    $records[$i] = $this->merge($existing[$key], $row, $options);
+                }
+            }
+        }
+
+        if (!$association instanceof BelongsToMany) {
+            return array_values($records);
+        }
+
+        $junctionProperty = $association->getJunctionProperty();
+        $jointMarshaller = $association->junction()->marshaller();
+        $nested = isset($associated[$junctionProperty]) && is_array($associated[$junctionProperty])
+            ? $associated[$junctionProperty]
+            : [];
+
+        foreach ($records as $i => $record) {
+            if (isset($data[$i][$junctionProperty]) && is_array($data[$i][$junctionProperty])) {
+                $joinData = $jointMarshaller->one((array)$data[$i][$junctionProperty], $nested);
+                $record->set($junctionProperty, $joinData);
+            }
+        }
+
+        return array_values($records);
     }
 
     /**
