@@ -36,6 +36,18 @@ return [
             'articles_author_id' => ['key' => ['author_id' => 1]],
         ],
     ],
+    'articles_embed' => [
+        'fields' => [
+            'author_id' => ['bsonType' => ['objectId', 'null']],
+            'title' => ['bsonType' => 'string'],
+            'body' => ['bsonType' => 'string'],
+            'published' => ['bsonType' => 'string'],
+            '_translations' => ['bsonType' => 'object'],
+        ],
+        'indexes' => [
+            'articles_embed_published' => ['key' => ['published' => 1]],
+        ],
+    ],
     'authors' => [
         'fields' => [
             'name' => ['bsonType' => 'string'],
