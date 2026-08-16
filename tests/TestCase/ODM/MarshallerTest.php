@@ -452,7 +452,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'My title',
             'body' => 'My content',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'comments' => [
                 ['comment' => 'First post', 'user_id' => 2],
                 ['comment' => 'Second post', 'user_id' => 2],
@@ -487,7 +487,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'My title',
             'body' => 'My content',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'comments' => [
                 ['comment' => 'First post', 'user_id' => 2],
                 ['comment' => 'Second post', 'user_id' => 2],
@@ -1670,11 +1670,11 @@ class MarshallerTest extends TestCase
         $marshall = new Marshaller($this->articles);
         $document = new Document([
             'title' => 'Foo',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
         ]);
         $data = [
             'title' => 'Foo',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'crazy' => true,
         ];
         $document->setAccess('*', true);
@@ -1684,7 +1684,7 @@ class MarshallerTest extends TestCase
 
         $expected = [
             'title' => 'Foo',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'crazy' => true,
         ];
         $this->assertEquals($expected, $result->toArray());
@@ -2705,15 +2705,15 @@ class MarshallerTest extends TestCase
     public function testMergeManySimple(): void
     {
         $entities = [
-            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => 2]),
-            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => 2]),
+            new OpenArticleEntity(['_id' => '000000000000000000000001', 'comment' => 'First post', 'user_id' => '000000000000000000000002']),
+            new OpenArticleEntity(['_id' => '000000000000000000000002', 'comment' => 'Second post', 'user_id' => '000000000000000000000002']),
         ];
         $entities[0]->clean();
         $entities[1]->clean();
 
         $data = [
-            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => 2],
-            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => 1],
+            ['_id' => '000000000000000000000002', 'comment' => 'Changed 2', 'user_id' => '000000000000000000000002'],
+            ['_id' => '000000000000000000000001', 'comment' => 'Changed 1', 'user_id' => '000000000000000000000001'],
         ];
         $marshall = new Marshaller($this->comments);
         $result = $marshall->mergeMany($entities, $data);
@@ -2721,7 +2721,7 @@ class MarshallerTest extends TestCase
         $this->assertSame($entities[0], $result[0]);
         $this->assertSame($entities[1], $result[1]);
         $this->assertSame('Changed 1', $result[0]->comment);
-        $this->assertSame(1, $result[0]->user_id);
+        $this->assertSame('000000000000000000000001', $result[0]->user_id);
         $this->assertSame('Changed 2', $result[1]->comment);
         $this->assertTrue($result[0]->isDirty('user_id'));
         $this->assertFalse($result[1]->isDirty('user_id'));

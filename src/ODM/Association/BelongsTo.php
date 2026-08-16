@@ -145,6 +145,16 @@ class BelongsTo extends Association
     }
 
     /**
+     * BelongsTo targets load through an in-pipeline `$lookup`.
+     *
+     * @return bool
+     */
+    public function canBeJoined(): bool
+    {
+        return true;
+    }
+
+    /**
      * Builds a lookup pipeline for the association.
      *
      * @param array<string, mixed> $options Pipeline options.

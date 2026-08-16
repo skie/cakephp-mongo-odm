@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Database\Driver\Sqlserver;
-use Cake\Database\Expression\OrderByExpression;
 use Cake\Database\Expression\OrderClauseExpression;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Database\Expression\TupleComparison;
@@ -80,7 +79,7 @@ class HasManyTest extends TestCase
 
         $this->author = $this->getCollectionLocator()->get('Authors', [
             'schema' => [
-                '_id' => ['type' => 'integer'],
+                '_id' => ['type' => 'objectid'],
                 'name' => ['type' => 'string'],
                 '_constraints' => [
                     'primary' => ['type' => 'primary', 'columns' => ['_id']],
@@ -94,9 +93,9 @@ class HasManyTest extends TestCase
             'connection' => $connection,
         ]);
         $article->setSchemaFromArray([
-            '_id' => ['type' => 'integer'],
+            '_id' => ['type' => 'objectid'],
             'title' => ['type' => 'string'],
-            'author_id' => ['type' => 'integer'],
+            'author_id' => ['type' => 'objectid'],
             '_constraints' => [
                 'primary' => ['type' => 'primary', 'columns' => ['_id']],
             ],
@@ -104,15 +103,15 @@ class HasManyTest extends TestCase
         $this->article = Mockery::mock($article)->makePartial();
 
         $this->articlesTypeMap = new TypeMap([
-            'Articles._id' => 'integer',
-            '_id' => 'integer',
+            'Articles._id' => 'objectid',
+            '_id' => 'objectid',
             'Articles.title' => 'string',
             'title' => 'string',
-            'Articles.author_id' => 'integer',
-            'author_id' => 'integer',
-            'Articles__id' => 'integer',
+            'Articles.author_id' => 'objectid',
+            'author_id' => 'objectid',
+            'Articles__id' => 'objectid',
             'Articles__title' => 'string',
-            'Articles__author_id' => 'integer',
+            'Articles__author_id' => 'objectid',
         ]);
     }
 
@@ -187,21 +186,33 @@ class HasManyTest extends TestCase
 
         $field = 'Articles._id';
 
+        $ids = static fn(array $articles): array => array_map(
+            static fn($article): mixed => $article->_id ?? $article['_id'] ?? null,
+            $articles,
+        );
+
+        $field = 'Articles._id';
+
+        $ids = static fn(array $articles): array => array_map(
+            static fn($article): mixed => $article->_id ?? $article['_id'] ?? null,
+            $articles,
+        );
+
         $assoc->setSort("{$field} DESC");
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
-        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], $ids($result['articles']));
 
         $assoc->setSort(['Articles._id' => 'DESC']);
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
-        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], $ids($result['articles']));
 
         $assoc->setSort(fn(): array => ['Articles._id' => 'DESC']);
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
-        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], $ids($result['articles']));
 
         $assoc->setSort(new OrderClauseExpression('Articles._id', 'DESC'));
         $result = $authors->get('000000000000000000000001', ...['contain' => 'Articles']);
-        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], array_column($result['articles'], '_id'));
+        $this->assertSame(['000000000000000000000003', '000000000000000000000001'], $ids($result['articles']));
     }
 
     /**
@@ -244,28 +255,31 @@ class HasManyTest extends TestCase
         $query = $this->article->selectQuery();
         $this->article->shouldReceive('find')
             ->andReturn($query);
-        $keys = [1, 2, 3, 4];
+        $keys = [
+            '000000000000000000000001', '000000000000000000000002',
+            '000000000000000000000003', '000000000000000000000004',
+        ];
 
         $callable = $association->eagerLoader(['keys' => $keys, 'query' => $query]);
-        $row = ['Authors__id' => 1];
+        $row = ['_id' => '000000000000000000000001'];
 
-        $result = $callable($row);
-        $this->assertArrayHasKey('Articles', $result);
-        $this->assertSame($row['Authors__id'], $result['Articles'][0]->author_id);
-        $this->assertSame($row['Authors__id'], $result['Articles'][1]->author_id);
+        $result = $callable([$row]);
+        $this->assertArrayHasKey('articles', $result[0]);
+        $this->assertSame('000000000000000000000001', $result[0]['articles'][0]->author_id);
+        $this->assertSame('000000000000000000000001', $result[0]['articles'][1]->author_id);
 
-        $row = ['Authors__id' => 2];
-        $result = $callable($row);
-        $this->assertArrayNotHasKey('Articles', $result);
+        $row = ['_id' => '000000000000000000000002'];
+        $result = $callable([$row]);
+        $this->assertSame([], $result[0]['articles']);
 
-        $row = ['Authors__id' => 3];
-        $result = $callable($row);
-        $this->assertArrayHasKey('Articles', $result);
-        $this->assertSame($row['Authors__id'], $result['Articles'][0]->author_id);
+        $row = ['_id' => '000000000000000000000003'];
+        $result = $callable([$row]);
+        $this->assertArrayHasKey('articles', $result[0]);
+        $this->assertSame('000000000000000000000003', $result[0]['articles'][0]->author_id);
 
-        $row = ['Authors__id' => 4];
-        $result = $callable($row);
-        $this->assertArrayNotHasKey('Articles', $result);
+        $row = ['_id' => '000000000000000000000004'];
+        $result = $callable([$row]);
+        $this->assertSame([], $result[0]['articles']);
     }
 
     /**
@@ -280,22 +294,23 @@ class HasManyTest extends TestCase
             'strategy' => 'select',
         ];
         $association = new HasMany('Articles', $this->author, $config);
-        $keys = [1, 2, 3, 4];
+        $keys = [
+            '000000000000000000000001', '000000000000000000000002',
+            '000000000000000000000003', '000000000000000000000004',
+        ];
 
         $query = $this->article->selectQuery();
         $this->article->shouldReceive('find')
             ->andReturn($query);
 
-        $association->eagerLoader(['keys' => $keys, 'query' => $query]);
+        $callable = $association->eagerLoader(['keys' => $keys, 'query' => $query]);
+        $callable([['_id' => '000000000000000000000001']]);
 
-        $expected = new QueryExpression(
-            ['Articles.published' => 'Y', 'Articles.author_id IN' => $keys],
-            $this->articlesTypeMap,
-        );
-        $this->assertWhereClause($expected, $query);
+        $this->assertSame(['_id' => 1], $query->clause('order'));
 
-        $expected = new OrderByExpression(['_id' => 'ASC']);
-        $this->assertOrderClause($expected, $query);
+        $where = $query->clause('where');
+        $this->assertSame('Y', $where['published']);
+        $this->assertSame(['000000000000000000000001'], array_map(strval(...), $where['author_id']['$in']));
     }
 
     /**
@@ -312,7 +327,10 @@ class HasManyTest extends TestCase
         $this->article->hasMany('Comments', ['strategy' => 'select']);
 
         $association = new HasMany('Articles', $this->author, $config);
-        $keys = [1, 2, 3, 4];
+        $keys = [
+            '000000000000000000000001', '000000000000000000000002',
+            '000000000000000000000003', '000000000000000000000004',
+        ];
 
         /** @var \Cake\ORM\Query\SelectQuery $query */
         $query = $this->article->query();
@@ -321,7 +339,7 @@ class HasManyTest extends TestCase
         $this->article->shouldReceive('find')
             ->andReturn($query);
 
-        $association->eagerLoader([
+        $callable = $association->eagerLoader([
             'conditions' => ['Articles.id !=' => 3],
             'sort' => ['title' => 'DESC'],
             'fields' => ['_id', 'title', 'author_id'],
@@ -329,26 +347,15 @@ class HasManyTest extends TestCase
             'keys' => $keys,
             'query' => $query,
         ]);
-        $expected = [
-            'Articles__id' => 'Articles._id',
-            'Articles__title' => 'Articles.title',
-            'Articles__author_id' => 'Articles.author_id',
-        ];
-        $this->assertSelectClause($expected, $query);
+        $callable([['_id' => '000000000000000000000001']]);
 
-        $expected = new QueryExpression(
-            [
-                'Articles.published' => 'Y',
-                'Articles.id !=' => 3,
-                'Articles.author_id IN' => $keys,
-            ],
-            $query->getTypeMap(),
-        );
-        $this->assertWhereClause($expected, $query);
-
-        $expected = new OrderByExpression(['title' => 'DESC']);
-        $this->assertOrderClause($expected, $query);
+        $this->assertSame(['_id' => 1, 'title' => 1, 'author_id' => 1], $query->clause('select'));
+        $this->assertSame(['title' => -1], $query->clause('order'));
         $this->assertArrayHasKey('Comments', $query->getContain());
+
+        $where = $query->clause('where');
+        $this->assertSame('Y', $where['published']);
+        $this->assertSame(['000000000000000000000001'], array_map(strval(...), $where['author_id']['$in']));
     }
 
     /**
@@ -392,6 +399,9 @@ class HasManyTest extends TestCase
         // Verify that the loader was created successfully
         $this->assertIsCallable($loader);
 
+        // Run the loader (ODM eager loaders are lazy) so `find()` fires.
+        $loader([['_id' => '000000000000000000000001']]);
+
         // Verify that find was called and a query was returned
         $this->assertCount(1, $queriesReturned, 'Find should have been called once');
 
@@ -424,6 +434,7 @@ class HasManyTest extends TestCase
      */
     public function testEagerLoaderWithQueryBuilder(): void
     {
+        $this->markTestSkipped('// SQL join() shape (`join(' . "'" . 'comments' . "'" . ')`, `clause(' . "'" . 'join' . "'" . ')`) has no ODM analog; see 18-orm-tests-port-plan.md.');
         $config = [
             'target' => $this->article,
             'strategy' => 'select',
@@ -470,6 +481,7 @@ class HasManyTest extends TestCase
      */
     public function testEagerLoaderMultipleKeys(): void
     {
+        $this->markTestSkipped('// SQL composite-key `TupleComparison` (`author_id, site_id IN`) has no Mongo analog; see 18-orm-tests-port-plan.md.');
         $config = [
             'target' => $this->article,
             'strategy' => 'select',

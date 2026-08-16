@@ -45,6 +45,18 @@ class SelectLoader implements LoaderInterface
     {
         $options += $this->options;
 
+        // Association conditions AND per-load conditions both apply (cake
+        // parity); per-load keys win on a collision. Closure conditions are
+        // resolved by the loader's where() path and cannot be merged.
+        $callConditions = $options['conditions'] ?? null;
+        if (
+            isset($this->options['conditions'])
+            && is_array($this->options['conditions'])
+            && is_array($callConditions)
+        ) {
+            $options['conditions'] = array_merge($this->options['conditions'], $callConditions);
+        }
+
         return function (iterable $entities) use ($options): iterable {
             $query = $options['finder']();
             if (!$query instanceof QueryInterface) {
@@ -141,6 +153,10 @@ class SelectLoader implements LoaderInterface
                 if (is_object($built) && is_callable([$built, 'all'])) {
                     $query = $built;
                 }
+            }
+
+            if (!empty($options['contain']) && $query instanceof SelectQuery) {
+                $query->contain($options['contain']);
             }
 
             $rows = $query->all();

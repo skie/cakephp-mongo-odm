@@ -205,7 +205,17 @@ trait CommonQueryTrait
      */
     public function find(string $type = 'all', mixed ...$args): static
     {
-        if ($type === 'all' || $this->repository === null || !$this instanceof SelectQuery) {
+        if ($this->repository === null || !$this instanceof SelectQuery) {
+            return $this;
+        }
+
+        // `find('all', ...$options)` still applies the options (cake parity) —
+        // `Collection::get($id, ...['contain' => ...])` relies on it.
+        if ($type === 'all') {
+            if ($args !== []) {
+                $this->applyOptions($args);
+            }
+
             return $this;
         }
 
