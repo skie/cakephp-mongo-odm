@@ -849,7 +849,10 @@ class QueryCompiler
             }
 
             $operator = key($value);
-            if (!is_string($operator) || !str_starts_with($operator, '$')) {
+            if (!is_string($operator)) {
+                continue;
+            }
+            if (!str_starts_with((string)$operator, '$')) {
                 continue;
             }
 

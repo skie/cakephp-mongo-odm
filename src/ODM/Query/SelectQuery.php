@@ -1307,6 +1307,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             if (!$loaded instanceof ResultSet) {
                 $resultSet = new ResultSet($loaded, $this);
             }
+
             $this->hideAutoSelectedKeys($resultSet);
         }
 

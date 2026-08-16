@@ -210,10 +210,18 @@ trait CommonQueryTrait
         }
 
         // `find('all', ...$options)` still applies the options (cake parity) —
-        // `Collection::get($id, ...['contain' => ...])` relies on it.
+        // `Collection::get($id, ...['contain' => ...])` relies on it. Only the
+        // named (string-keyed) args are query options.
         if ($type === 'all') {
-            if ($args !== []) {
-                $this->applyOptions($args);
+            $options = [];
+            foreach ($args as $key => $value) {
+                if (is_string($key)) {
+                    $options[$key] = $value;
+                }
+            }
+
+            if ($options !== []) {
+                $this->applyOptions($options);
             }
 
             return $this;

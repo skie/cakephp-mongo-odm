@@ -178,10 +178,12 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
 
         foreach ($joins as $alias => $collection) {
-            if (!isset($row[$alias]) || !is_array($row[$alias])) {
+            if (!isset($row[$alias])) {
                 continue;
             }
-
+            if (!is_array($row[$alias])) {
+                continue;
+            }
             $target = new BaseCollection([
                 'alias' => $alias,
                 'collection' => $collection,
