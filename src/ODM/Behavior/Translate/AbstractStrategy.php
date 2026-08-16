@@ -116,7 +116,7 @@ abstract class AbstractStrategy implements TranslateStrategyInterface
 
         $collection = $this->translationCollection;
         $fields = $collection->getSchema()->columns();
-        $fields = array_values(array_diff($fields, ['_shadow_id', 'locale']));
+        $fields = array_values(array_diff($fields, ['_id', 'id', '_shadow_id', 'locale']));
 
         $this->setConfig('fields', $fields);
 

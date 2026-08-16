@@ -530,6 +530,36 @@ class ShadowCollectionStrategy extends AbstractStrategy
     }
 
     /**
+     * Custom finder method used to retrieve all translations for the found records.
+     *
+     * The translations live in a separate collection, so the strategy joins them
+     * with a single `$lookup` (scoped to the requested locales) and groups the
+     * matched documents under `_translations`.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array> $query The original query to modify
+     * @param array<string> $locales A list of locales or options with the `locales` key defined
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array>
+     */
+    public function findTranslations(SelectQuery $query, array $locales = []): SelectQuery
+    {
+        $query->lookup($this->translationCollection->getCollection(), [
+            'let' => ['rootId' => '$_id'],
+            'as' => 'translations',
+            'pipeline' => function ($q) use ($locales): void {
+                $q->where(['$expr' => ['$eq' => ['$_shadow_id', '$$rootId']]]);
+                if ($locales !== []) {
+                    $q->where(['locale' => ['$in' => array_values($locales)]]);
+                }
+            },
+        ]);
+        if ($query->clause('select') !== []) {
+            $query->select(['translations']);
+        }
+
+        return $query->formatResults($this->groupTranslations(...), SelectQuery::PREPEND);
+    }
+
+    /**
      * Modifies the results from a table find in order to merge full translation
      * records into each entity under the `_translations` key.
      *
@@ -538,12 +568,19 @@ class ShadowCollectionStrategy extends AbstractStrategy
      */
     public function groupTranslations(CollectionInterface $results): CollectionInterface
     {
-        return $results->map(function ($row) {
+        $documentClass = $this->translationCollection->getDocumentClass();
+
+        return $results->map(function ($row) use ($documentClass) {
             if (!$row instanceof EntityInterface) {
                 return $row;
             }
 
-            $translations = $row->has('_i18n') ? $row->get('_i18n') : [];
+            $translations = $row->has('translations') ? $row->get('translations') : [];
+            $row->unset('translations');
+            if ($translations === [] && $row->has('_i18n')) {
+                $translations = $row->get('_i18n');
+            }
+
             if ($translations === []) {
                 if ($row->has('_translations')) {
                     return $row;
@@ -558,13 +595,19 @@ class ShadowCollectionStrategy extends AbstractStrategy
 
             $result = [];
             foreach ($translations as $translation) {
-                if (!$translation instanceof EntityInterface) {
+                $data = $translation instanceof EntityInterface
+                    ? $translation->toArray()
+                    : (is_array($translation) ? $translation : []);
+                unset($data['_id'], $data['_shadow_id']);
+                $locale = (string)($data['locale'] ?? '');
+                if ($locale === '') {
                     continue;
                 }
 
-                $translation->unset('_id');
-                $translation->unset('_shadow_id');
-                $result[(string)$translation->get('locale')] = $translation;
+                $result[$locale] = new $documentClass($data, [
+                    'markClean' => true,
+                    'markNew' => false,
+                ]);
             }
 
             $row->set('_translations', $result)

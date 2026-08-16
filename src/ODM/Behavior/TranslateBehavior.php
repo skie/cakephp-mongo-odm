@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Behavior;
 
 use ArrayObject;
-use Cake\Datasource\QueryInterface;
 use Cake\Event\EventInterface;
 use Cake\I18n\I18n;
 use Cake\Utility\Inflector;
@@ -322,17 +321,7 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
      */
     public function findTranslations(SelectQuery $query, array $locales = []): SelectQuery
     {
-        $targetAlias = $this->getStrategy()->getTranslationCollection()->getAlias();
-
-        return $query
-            ->contain([$targetAlias => function (QueryInterface $query) use ($locales, $targetAlias): QueryInterface {
-                if ($locales !== []) {
-                    $query->where(["{$targetAlias}.locale IN" => $locales]);
-                }
-
-                return $query;
-            }])
-            ->formatResults($this->getStrategy()->groupTranslations(...), SelectQuery::PREPEND);
+        return $this->getStrategy()->findTranslations($query, $locales);
     }
 
     /**

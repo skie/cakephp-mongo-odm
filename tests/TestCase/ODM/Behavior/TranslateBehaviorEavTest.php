@@ -179,7 +179,7 @@ abstract class TranslateBehaviorEavTest extends TestCase
             ['_id' => '000000000000000000000001', 'title' => 'Titulek #1', 'body' => 'Obsah #1', '_locale' => 'cze'],
             ['_id' => '000000000000000000000002', 'title' => 'Titulek #2', 'body' => 'Obsah #2', '_locale' => 'cze'],
             ['_id' => '000000000000000000000003', 'title' => 'Titulek #3', 'body' => 'Obsah #3', '_locale' => 'cze'],
-            ['_id' => '000000000000000000000004', 'title' => null, 'body' => null, '_locale' => 'cze'],
+            ['_id' => $document->getId(), '_locale' => 'cze'],
         ];
         $this->assertSame($expected, $results);
     }

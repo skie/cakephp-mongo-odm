@@ -946,12 +946,10 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorEavTest
                 'fr' => [
                     'title' => 'Title FR',
                     'locale' => 'fr',
-                    'body' => null,
                 ],
                 'es' => [
                     'title' => 'Title ES',
                     'locale' => 'es',
-                    'body' => null,
                 ],
             ],
         ];

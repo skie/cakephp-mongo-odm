@@ -48,6 +48,7 @@ use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\FactoryLocator;
+use Cake\I18n\I18n;
 use Cake\TestSuite\Fixture\SchemaLoader;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
@@ -94,6 +95,8 @@ Configure::write('App', [
         'locales' => [RESOURCES . 'locales' . DS],
     ],
 ]);
+Locale::setDefault('en_US');
+I18n::setLocale('en_US');
 Configure::write('Security', [
     'salt' => 'mongo-test-security-salt-change-me',
 ]);
