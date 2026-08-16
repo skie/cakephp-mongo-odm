@@ -303,6 +303,10 @@ class QueryCompiler
                 $resolvedValue = is_string($value) && !str_starts_with($value, '$')
                     ? $this->resolveField($value)
                     : $value;
+                if (is_array($resolvedValue)) {
+                    $resolvedValue = $this->resolveFieldRefs($resolvedValue);
+                }
+
                 $projection[$this->resolveField($key)] = is_string($resolvedValue) && preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $resolvedValue)
                     ? '$' . $resolvedValue
                     : $resolvedValue;
@@ -312,6 +316,33 @@ class QueryCompiler
         $this->projection = $overwrite ? $projection : array_replace($this->projection, $projection);
 
         return $this;
+    }
+
+    /**
+     * Resolves `$Alias.field` references inside function-expression args.
+     *
+     * Function operators (`$strLenCP`, `$concat`, ...) reference source fields
+     * with a leading `$`; those paths still carry the repository alias. The
+     * field resolver strips it so `$Authors.name` becomes `$name`.
+     *
+     * @param mixed $value The expression value.
+     * @return mixed
+     */
+    protected function resolveFieldRefs(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                $value[$k] = $this->resolveFieldRefs($v);
+            }
+
+            return $value;
+        }
+
+        if (is_string($value) && str_starts_with($value, '$') && !str_starts_with($value, '$$')) {
+            return '$' . $this->resolveField(substr($value, 1));
+        }
+
+        return $value;
     }
 
     /**
@@ -808,11 +839,7 @@ class QueryCompiler
             }
 
             $operator = key($value);
-            if (!is_string($operator)) {
-                continue;
-            }
-
-            if (!str_starts_with($operator, '$')) {
+            if (!is_string($operator) || !str_starts_with($operator, '$')) {
                 continue;
             }
 
@@ -820,17 +847,38 @@ class QueryCompiler
                 continue;
             }
 
-            $expression = $value;
             // `COUNT(*)` has no `$group` accumulator; the Mongo analog is `$sum: 1`.
-            if ($operator === '$count' && empty((array)$expression['$count'])) {
-                $expression = ['$sum' => 1];
+            if ($operator === '$count' && empty((array)$value['$count'])) {
+                $value = ['$sum' => 1];
+                $group[$field] = $value;
+
+                continue;
             }
 
-            $group[$field] = $expression;
+            if (in_array($operator, self::GROUP_ACCUMULATORS, true)) {
+                $group[$field] = $value;
+
+                continue;
+            }
+
+            // A computed (non-aggregate) projection field has no accumulator;
+            // keep the group's representative value via `$first` (cake subquery
+            // semantics: a per-row expression over the group key).
+            $group[$field] = ['$first' => $value];
         }
 
         return $group;
     }
+
+    /**
+     * Operators valid as `$group` accumulators.
+     *
+     * @var list<string>
+     */
+    protected const GROUP_ACCUMULATORS = [
+        '$sum', '$avg', '$min', '$max', '$push', '$addToSet', '$first', '$last',
+        '$mergeObjects', '$stdDevPop', '$stdDevSamp',
+    ];
 
     /**
      * Builds the `$project` stage for a `$group` pipeline.
@@ -862,7 +910,10 @@ class QueryCompiler
             }
         }
 
-        $projection['_id'] = 0;
+        // Drop `_id` unless the source projection explicitly keeps it (the
+        // eager loader restores `_id: 1` so external HasMany/BTM loads can
+        // match on the grouped source key).
+        $projection['_id'] = (int)($this->projection['_id'] ?? 0) === 1 ? 1 : 0;
 
         return $projection;
     }

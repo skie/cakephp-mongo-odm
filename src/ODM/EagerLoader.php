@@ -286,6 +286,27 @@ class EagerLoader
             return;
         }
 
+        // HasMany/BelongsToMany external loads join on the source `_id`; if the
+        // projection excluded it (`_id: 0`), restore it — but only for
+        // subquery/lookup loads that do not require explicit keys. An explicit
+        // `select` strategy must keep throwing when `_id` is not selected.
+        $needsId = false;
+        foreach ($this->external as $loadable) {
+            $instance = $loadable->instance();
+            $type = $instance?->type();
+            if (
+                ($type === Association::ONE_TO_MANY || $type === Association::MANY_TO_MANY)
+                && $instance->getStrategy() !== Association::STRATEGY_SELECT
+            ) {
+                $needsId = true;
+                break;
+            }
+        }
+
+        if ($needsId && (int)($projection['_id'] ?? 1) === 0) {
+            $query->select(['_id' => 1]);
+        }
+
         $alias = $repository->getAlias();
         foreach ($this->external as $loadable) {
             $instance = $loadable->instance();

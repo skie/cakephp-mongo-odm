@@ -399,6 +399,26 @@ class FunctionsBuilder
     }
 
     /**
+     * Returns the string length (cake `LENGTH()` parity → Mongo `$strLenCP`).
+     *
+     * Accepts a bare field name or cake's `['field' => 'identifier']` marker.
+     *
+     * @param mixed $expression The string expression.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function length(mixed $expression): FunctionExpression
+    {
+        if (is_array($expression) && count($expression) === 1) {
+            $key = array_key_first($expression);
+            if (is_string($key) && ($expression[$key] ?? null) === 'identifier') {
+                $expression = '$' . $key;
+            }
+        }
+
+        return new FunctionExpression('$strLenCP', [$expression]);
+    }
+
+    /**
      * Subtracts numbers.
      *
      * @param mixed $first The first number

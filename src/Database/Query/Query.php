@@ -8,6 +8,7 @@ use Cake\Database\ExpressionInterface;
 use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Crustum\Mongo\Database\Expression\IdentifierExpression;
 use Crustum\Mongo\Database\Expression\OrderClauseExpression;
 use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\FunctionsBuilder;
@@ -838,6 +839,17 @@ abstract class Query implements Stringable
     public function expr(): QueryExpression
     {
         return new QueryExpression();
+    }
+
+    /**
+     * Wraps a field name as a Mongo `$field` reference (cake parity).
+     *
+     * @param string $identifier The field name.
+     * @return \Crustum\Mongo\Database\Expression\IdentifierExpression
+     */
+    public function identifier(string $identifier): IdentifierExpression
+    {
+        return new IdentifierExpression($identifier);
     }
 
     /**
