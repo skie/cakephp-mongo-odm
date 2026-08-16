@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
+use Cake\Datasource\InvalidPropertyInterface;
 use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -322,6 +323,10 @@ class Marshaller
         $properties = [];
         foreach ($data as $field => $value) {
             if (isset($errors[$field]) && $errors[$field] !== []) {
+                if ($document instanceof InvalidPropertyInterface) {
+                    $document->setInvalidField($field, $value);
+                }
+
                 continue;
             }
 
