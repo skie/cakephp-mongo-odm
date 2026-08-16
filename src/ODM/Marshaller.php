@@ -283,6 +283,10 @@ class Marshaller
             }
 
             $nestedOptions = is_array($nested) ? $nested : [];
+            if (isset($options['forceNew'])) {
+                $nestedOptions['forceNew'] = $options['forceNew'];
+            }
+
             $property = $association->getProperty();
 
             if (($options['isMerge'] ?? false)) {

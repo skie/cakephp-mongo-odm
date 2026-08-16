@@ -1027,7 +1027,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'My title',
             'body' => 'My content',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'tags' => [
                 [
                     'name' => 'tag4',
@@ -1070,7 +1070,7 @@ class MarshallerTest extends TestCase
         $data = [
             'title' => 'Fourth Article',
             'body' => 'Fourth Article Body',
-            'author_id' => 1,
+            'author_id' => '000000000000000000000001',
             'tags' => [
                 [
                     '_id' => '000000000000000000000003',
