@@ -24,11 +24,11 @@ class BakeMigrationDiffCommandTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        foreach (glob(CONFIG . 'MongoMigrations' . DS . '*_bake_schema_sync*.php') ?: [] as $file) {
+        foreach (glob($this->migrationDir() . '*_bake_schema_sync*.php') ?: [] as $file) {
             unlink($file);
         }
 
-        $lock = CONFIG . 'MongoMigrations' . DS . 'schema-dump-mongo.lock';
+        $lock = $this->migrationDir() . 'schema-dump-mongo.lock';
         if (file_exists($lock)) {
             unlink($lock);
         }
@@ -44,10 +44,10 @@ class BakeMigrationDiffCommandTest extends TestCase
      */
     public function testNoDifferences(): void
     {
-        $this->exec('mongo schema dump --connection mongo');
+        $this->exec($this->withMigrationSource('mongo schema dump --connection mongo'));
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
 
-        $this->exec('bake mongo_migration_diff BakeSchemaSync --connection mongo');
+        $this->exec($this->withMigrationSource('bake mongo_migration_diff BakeSchemaSync --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
         $this->assertOutputContains('No schema differences found.');
@@ -60,14 +60,14 @@ class BakeMigrationDiffCommandTest extends TestCase
      */
     public function testMissingDump(): void
     {
-        $lock = CONFIG . 'MongoMigrations' . DS . 'schema-dump-mongo.lock';
+        $lock = $this->migrationDir() . 'schema-dump-mongo.lock';
         if (file_exists($lock)) {
             unlink($lock);
         }
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('does not exist. Run `mongo schema dump` first.');
-        $this->exec('bake mongo_migration_diff BakeSchemaSync --connection mongo');
+        $this->exec($this->withMigrationSource('bake mongo_migration_diff BakeSchemaSync --connection mongo'));
     }
 
     /**
@@ -80,14 +80,14 @@ class BakeMigrationDiffCommandTest extends TestCase
     {
         // Empty desired schema (nothing yet migrated).
         file_put_contents(
-            CONFIG . 'MongoMigrations' . DS . 'schema-dump-mongo.lock',
+            $this->migrationDir() . 'schema-dump-mongo.lock',
             serialize([]),
         );
 
-        $this->exec('bake mongo_migration_diff BakeSchemaSync --connection mongo');
+        $this->exec($this->withMigrationSource('bake mongo_migration_diff BakeSchemaSync --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob(CONFIG . 'MongoMigrations' . DS . '*_bake_schema_sync.php');
+        $files = glob($this->migrationDir() . '*_bake_schema_sync.php');
         $this->assertNotEmpty($files);
         $result = file_get_contents($files[0]);
 

@@ -67,3 +67,4 @@ redis.stub.php
 .mcp.json
 mcp.json
 tests/test_app/TestApp/config/MongoMigrations/schema-dump-mongo.lock
+tests/test_app/TestApp/config/MongoMigrations_*/

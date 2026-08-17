@@ -18,7 +18,7 @@ use TestApp\Model\Document\TranslateArticle;
  *
  * @see cake60/tests/TestCase/ORM/Behavior/TranslateBehaviorTest.php
  */
-class TranslateBehaviorEmbedTest extends TranslateBehaviorBaseTest
+class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
 {
     /**
      * fixtures

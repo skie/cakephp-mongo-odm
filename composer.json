@@ -29,7 +29,8 @@
         "mockery/mockery": "^1.6.12",
         "phpstan/phpstan": "^2.2.2,<2.2.6",
         "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5",
-        "rector/rector": "^2.5"
+        "rector/rector": "^2.5",
+        "brianium/paratest": "^7.20"
     },
     "autoload": {
         "psr-4": {
@@ -64,6 +65,7 @@
         "cs-check": "phpcs -p --standard=phpcs.xml src/ tests/",
         "cs-fix": "phpcbf --standard=phpcs.xml src/ tests/",
         "test": "phpunit",
+        "test:parallel": "paratest -p4",
         "test:unit": "phpunit --testsuite=Unit",
         "test:integration": "phpunit --testsuite=Integration",
         "rector-check": "vendor/bin/rector process --dry-run",

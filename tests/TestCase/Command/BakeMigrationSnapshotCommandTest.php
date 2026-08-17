@@ -22,7 +22,7 @@ class BakeMigrationSnapshotCommandTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        foreach (glob(CONFIG . 'MongoMigrations' . DS . '*_bake_snapshot*.php') ?: [] as $file) {
+        foreach (glob($this->migrationDir() . '*_bake_snapshot*.php') ?: [] as $file) {
             unlink($file);
         }
     }
@@ -34,10 +34,10 @@ class BakeMigrationSnapshotCommandTest extends TestCase
      */
     public function testNotEmptySnapshot(): void
     {
-        $this->exec('bake mongo_migration_snapshot BakeSnapshotArticles --connection mongo');
+        $this->exec($this->withMigrationSource('bake mongo_migration_snapshot BakeSnapshotArticles --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob(CONFIG . 'MongoMigrations' . DS . '*_bake_snapshot_articles.php');
+        $files = glob($this->migrationDir() . '*_bake_snapshot_articles.php');
         $this->assertNotEmpty($files);
 
         $result = file_get_contents($files[0]);
@@ -53,7 +53,7 @@ class BakeMigrationSnapshotCommandTest extends TestCase
      */
     public function testNoName(): void
     {
-        $this->exec('bake mongo_migration_snapshot --connection mongo');
+        $this->exec($this->withMigrationSource('bake mongo_migration_snapshot --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_ERROR);
     }

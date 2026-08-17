@@ -261,14 +261,14 @@ class ResultSetTest extends TestCase
      */
     public function testCollectionMinAndMaxWithAggregateField(): void
     {
-        $this->markTestSkipped('SQL `COUNT(*)` aggregate — not applicable to Mongo (F19).');
         $query = $this->collection->find();
         $query->select([
-            'counter' => 'COUNT(*)',
+            'counter' => $query->func()->count(),
         ])->groupBy('author_id');
 
-        $min = $query->all()->min('counter');
-        $max = $query->all()->max('counter');
+        $results = $query->all();
+        $min = $results->min('counter');
+        $max = $results->max('counter');
 
         $this->assertTrue($max > $min);
     }

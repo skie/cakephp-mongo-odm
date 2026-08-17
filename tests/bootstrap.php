@@ -43,6 +43,8 @@ define('CAKE', CORE_PATH . 'src' . DS);
 require ROOT . '/vendor/cakephp/cakephp/src/functions.php';
 require ROOT . '/vendor/autoload.php';
 
+require TESTS . 'bootstrap_connection.php';
+
 use Cake\Cache\Cache;
 use Cake\Core\Configure;
 use Cake\Core\Plugin;
@@ -50,11 +52,8 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\FactoryLocator;
 use Cake\I18n\I18n;
 use Cake\TestSuite\Fixture\SchemaLoader;
-use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\MongoPlugin;
 use Crustum\Mongo\ODM\Locator\CollectionLocator;
-use Crustum\Mongo\TestSuite\Fixture\SchemaGenerator;
 
 if (!function_exists('ensureDirectoryExists')) {
     /**
@@ -104,17 +103,20 @@ Configure::write('Session', [
     'defaults' => 'php',
 ]);
 
+$testToken = mongoTestEnv('TEST_TOKEN');
+$cacheSuffix = $testToken !== null ? '_t' . $testToken : '';
+
 Cache::setConfig('_cake_translations_', [
     'className' => 'File',
     'path' => CACHE . 'persistent/',
-    'prefix' => 'mongo_test_translations_',
+    'prefix' => 'mongo_test_translations' . $cacheSuffix . '_',
     'serialize' => true,
     'duration' => '+10 seconds',
 ]);
 Cache::setConfig('_cake_model_', [
     'className' => 'File',
     'path' => CACHE . 'models/',
-    'prefix' => 'mongo_test_model_',
+    'prefix' => 'mongo_test_model' . $cacheSuffix . '_',
     'serialize' => true,
     'duration' => '+10 seconds',
 ]);
@@ -123,35 +125,30 @@ if (!getenv('db_dsn')) {
     putenv('db_dsn=sqlite:///:memory:');
 }
 
+$testMongoDatabase = mongoTestDatabaseName('test_mongo_db');
+$testMigratorDatabase = mongoTestDatabaseName('test_migrator_db', 'TEST_MONGO_MIGRATION_DB');
+
+if (!defined('TEST_MONGO_DATABASE')) {
+    define('TEST_MONGO_DATABASE', $testMongoDatabase);
+}
+if (!defined('TEST_MONGO_MIGRATION_DATABASE')) {
+    define('TEST_MONGO_MIGRATION_DATABASE', $testMigratorDatabase);
+}
+
+putenv('TEST_MONGO_DB=' . $testMongoDatabase);
+putenv('TEST_MONGO_MIGRATION_DB=' . $testMigratorDatabase);
+
 ConnectionManager::setConfig('test', [
     'url' => getenv('db_dsn'),
     'timezone' => 'UTC',
 ]);
-ConnectionManager::setConfig('mongo', [
-    'className' => Connection::class,
-    'driver' => MongoDriver::class,
-    'host' => '127.0.0.1',
-    'port' => 27017,
-    'database' => 'mongo',
-]);
-ConnectionManager::setConfig('test_mongo', [
-    'className' => Connection::class,
-    'driver' => MongoDriver::class,
-    'host' => '127.0.0.1',
-    'port' => 27017,
-    'database' => getenv('TEST_MONGO_DB') ?: 'test_mongo_db',
-]);
+ConnectionManager::setConfig('mongo', mongoTestConnectionConfig('mongo'));
+ConnectionManager::setConfig('test_mongo', mongoTestConnectionConfig($testMongoDatabase));
 // Dedicated throwaway database for the Migrator test-suite helper, whose
 // contract wipes every non-journal collection (doc 37 R5: never drop the
 // shared bootstrap-owned collections). Named with the `test_` prefix so
 // `addTestAliases()` maps the app name `migrator` to it during tests.
-ConnectionManager::setConfig('test_migrator', [
-    'className' => Connection::class,
-    'driver' => MongoDriver::class,
-    'host' => '127.0.0.1',
-    'port' => 27017,
-    'database' => getenv('TEST_MONGO_MIGRATION_DB') ?: 'test_migrator_db',
-]);
+ConnectionManager::setConfig('test_migrator', mongoTestConnectionConfig($testMigratorDatabase));
 ConnectionManager::alias('test_mongo', 'mongo');
 
 Plugin::getCollection()->add(new MongoPlugin([
@@ -166,8 +163,8 @@ FactoryLocator::add('Mongo', new CollectionLocator());
 $schemaLoader = new SchemaLoader();
 $schemaLoader->loadInternalFile(TESTS . 'schema.php');
 
-$schemaGenerator = new SchemaGenerator(TESTS . 'schema_mongo.php', 'test_mongo');
-$schemaGenerator->reload();
+// Once per PHP process (ParaTest worker). Per-test rows: fixtures + TruncateStrategy.
+mongoTestEnsureSchema(TESTS . 'schema_mongo.php', 'test_mongo');
 
 $schemaLoader->loadInternalFile(TESTS . 'schema_orm.php');
 

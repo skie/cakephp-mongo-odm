@@ -285,7 +285,7 @@ class ConnectionTest extends TestCase
     {
         $this->assertSame('test_mongo', $this->connection->configName());
         $config = $this->connection->config();
-        $this->assertSame('test_mongo_db', $config['database']);
+        $this->assertSame(TEST_MONGO_DATABASE, $config['database']);
     }
 
     /**
@@ -426,7 +426,7 @@ class ConnectionTest extends TestCase
             'name' => 'cacher_conn',
             'driver' => MongoDriver::class,
             'host' => '127.0.0.1',
-            'database' => 'test_mongo_db',
+            'database' => TEST_MONGO_DATABASE,
             'cacheMetadata' => '_mongo_test_cache',
         ]);
 
@@ -448,7 +448,7 @@ class ConnectionTest extends TestCase
             'name' => 'logger_conn',
             'driver' => MongoDriver::class,
             'host' => '127.0.0.1',
-            'database' => 'test_mongo_db',
+            'database' => TEST_MONGO_DATABASE,
             'log' => $logger,
         ]);
 

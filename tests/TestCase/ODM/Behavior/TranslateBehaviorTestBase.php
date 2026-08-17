@@ -28,7 +28,7 @@ use TestApp\Model\Document\TranslateArticle;
  * strategy test (`TranslateBehaviorShadowTableTest`, `TranslateBehaviorEmbedTest`)
  * extends this base and overrides the storage-specific internals.
  */
-abstract class TranslateBehaviorBaseTest extends TestCase
+abstract class TranslateBehaviorTestBase extends TestCase
 {
     /**
      * fixtures
@@ -94,13 +94,7 @@ abstract class TranslateBehaviorBaseTest extends TestCase
      */
     public function testCustomTranslationCollection(): void
     {
-        ConnectionManager::setConfig('custom_i18n_datasource', [
-            'className' => Connection::class,
-            'driver' => MongoDriver::class,
-            'host' => '127.0.0.1',
-            'port' => 27017,
-            'database' => 'test_mongo_db',
-        ]);
+        ConnectionManager::setConfig('custom_i18n_datasource', mongoTestConnectionConfig(TEST_MONGO_DATABASE));
 
         $collection = $this->getCollectionLocator()->get('Articles');
 

@@ -45,6 +45,42 @@ abstract class TestCase extends BaseTestCase
         Router::reload();
         $this->configApplication(BakeTestApplication::class, null);
         self::setAppNamespace('TestApp');
+        mongoTestMigrationDir();
+    }
+
+    /**
+     * Migration source folder name (under CONFIG), isolated per ParaTest worker.
+     *
+     * @return string
+     */
+    protected function migrationSource(): string
+    {
+        return mongoTestMigrationSource();
+    }
+
+    /**
+     * Absolute path to the migration folder for this test process.
+     *
+     * @return string
+     */
+    protected function migrationDir(): string
+    {
+        return mongoTestMigrationDir();
+    }
+
+    /**
+     * Appends `--source` when the command targets the default migrations folder.
+     *
+     * @param string $command Console command line.
+     * @return string
+     */
+    protected function withMigrationSource(string $command): string
+    {
+        if (str_contains($command, '--source')) {
+            return $command;
+        }
+
+        return $command . ' --source ' . $this->migrationSource();
     }
 
     /**

@@ -106,11 +106,19 @@ class TestFixture implements FixtureInterface, MongoFixtureInterface
 
         try {
             $database = $db->getDatabase();
-            $database->dropCollection($this->collection);
-            $database->createCollection($this->collection, $this->indexSettings);
+            $exists = false;
+            foreach ($database->listCollections(['filter' => ['name' => $this->collection]]) as $collection) {
+                unset($collection);
+                $exists = true;
+                break;
+            }
 
-            if ($this->schema !== []) {
-                $db->getCollection($this->collection)->createIndex($this->schema);
+            if (!$exists) {
+                $database->createCollection($this->collection, $this->indexSettings);
+
+                if ($this->schema !== []) {
+                    $db->getCollection($this->collection)->createIndex($this->schema);
+                }
             }
 
             $this->created[] = $db->configName();
@@ -203,6 +211,11 @@ class TestFixture implements FixtureInterface, MongoFixtureInterface
 
         try {
             $db->getCollection($this->collection)->deleteMany([]);
+
+            try {
+                $db->getCollection('cake_increment_ids')->deleteOne(['_id' => $this->collection]);
+            } catch (Throwable) {
+            }
 
             return true;
         } catch (Throwable) {

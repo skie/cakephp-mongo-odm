@@ -30,5 +30,10 @@
         <env name="APP_ENV" value="testing"/>
         <env name="MONGO_TESTING" value="1"/>
         <env name="FIXTURE_SCHEMA_METADATA" value="tests/schema.php"/>
+        <env name="db_dsn" value="sqlite:///:memory:" force="false"/>
+        <env name="TEST_MONGO_HOST" value="127.0.0.1" force="false"/>
+        <env name="TEST_MONGO_PORT" value="27017" force="false"/>
+        <env name="TEST_MONGO_DB" value="test_mongo_db" force="false"/>
+        <env name="TEST_MONGO_MIGRATION_DB" value="test_migrator_db" force="false"/>
     </php>
 </phpunit>
