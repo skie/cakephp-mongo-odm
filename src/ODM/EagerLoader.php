@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use Cake\Database\Exception\DatabaseException;
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -512,7 +513,80 @@ class EagerLoader
             $results = $callback($results);
         }
 
+        $repository = $query->getRepository();
+        if ($repository instanceof BaseCollection && $this->getMatching() === []) {
+            foreach ($results as $key => $result) {
+                if ($result instanceof Document) {
+                    $this->reorderContainedProperties($result, $repository);
+                    $results[$key] = $result;
+                }
+            }
+        }
+
         return $results;
+    }
+
+    /**
+     * Reorders top-level contained properties to match `contain()` order.
+     *
+     * In-pipeline `$lookup` associations are patched during `ResultSet` hydration;
+     * external loaders attach later via `set()`, which would otherwise leave
+     * lookup properties before select/subquery properties regardless of contain
+     * order.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The hydrated root document.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return void
+     */
+    private function reorderContainedProperties(EntityInterface $entity, BaseCollection $repository): void
+    {
+        if (!$entity instanceof Document) {
+            return;
+        }
+
+        $propertyOrder = $this->topLevelContainedProperties($repository);
+        if ($propertyOrder === []) {
+            return;
+        }
+
+        $propertySet = array_flip($propertyOrder);
+        $rootKeys = [];
+        foreach ($entity->toArray() as $key => $value) {
+            if (!is_string($key) || $key === '_matchingData' || isset($propertySet[$key])) {
+                continue;
+            }
+
+            $rootKeys[] = $key;
+        }
+
+        $orderedKeys = array_merge($rootKeys, $propertyOrder);
+        if ($entity->has('_matchingData')) {
+            $orderedKeys[] = '_matchingData';
+        }
+
+        $entity->reorderFields($orderedKeys);
+    }
+
+    /**
+     * Top-level association property names in normalized contain order.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return list<string>
+     */
+    private function topLevelContainedProperties(BaseCollection $repository): array
+    {
+        $properties = [];
+        foreach (array_keys($this->getContain()) as $alias) {
+            $alias = (string)$alias;
+            if (str_contains($alias, '.')) {
+                continue;
+            }
+
+            $association = $repository->getAssociation($alias);
+            $properties[] = $association->getProperty();
+        }
+
+        return $properties;
     }
 
     /**

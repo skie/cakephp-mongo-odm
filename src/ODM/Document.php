@@ -144,6 +144,32 @@ class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess
     }
 
     /**
+     * Reorders internal field storage without changing values.
+     *
+     * @param list<string> $orderedKeys Preferred key order; omitted keys keep their relative order at the end.
+     * @return $this
+     */
+    public function reorderFields(array $orderedKeys): static
+    {
+        $reordered = [];
+        foreach ($orderedKeys as $key) {
+            if (array_key_exists($key, $this->_fields)) {
+                $reordered[$key] = $this->_fields[$key];
+            }
+        }
+
+        foreach ($this->_fields as $key => $value) {
+            if (!array_key_exists($key, $reordered)) {
+                $reordered[$key] = $value;
+            }
+        }
+
+        $this->_fields = $reordered;
+
+        return $this;
+    }
+
+    /**
      * Returns the JSON representation of this document.
      *
      * @return array<string, mixed>

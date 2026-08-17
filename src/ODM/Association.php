@@ -787,6 +787,11 @@ abstract class Association
             $options['sort'] = $sort;
         }
 
+        $pipeline = $surrogate->clause('pipeline');
+        if (is_array($pipeline) && $pipeline !== []) {
+            $options['targetPipeline'] = $pipeline;
+        }
+
         return $options;
     }
 
@@ -902,28 +907,7 @@ abstract class Association
             $options['fields'] = [];
         }
 
-        [$finder, $finderOptions] = $this->extractFinder($options['finder']);
-        $dummy = $this->find($finder, ...$finderOptions);
-        if (!$dummy instanceof SelectQuery) {
-            throw new DatabaseException(sprintf(
-                'Association `%s` target finder did not return a select query.',
-                $this->getName(),
-            ));
-        }
-
-        $dummy->eagerLoaded(true);
-
-        if (!empty($options['queryBuilder'])) {
-            $built = $options['queryBuilder']($dummy);
-            if (!$built instanceof SelectQuery) {
-                throw new DatabaseException(sprintf(
-                    'Query builder for association `%s` did not return a query.',
-                    $this->getName(),
-                ));
-            }
-
-            $dummy = $built;
-        }
+        $dummy = $this->buildAttachSurrogateQuery($options);
 
         if (
             !empty($options['matching'])
@@ -935,39 +919,18 @@ abstract class Association
             ));
         }
 
-        $conditions = $options['conditions'];
-        if (is_array($conditions) && $conditions !== []) {
-            $dummy->where($conditions);
-        }
-
-        $associationConditions = $this->getConditions();
-        if (is_array($associationConditions) && $associationConditions !== []) {
-            $dummy->where($associationConditions);
-        }
-
-        $this->dispatchBeforeFind($dummy);
-
-        $compiled = $dummy->compile();
-        if ($compiled['filter'] ?? [] !== []) {
-            $options['conditions'] = array_merge(
-                is_array($options['conditions']) ? $options['conditions'] : [],
-                $compiled['filter'],
-            );
-        }
-
-        $projection = $dummy->clause('select');
-        if ($projection !== [] && $options['fields'] === []) {
-            $options['fields'] = array_keys($projection);
-        }
-
-        $sort = $dummy->clause('order') ?? [];
-        if ($sort !== [] && !isset($options['sort'])) {
-            $options['sort'] = $sort;
-        }
+        $options = $this->mergeSurrogateIntoConfig($dummy, $options);
 
         unset($options['queryBuilder'], $options['finder']);
 
         $options['strategy'] = static::STRATEGY_LOOKUP;
+
+        $this->formatAssociationResults($query, $dummy, [
+            'propertyPath' => $this->getProperty(),
+        ]);
+        $this->bindNewAssociations($query, $dummy, [
+            'aliasPath' => $this->getName(),
+        ]);
 
         $query->getEagerLoader()->contain([$this->getName() => $options]);
     }
@@ -1497,6 +1460,10 @@ abstract class Association
      */
     public function usesLookup(array $options = []): bool
     {
+        if (!empty($options['sourcePath'])) {
+            return false;
+        }
+
         $strategy = $options['strategy'] ?? $this->getStrategy();
         if ($strategy !== self::STRATEGY_LOOKUP) {
             return false;

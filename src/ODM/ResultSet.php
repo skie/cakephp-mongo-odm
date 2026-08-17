@@ -384,6 +384,21 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     }
 
     /**
+     * Whether an association hydrates as a single nullable entity on the row.
+     *
+     * @param \Crustum\Mongo\ODM\Association $instance The association instance.
+     * @return bool
+     */
+    protected function isNullableSingleAssociation(Association $instance): bool
+    {
+        if ($instance instanceof Embedded) {
+            return false;
+        }
+
+        return in_array($instance->type(), [Association::ONE_TO_ONE, Association::MANY_TO_ONE], true);
+    }
+
+    /**
      * Ensures empty has-one / belongs-to slots exist as null on raw rows.
      *
      * In-pipeline `$lookup` with no match can omit the property entirely after
@@ -394,17 +409,22 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
      */
     protected function applyContainedDefaults(array $row): array
     {
+        $repository = $this->query?->getRepository();
+        if (!$repository instanceof BaseCollection) {
+            return $row;
+        }
+
         foreach ($this->_containMap as $assoc) {
             if (!empty($assoc['matching'])) {
                 continue;
             }
 
             $instance = $assoc['instance'];
-            if ($instance instanceof Embedded) {
+            if (!$this->isNullableSingleAssociation($instance)) {
                 continue;
             }
 
-            if ($instance->type() !== Association::ONE_TO_ONE) {
+            if ($instance->getSource() !== $repository) {
                 continue;
             }
 
@@ -443,7 +463,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             $propertyName = $instance->getProperty();
 
             if (!array_key_exists($propertyName, $row)) {
-                if (empty($assoc['matching']) && $instance->type() === Association::ONE_TO_ONE && !$instance instanceof Embedded) {
+                if (
+                    empty($assoc['matching'])
+                    && $this->isNullableSingleAssociation($instance)
+                    && $instance->getSource() === $repository
+                ) {
                     $results[$propertyName] = null;
                 }
 
@@ -527,7 +551,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
         }
 
-        $document->patch($results + $row, ['guard' => false]);
+        foreach (array_keys($results) as $propertyName) {
+            unset($row[$propertyName]);
+        }
+
+        $document->patch($row + $results, ['guard' => false]);
 
         foreach ($results as $value) {
             $this->cleanNestedEntity($value);

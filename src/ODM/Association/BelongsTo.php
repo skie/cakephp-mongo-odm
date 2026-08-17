@@ -42,7 +42,7 @@ class BelongsTo extends Association
      */
     protected function defaultStrategy(): string
     {
-        return self::STRATEGY_SELECT;
+        return self::STRATEGY_LOOKUP;
     }
 
     /**
@@ -189,6 +189,12 @@ class BelongsTo extends Association
                 $lookup->pipeline([
                     ['$match' => $this->normalizePipelineConditions($pipelineOptions['conditions'])],
                 ]);
+            } elseif (!empty($options['targetPipeline'])) {
+                $lookup->pipeline($options['targetPipeline']);
+            } elseif (!$matching && $this->needsLookupTargetSubPipeline($pipelineOptions)) {
+                $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                    $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
+                });
             }
         }
 
@@ -209,10 +215,23 @@ class BelongsTo extends Association
             }
             $postOptions['matching'] = true;
             $this->applyPipelineOptions($builder, $postOptions);
-        } else {
-            $this->applyPipelineOptions($builder, $pipelineOptions);
         }
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Whether target-side containment options belong inside the `$lookup` pipeline.
+     *
+     * @param array<string, mixed> $options Pipeline options.
+     * @return bool
+     */
+    protected function needsLookupTargetSubPipeline(array $options): bool
+    {
+        return !empty($options['conditions'])
+            || !empty($options['fields'])
+            || !empty($options['sort'])
+            || !empty($options['skip'])
+            || !empty($options['limit']);
     }
 }
