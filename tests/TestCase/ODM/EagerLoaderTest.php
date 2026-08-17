@@ -391,11 +391,11 @@ class EagerLoaderTest extends TestCase
     }
 
     /**
-     * Test that fields for contained models are aliased and added to the select clause
+     * Contained association fields stay on the loadable config (Mongo field map),
+     * not as SQL `alias__field` entries on the source projection.
      */
     public function testContainToFieldsPredefined(): void
     {
-        $this->markTestSkipped('ODM projection is a Mongo field map, not SQL alias-qualified select (F25).');
         $contains = [
             'clients' => [
                 'fields' => ['name', 'company_id', 'clients.telephone'],
@@ -405,74 +405,66 @@ class EagerLoaderTest extends TestCase
             ],
         ];
 
-        $collection = $this->getCollectionLocator()->get('foo');
+        $collection = $this->collection;
         $query = new SelectQuery($collection);
         $loader = new EagerLoader();
         $loader->contain($contains);
 
-        $query->select('foo.id');
+        $query->select(['_id']);
         $loader->attachAssociations($query, $collection);
 
         $select = $query->clause('select');
-        $expected = [
-            'foo.id', 'clients__name' => 'clients.name',
-            'clients__company_id' => 'clients.company_id',
-            'clients__telephone' => 'clients.telephone',
-            'orders__total' => 'orders.total', 'orders__placed' => 'orders.placed',
-            // Primary keys are added to ensure proper entity hydration
-            'clients__id' => 'clients.id',
-            'orders__id' => 'orders.id',
-        ];
-        $this->assertEquals($expected, $select);
+        $this->assertSame(1, $select['_id']);
+        $this->assertArrayNotHasKey('clients__name', $select);
+        $this->assertArrayNotHasKey('orders__total', $select);
+
+        $normalized = $loader->normalized($collection);
+        $this->assertSame(
+            ['name', 'company_id', 'clients.telephone'],
+            $normalized['clients']->getConfig()['fields'],
+        );
+        $this->assertSame(
+            ['total', 'placed'],
+            $normalized['clients']->associations()['orders']->getConfig()['fields'],
+        );
     }
 
     /**
-     * Tests that default fields for associations are added to the select clause when
-     * none is specified
+     * Default contain does not flatten association columns onto the source
+     * projection; explicit `fields` stay on the loadable config.
      */
     public function testContainToFieldsDefault(): void
     {
-        $this->markTestSkipped('ODM projection is a Mongo field map; auto-quoting is SQL-only (F25).');
         $contains = ['clients' => ['orders']];
 
         $query = new SelectQuery($this->collection);
-        $query->select()->contain($contains)->sql();
+        $query->select(['_id'])->contain($contains);
+        $query->getEagerLoader()->attachAssociations($query, $this->collection);
         $select = $query->clause('select');
-        $expected = [
-            'foo__id' => 'foo.id', 'clients__name' => 'clients.name',
-            'clients__id' => 'clients.id', 'clients__phone' => 'clients.phone',
-            'orders__id' => 'orders.id', 'orders__total' => 'orders.total',
-            'orders__placed' => 'orders.placed',
-        ];
-        $expected = $this->quoteArray($expected);
-        $this->assertEquals($expected, $select);
+        $this->assertSame(1, $select['_id']);
+        $this->assertArrayNotHasKey('clients__name', $select);
+        $this->assertArrayNotHasKey('clients__id', $select);
 
         $contains['clients']['fields'] = ['name'];
         $query = new SelectQuery($this->collection);
-        $query->select('foo.id')->contain($contains)->sql();
-        $select = $query->clause('select');
-        $expected = [
-            'foo__id' => 'foo.id',
-            'clients__name' => 'clients.name',
-            // Primary key is now auto-added to ensure proper entity hydration
-            'clients__id' => 'clients.id',
-        ];
-        $expected = $this->quoteArray($expected);
-        $this->assertEquals($expected, $select);
+        $loader = new EagerLoader();
+        $loader->contain($contains);
+        $query->select(['_id']);
+        $loader->attachAssociations($query, $this->collection);
+        $this->assertSame(
+            ['name'],
+            $loader->normalized($this->collection)['clients']->getConfig()['fields'],
+        );
 
         $contains['clients']['fields'] = [];
         $contains['clients']['orders']['fields'] = false;
         $query = new SelectQuery($this->collection);
-        $query->select()->contain($contains)->sql();
-        $select = $query->clause('select');
-        $expected = [
-            'foo__id' => 'foo.id',
-            'clients__id' => 'clients.id',
-            'clients__name' => 'clients.name',
-            'clients__phone' => 'clients.phone',
-        ];
-        $expected = $this->quoteArray($expected);
-        $this->assertEquals($expected, $select);
+        $loader = new EagerLoader();
+        $loader->contain($contains);
+        $query->select(['_id']);
+        $loader->attachAssociations($query, $this->collection);
+        $orders = $loader->normalized($this->collection)['clients']->associations()['orders'];
+        $this->assertFalse($orders->getConfig()['fields']);
     }
 
     /**
@@ -582,15 +574,16 @@ class EagerLoaderTest extends TestCase
     }
 
     /**
-     * Test for enableAutoFields()
+     * Auto-fields live on the query (not EagerLoader) — Mongo projection append.
      */
     public function testEnableAutoFields(): void
     {
-        $this->markTestSkipped('ODM has no SQL auto-fields projection; EagerLoader::enableAutoFields is SQL-only (F25).');
-        $loader = new EagerLoader();
-        $this->assertTrue($loader->isAutoFieldsEnabled());
-        $this->assertSame($loader, $loader->disableAutoFields());
-        $this->assertFalse($loader->isAutoFieldsEnabled());
+        $query = new SelectQuery($this->collection);
+        $this->assertNull($query->isAutoFieldsEnabled());
+        $this->assertSame($query, $query->enableAutoFields());
+        $this->assertTrue($query->isAutoFieldsEnabled());
+        $this->assertSame($query, $query->disableAutoFields());
+        $this->assertFalse($query->isAutoFieldsEnabled());
     }
 
     /**

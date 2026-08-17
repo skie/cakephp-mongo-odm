@@ -10,7 +10,6 @@ use Cake\Collection\Collection;
 use Cake\Core\Exception\CakeException;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Database\Expression\QueryExpression;
-use Cake\Database\Schema\TableSchema;
 use Cake\Database\StatementInterface;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
@@ -26,6 +25,7 @@ use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
+use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
@@ -48,6 +48,7 @@ use Crustum\Mongo\ODM\RulesChecker;
 use Exception;
 use InvalidArgumentException;
 use Mockery;
+use MongoDB\Driver\Exception\BulkWriteException;
 use PDOException;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -552,34 +553,21 @@ class BaseCollectionTest extends TestCase
     }
 
     /**
-     * Tests schema method with long identifiers
+     * Long field names are accepted — Mongo has no SQL alias-length limit.
      */
     public function testSetSchemaLongIdentifiers(): void
     {
-        $this->markTestSkipped('// SQL-only: driver max-alias-length check (checkAliasLengths) — Mongo has no alias limits, see 18-orm-tests-port-plan.md.');
-        $schema = new TableSchema('long_identifiers', [
-            'this_is_invalid_because_it_is_very_very_very_long' => [
-                'type' => 'string',
-            ],
+        $field = 'this_is_invalid_because_it_is_very_very_very_long';
+        $schema = CollectionSchema::fromFields('long_identifiers', [
+            $field => ['type' => 'string'],
         ]);
         $collection = new BaseCollection([
             'collection' => 'very_long_alias_name',
             'connection' => $this->connection,
         ]);
 
-        $maxAlias = $this->connection->getDriver()->getMaxAliasLength();
-        if ($maxAlias && $maxAlias < 72) {
-            $nameLength = $maxAlias - 2;
-            $this->expectException(DatabaseException::class);
-            $this->expectExceptionMessage(
-                'ORM queries generate field aliases using the table name/alias and column name. ' .
-                "The table alias `very_long_alias_name` and column `this_is_invalid_because_it_is_very_very_very_long` create an alias longer than ({$nameLength}). " .
-                'You must change the table schema in the database and shorten either the table or column ' .
-                'identifier so they fit within the database alias limits.',
-            );
-        }
-
-        $this->assertNotNull($collection->setSchema($schema));
+        $this->assertSame($collection, $collection->setSchema($schema));
+        $this->assertTrue($collection->getSchema()->hasColumn($field));
     }
 
     public function testSchemaTypeOverrideInInitialize(): void
@@ -6578,20 +6566,42 @@ class BaseCollectionTest extends TestCase
     }
 
     /**
-     * Tests that saveOrFail triggers an exception on not successful save
+     * Tests that saveOrFail fails when Mongo `$jsonSchema` rejects the write.
+     *
+     * Cake used a missing SQL column; ODM analog is a collection validator.
+     * The driver raises BulkWriteException — save() does not swallow it.
      */
     public function testSaveOrFail(): void
     {
-        $this->markTestSkipped('// Mongo is schemaless: arbitrary `foo` fields save successfully, so no failure is triggered; see 18-orm-tests-port-plan.md.');
-        $this->expectException(PersistenceFailedException::class);
-        $this->expectExceptionMessage('Document save failure.');
-
-        $document = new Document([
-            'foo' => 'bar',
+        $name = 'save_or_fail_json_schema';
+        $manager = new SchemaManager($this->connection);
+        $manager->dropCollection($name);
+        $manager->createCollection($name, [
+            'validator' => [
+                '$jsonSchema' => [
+                    'bsonType' => 'object',
+                    'required' => ['title'],
+                    'properties' => [
+                        'title' => ['bsonType' => 'string'],
+                    ],
+                ],
+            ],
+            'validationAction' => 'error',
+            'validationLevel' => 'strict',
         ]);
-        $collection = $this->getCollectionLocator()->get('users');
 
-        $collection->saveOrFail($document);
+        try {
+            $collection = new BaseCollection([
+                'collection' => $name,
+                'connection' => $this->connection,
+            ]);
+            $collection->saveOrFail(new Document(['foo' => 'bar']));
+            $this->fail('Expected Mongo $jsonSchema to reject the document.');
+        } catch (BulkWriteException $exception) {
+            $this->assertMatchesRegularExpression('/failed validation/i', $exception->getMessage());
+        } finally {
+            $manager->dropCollection($name);
+        }
     }
 
     /**

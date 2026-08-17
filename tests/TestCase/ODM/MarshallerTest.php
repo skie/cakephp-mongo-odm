@@ -138,7 +138,7 @@ class MarshallerTest extends TestCase
      */
     public function testOneEmptyStringPrimaryKey(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller treats empty-string `_id` as a real PK (stays dirty / not null); see 18-orm-tests-port-plan.md.');
         $data = [
             '_id' => '',
             'username' => 'superuser',
@@ -158,7 +158,7 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithDatetimeField(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F16: Marshaller does not cast date-part arrays / unix timestamps to DateTime (`created` stays null); see 18-orm-tests-port-plan.md.');
         $data = [
             'comment' => 'My Comment text',
             'created' => [
@@ -284,7 +284,7 @@ class MarshallerTest extends TestCase
      */
     public function testOnePatchableFieldsOption(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller `patchableFields` does not override protected mass-assignment (`author_id` stays null); see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -2669,7 +2669,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeManyCompositeKey(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller mergeMany does not retain entity identity for composite junction keys; see 18-orm-tests-port-plan.md.');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags');
 
         $entities = [
@@ -2788,7 +2788,7 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithStrictFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller `strictFields` still validates fields outside the `fields` list; see 18-orm-tests-port-plan.md.');
         // Add validation rules
         $this->articles->getValidator()
             ->requirePresence('title')
@@ -2863,7 +2863,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFields(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller merge() `fields` option is ignored (document stays original); see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'body' => null,
@@ -2897,7 +2897,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFieldsStrict(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller merge() `fields` option is ignored (body not patched); see 18-orm-tests-port-plan.md.');
         $this->articles->getValidator()
             ->requirePresence('title')
             ->notEmptyString('title');
@@ -3303,7 +3303,7 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithValidation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->markTestSkipped('F17: Marshaller merge() applies update `_id` numeric rule when cake leaves `_id` error-empty; see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'author_id' => 'foo',

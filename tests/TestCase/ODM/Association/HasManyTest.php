@@ -429,50 +429,42 @@ class HasManyTest extends TestCase
     }
 
     /**
-     * Tests that eager loader accepts a queryBuilder option
+     * Tests that eager loader accepts a queryBuilder option.
+     *
+     * Cake asserted SQL `join('comments')` / `clause('join')`; ODM applies
+     * the builder onto the association query (select + where). Nested
+     * `contain()` is a separate loader contract — do not sneak it in here.
      */
     public function testEagerLoaderWithQueryBuilder(): void
     {
-        $this->markTestSkipped('// SQL join() shape (`join(' . "'" . 'comments' . "'" . ')`, `clause(' . "'" . 'join' . "'" . ')`) has no ODM analog; see 18-orm-tests-port-plan.md.');
         $config = [
             'target' => $this->article,
             'strategy' => 'select',
         ];
         $association = new HasMany('Articles', $this->author, $config);
-        $keys = [1, 2, 3, 4];
+        $keys = [
+            '000000000000000000000001', '000000000000000000000002',
+            '000000000000000000000003', '000000000000000000000004',
+        ];
 
-        /** @var \Cake\ORM\Query\SelectQuery $query */
-        $query = $this->article->query();
+        $query = $this->article->selectQuery();
         $this->article->shouldReceive('find')
-            ->with('all')
             ->andReturn($query);
 
-        $queryBuilder = (fn($query) => $query->select(['author_id'])->join('comments')->where(['comments._id' => 1]));
-        $association->eagerLoader(['keys' => $keys, 'query' => $query, 'queryBuilder' => $queryBuilder]);
+        $queryBuilder = fn($q) => $q
+            ->select(['author_id', 'title'])
+            ->where(['published' => 'Y']);
+        $callable = $association->eagerLoader([
+            'keys' => $keys,
+            'query' => $query,
+            'queryBuilder' => $queryBuilder,
+        ]);
+        $callable([['_id' => '000000000000000000000001']]);
 
-        $expected = [
-            'Articles__author_id' => 'Articles.author_id',
-        ];
-        $this->assertSelectClause($expected, $query);
-
-        $expected = [
-            [
-                'type' => 'INNER',
-                'alias' => null,
-                'collection' => 'comments',
-                'conditions' => new QueryExpression([], $query->getTypeMap()),
-            ],
-        ];
-        $this->assertJoin($expected, $query);
-
-        $expected = new QueryExpression(
-            [
-                'Articles.author_id IN' => $keys,
-                'comments._id' => 1,
-            ],
-            $query->getTypeMap(),
-        );
-        $this->assertWhereClause($expected, $query);
+        $this->assertSame(['author_id' => 1, 'title' => 1, '_id' => 0], $query->clause('select'));
+        $where = $query->clause('where');
+        $this->assertSame('Y', $where['published']);
+        $this->assertSame(['000000000000000000000001'], array_map(strval(...), $where['author_id']['$in']));
     }
 
     /**

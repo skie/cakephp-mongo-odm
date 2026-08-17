@@ -833,7 +833,6 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinkSuccess(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testReplaceLinkSuccess is SQL-only (F25).');
         $joint = $this->getCollectionLocator()->get('ArticlesTags');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $this->getCollectionLocator()->get('Tags');
@@ -871,7 +870,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinkWithConditions(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testReplaceLinkWithConditions is SQL-only (F25).');
+        $this->markTestSkipped('F25: replaceLinks ignores association conditions — empty replace still unlinks non-matching junction rows; see 18-orm-tests-port-plan.md.');
         $joint = $this->getCollectionLocator()->get('SpecialTags');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $this->getCollectionLocator()->get('Tags');
@@ -988,7 +987,6 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinksFinderContain(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testReplaceLinksFinderContain is SQL-only (F25).');
         $this->setAppNamespace('TestApp');
 
         $joint = $this->getCollectionLocator()->get('ArticlesTags');
@@ -1012,7 +1010,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinkFailingDomainRules(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testReplaceLinkFailingDomainRules is SQL-only (F25).');
+        $this->markTestSkipped('F25: replaceLinks does not roll back existing links when the new target fails domain rules; see 18-orm-tests-port-plan.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $tags = $this->getCollectionLocator()->get('Tags');
         $tags->getEventManager()->on('Collection.buildRules', function (EventInterface $event, RulesChecker $rules): void {

@@ -14,7 +14,6 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
-use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\Attributes\CoversClass;
 
@@ -415,11 +414,13 @@ class BelongsToTest extends TestCase
     }
 
     /**
-     * Test that not selecting join keys with strategy=select fails
+     * ODM auto-adds the belongsTo foreign key when it is omitted from select().
+     *
+     * Cake JOIN strategy throws if the FK is not selected; ODM injects it so
+     * the external load still works.
      */
     public function testAttachToNoForeignKeySelect(): void
     {
-        $this->markTestSkipped('// The SELECT-strategy "Ensure foreign key is selected" exception is cake JOIN-default specific; ODM BelongsTo auto-adds the FK for the external load. See 40-selectquerytest-failure-groups.md RF.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsTo('Authors')->setStrategy('select');
 
@@ -435,10 +436,10 @@ class BelongsToTest extends TestCase
             ->select(['title'])
             ->where(['_id' => '000000000000000000000001'])
             ->contain('Authors');
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unable to load `Authors` association. Ensure foreign key in `Articles`');
-        $query->first();
+        $result = $query->firstOrFail();
+        $this->assertNotEmpty($result->author);
+        $this->assertSame('000000000000000000000001', $result->author->getId());
+        $this->assertContains('author_id', $query->getAutoSelectedKeys());
     }
 
     /**

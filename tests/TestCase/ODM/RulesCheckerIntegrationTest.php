@@ -798,11 +798,13 @@ class RulesCheckerIntegrationTest extends TestCase
     }
 
     /**
-     * Tests the existsIn with conflicting columns
+     * Tests the existsIn with conflicting columns.
+     *
+     * Cake used a 1-arg SQL `leftJoin(['a2' => 'authors'])`; ODM `leftJoin`
+     * takes a target + builder. existsIn must still fail for a missing FK.
      */
     public function testExistsInAliasPrefix(): void
     {
-        $this->markTestSkipped('F-leftJoin: Query::leftJoin() requires 2 args, SQL-style 1-arg call has no ODM analog; see 40-selectquerytest-failure-groups.md.');
         $document = new Document([
             'title' => 'An Article',
             'author_id' => '507f1f77bcf86cd799439011',
@@ -815,7 +817,9 @@ class RulesCheckerIntegrationTest extends TestCase
         $rules->add($rules->existsIn('author_id', 'Authors'));
 
         $collection->Authors->getEventManager()->on('Collection.beforeFind', function (EventInterface $event, $query): void {
-            $query->leftJoin(['a2' => 'authors']);
+            $query->leftJoin(['a2' => 'authors'], function ($q): void {
+                $q->where(fn($exp) => $exp->equalFields('Authors._id', 'a2._id'));
+            });
         });
 
         $this->assertFalse($collection->save($document));

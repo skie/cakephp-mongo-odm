@@ -1874,14 +1874,15 @@ class SelectQueryTest extends TestCase
 
     /**
      * Integration test for query caching.
+     *
+     * Uses a real SelectQuery (ODM QueryCompiler needs a live `$builder`); a
+     * cache hit must return the stored ResultSet without writing.
      */
     public function testCacheReadIntegration(): void
     {
-        $this->markTestSkipped('// Mockery partial without constructor leaves QueryCompiler `$builder` uninitialized (ODM query requires it); see 40-selectquerytest-failure-groups.md G7.');
-        $query = Mockery::mock(SelectQuery::class)->makePartial();
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = new SelectQuery($collection);
         $resultSet = new ResultSet([]);
-
-        $query->shouldReceive('execute')->never();
 
         $cacher = Mockery::mock(CacheEngine::class);
         $cacher->shouldReceive('get')
@@ -2933,22 +2934,30 @@ class SelectQueryTest extends TestCase
     }
 
     /**
-     * test that cleanCopy retains bindings
+     * cleanCopy keeps where/select/contain while stripping limit/offset/order.
+     *
+     * Cake asserted SQL `bind()` placeholders survived the clone; ODM has no
+     * value binder, so this covers the equivalent retained clauses.
      */
     public function testCleanCopyRetainsBindings(): void
     {
-        $this->markTestSkipped('// SQL value binding (`bind()`/`:start`) has no Mongo analog; see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->hasMany('Comments');
         $query = $collection->find();
         $query->offset(10)
             ->limit(1)
-            ->where(['Articles.id BETWEEN :start AND :end'])
-            ->orderBy(['Articles.id' => 'DESC'])
-            ->bind(':start', 1)
-            ->bind(':end', 2);
+            ->select(['title'])
+            ->where(['_id' => '000000000000000000000001'])
+            ->orderBy(['title' => 'DESC'])
+            ->contain(['Comments']);
         $copy = $query->cleanCopy();
 
-        $this->assertNotEmpty($copy->getValueBinder()->bindings());
+        $this->assertSame(['title' => 1], $copy->clause('select'));
+        $this->assertEquals(['_id' => '000000000000000000000001'], $copy->clause('where'));
+        $this->assertSame(['Comments' => []], $copy->getContain());
+        $this->assertNull($copy->clause('offset'));
+        $this->assertNull($copy->clause('limit'));
+        $this->assertSame([], $copy->clause('order'));
     }
 
     /**
