@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\ORM\DtoMapper;
 use Closure;
@@ -149,7 +150,42 @@ class ResultSetFactory
      */
     public function hydrateDto(array $row, string $dtoClass): object
     {
-        return $this->getDtoHydrator($dtoClass)($row);
+        return $this->getDtoHydrator($dtoClass)($this->normalizeRowForDto($row));
+    }
+
+    /**
+     * Recursively converts entity graphs to plain arrays for DTO hydration.
+     *
+     * `Document::toArray()` keeps nested documents as objects; DTO factories
+     * and `DtoMapper` expect nested association payloads as arrays.
+     *
+     * @param mixed $row A document, array row, or nested association value.
+     * @return array<string, mixed>
+     */
+    public function normalizeRowForDto(mixed $row): array
+    {
+        if ($row instanceof EntityInterface) {
+            $row = $row->toArray();
+        }
+
+        if (!is_array($row)) {
+            return (array)$row;
+        }
+
+        foreach ($row as $key => $value) {
+            if ($value instanceof EntityInterface) {
+                $row[$key] = $this->normalizeRowForDto($value);
+            } elseif (is_array($value)) {
+                $row[$key] = array_map(
+                    fn(mixed $item): mixed => $item instanceof EntityInterface
+                        ? $this->normalizeRowForDto($item)
+                        : $item,
+                    $value,
+                );
+            }
+        }
+
+        return $row;
     }
 
     /**

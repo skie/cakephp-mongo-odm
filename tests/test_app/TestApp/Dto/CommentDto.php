@@ -11,14 +11,14 @@ readonly class CommentDto
     /**
      * @param string $_id
      * @param string $comment
-     * @param int $article_id
-     * @param int $user_id
+     * @param string $article_id
+     * @param string $user_id
      */
     public function __construct(
         public string $_id,
         public string $comment,
-        public int $article_id,
-        public int $user_id,
+        public string $article_id,
+        public string $user_id,
     ) {
     }
 }

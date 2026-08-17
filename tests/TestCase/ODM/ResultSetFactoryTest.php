@@ -119,7 +119,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testBelongsToEagerLoaderWithAutoFieldsFalse(): void
     {
-        $this->markTestSkipped('Association eager loading - Phase 4 (F17).');
         $authors = $this->getCollectionLocator()->get('Authors');
 
         $author = $authors->newDocument(['name' => null]);
@@ -195,7 +194,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testSourceOnContainAssociations(): void
     {
-        $this->markTestSkipped('Association eager loading - Phase 4 (F17).');
         $this->loadPlugins(['TestPlugin']);
         $comments = $this->getCollectionLocator()->get('TestPlugin.Comments');
         $comments->belongsTo('Authors', [
@@ -280,7 +278,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsWithBelongsTo(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection - Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');
@@ -304,7 +301,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsWithHasMany(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection - Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');
@@ -420,7 +416,6 @@ class ResultSetFactoryTest extends TestCase
      */
     public function testProjectAsCreateFromArrayWithBelongsTo(): void
     {
-        $this->markTestSkipped('Association eager loading with DTO projection - Phase 4 (F17): decorate() gates loadExternal() on hydrate && dtoClass === null.');
         DtoMapper::clearCache();
 
         $articles = $this->getCollectionLocator()->get('Articles');

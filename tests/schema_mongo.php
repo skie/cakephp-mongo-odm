@@ -50,7 +50,7 @@ return [
     ],
     'authors' => [
         'fields' => [
-            'name' => ['bsonType' => 'string'],
+            'name' => ['bsonType' => ['string', 'null']],
         ],
         'indexes' => [
             'authors_name' => ['key' => ['name' => 1]],

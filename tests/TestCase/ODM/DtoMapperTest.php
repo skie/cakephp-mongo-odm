@@ -114,8 +114,8 @@ class DtoMapperTest extends TestCase
             '_id' => '000000000000000000000001',
             'title' => 'Test Article',
             'comments' => [
-                ['_id' => '000000000000000000000001', 'comment' => 'First comment', 'article_id' => 1, 'user_id' => 1],
-                ['_id' => '000000000000000000000002', 'comment' => 'Second comment', 'article_id' => 1, 'user_id' => 2],
+                ['_id' => '000000000000000000000001', 'comment' => 'First comment', 'article_id' => '000000000000000000000001', 'user_id' => '000000000000000000000001'],
+                ['_id' => '000000000000000000000002', 'comment' => 'Second comment', 'article_id' => '000000000000000000000001', 'user_id' => '000000000000000000000002'],
             ],
         ];
 
@@ -172,9 +172,9 @@ class DtoMapperTest extends TestCase
                 'name' => 'Jane Doe',
             ],
             'comments' => [
-                ['_id' => '000000000000000000000001', 'comment' => 'Great article!', 'article_id' => 1, 'user_id' => 5],
-                ['_id' => '000000000000000000000002', 'comment' => 'Thanks for sharing', 'article_id' => 1, 'user_id' => 6],
-                ['_id' => '000000000000000000000003', 'comment' => 'Very helpful', 'article_id' => 1, 'user_id' => 7],
+                ['_id' => '000000000000000000000001', 'comment' => 'Great article!', 'article_id' => '000000000000000000000001', 'user_id' => '000000000000000000000005'],
+                ['_id' => '000000000000000000000002', 'comment' => 'Thanks for sharing', 'article_id' => '000000000000000000000001', 'user_id' => '000000000000000000000006'],
+                ['_id' => '000000000000000000000003', 'comment' => 'Very helpful', 'article_id' => '000000000000000000000001', 'user_id' => '000000000000000000000007'],
             ],
         ];
 
@@ -191,7 +191,7 @@ class DtoMapperTest extends TestCase
 
         $this->assertCount(3, $dto->comments);
         $this->assertSame('Great article!', $dto->comments[0]->comment);
-        $this->assertSame(5, $dto->comments[0]->user_id);
+        $this->assertSame('000000000000000000000005', $dto->comments[0]->user_id);
     }
 
     public function testCacheIsUsed(): void

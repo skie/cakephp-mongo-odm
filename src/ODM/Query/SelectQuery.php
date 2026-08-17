@@ -1302,12 +1302,12 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     {
         $resultSet = new ResultSet($rows, $this);
 
-        if ($this->dtoClass === null) {
-            $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
-            if (!$loaded instanceof ResultSet) {
-                $resultSet = new ResultSet($loaded, $this);
-            }
+        $loaded = $this->eagerLoader->loadExternal($this, $resultSet);
+        if (!$loaded instanceof ResultSet) {
+            $resultSet = new ResultSet($loaded, $this);
+        }
 
+        if ($this->dtoClass === null) {
             $this->hideAutoSelectedKeys($resultSet);
         }
 
@@ -1336,8 +1336,11 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
         }
 
         if ($this->dtoClass !== null) {
-            $hydrator = $this->resultSetFactory()->getDtoHydrator($this->dtoClass);
-            $mapped = $resultSet->map(fn(mixed $row): object => $hydrator((array)$row));
+            $factory = $this->resultSetFactory();
+            $hydrator = $factory->getDtoHydrator($this->dtoClass);
+            $mapped = $resultSet->map(
+                fn(mixed $row): object => $hydrator($factory->normalizeRowForDto($row)),
+            );
             $resultSet = $mapped instanceof ResultSet ? $mapped : new ResultSet($mapped, $this);
         }
 
