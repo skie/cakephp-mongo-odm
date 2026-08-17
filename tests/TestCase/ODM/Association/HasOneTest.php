@@ -259,7 +259,6 @@ class HasOneTest extends TestCase
      */
     public function testAttachToBeforeFind(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachToBeforeFind is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
         ];
@@ -284,7 +283,6 @@ class HasOneTest extends TestCase
      */
     public function testAttachToBeforeFindExtraOptions(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachToBeforeFindExtraOptions is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
         ];

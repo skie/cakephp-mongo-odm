@@ -400,7 +400,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             $instance = $assoc['instance'];
-            if ($instance instanceof Embedded || $instance->type() !== Association::ONE_TO_ONE) {
+            if ($instance instanceof Embedded) {
+                continue;
+            }
+
+            if ($instance->type() !== Association::ONE_TO_ONE) {
                 continue;
             }
 

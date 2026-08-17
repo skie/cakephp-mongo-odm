@@ -202,7 +202,7 @@ class HasOne extends Association
         }
 
         $callConditions = $options['conditions'] ?? [];
-        if (is_array($associationConditions) && is_array($callConditions)) {
+        if (is_array($callConditions)) {
             $options['conditions'] = array_merge($associationConditions, $callConditions);
         } elseif (!isset($options['conditions'])) {
             $options['conditions'] = $associationConditions;

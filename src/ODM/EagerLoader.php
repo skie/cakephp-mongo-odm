@@ -308,7 +308,11 @@ class EagerLoader
                 }
 
                 $instance = $loadable->instance();
-                if ($instance === null || !$instance->usesLookup($loadable->getConfig())) {
+                if ($instance === null) {
+                    continue;
+                }
+
+                if (!$instance->usesLookup($loadable->getConfig())) {
                     continue;
                 }
 
@@ -384,7 +388,11 @@ class EagerLoader
             }
 
             $instance = $loadable->instance();
-            if ($instance === null || !$instance->usesLookup($loadable->getConfig())) {
+            if ($instance === null) {
+                continue;
+            }
+
+            if (!$instance->usesLookup($loadable->getConfig())) {
                 continue;
             }
 
@@ -713,6 +721,7 @@ class EagerLoader
         $query = $target->query();
         $query->eagerLoaded(true);
         ($config['queryBuilder'])($query);
+        $query->triggerBeforeFind();
 
         // Matching (joinWith) loads through a `$lookup` pipeline; containing
         // nested associations from inside that pipeline is not supported

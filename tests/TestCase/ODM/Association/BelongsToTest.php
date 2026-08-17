@@ -356,7 +356,6 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToBeforeFind(): void
     {
-        $this->markTestSkipped('ODM attachTo builds a $lookup pipeline, not a target query; beforeFind on the target is SQL-only (F25).');
         $config = [
             'target' => $this->company,
         ];
@@ -378,12 +377,11 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToBeforeFindExtraOptions(): void
     {
-        $this->markTestSkipped('ODM attachTo builds a $lookup pipeline, not a target query; beforeFind on the target is SQL-only (F25).');
         $config = [
             'target' => $this->company,
         ];
         $called = false;
-        $this->company->getEventManager()->on('Collection.beforeFind', function ($event, $query, array $options) use (&$called): void {
+        $this->company->getEventManager()->on('Collection.beforeFind', function ($event, $query, $options) use (&$called): void {
             $this->assertSame('more', $options['something']);
             $called = true;
         });

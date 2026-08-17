@@ -728,11 +728,77 @@ abstract class Association
             'conditions' => [],
             'joinType' => $this->getJoinType(),
             'fields' => [],
+            'finder' => $this->getFinder(),
         ];
 
         if ($options['fields'] === false) {
             $options['fields'] = [];
         }
+
+        [$finder, $finderOptions] = $this->extractFinder($options['finder']);
+        $dummy = $this->find($finder, ...$finderOptions);
+        if (!$dummy instanceof SelectQuery) {
+            throw new DatabaseException(sprintf(
+                'Association `%s` target finder did not return a select query.',
+                $this->getName(),
+            ));
+        }
+
+        $dummy->eagerLoaded(true);
+
+        if (!empty($options['queryBuilder'])) {
+            $built = $options['queryBuilder']($dummy);
+            if (!$built instanceof SelectQuery) {
+                throw new DatabaseException(sprintf(
+                    'Query builder for association `%s` did not return a query.',
+                    $this->getName(),
+                ));
+            }
+
+            $dummy = $built;
+        }
+
+        if (
+            !empty($options['matching'])
+            && $dummy->getEagerLoader()->getContain() !== []
+        ) {
+            throw new DatabaseException(sprintf(
+                '`%s` association cannot contain() associations when using JOIN strategy.',
+                $this->getName(),
+            ));
+        }
+
+        $conditions = $options['conditions'];
+        if (is_array($conditions) && $conditions !== []) {
+            $dummy->where($conditions);
+        }
+
+        $associationConditions = $this->getConditions();
+        if (is_array($associationConditions) && $associationConditions !== []) {
+            $dummy->where($associationConditions);
+        }
+
+        $this->dispatchBeforeFind($dummy);
+
+        $compiled = $dummy->compile();
+        if ($compiled['filter'] ?? [] !== []) {
+            $options['conditions'] = array_merge(
+                is_array($options['conditions']) ? $options['conditions'] : [],
+                $compiled['filter'],
+            );
+        }
+
+        $projection = $dummy->clause('select');
+        if ($projection !== [] && $options['fields'] === []) {
+            $options['fields'] = array_keys($projection);
+        }
+
+        $sort = $dummy->clause('order') ?? [];
+        if ($sort !== [] && !isset($options['sort'])) {
+            $options['sort'] = $sort;
+        }
+
+        unset($options['queryBuilder'], $options['finder']);
 
         $options['strategy'] = static::STRATEGY_LOOKUP;
 
@@ -1329,6 +1395,7 @@ abstract class Association
      */
     protected function dispatchBeforeFind(SelectQuery $query): void
     {
+        $query->triggerBeforeFind();
     }
 
     /**
