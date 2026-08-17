@@ -157,7 +157,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithDatetimeField(): void
     {
-        $this->markTestSkipped('F16: Marshaller does not cast date-part arrays / unix timestamps to DateTime (`created` stays null); see 18-orm-tests-port-plan.md.');
         $data = [
             'comment' => 'My Comment text',
             'created' => [
@@ -2667,8 +2666,8 @@ class MarshallerTest extends TestCase
      */
     public function testMergeManyCompositeKey(): void
     {
-        $this->markTestSkipped('F17: Marshaller mergeMany does not retain entity identity for composite junction keys; see 18-orm-tests-port-plan.md.');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags');
+        $articlesTags->setPrimaryKey(['article_id', 'tag_id']);
 
         $entities = [
             new OpenArticleEntity(['article_id' => 1, 'tag_id' => 2]),

@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM;
 
 use ArrayObject;
+use Cake\Collection\Collection;
 use Cake\Datasource\EntityInterface;
+use Cake\Utility\Hash;
 use Cake\Validation\Validator;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
@@ -123,56 +125,63 @@ class Marshaller
      */
     public function mergeMany(iterable $entities, array $data, array $options = []): array
     {
-        $indexed = [];
-        $new = [];
-        foreach ($data as $record) {
-            if (!is_array($record)) {
-                continue;
-            }
+        $primary = (array)$this->collection->getPrimaryKey();
 
-            $id = $this->idFrom($record);
-            if ($id === null) {
-                $new[] = $record;
-            } else {
-                $indexed[$id] = $record;
-            }
-        }
+        $indexed = (new Collection($data))
+            ->filter(fn(mixed $row): bool => is_array($row))
+            ->groupBy(fn(array $row): string => $this->primaryKeyIndexKey($row, $primary))
+            ->map(fn($element, $key) => $key === '' ? $element : $element[0])
+            ->toArray();
 
+        $new = $indexed[''] ?? [];
+        unset($indexed['']);
         $result = [];
+
         foreach ($entities as $document) {
             if (!$document instanceof Document) {
                 continue;
             }
 
-            $id = $document->getId();
-            if ($id === null) {
+            $key = $this->documentIndexKey($document, $primary);
+            if ($key === '' || !isset($indexed[$key])) {
                 continue;
             }
 
-            if (!isset($indexed[$id])) {
-                continue;
-            }
-
-            $result[] = $this->merge($document, $indexed[$id], $options);
-            unset($indexed[$id]);
+            $result[] = $this->merge($document, $indexed[$key], $options);
+            unset($indexed[$key]);
         }
 
-        foreach (array_keys($indexed) as $id) {
-            try {
-                $document = $this->collection->get($id);
-            } catch (Throwable) {
-                continue;
-            }
+        $conditions = (new Collection($indexed))
+            ->map(fn($data, $key) => explode(';', (string)$key))
+            ->filter(fn(array $keys): bool => count(Hash::filter($keys)) === count($primary))
+            ->reduce(function (array $conditions, array $keys) use ($primary): array {
+                $conditions['OR'][] = array_combine($primary, $keys);
 
-            if (!$document instanceof Document) {
-                continue;
-            }
+                return $conditions;
+            }, ['OR' => []]);
 
-            $result[] = $this->merge($document, $indexed[$id], $options);
-            unset($indexed[$id]);
+        if ($indexed !== [] && count($conditions['OR']) > 0) {
+            $existent = $this->collection->find()->where($conditions)->all();
+            foreach ($existent as $document) {
+                if (!$document instanceof Document) {
+                    continue;
+                }
+
+                $key = $this->documentIndexKey($document, $primary);
+                if (!isset($indexed[$key])) {
+                    continue;
+                }
+
+                $result[] = $this->merge($document, $indexed[$key], $options);
+                unset($indexed[$key]);
+            }
         }
 
         foreach (array_merge(array_values($indexed), $new) as $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+
             $result[] = $this->one($record, $options);
         }
 
@@ -733,6 +742,59 @@ class Marshaller
         foreach ((array)$fields as $field => $accessible) {
             $document->setAccess((string)$field, (bool)$accessible);
         }
+    }
+
+    /**
+     * Builds a semicolon-delimited lookup key from primary-key columns in a data row.
+     *
+     * @param array<string, mixed> $data The data row.
+     * @param array<int, string> $primary The primary key fields.
+     * @return string Empty when any primary key part is missing.
+     */
+    private function primaryKeyIndexKey(array $data, array $primary): string
+    {
+        if ($this->usesSimpleIdPrimaryKey($primary)) {
+            return $this->idFrom($data) ?? '';
+        }
+
+        $keys = [];
+        foreach ($primary as $field) {
+            if (!array_key_exists($field, $data)) {
+                return '';
+            }
+            $keys[] = (string)$data[$field];
+        }
+
+        return implode(';', $keys);
+    }
+
+    /**
+     * Builds a semicolon-delimited lookup key from a document's primary key values.
+     *
+     * @param \Crustum\Mongo\ODM\Document $document The document.
+     * @param array<int, string> $primary The primary key fields.
+     * @return string
+     */
+    private function documentIndexKey(Document $document, array $primary): string
+    {
+        if ($this->usesSimpleIdPrimaryKey($primary)) {
+            $id = $document->getId();
+
+            return $id === null ? '' : (string)$id;
+        }
+
+        return implode(';', array_map('strval', $document->extract($primary)));
+    }
+
+    /**
+     * Returns whether the collection uses Mongo's canonical single `_id` primary key.
+     *
+     * @param array<int, string> $primary The primary key fields.
+     * @return bool
+     */
+    private function usesSimpleIdPrimaryKey(array $primary): bool
+    {
+        return count($primary) === 1 && $primary[0] === '_id';
     }
 
     /**

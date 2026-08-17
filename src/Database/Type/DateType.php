@@ -166,6 +166,10 @@ class DateType extends BaseType implements BatchCastingInterface
             return new CakeDateTime($value);
         }
 
+        if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+            return new CakeDateTime('@' . (int)$value);
+        }
+
         if (is_string($value)) {
             if ($this->useLocaleMarshal) {
                 $parsed = $this->parseLocaleValue($value);
