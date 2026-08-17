@@ -5,11 +5,11 @@ namespace Crustum\Mongo\Database\Driver;
 
 use Cake\Core\App;
 use Cake\Core\Exception\CakeException;
-use Cake\Database\Log\QueryLogger;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Enum\DriverFeature;
 use Crustum\Mongo\Database\Log\CommandSubscriber;
 use Crustum\Mongo\Database\Log\MongoLogger;
+use Crustum\Mongo\Database\Log\QueryLogger;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
@@ -62,11 +62,18 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     protected bool $logQueries = false;
 
     /**
-     * The command subscriber forwarding driver commands to the query logger.
+     * Shared command monitor handle for this driver (process-wide subscriber).
      *
      * @var \Crustum\Mongo\Database\Log\CommandSubscriber|null
      */
     protected ?CommandSubscriber $commandSubscriber = null;
+
+    /**
+     * MongoLogger attached to the shared CommandSubscriber for this driver.
+     *
+     * @var \Crustum\Mongo\Database\Log\MongoLogger|null
+     */
+    protected ?MongoLogger $mongoCommandLogger = null;
 
     /**
      * Constructor.
@@ -84,11 +91,11 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
         $this->config = $config;
 
         if ($config['log'] instanceof LoggerInterface) {
-            $this->logQueries = true;
             $this->logger = $config['log'];
+            $this->enableQueryLogging();
         } elseif ($config['log'] !== false) {
-            $this->logQueries = true;
             $this->logger = $this->createLogger($config['log'] === true ? null : $config['log']);
+            $this->enableQueryLogging();
         }
     }
 
@@ -104,11 +111,14 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
-        $this->enableQueryLogging();
 
-        if ($this->commandSubscriber instanceof CommandSubscriber) {
-            $this->commandSubscriber->setLogger(new MongoLogger($logger));
+        if ($this->mongoCommandLogger instanceof MongoLogger) {
+            CommandSubscriber::detach($this->mongoCommandLogger);
+            $this->mongoCommandLogger = null;
+            $this->commandSubscriber = null;
         }
+
+        $this->enableQueryLogging();
     }
 
     /**
@@ -174,13 +184,35 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     {
         $this->logQueries = true;
 
-        if (!$this->commandSubscriber instanceof CommandSubscriber) {
-            $this->commandSubscriber = new CommandSubscriber(new MongoLogger($this->logger ?? new QueryLogger()));
+        if (!$this->mongoCommandLogger instanceof MongoLogger) {
+            $this->mongoCommandLogger = $this->createMongoLogger($this->logger ?? new QueryLogger());
         }
 
-        $this->commandSubscriber->enable();
+        $this->commandSubscriber = CommandSubscriber::attach($this->mongoCommandLogger);
 
         return $this;
+    }
+
+    /**
+     * Builds the Mongo command logger using driver `logJsonFlags`.
+     *
+     * @param \Psr\Log\LoggerInterface $logger Underlying PSR/Cake logger.
+     * @return \Crustum\Mongo\Database\Log\MongoLogger
+     */
+    protected function createMongoLogger(LoggerInterface $logger): MongoLogger
+    {
+        if ($logger instanceof QueryLogger) {
+            $connection = (string)($this->config['name'] ?? $logger->getConfig('connection') ?? '');
+            if ($connection !== '') {
+                $logger->setConfig('connection', $connection);
+            }
+        }
+
+        return new MongoLogger($logger, [
+            'jsonFlags' => (int)($this->config['logJsonFlags'] ?? 0),
+            'database' => (string)($this->config['database'] ?? ''),
+            'includeSchemaCommands' => (bool)($this->config['logSchemaCommands'] ?? true),
+        ]);
     }
 
     /**
@@ -194,7 +226,12 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
     {
         $this->logQueries = false;
 
-        $this->commandSubscriber?->disable();
+        if ($this->mongoCommandLogger instanceof MongoLogger) {
+            CommandSubscriber::detach($this->mongoCommandLogger);
+            $this->mongoCommandLogger = null;
+        }
+
+        $this->commandSubscriber = null;
 
         return $this;
     }

@@ -52,6 +52,64 @@ class ConnectionTest extends TestCase
     }
 
     /**
+     * Test getLogger / setLogger delegate to the write driver (DebugKit path).
+     *
+     * @return void
+     */
+    public function testGetSetLoggerDelegateToDriver(): void
+    {
+        $connection = new Connection([
+            'name' => 'logger_conn',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'log' => false,
+        ]);
+
+        $this->assertNull($connection->getLogger());
+
+        $inner = new MemoryLogger();
+        $connection->setLogger($inner);
+
+        $this->assertSame($inner, $connection->getLogger());
+        $this->assertSame($inner, $connection->getDriver()->getLogger());
+        $this->assertTrue($connection->getDriver()->isQueryLoggingEnabled());
+    }
+
+    /**
+     * Test DebugKit-style wrap keeps the previous logger as DebugLog inner.
+     *
+     * SqlLogPanel uses Connection::getLogger() for non-Cake drivers; without it
+     * the panel would call setLogger(DebugLog(null)) and drop Speculum.
+     *
+     * @return void
+     */
+    public function testDebugKitStyleWrapPreservesExistingLogger(): void
+    {
+        $connection = new Connection([
+            'name' => 'debugkit_conn',
+            'driver' => MongoDriver::class,
+            'host' => '127.0.0.1',
+            'database' => 'test_db',
+            'log' => true,
+        ]);
+
+        $existing = $connection->getLogger();
+        $this->assertNotNull($existing);
+
+        if (!class_exists(\DebugKit\Database\Log\DebugLog::class)) {
+            $this->markTestSkipped('DebugKit is not installed.');
+        }
+
+        $debugLog = new \DebugKit\Database\Log\DebugLog($existing, 'debugkit_conn', false);
+        $connection->getDriver()->setLogger($debugLog);
+
+        $this->assertInstanceOf(\DebugKit\Database\Log\DebugLog::class, $connection->getLogger());
+        $ref = new \ReflectionProperty($debugLog, '_logger');
+        $this->assertSame($existing, $ref->getValue($debugLog));
+    }
+
+    /**
      * Test the constructor wires the driver.
      *
      * @return void

@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Database\Driver;
 
 use Cake\Core\Exception\CakeException;
-use Cake\Database\Log\QueryLogger;
+use Crustum\Mongo\Database\Log\CommandSubscriber;
+use Crustum\Mongo\Database\Log\QueryLogger;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Enum\DriverFeature;
@@ -26,6 +27,24 @@ use ReflectionProperty;
 #[CoversClass(MongoDriver::class)]
 class MongoDriverTest extends TestCase
 {
+    /**
+     * @inheritDoc
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        CommandSubscriber::resetMonitor();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function tearDown(): void
+    {
+        CommandSubscriber::resetMonitor();
+        parent::tearDown();
+    }
+
     /**
      * Test the constructor throws for a missing database key.
      *
@@ -229,6 +248,7 @@ class MongoDriverTest extends TestCase
 
         $driver = new MongoDriver(['database' => 'test_db', 'log' => true]);
         $this->assertInstanceOf(QueryLogger::class, $driver->getLogger());
+        $this->assertSame(QueryLogger::SCOPES, $driver->getLogger()->scopes());
         $this->assertTrue($driver->isQueryLoggingEnabled());
     }
 
@@ -262,6 +282,38 @@ class MongoDriverTest extends TestCase
     }
 
     /**
+     * Test `log => true` registers the CommandSubscriber (not only the flag).
+     *
+     * @return void
+     */
+    public function testLogConfigTrueRegistersSubscriber(): void
+    {
+        $inner = new MemoryLogger();
+        $driver = new MongoDriver([
+            'host' => '127.0.0.1',
+            'port' => 27017,
+            'database' => 'test_mongo_db',
+            'log' => $inner,
+        ]);
+
+        try {
+            $this->assertTrue($driver->isQueryLoggingEnabled());
+
+            $collection = $driver->getCollection('log_driver_config_test');
+            $collection->deleteMany([]);
+            $collection->insertOne(['title' => 'from config']);
+
+            $commands = array_column(array_column($inner->records, 2), 'command');
+            $this->assertNotEmpty($commands);
+            $this->assertTrue(
+                array_any($commands, static fn(array $command): bool => array_key_exists('insert', $command)),
+            );
+        } finally {
+            $driver->disableQueryLogging();
+        }
+    }
+
+    /**
      * Test enableQueryLogging registers the subscriber and captures a command.
      *
      * @return void
@@ -288,6 +340,45 @@ class MongoDriverTest extends TestCase
             $this->assertTrue(
                 array_any($commands, static fn(array $command): bool => array_key_exists('insert', $command)),
             );
+        } finally {
+            $driver->disableQueryLogging();
+        }
+    }
+
+    /**
+     * Test enableQueryLogging can be called repeatedly without double-logging.
+     *
+     * @return void
+     */
+    public function testEnableQueryLoggingIsIdempotent(): void
+    {
+        $inner = new MemoryLogger();
+        $driver = new MongoDriver([
+            'host' => '127.0.0.1',
+            'port' => 27017,
+            'database' => 'test_mongo_db',
+        ]);
+        $driver->setLogger($inner);
+        $driver->enableQueryLogging();
+        $driver->enableQueryLogging();
+
+        try {
+            $collection = $driver->getCollection('log_driver_idempotent_test');
+            $collection->deleteMany([]);
+            $before = count($inner->records);
+            $collection->insertOne(['title' => 'once']);
+
+            $inserts = [];
+            foreach (array_slice($inner->records, $before) as $record) {
+                $context = $record[2] ?? null;
+                if (is_array($context) && isset($context['command']) && is_array($context['command'])
+                    && array_key_exists('insert', $context['command'])
+                ) {
+                    $inserts[] = $record;
+                }
+            }
+
+            $this->assertCount(1, $inserts);
         } finally {
             $driver->disableQueryLogging();
         }

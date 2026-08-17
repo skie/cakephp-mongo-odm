@@ -12,23 +12,35 @@ use function MongoDB\Driver\Monitoring\addSubscriber;
 use function MongoDB\Driver\Monitoring\removeSubscriber;
 
 /**
- * MongoDB command monitoring subscriber.
+ * Registers a MongoLogger with the process-wide command monitor.
  *
- * Implements `MongoDB\Driver\Monitoring\CommandSubscriber` to capture
- * every driver command (find, insert, update, delete, aggregate, …) with its
- * duration and feed it to a `Database\Log\MongoLogger`. This is the real
- * query-logging path for the Database layer.
- *
- * @see mongodb-odm APM/CommandLogger.php
+ * ext-mongodb `addSubscriber` is global: one shared subscriber receives every
+ * command. Each attached MongoLogger is scoped to its driver's configured
+ * database so DebugKit / multi-connection setups only record matching traffic
+ * (SQL-style per-connection panels).
  */
 class CommandSubscriber implements CommandSubscriberInterface
 {
     /**
-     * The logger commands are forwarded to.
+     * Process-wide monitor instance.
      *
-     * @var \Crustum\Mongo\Database\Log\MongoLogger
+     * @var self|null
      */
-    protected MongoLogger $logger;
+    protected static ?self $monitor = null;
+
+    /**
+     * Active Mongo loggers keyed by object id.
+     *
+     * @var array<int, \Crustum\Mongo\Database\Log\MongoLogger>
+     */
+    protected array $loggers = [];
+
+    /**
+     * Whether this instance is currently registered with the driver monitor.
+     *
+     * @var bool
+     */
+    protected bool $enabled = false;
 
     /**
      * In-flight command metadata keyed by request id.
@@ -38,56 +50,121 @@ class CommandSubscriber implements CommandSubscriberInterface
     protected array $started = [];
 
     /**
-     * Constructor
+     * Attach a MongoLogger to the shared monitor (and enable monitoring).
      *
-     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger The logger to forward commands to.
+     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger Logger for one driver.
+     * @return self
      */
-    public function __construct(MongoLogger $logger)
+    public static function attach(MongoLogger $logger): self
     {
-        $this->logger = $logger;
+        $monitor = self::$monitor ??= new self();
+        $monitor->loggers[spl_object_id($logger)] = $logger;
+        $monitor->enable();
+
+        return $monitor;
     }
 
     /**
-     * Returns the wrapped logger.
+     * Detach a MongoLogger; disables monitoring when none remain.
+     *
+     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger Logger to remove.
+     * @return void
+     */
+    public static function detach(MongoLogger $logger): void
+    {
+        if (!self::$monitor instanceof self) {
+            return;
+        }
+
+        unset(self::$monitor->loggers[spl_object_id($logger)]);
+        if (self::$monitor->loggers === []) {
+            self::$monitor->disable();
+            self::$monitor = null;
+        }
+    }
+
+    /**
+     * Reset the shared monitor (tests).
+     *
+     * @return void
+     */
+    public static function resetMonitor(): void
+    {
+        if (self::$monitor instanceof self) {
+            self::$monitor->disable();
+        }
+
+        self::$monitor = null;
+    }
+
+    /**
+     * Returns the primary/first logger (compatibility for getLogger()).
      *
      * @return \Crustum\Mongo\Database\Log\MongoLogger
      */
     public function getLogger(): MongoLogger
     {
-        return $this->logger;
+        $logger = $this->loggers === [] ? null : $this->loggers[array_key_first($this->loggers)];
+        if (!$logger instanceof MongoLogger) {
+            throw new \RuntimeException('CommandSubscriber has no attached MongoLogger.');
+        }
+
+        return $logger;
     }
 
     /**
-     * Replaces the wrapped logger.
+     * Whether this subscriber is registered with the driver monitor.
      *
-     * @param \Crustum\Mongo\Database\Log\MongoLogger $logger The logger to forward commands to.
-     * @return $this
+     * @return bool
      */
-    public function setLogger(MongoLogger $logger): static
+    public function isEnabled(): bool
     {
-        $this->logger = $logger;
+        return $this->enabled;
+    }
 
-        return $this;
+    /**
+     * Number of attached MongoLoggers (tests / diagnostics).
+     *
+     * @return int
+     */
+    public function loggerCount(): int
+    {
+        return count($this->loggers);
     }
 
     /**
      * Registers this subscriber with the driver.
      *
+     * Idempotent: repeated enable() calls do not add the subscriber twice.
+     *
      * @return void
      */
     public function enable(): void
     {
+        if ($this->enabled) {
+            return;
+        }
+
         addSubscriber($this);
+        $this->enabled = true;
     }
 
     /**
      * Unregisters this subscriber from the driver.
      *
+     * Idempotent when already disabled.
+     *
      * @return void
      */
     public function disable(): void
     {
+        if (!$this->enabled) {
+            return;
+        }
+
         removeSubscriber($this);
+        $this->enabled = false;
+        $this->started = [];
     }
 
     /**
@@ -95,6 +172,10 @@ class CommandSubscriber implements CommandSubscriberInterface
      */
     public function commandStarted(CommandStartedEvent $event): void
     {
+        if ($this->loggers === []) {
+            return;
+        }
+
         $this->started[$event->getRequestId()] = [
             'command' => (array)$event->getCommand(),
             'database' => $event->getDatabaseName(),
@@ -109,20 +190,27 @@ class CommandSubscriber implements CommandSubscriberInterface
         $meta = $this->started[$event->getRequestId()] ?? null;
         unset($this->started[$event->getRequestId()]);
 
-        $command = $meta['command'] ?? [];
-        $database = $meta['database'] ?? '';
+        if ($meta === null || $this->loggers === []) {
+            return;
+        }
 
-        $this->logger->log(
-            LogLevel::DEBUG,
-            'mongo command',
-            [
-                'command' => $command,
-                'database' => $database,
-                'collection' => $this->extractCollection($command),
-                'duration_ms' => round($event->getDurationMicros() / 1000, 4),
-                'numReturn' => $this->extractNumReturn($event),
-            ],
-        );
+        $command = $meta['command'];
+        $database = $meta['database'];
+        $context = [
+            'command' => $command,
+            'database' => $database,
+            'collection' => $this->extractCollection($command),
+            'duration_ms' => round($event->getDurationMicros() / 1000, 4),
+            'numReturn' => $this->extractNumReturn($event),
+        ];
+
+        foreach ($this->loggers as $logger) {
+            if (!$logger->acceptsDatabase($database)) {
+                continue;
+            }
+
+            $logger->log(LogLevel::DEBUG, 'mongo command', $context);
+        }
     }
 
     /**
@@ -133,20 +221,27 @@ class CommandSubscriber implements CommandSubscriberInterface
         $meta = $this->started[$event->getRequestId()] ?? null;
         unset($this->started[$event->getRequestId()]);
 
-        $command = $meta['command'] ?? [];
-        $database = $meta['database'] ?? '';
+        if ($meta === null || $this->loggers === []) {
+            return;
+        }
 
-        $this->logger->log(
-            LogLevel::ERROR,
-            'mongo command failed',
-            [
-                'command' => $command,
-                'database' => $database,
-                'collection' => $this->extractCollection($command),
-                'duration_ms' => round($event->getDurationMicros() / 1000, 4),
-                'error' => $event->getError()->getMessage(),
-            ],
-        );
+        $command = $meta['command'];
+        $database = $meta['database'];
+        $context = [
+            'command' => $command,
+            'database' => $database,
+            'collection' => $this->extractCollection($command),
+            'duration_ms' => round($event->getDurationMicros() / 1000, 4),
+            'error' => $event->getError()->getMessage(),
+        ];
+
+        foreach ($this->loggers as $logger) {
+            if (!$logger->acceptsDatabase($database)) {
+                continue;
+            }
+
+            $logger->log(LogLevel::ERROR, 'mongo command failed', $context);
+        }
     }
 
     /**

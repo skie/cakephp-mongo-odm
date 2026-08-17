@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Log;
 
 use Cake\Database\Log\LoggedQuery;
-use Cake\Database\Log\QueryLogger;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Stringable;
@@ -16,22 +15,50 @@ use Throwable;
  * Command context is normalized, encoded to JSON, wrapped into a
  * `LoggedQuery` when a duration is present, and delegated to the wrapped
  * logger. Exceptions passed in context are rethrown.
+ *
+ * JSON encoding flags are configurable (`jsonFlags`). Default is compact
+ * single-line output; pass `JSON_PRETTY_PRINT` for multi-line.
  */
 class MongoLogger extends AbstractLogger
 {
     /**
      * The underlying logger.
      *
-     * @var \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface
+     * @var \Crustum\Mongo\Database\Log\QueryLogger|\Psr\Log\LoggerInterface
      */
     protected QueryLogger|LoggerInterface $logger;
+
+    /**
+     * Flags passed to `json_encode()` for the command payload.
+     *
+     * @var int
+     */
+    protected int $jsonFlags;
+
+    /**
+     * When set, only commands for this MongoDB database are forwarded.
+     *
+     * ext-mongodb monitoring is process-global; DebugKit and multi-connection
+     * setups attach one logger per Cake connection. Filtering by the driver's
+     * configured database keeps each Sql Log panel scoped (like SQL schemas).
+     *
+     * @var string|null
+     */
+    protected ?string $database = null;
+
+    /**
+     * Whether schema/reflection commands (listCollections, listIndexes, …) are logged.
+     *
+     * @var bool
+     */
+    protected bool $includeSchemaCommands = false;
 
     /**
      * Command keys recognized as the operation name.
      *
      * @var list<string>
      */
-    protected const array OPERATION_KEYS = [
+    protected const OPERATION_KEYS = [
         'find',
         'insert',
         'update',
@@ -43,19 +70,61 @@ class MongoLogger extends AbstractLogger
     ];
 
     /**
+     * Command names treated as schema / catalog reflection (DebugKit-style).
+     *
+     * @var list<string>
+     */
+    protected const SCHEMA_COMMANDS = [
+        'listCollections',
+        'listIndexes',
+        'listDatabases',
+        'collStats',
+        'dbStats',
+        'connectionStatus',
+        'getParameter',
+        'hostInfo',
+        'buildInfo',
+        'atlasVersion',
+        'abortTransaction',
+        'commitTransaction',
+        'startTransaction',
+    ];
+
+    /**
      * Constructor.
      *
-     * @param \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface $logger The logger to delegate to.
+     * ### Options
+     *
+     * - `jsonFlags` - Bitmask for `json_encode()`. Use `0` (default) for a
+     *   single-line payload, or `JSON_PRETTY_PRINT` for multi-line.
+     * - `database` - When set, ignore commands for any other database name.
+     * - `includeSchemaCommands` - When false (default), skip catalog/reflection
+     *   commands so DebugKit / Speculum show application queries only.
+     *
+     * @param \Crustum\Mongo\Database\Log\QueryLogger|\Psr\Log\LoggerInterface $logger The logger to delegate to.
+     * @param array<string, mixed> $config Logger options.
      */
-    public function __construct(QueryLogger|LoggerInterface $logger)
+    public function __construct(QueryLogger|LoggerInterface $logger, array $config = [])
     {
+        $config += [
+            'jsonFlags' => 0,
+            'database' => null,
+            'includeSchemaCommands' => false,
+        ];
+
         $this->logger = $logger;
+        $this->jsonFlags = (int)$config['jsonFlags'];
+        $database = $config['database'];
+        $this->database = $database === null || $database === ''
+            ? null
+            : (string)$database;
+        $this->includeSchemaCommands = (bool)$config['includeSchemaCommands'];
     }
 
     /**
      * Returns the wrapped logger.
      *
-     * @return \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface
+     * @return \Crustum\Mongo\Database\Log\QueryLogger|\Psr\Log\LoggerInterface
      */
     public function getLogger(): QueryLogger|LoggerInterface
     {
@@ -63,14 +132,79 @@ class MongoLogger extends AbstractLogger
     }
 
     /**
+     * Database this logger is scoped to, if any.
+     *
+     * @return string|null
+     */
+    public function getDatabase(): ?string
+    {
+        return $this->database;
+    }
+
+    /**
+     * Whether this logger should record a command for the given database.
+     *
+     * @param string|null $database Command database from APM.
+     * @return bool
+     */
+    public function acceptsDatabase(?string $database): bool
+    {
+        if ($this->database === null) {
+            return true;
+        }
+
+        return $database === $this->database;
+    }
+
+    /**
+     * Whether a command document is schema/catalog reflection.
+     *
+     * @param array<string|int, mixed> $command Command document.
+     * @return bool
+     */
+    public function isSchemaCommand(array $command): bool
+    {
+        foreach (self::SCHEMA_COMMANDS as $name) {
+            if (array_key_exists($name, $command)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Replaces the wrapped logger.
      *
-     * @param \Cake\Database\Log\QueryLogger|\Psr\Log\LoggerInterface $logger The logger to delegate to.
+     * @param \Crustum\Mongo\Database\Log\QueryLogger|\Psr\Log\LoggerInterface $logger The logger to delegate to.
      * @return $this
      */
     public function setLogger(QueryLogger|LoggerInterface $logger): static
     {
         $this->logger = $logger;
+
+        return $this;
+    }
+
+    /**
+     * Returns the JSON encode flags.
+     *
+     * @return int
+     */
+    public function getJsonFlags(): int
+    {
+        return $this->jsonFlags;
+    }
+
+    /**
+     * Sets the JSON encode flags.
+     *
+     * @param int $flags Bitmask for `json_encode()`.
+     * @return $this
+     */
+    public function setJsonFlags(int $flags): static
+    {
+        $this->jsonFlags = $flags;
 
         return $this;
     }
@@ -88,6 +222,19 @@ class MongoLogger extends AbstractLogger
      */
     public function log(mixed $level, Stringable|string $message, array $context = []): void
     {
+        if (!$this->acceptsDatabase(isset($context['database']) ? (string)$context['database'] : null)) {
+            return;
+        }
+
+        if (
+            !$this->includeSchemaCommands
+            && isset($context['command'])
+            && is_array($context['command'])
+            && $this->isSchemaCommand($context['command'])
+        ) {
+            return;
+        }
+
         $logData = $context;
 
         if (isset($context['command']) && is_array($context['command'])) {
@@ -107,7 +254,7 @@ class MongoLogger extends AbstractLogger
             ];
         }
 
-        $encoded = json_encode($logData, JSON_PRETTY_PRINT) ?: $message;
+        $encoded = json_encode($logData, $this->jsonFlags) ?: $message;
 
         if (isset($context['command'], $context['duration_ms'])) {
             $query = new LoggedQuery();

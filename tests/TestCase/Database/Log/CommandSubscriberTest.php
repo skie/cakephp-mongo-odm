@@ -27,6 +27,11 @@ class CommandSubscriberTest extends TestCase
     protected MemoryLogger $inner;
 
     /**
+     * @var \Crustum\Mongo\Database\Log\MongoLogger
+     */
+    protected MongoLogger $mongoLogger;
+
+    /**
      * @var \Crustum\Mongo\Database\Log\CommandSubscriber
      */
     protected CommandSubscriber $subscriber;
@@ -39,9 +44,11 @@ class CommandSubscriberTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        CommandSubscriber::resetMonitor();
         $this->connection = ConnectionManager::get('test_mongo');
         $this->inner = new MemoryLogger();
-        $this->subscriber = new CommandSubscriber(new MongoLogger($this->inner));
+        $this->mongoLogger = new MongoLogger($this->inner);
+        $this->subscriber = CommandSubscriber::attach($this->mongoLogger);
     }
 
     /**
@@ -51,7 +58,7 @@ class CommandSubscriberTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $this->subscriber->disable();
+        CommandSubscriber::resetMonitor();
         parent::tearDown();
     }
 
@@ -69,9 +76,8 @@ class CommandSubscriberTest extends TestCase
             ['title' => 'two'],
         ]);
 
-        $this->subscriber->enable();
+        $this->inner->records = [];
         $collection->find(['title' => 'one'])->toArray();
-        $this->subscriber->disable();
 
         $record = $this->assertLoggedCommand('find');
         $this->assertSame('log_find_test', $record['context']['collection']);
@@ -89,9 +95,8 @@ class CommandSubscriberTest extends TestCase
         $collection = $this->connection->getDatabase()->selectCollection('log_insert_test');
         $collection->drop();
 
-        $this->subscriber->enable();
+        $this->inner->records = [];
         $collection->insertOne(['title' => 'three']);
-        $this->subscriber->disable();
 
         $record = $this->assertLoggedCommand('insert');
         $this->assertSame('log_insert_test', $record['context']['collection']);
@@ -105,12 +110,86 @@ class CommandSubscriberTest extends TestCase
      */
     public function testDisabledSubscriberLogsNothing(): void
     {
+        CommandSubscriber::detach($this->mongoLogger);
+        $this->assertFalse($this->subscriber->isEnabled());
+
         $collection = $this->connection->getDatabase()->selectCollection('log_disabled_test');
         $collection->drop();
-
         $collection->insertOne(['title' => 'four']);
 
         $this->assertCount(0, $this->inner->records);
+    }
+
+    /**
+     * Test repeated enable() does not register the subscriber twice.
+     *
+     * @return void
+     */
+    public function testEnableIsIdempotent(): void
+    {
+        $collection = $this->connection->getDatabase()->selectCollection('log_enable_once_test');
+        $collection->drop();
+
+        $this->subscriber->enable();
+        $this->subscriber->enable();
+        $this->assertTrue($this->subscriber->isEnabled());
+
+        $this->inner->records = [];
+        $collection->insertOne(['title' => 'once']);
+
+        $inserts = [];
+        foreach ($this->inner->records as $record) {
+            $message = $record[2];
+            if (is_array($message) && ($message['command']['insert'] ?? null) !== null) {
+                $inserts[] = $record;
+            }
+        }
+
+        $this->assertCount(1, $inserts);
+    }
+
+    /**
+     * Test two drivers share one process-wide subscriber.
+     *
+     * @return void
+     */
+    public function testAttachSharesSingleMonitor(): void
+    {
+        $secondInner = new MemoryLogger();
+        $secondLogger = new MongoLogger($secondInner);
+        $second = CommandSubscriber::attach($secondLogger);
+
+        $this->assertSame($this->subscriber, $second);
+        $this->assertSame(2, $this->subscriber->loggerCount());
+
+        CommandSubscriber::detach($secondLogger);
+        $this->assertSame(1, $this->subscriber->loggerCount());
+        $this->assertTrue($this->subscriber->isEnabled());
+    }
+
+    /**
+     * Test each logger only records commands for its configured database.
+     *
+     * @return void
+     */
+    public function testLoggersFilterByDatabase(): void
+    {
+        CommandSubscriber::resetMonitor();
+
+        $database = (string)$this->connection->config()['database'];
+        $matchedInner = new MemoryLogger();
+        $otherInner = new MemoryLogger();
+        CommandSubscriber::attach(new MongoLogger($matchedInner, ['database' => $database]));
+        CommandSubscriber::attach(new MongoLogger($otherInner, ['database' => $database . '_other']));
+
+        $collection = $this->connection->getDatabase()->selectCollection('log_db_filter_test');
+        $collection->drop();
+        $matchedInner->records = [];
+        $otherInner->records = [];
+        $collection->insertOne(['title' => 'scoped']);
+
+        $this->assertNotEmpty($matchedInner->records);
+        $this->assertCount(0, $otherInner->records);
     }
 
     /**

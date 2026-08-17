@@ -1629,6 +1629,63 @@ class SelectQueryTest extends TestCase
     }
 
     /**
+     * Test select() with a func() alias — ODM computed / virtual field via projection.
+     *
+     * Shape: `select(['_id', 'virtual' => $query->func()->…])`.
+     */
+    public function testSelectVirtualFieldWithFunc(): void
+    {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find();
+        $result = $query
+            ->select([
+                '_id',
+                'title',
+                'virtual' => $query->func()->concat([
+                    'title' => 'identifier',
+                    '!',
+                ]),
+            ])
+            ->where(['_id' => '000000000000000000000001'])
+            ->hydrate(false)
+            ->first();
+
+        $this->assertNotNull($result);
+        $this->assertSame('First Article', $result['title']);
+        $this->assertSame('First Article!', $result['virtual']);
+    }
+
+    /**
+     * Test addFields() with func() (including nested) + select() keeping aliases.
+     *
+     * `$addFields` runs before select `$project`, so computed aliases must be
+     * listed in `select([...])` or they are stripped.
+     */
+    public function testAddFieldsNestedFuncWithSelect(): void
+    {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find();
+        $f = $query->func();
+        $result = $query
+            ->select(['_id', 'title', 'title_upper', 'score'])
+            ->addFields([
+                'title_upper' => $f->toUpper(['title' => 'identifier']),
+                'score' => $f->multiply(
+                    $f->strLenCP(['title' => 'identifier']),
+                    2,
+                ),
+            ])
+            ->where(['_id' => '000000000000000000000001'])
+            ->hydrate(false)
+            ->first();
+
+        $this->assertNotNull($result);
+        $this->assertSame('First Article', $result['title']);
+        $this->assertSame('FIRST ARTICLE', $result['title_upper']);
+        $this->assertSame(26, $result['score']); // strlen('First Article') * 2
+    }
+
+    /**
      * Test getting counts with complex fields.
      */
     public function testCountWithExpressions(): void
@@ -3904,11 +3961,39 @@ class SelectQueryTest extends TestCase
     }
 
     /**
-     * Tests that passing a ORM query as an argument wraps the query SQL into parentheses.
+     * Nested FunctionExpression args compile to Mongo operators.
+     *
+     * Cake wraps an ORM subquery as `MyFunction((SELECT …))`; ODM resolves nested
+     * `func()` expressions to operator documents via `getConditions()` / `sql()`.
      */
     public function testFunctionWithOrmQuery(): void
     {
-        $this->markTestSkipped('// SQL SELECT text output (`MyFunction((SELECT ...))`) has no ODM analog; FunctionExpression compiles to Mongo operators. See 40-selectquerytest-failure-groups.md RB.');
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $query = $collection->find();
+        $f = $query->func();
+
+        $function = $f->concat([
+            $f->toUpper(['title' => 'identifier']),
+            '!',
+        ]);
+
+        $this->assertSame(
+            ['$concat' => [['$toUpper' => '$title'], '!']],
+            $function->getConditions(),
+        );
+        $this->assertSame(
+            '{"$concat":[{"$toUpper":"$title"},"!"]}',
+            $function->sql(new ValueBinder()),
+        );
+
+        $result = $query
+            ->select(['_id', 'out' => $function])
+            ->where(['_id' => '000000000000000000000001'])
+            ->hydrate(false)
+            ->first();
+
+        $this->assertNotNull($result);
+        $this->assertSame('FIRST ARTICLE!', $result['out']);
     }
 
     public function testContainConflictingAliases(): void

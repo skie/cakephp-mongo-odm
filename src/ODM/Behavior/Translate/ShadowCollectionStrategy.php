@@ -227,7 +227,6 @@ class ShadowCollectionStrategy extends AbstractStrategy
         [$plugin] = pluginSplit($config['translationCollection']);
         $hasOneTargetAlias = $plugin ? ($plugin . '.' . $config['hasOneAlias']) : $config['hasOneAlias'];
         if (!$this->getCollectionLocator()->exists($hasOneTargetAlias)) {
-            // Load table before hand with fallback class usage enabled
             $this->getCollectionLocator()->get(
                 $hasOneTargetAlias,
                 [
@@ -418,8 +417,6 @@ class ShadowCollectionStrategy extends AbstractStrategy
         $bundled = $entity->has('_i18n') ? (array)$entity->get('_i18n') : [];
         $noBundled = $bundled === [];
 
-        // No additional translation records need to be saved,
-        // as the entity is in the default locale.
         if ($noBundled && $locale === $this->getConfig('defaultLocale')) {
             return;
         }
@@ -428,9 +425,6 @@ class ShadowCollectionStrategy extends AbstractStrategy
         $fields = array_keys($values);
         $noFields = $fields === [];
 
-        // If there are no fields and no bundled translations, or both fields
-        // in the default locale and bundled translations we can
-        // skip the remaining logic as it is not necessary.
         if ($noFields && $noBundled || ($fields && $bundled)) {
             return;
         }

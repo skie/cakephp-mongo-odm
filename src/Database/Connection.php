@@ -23,6 +23,7 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Session;
+use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use Throwable;
 
@@ -174,6 +175,7 @@ class Connection implements ConnectionInterface
             'read',
             'write',
         ]));
+        $sharedConfig['name'] = (string)($config['name'] ?? '');
 
         $writeConfig = ($config['write'] ?? []) + $sharedConfig;
         $readConfig = ($config['read'] ?? []) + $sharedConfig;
@@ -214,6 +216,41 @@ class Connection implements ConnectionInterface
     public function getWriteDriver(): DriverInterface
     {
         return $this->writeDriver;
+    }
+
+    /**
+     * Returns the write driver's query logger.
+     *
+     * DebugKit's SqlLogPanel only calls `Connection::getLogger()` when the
+     * driver is not a Cake SQL `Driver`. Without this, it builds
+     * `DebugLog(null)` and `setLogger()` wipes Speculum / app loggers.
+     *
+     * @return \Psr\Log\LoggerInterface|null
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        $driver = $this->getWriteDriver();
+        if (!method_exists($driver, 'getLogger')) {
+            return null;
+        }
+
+        $logger = $driver->getLogger();
+
+        return $logger instanceof LoggerInterface ? $logger : null;
+    }
+
+    /**
+     * Sets the write driver's query logger (DebugKit / Speculum compatibility).
+     *
+     * @param \Psr\Log\LoggerInterface $logger Logger instance.
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $driver = $this->getWriteDriver();
+        if (method_exists($driver, 'setLogger')) {
+            $driver->setLogger($logger);
+        }
     }
 
     /**
