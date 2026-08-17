@@ -138,7 +138,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneEmptyStringPrimaryKey(): void
     {
-        $this->markTestSkipped('F17: Marshaller treats empty-string `_id` as a real PK (stays dirty / not null); see 18-orm-tests-port-plan.md.');
         $data = [
             '_id' => '',
             'username' => 'superuser',
@@ -2863,7 +2862,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFields(): void
     {
-        $this->markTestSkipped('F17: Marshaller merge() `fields` option is ignored (document stays original); see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'body' => null,
@@ -2897,7 +2895,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithFieldsStrict(): void
     {
-        $this->markTestSkipped('F17: Marshaller merge() `fields` option is ignored (body not patched); see 18-orm-tests-port-plan.md.');
         $this->articles->getValidator()
             ->requirePresence('title')
             ->notEmptyString('title');

@@ -203,7 +203,13 @@ class Marshaller
      */
     private function prepare(array $data, array $options): array
     {
-        $options += ['validate' => true, 'associated' => [], 'isMerge' => false];
+        $options += [
+            'validate' => true,
+            'associated' => [],
+            'isMerge' => false,
+            'fields' => null,
+            'strictFields' => false,
+        ];
         $dataObject = new ArrayObject($data);
         $optionsObject = new ArrayObject($options);
         $this->dispatch('Collection.beforeMarshal', $dataObject, $optionsObject);
@@ -237,7 +243,12 @@ class Marshaller
             throw new RuntimeException('validate must be a boolean, a string or a validator object.');
         }
 
-        return $validator->validate($data, $isNew, ['document' => $document]);
+        $fieldsToValidate = $options['strictFields'] ? (array)($options['fields'] ?? []) : [];
+
+        return $validator->validate($data, $isNew, [
+            'document' => $document,
+            'fields' => $fieldsToValidate,
+        ]);
     }
 
     /**
@@ -324,11 +335,16 @@ class Marshaller
     private function marshalProperties(array $data, array $options, array $errors, Document $document): array
     {
         $map = $this->buildPropertyMap($data, $options);
+        $primaryKey = (array)$this->collection->getPrimaryKey();
         $properties = [];
         foreach ($data as $field => $value) {
             if (isset($errors[$field]) && $errors[$field] !== []) {
                 $document->setInvalidField($field, $value);
 
+                continue;
+            }
+
+            if ($value === '' && in_array($field, $primaryKey, true)) {
                 continue;
             }
 
@@ -675,7 +691,26 @@ class Marshaller
             $document->setPatchable((string)$field, (bool)$patchable);
         }
 
-        $document->patch($properties, ['guard' => true, 'asOriginal' => !($options['isMerge'] ?? false)]);
+        $asOriginal = !($options['isMerge'] ?? false);
+        $fields = $options['fieldList'] ?? $options['fields'] ?? null;
+        if ($fields !== null) {
+            foreach ((array)$fields as $field) {
+                $field = (string)$field;
+                if (!array_key_exists($field, $properties)) {
+                    continue;
+                }
+
+                $document->set($field, $properties[$field], ['asOriginal' => $asOriginal]);
+                $value = $properties[$field];
+                if ($value instanceof EntityInterface) {
+                    $document->setDirty($field, $value->isDirty());
+                }
+            }
+
+            return;
+        }
+
+        $document->patch($properties, ['guard' => true, 'asOriginal' => $asOriginal]);
     }
 
     /**
