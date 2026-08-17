@@ -331,7 +331,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneAssociationBeforeMarshalMutation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $users = $this->getCollectionLocator()->get('Users');
         $articles = $this->getCollectionLocator()->get('Articles');
 
@@ -400,7 +399,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithAdditionalName(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $data = [
             'title' => 'Original Title',
             'Articles' => [
@@ -1003,7 +1001,6 @@ class MarshallerTest extends TestCase
      */
     public function testBelongsToManyInvalidData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -1166,7 +1163,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneHasManyInvalidData(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $data = [
             'title' => 'new title',
             'body' => 'some content',
@@ -1748,7 +1744,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeAssociationNullOut(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $user = new Document([
             '_id' => '000000000000000000000001',
             'username' => 'user',
@@ -3632,7 +3627,6 @@ class MarshallerTest extends TestCase
      */
     public function testAssociationNoChanges(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $options = ['markClean' => true, 'isNew' => false];
         $document = new Document([
             'title' => 'My Title',

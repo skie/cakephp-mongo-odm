@@ -225,6 +225,13 @@ class Marshaller
             'fields' => null,
             'strictFields' => false,
         ];
+
+        $alias = $this->collection->getAlias();
+        if (isset($data[$alias]) && is_array($data[$alias])) {
+            $data += $data[$alias];
+            unset($data[$alias]);
+        }
+
         $dataObject = new ArrayObject($data);
         $optionsObject = new ArrayObject($options);
         $this->dispatch('Collection.beforeMarshal', $dataObject, $optionsObject);
@@ -403,20 +410,21 @@ class Marshaller
     private function marshalAssociation(Association $association, mixed $value, array $options): mixed
     {
         if (!is_array($value)) {
-            return $value;
+            return null;
         }
 
         $type = $association->type();
         $many = $type === 'oneToMany' || $type === 'manyToMany';
         if ($many) {
-            $hasIds = array_key_exists('_ids', $value) && is_array($value['_ids']);
+            $hasIdsKey = array_key_exists('_ids', $value);
+            $hasIds = $hasIdsKey && is_array($value['_ids']);
             $onlyIds = !empty($options['onlyIds']);
 
             if ($hasIds) {
                 return $this->loadAssociatedByIds($association, $value['_ids']);
             }
 
-            if ($onlyIds) {
+            if ($hasIdsKey || $onlyIds) {
                 return [];
             }
         }
@@ -610,7 +618,7 @@ class Marshaller
     private function mergeAssociation(Document $document, Association $association, mixed $value, array $options): mixed
     {
         if (!is_array($value)) {
-            return $value;
+            return null;
         }
 
         $type = $association->type();
@@ -724,6 +732,12 @@ class Marshaller
         }
 
         $document->patch($properties, ['guard' => true, 'asOriginal' => $asOriginal]);
+
+        foreach ($properties as $field => $value) {
+            if ($value instanceof EntityInterface) {
+                $document->setDirty($field, $value->isDirty());
+            }
+        }
     }
 
     /**
