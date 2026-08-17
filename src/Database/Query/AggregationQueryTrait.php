@@ -241,12 +241,14 @@ trait AggregationQueryTrait
         if ($value instanceof MongoExpressionInterface) {
             return $value->getConditions();
         }
+
         if ($value instanceof ExpressionInterface) {
             throw new InvalidArgumentException(
                 'addFields/setFields values must be Mongo expressions from func()/expr(), got '
                 . $value::class,
             );
         }
+
         if (is_array($value)) {
             $out = [];
             foreach ($value as $k => $v) {

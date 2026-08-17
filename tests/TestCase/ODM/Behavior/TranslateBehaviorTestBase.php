@@ -10,8 +10,6 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\I18n\I18n;
 use Cake\Validation\Validator;
-use Crustum\Mongo\Database\Connection;
-use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\ODM\Behavior\Translate\ShadowCollectionStrategy;
 use Crustum\Mongo\ODM\Behavior\TranslateBehavior;
 use Crustum\Mongo\ODM\Document;
@@ -372,7 +370,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame('fr_FR', $collection->getBehavior('Translate')->getLocale());
     }
 
-        /**
+    /**
      * Tests translationField method for other fields.
      */
     public function testTranslationFieldForOtherFields(): void
@@ -415,7 +413,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame(3, $collection->find()->count());
     }
 
-        /**
+    /**
      * Tests that it is possible to request just a few translations
      */
     public function testFindFilteredTranslations(): void
@@ -847,7 +845,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame('Le contenu', $article->get('body'));
     }
 
-                    /**
+    /**
      * Tests that it is possible to use the _locale property to specify the language
      * to use for saving an entity
      */
@@ -897,7 +895,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame('Le titre', $article->get('title'));
     }
 
-        /**
+    /**
      * Tests saving multiple translations at once when the translations already
      * exist in the database
      */
@@ -988,7 +986,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame('Un artículo', $article->translation('spa')->title);
     }
 
-            /**
+    /**
      * Tests that onlyTranslated will remove records from the result set
      * if they are not fully translated
      */
@@ -1073,7 +1071,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame($article->title, $result->title);
     }
 
-        /**
+    /**
      * Tests adding new translation to a record where the only field is the translated one and it's not the default locale
      */
     public function testSaveNewRecordWithOnlyTranslationsNotDefaultLocale(): void
@@ -1140,7 +1138,7 @@ abstract class TranslateBehaviorTestBase extends TestCase
         $this->assertSame('Spanish Translation', $results['es']['title']);
     }
 
-        /**
+    /**
      * Tests that default locale saves ok.
      */
     public function testSaveDefaultLocale(): void

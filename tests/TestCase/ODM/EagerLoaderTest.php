@@ -449,6 +449,7 @@ class EagerLoaderTest extends TestCase
         $query = new SelectQuery($this->collection);
         $loader = new EagerLoader();
         $loader->contain($contains);
+
         $query->select(['_id']);
         $loader->attachAssociations($query, $this->collection);
         $this->assertSame(
@@ -461,6 +462,7 @@ class EagerLoaderTest extends TestCase
         $query = new SelectQuery($this->collection);
         $loader = new EagerLoader();
         $loader->contain($contains);
+
         $query->select(['_id']);
         $loader->attachAssociations($query, $this->collection);
         $orders = $loader->normalized($this->collection)['clients']->associations()['orders'];

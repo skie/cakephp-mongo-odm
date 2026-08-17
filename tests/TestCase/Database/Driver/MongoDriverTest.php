@@ -4,11 +4,11 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\Database\Driver;
 
 use Cake\Core\Exception\CakeException;
-use Crustum\Mongo\Database\Log\CommandSubscriber;
-use Crustum\Mongo\Database\Log\QueryLogger;
 use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Enum\DriverFeature;
+use Crustum\Mongo\Database\Log\CommandSubscriber;
+use Crustum\Mongo\Database\Log\QueryLogger;
 use Crustum\Mongo\Test\TestCase\Database\Log\MemoryLogger;
 use MongoDB\Client;
 use MongoDB\Collection;
@@ -371,7 +371,8 @@ class MongoDriverTest extends TestCase
             $inserts = [];
             foreach (array_slice($inner->records, $before) as $record) {
                 $context = $record[2] ?? null;
-                if (is_array($context) && isset($context['command']) && is_array($context['command'])
+                if (
+                    is_array($context) && isset($context['command']) && is_array($context['command'])
                     && array_key_exists('insert', $context['command'])
                 ) {
                     $inserts[] = $record;

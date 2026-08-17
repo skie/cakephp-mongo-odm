@@ -459,13 +459,7 @@ class CounterCacheBehaviorTest extends TestCase
 
         $this->post->addBehavior('CounterCache', [
             'Users' => [
-                'posts_published' => function (
-                    EventInterface $event,
-                    EntityInterface $document,
-                    BaseCollection $collection,
-                ): SelectQuery {
-                    return $collection->getConnection()->selectQuery(4);
-                },
+                'posts_published' => fn(EventInterface $event, EntityInterface $document, BaseCollection $collection): SelectQuery => $collection->getConnection()->selectQuery(4),
             ],
         ]);
 

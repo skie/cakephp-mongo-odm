@@ -141,7 +141,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
         }
 
         return array_map(
-            fn(mixed $param): mixed => $this->normalizeParam($param),
+            $this->normalizeParam(...),
             $this->normalizePairs($params),
         );
     }
@@ -158,11 +158,7 @@ class FunctionExpression extends Expression implements MongoExpressionInterface
     {
         $out = [];
         foreach ($params as $key => $value) {
-            if (is_string($key)) {
-                $out[] = [$key => $value];
-            } else {
-                $out[] = $value;
-            }
+            $out[] = is_string($key) ? [$key => $value] : $value;
         }
 
         return $out;

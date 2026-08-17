@@ -1122,9 +1122,11 @@ class BaseCollectionTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
+    /**
+     * Test atomic field increment via `$inc` (Mongo analog of SQL `field = field + 1`).
+     */
     public function testUpdateExpression(): void
     {
-        $this->markTestSkipped('// SQL `field = field + 1` expression needs $inc mapping in ODM update compiler; see 18-orm-tests-port-plan.md.');
         $collection = new BaseCollection([
             'collection' => 'counter_cache_users',
             'connection' => $this->connection,
@@ -1136,9 +1138,14 @@ class BaseCollectionTest extends TestCase
             'posts_published' => 0,
         ]);
         $collection->save($document);
-        $expression = new QueryExpression(['post_count = post_count + 1']);
-        $result = $collection->updateAll([$expression], ['_id' => '000000000000000000000001']);
-        $this->assertNotEmpty($result);
+
+        $query = $collection->updateQuery();
+        $result = $collection->updateAll([
+            'post_count' => $query->func()->inc(1),
+        ], ['_id' => $document->getId()]);
+
+        $this->assertSame(1, $result);
+        $this->assertSame(1, $collection->get($document->getId())->get('post_count'));
     }
 
     /**
@@ -6597,8 +6604,8 @@ class BaseCollectionTest extends TestCase
             ]);
             $collection->saveOrFail(new Document(['foo' => 'bar']));
             $this->fail('Expected Mongo $jsonSchema to reject the document.');
-        } catch (BulkWriteException $exception) {
-            $this->assertMatchesRegularExpression('/failed validation/i', $exception->getMessage());
+        } catch (BulkWriteException $bulkWriteException) {
+            $this->assertMatchesRegularExpression('/failed validation/i', $bulkWriteException->getMessage());
         } finally {
             $manager->dropCollection($name);
         }

@@ -1325,14 +1325,14 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
         // arrays) must NOT be re-hydrated, or they would be wrapped into
         // Documents again.
         if ($this->dtoClass === null && $this->isHydrationEnabled()) {
-            $resultSet = new ResultSet($resultSet->toArray(), null);
+            $resultSet = new ResultSet($resultSet->toArray());
         }
 
         foreach ($this->formatters as $formatter) {
             $formatted = $formatter($resultSet, $this);
             $resultSet = $formatted instanceof ResultSet
                 ? $formatted
-                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted, null);
+                : new ResultSet($formatted instanceof Traversable ? $formatted : (array)$formatted);
         }
 
         if ($this->dtoClass !== null) {

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\ODM\Query;
 use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use Crustum\Mongo\Database\Expression\UpdateOperatorExpression;
 use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Database\Query\UpdateQuery as DatabaseUpdateQuery;
 use Crustum\Mongo\ODM\BaseCollection;
@@ -68,7 +69,28 @@ class UpdateQuery extends DatabaseUpdateQuery
         }
 
         if (is_array($field)) {
-            return parent::set($this->convertToDatabaseValues($this->resolveSetMap($field)));
+            $set = [];
+            foreach ($field as $key => $value) {
+                if ($value instanceof UpdateOperatorExpression) {
+                    $this->applyUpdateOperator((string)$key, $value);
+
+                    continue;
+                }
+
+                $set[$key] = $this->resolveSetValue($value);
+            }
+
+            if ($set !== []) {
+                parent::set($this->convertToDatabaseValues($set));
+            }
+
+            return $this;
+        }
+
+        if ($value instanceof UpdateOperatorExpression) {
+            $this->applyUpdateOperator($field, $value);
+
+            return $this;
         }
 
         if ($value !== null) {

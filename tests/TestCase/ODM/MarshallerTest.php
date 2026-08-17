@@ -240,7 +240,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneOnlyCastMatchingData(): void
     {
-
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -1437,7 +1436,6 @@ class MarshallerTest extends TestCase
     #[DataProvider('emptyProvider')]
     public function testMergeFalseyValues(int|string $value): void
     {
-
         $marshall = new Marshaller($this->articles);
         $document = new Document();
         $document->setAccess('*', true);
@@ -2808,7 +2806,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithTranslations(): void
     {
-
         $this->articles->addBehavior('Translate', [
             'fields' => ['title', 'body'],
         ]);
@@ -3368,7 +3365,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithTranslations(): void
     {
-
         $this->articles->addBehavior('Translate', [
             'fields' => ['title', 'body'],
         ]);

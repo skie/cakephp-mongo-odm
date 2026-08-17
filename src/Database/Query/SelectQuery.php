@@ -168,7 +168,7 @@ class SelectQuery extends Query implements IteratorAggregate
      * A `Closure` receives an `AggregationBuilder` and builds stages in place;
      * the compiled stages are appended on return.
      *
-     * @param \Closure|array<int, array<string, mixed>> $stages Pipeline stages or a builder closure.
+     * @param \Closure|array<int, array<int|string, mixed>>|array<int|string, mixed> $stages Pipeline stages or a builder closure.
      * @return $this
      */
     public function pipeline(array|Closure $stages): static

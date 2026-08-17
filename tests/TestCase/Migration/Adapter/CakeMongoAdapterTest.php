@@ -8,9 +8,9 @@ use Cake\TestSuite\TestCase;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Schema\SchemaManager;
 use Crustum\Mongo\Migration\BaseMigration;
-use Crustum\Mongo\Migration\BaseSeed;
 use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\MigrationInterface;
+use Crustum\Mongo\Test\TestCase\Migration\Stub\SeedLogSeed;
 use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
@@ -383,15 +383,5 @@ class CakeMongoAdapterTest extends TestCase
         $log = $this->adapter->getSeedLog();
         $this->assertCount(1, $log);
         $this->assertSame('Migrator', $log[0]['plugin']);
-    }
-}
-
-/**
- * Named seed used by the adapter seed-log tests.
- */
-class SeedLogSeed extends BaseSeed
-{
-    public function run(): void
-    {
     }
 }

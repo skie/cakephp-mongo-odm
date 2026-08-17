@@ -102,6 +102,7 @@ class Marshaller
         if (!$document->isNew()) {
             $validationData += $document->extract((array)$this->collection->getPrimaryKey());
         }
+
         $errors = $this->validate($validationData, $options, $document->isNew(), $document);
         $properties = $this->marshalProperties($data, $options, $errors, $document);
         $this->patch($document, $properties, $options);
@@ -142,7 +143,11 @@ class Marshaller
             }
 
             $key = $this->documentIndexKey($document, $primary);
-            if ($key === '' || !isset($indexed[$key])) {
+            if ($key === '') {
+                continue;
+            }
+
+            if (!isset($indexed[$key])) {
                 continue;
             }
 
@@ -151,7 +156,7 @@ class Marshaller
         }
 
         $conditions = (new Collection($indexed))
-            ->map(fn($data, $key) => explode(';', (string)$key))
+            ->map(fn($data, $key): array => explode(';', (string)$key))
             ->filter(fn(array $keys): bool => count(Hash::filter($keys)) === count($primary))
             ->reduce(function (array $conditions, array $keys) use ($primary): array {
                 $conditions['OR'][] = array_combine($primary, $keys);
@@ -299,6 +304,7 @@ class Marshaller
 
         $associated = (array)($options['associated'] ?? []);
         $associated = $this->normalizeAssociations($associated);
+
         $junctionProperty = (string)($options['junctionProperty'] ?? '_joinData');
         foreach ($associated as $key => $nested) {
             $alias = (string)$key;
@@ -513,7 +519,11 @@ class Marshaller
             }
 
             foreach ($data as $i => $row) {
-                if (!isset($row[$primaryField]) || $row[$primaryField] === '') {
+                if (!isset($row[$primaryField])) {
+                    continue;
+                }
+
+                if ($row[$primaryField] === '') {
                     continue;
                 }
 
@@ -531,7 +541,7 @@ class Marshaller
 
         foreach ($records as $i => $record) {
             if (isset($data[$i][$junctionProperty]) && is_array($data[$i][$junctionProperty])) {
-                $joinData = $jointMarshaller->one((array)$data[$i][$junctionProperty], $nested);
+                $joinData = $jointMarshaller->one($data[$i][$junctionProperty], $nested);
                 $record->set($junctionProperty, $joinData);
             }
         }
@@ -658,6 +668,7 @@ class Marshaller
             if ($hasIds) {
                 return $this->loadAssociatedByIds($association, $value['_ids']);
             }
+
             if ($hasIdsKey || $onlyIds) {
                 return [];
             }
@@ -710,6 +721,7 @@ class Marshaller
                 foreach ($primaryKey as $i => $column) {
                     $row[$column] = is_array($idSet) ? ($idSet[$i] ?? $idSet[$column] ?? null) : null;
                 }
+
                 $conditions['OR'][] = $row;
             }
 
@@ -820,6 +832,7 @@ class Marshaller
             if (!array_key_exists($field, $data)) {
                 return '';
             }
+
             $keys[] = (string)$data[$field];
         }
 
@@ -838,10 +851,10 @@ class Marshaller
         if ($this->usesSimpleIdPrimaryKey($primary)) {
             $id = $document->getId();
 
-            return $id === null ? '' : (string)$id;
+            return $id ?? '';
         }
 
-        return implode(';', array_map('strval', $document->extract($primary)));
+        return implode(';', array_map(strval(...), $document->extract($primary)));
     }
 
     /**

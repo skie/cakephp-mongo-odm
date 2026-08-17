@@ -129,6 +129,32 @@ class UpdateQueryTest extends TestCase
     }
 
     /**
+     * Test set() with func()->inc() maps to `$inc`.
+     *
+     * @return void
+     */
+    public function testSetWithFuncIncExpression(): void
+    {
+        $query = new UpdateQuery($this->connection, 'articles');
+        $query->set(['views' => $query->func()->inc(1)]);
+
+        $this->assertEquals(['$inc' => ['views' => 1]], $query->getUpdate());
+    }
+
+    /**
+     * Test set() with func()->plus() SQL-style increment sugar.
+     *
+     * @return void
+     */
+    public function testSetWithFuncPlusExpression(): void
+    {
+        $query = new UpdateQuery($this->connection, 'articles');
+        $query->set(['views' => $query->func()->plus(5)]);
+
+        $this->assertEquals(['$inc' => ['views' => 5]], $query->getUpdate());
+    }
+
+    /**
      * Test increment() adds a `$inc` operator.
      *
      * @return void

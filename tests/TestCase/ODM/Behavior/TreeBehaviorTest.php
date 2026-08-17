@@ -86,6 +86,7 @@ class TreeBehaviorTest extends TestCase
         $newNode = $this->collection->save($this->collection->newDocument(['name' => 'odd one', 'parent_id' => '000000000000000000000001']));
         $node = $this->collection->get('000000000000000000000002');
         $node->parent_id = $newNode->get('_id');
+
         $this->collection->save($node);
 
         $nodes = $this->collection->find('path', for: '000000000000000000000004');
@@ -308,6 +309,7 @@ class TreeBehaviorTest extends TestCase
         $this->expectExceptionMessage("Cannot set a node's parent as itself");
         $document = $this->collection->get('000000000000000000000001');
         $document->parent_id = $document->get('_id');
+
         $this->collection->save($document);
     }
 
@@ -360,7 +362,8 @@ class TreeBehaviorTest extends TestCase
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('Cannot use node `000000000000000000000005` as parent for entity `000000000000000000000002`.');
         $document = $this->collection->get('000000000000000000000002');
-        $document->parent_id = '000000000000000000000005'; // plasma is inside televisions' subtree
+        $document->parent_id = '000000000000000000000005';
+         // plasma is inside televisions' subtree
         $this->collection->save($document);
     }
 

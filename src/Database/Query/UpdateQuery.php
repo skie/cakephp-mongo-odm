@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use Crustum\Mongo\Database\Expression\UpdateOperatorExpression;
+use Crustum\Mongo\Database\FunctionsBuilder;
+use Crustum\Mongo\Database\UpdateFunctionsBuilder;
+use InvalidArgumentException;
+
 /**
  * Update query for MongoDB updateMany operations.
  *
@@ -18,6 +23,25 @@ class UpdateQuery extends Query
      * @var array<string, array<string, mixed>>
      */
     protected array $update = [];
+
+    /**
+     * @var \Crustum\Mongo\Database\UpdateFunctionsBuilder|null
+     */
+    protected ?UpdateFunctionsBuilder $updateFunctionsBuilder = null;
+
+    /**
+     * Returns a builder for Mongo update operator expressions.
+     *
+     * On update queries, `func()` returns {@see UpdateFunctionsBuilder} (extends
+     * {@see FunctionsBuilder}) so `set(['field' => $query->func()->inc()])` works.
+     * Use {@see Query::expr()} for filter conditions.
+     *
+     * @return \Crustum\Mongo\Database\UpdateFunctionsBuilder
+     */
+    public function func(): FunctionsBuilder
+    {
+        return $this->updateFunctionsBuilder ??= new UpdateFunctionsBuilder();
+    }
 
     /**
      * Sets the target collection to update.
@@ -43,13 +67,52 @@ class UpdateQuery extends Query
      */
     public function set(array|string $field, mixed $value = null): static
     {
-        $this->update['$set'] = array_merge(
-            $this->update['$set'] ?? [],
-            is_array($field) ? $field : [$field => $value],
-        );
+        if (is_array($field)) {
+            $set = [];
+            foreach ($field as $key => $item) {
+                if ($item instanceof UpdateOperatorExpression) {
+                    $this->applyUpdateOperator($key, $item);
+
+                    continue;
+                }
+
+                $set[$key] = $item;
+            }
+
+            if ($set !== []) {
+                $this->update['$set'] = array_merge($this->update['$set'] ?? [], $set);
+            }
+        } elseif ($value instanceof UpdateOperatorExpression) {
+            $this->applyUpdateOperator($field, $value);
+        } else {
+            $this->update['$set'] = array_merge(
+                $this->update['$set'] ?? [],
+                [$field => $value],
+            );
+        }
+
         $this->dirty();
 
         return $this;
+    }
+
+    /**
+     * Routes an {@see UpdateOperatorExpression} to the matching update method.
+     *
+     * @param string $field Document field path.
+     * @param \Crustum\Mongo\Database\Expression\UpdateOperatorExpression $expression Update operator expression.
+     * @return void
+     */
+    protected function applyUpdateOperator(string $field, UpdateOperatorExpression $expression): void
+    {
+        match ($expression->getOperator()) {
+            '$inc' => $this->increment([$field => $expression->getAmount()]),
+            '$mul' => $this->multiply([$field => $expression->getAmount()]),
+            default => throw new InvalidArgumentException(sprintf(
+                'Unsupported update operator `%s` in set().',
+                $expression->getOperator(),
+            )),
+        };
     }
 
     /**

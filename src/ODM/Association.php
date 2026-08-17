@@ -1310,7 +1310,7 @@ abstract class Association
      * Builds MongoDB aggregation stages for this association.
      *
      * @param array<string, mixed> $options Pipeline options.
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     abstract public function buildPipeline(array $options = []): array;
 }

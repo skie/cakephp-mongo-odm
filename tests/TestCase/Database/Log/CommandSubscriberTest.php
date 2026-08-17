@@ -184,6 +184,7 @@ class CommandSubscriberTest extends TestCase
 
         $collection = $this->connection->getDatabase()->selectCollection('log_db_filter_test');
         $collection->drop();
+
         $matchedInner->records = [];
         $otherInner->records = [];
         $collection->insertOne(['title' => 'scoped']);

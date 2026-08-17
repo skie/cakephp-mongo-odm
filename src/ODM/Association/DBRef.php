@@ -141,7 +141,7 @@ class DBRef extends Embedded
      * DBRef hydration requires no aggregation stages.
      *
      * @param array<string, mixed> $options Pipeline options.
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function buildPipeline(array $options = []): array
     {

@@ -401,6 +401,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
         $collection->save($article);
 
         $collection->removeBehavior('Translate');
+
         $raw = $collection->find()->enableHydration(false)->where(['_id' => '000000000000000000000001'])->first();
         $this->assertArrayNotHasKey('fra', $raw['_translations']);
     }
@@ -595,6 +596,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
         $collection->save($article);
 
         $collection->removeBehavior('Translate');
+
         $raw = $collection->find()->enableHydration(false)->where(['_id' => '000000000000000000000001'])->first();
         $this->assertArrayNotHasKey('fra', $raw['_translations']);
     }
@@ -619,6 +621,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
         $collection->save($article);
 
         $collection->removeBehavior('Translate');
+
         $raw = $collection->find()->enableHydration(false)->where(['_id' => '000000000000000000000001'])->first();
         $this->assertSame('Bonjour', $raw['_translations']['fra']['body']);
         $this->assertArrayNotHasKey('title', $raw['_translations']['fra']);
@@ -645,6 +648,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
         $collection->save($article);
 
         $collection->removeBehavior('Translate');
+
         $raw = $collection->find()->enableHydration(false)->where(['_id' => '000000000000000000000001'])->first();
         $this->assertSame('Bonjour', $raw['_translations']['fra']['body']);
         $this->assertSame('Titel', $raw['_translations']['de']['title']);

@@ -15,6 +15,8 @@ use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Migration\Environment;
 use Crustum\Mongo\Migration\MigrationInterface;
 use Crustum\Mongo\Test\TestCase\Migration\Stub\FakeAdapter;
+use Crustum\Mongo\Test\TestCase\Migration\Stub\IdempotentRecordedSeed;
+use Crustum\Mongo\Test\TestCase\Migration\Stub\RecordedSeed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
@@ -553,26 +555,5 @@ class EnvironmentTest extends TestCase
         $this->environment->setIo($mock);
 
         $this->assertInstanceOf(ConsoleIo::class, $this->environment->getIo());
-    }
-}
-
-/**
- * Named seed used by the environment seed-recording tests.
- */
-class RecordedSeed extends BaseSeed
-{
-    public function run(): void
-    {
-    }
-}
-
-/**
- * Named idempotent seed used by the environment seed-recording tests.
- */
-class IdempotentRecordedSeed extends RecordedSeed
-{
-    public function isIdempotent(): bool
-    {
-        return true;
     }
 }

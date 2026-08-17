@@ -303,9 +303,9 @@ class QueryCompiler
 
             if (is_numeric($key)) {
                 if (is_array($value)) {
-                    $projection['_c' . (string)$key] = $this->resolveFieldRefs($value);
+                    $projection['_c' . $key] = $this->resolveFieldRefs($value);
                 } elseif (is_int($value) || is_float($value) || is_bool($value)) {
-                    $projection['_c' . (string)$key] = ['$literal' => $value];
+                    $projection['_c' . $key] = ['$literal' => $value];
                 } else {
                     $projection[$this->resolveField((string)$value)] = 1;
                 }
@@ -625,13 +625,19 @@ class QueryCompiler
     /**
      * Add aggregation pipeline stage(s).
      *
-     * @param array<int, array<int|string, mixed>> $stages Pipeline stages to add
+     * @param array<int, array<int|string, mixed>>|array<int|string, mixed> $stages Pipeline stages to add
      * @return $this
      */
-    public function pipeline(array $stages)
+    public function pipeline(array $stages): static
     {
-        if (isset($stages[0])) {
-            $this->pipeline = array_merge($this->pipeline, $stages);
+        if ($stages === []) {
+            return $this;
+        }
+
+        if (isset($stages[0]) && is_array($stages[0])) {
+            foreach ($stages as $stage) {
+                $this->pipeline[] = $stage;
+            }
         } else {
             $this->pipeline[] = $stages;
         }
@@ -642,7 +648,7 @@ class QueryCompiler
     /**
      * Removes previously attached aggregation pipeline stages.
      *
-     * @param list<array<int|string, mixed>> $stages Stages to remove.
+     * @param array<int, array<int|string, mixed>> $stages Stages to remove.
      * @return $this
      */
     public function removePipelineStages(array $stages): static
@@ -666,9 +672,9 @@ class QueryCompiler
      * caller never embeds a raw pipeline array.
      *
      * @param string $field The output field name for the count.
-     * @return $this
+     * @return static
      */
-    public function count(string $field)
+    public function count(string $field): static
     {
         $builder = new AggregationBuilder();
         $stage = $builder->count($field)->getExpression();
@@ -843,8 +849,8 @@ class QueryCompiler
      * joinWith/matching prefix (must precede GROUP BY). Everything after that
      * prefix — notably `$count` from `performCount()` — stays after `$group`.
      *
-     * @param list<array<string, mixed>> $stages The stored pipeline stages.
-     * @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>}
+     * @param array<int, array<int|string, mixed>> $stages The stored pipeline stages.
+     * @return array{0: array<int, array<int|string, mixed>>, 1: array<int, array<int|string, mixed>>}
      */
     protected function splitPipelineAroundGroup(array $stages): array
     {
@@ -853,7 +859,7 @@ class QueryCompiler
         $inJoinPrefix = true;
 
         foreach ($stages as $stage) {
-            $key = is_array($stage) ? array_key_first($stage) : null;
+            $key = array_key_first($stage);
             if ($inJoinPrefix && in_array($key, ['$lookup', '$unwind', '$match'], true)) {
                 $preGroup[] = $stage;
                 continue;
@@ -903,7 +909,8 @@ class QueryCompiler
             if (!is_string($operator)) {
                 continue;
             }
-            if (!str_starts_with((string)$operator, '$')) {
+
+            if (!str_starts_with($operator, '$')) {
                 continue;
             }
 

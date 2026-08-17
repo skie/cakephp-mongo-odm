@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Database\Expression\OrderClauseExpression;
-use Cake\Database\Expression\QueryExpression;
 use Cake\Database\Expression\TupleComparison;
 use Cake\Database\ExpressionInterface;
 use Cake\Database\TypeMap;
@@ -186,14 +185,9 @@ class HasManyTest extends TestCase
         $field = 'Articles._id';
 
         $ids = static fn(array $articles): array => array_map(
-            static fn($article): mixed => $article->_id ?? $article['_id'] ?? null,
-            $articles,
-        );
-
-        $field = 'Articles._id';
-
-        $ids = static fn(array $articles): array => array_map(
-            static fn($article): mixed => $article->_id ?? $article['_id'] ?? null,
+            static fn(EntityInterface|array $article): mixed => $article instanceof EntityInterface
+                ? $article->get('_id')
+                : ($article['_id'] ?? null),
             $articles,
         );
 

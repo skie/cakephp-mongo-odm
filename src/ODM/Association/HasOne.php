@@ -135,7 +135,7 @@ class HasOne extends Association
      * Builds a lookup pipeline for the association.
      *
      * @param array<string, mixed> $options Pipeline options.
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function buildPipeline(array $options = []): array
     {

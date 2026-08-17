@@ -181,9 +181,11 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             if (!isset($row[$alias])) {
                 continue;
             }
+
             if (!is_array($row[$alias])) {
                 continue;
             }
+
             $target = new BaseCollection([
                 'alias' => $alias,
                 'collection' => $collection,

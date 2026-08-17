@@ -1109,8 +1109,8 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
-        $query->mapReduce(function ($v, $k, $mr): void {
-            $mr->emit($v['_id']);
+        $query->mapReduce(function (Document $v, $k, $mr): void {
+            $mr->emit($v->get('_id'));
         });
         $query->mapReduce(
             function ($v, $k, $mr): void {
@@ -2773,6 +2773,7 @@ class SelectQueryTest extends TestCase
         if ($strategy === 'lookup') {
             $this->markTestSkipped('F-RE: lookup strategy nested BTM Tags.Articles not loaded; see 40-selectquerytest-failure-groups.md.');
         }
+
         $collection = $this->getCollectionLocator()->get('ArticlesTags');
         $collection->belongsTo('Articles', ['strategy' => $strategy]);
         $collection->belongsTo('Tags', ['strategy' => $strategy]);
@@ -2943,6 +2944,7 @@ class SelectQueryTest extends TestCase
     {
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->hasMany('Comments');
+
         $query = $collection->find();
         $query->offset(10)
             ->limit(1)

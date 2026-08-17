@@ -106,6 +106,7 @@ class BaseCollectionPrimaryKeysTest extends TestCase
         $collection = $this->intCollection();
         $item = $collection->get(10);
         $item->set('name', 'Updated 1');
+
         $result = $collection->save($item);
         $this->assertNotFalse($result, 'Item should save.');
 
@@ -119,6 +120,7 @@ class BaseCollectionPrimaryKeysTest extends TestCase
         $uuid = '481fc6d0-b920-43e0-a40d-6d1740cf8569';
         $item = $collection->get($uuid);
         $item->set('name', 'Updated 1');
+
         $result = $collection->save($item);
         $this->assertNotFalse($result, 'Item should save.');
 

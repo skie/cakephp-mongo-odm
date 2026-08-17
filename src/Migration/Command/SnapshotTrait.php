@@ -73,6 +73,7 @@ trait SnapshotTrait
             if (!is_string($option)) {
                 continue;
             }
+
             if ($option === '') {
                 continue;
             }

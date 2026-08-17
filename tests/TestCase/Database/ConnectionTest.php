@@ -17,12 +17,14 @@ use Crustum\Mongo\Database\Schema\CachedSchemaCollection;
 use Crustum\Mongo\Database\Schema\SchemaCollection;
 use Crustum\Mongo\Datasource\SchemaCollectionInterface;
 use Crustum\Mongo\Test\TestCase\Database\Log\MemoryLogger;
+use DebugKit\Database\Log\DebugLog;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
 use MongoDB\Driver\Session;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\SimpleCache\CacheInterface;
+use ReflectionProperty;
 use RuntimeException;
 use Traversable;
 
@@ -97,15 +99,15 @@ class ConnectionTest extends TestCase
         $existing = $connection->getLogger();
         $this->assertNotNull($existing);
 
-        if (!class_exists(\DebugKit\Database\Log\DebugLog::class)) {
+        if (!class_exists(DebugLog::class)) {
             $this->markTestSkipped('DebugKit is not installed.');
         }
 
-        $debugLog = new \DebugKit\Database\Log\DebugLog($existing, 'debugkit_conn', false);
+        $debugLog = new DebugLog($existing, 'debugkit_conn', false);
         $connection->getDriver()->setLogger($debugLog);
 
-        $this->assertInstanceOf(\DebugKit\Database\Log\DebugLog::class, $connection->getLogger());
-        $ref = new \ReflectionProperty($debugLog, '_logger');
+        $this->assertInstanceOf(DebugLog::class, $connection->getLogger());
+        $ref = new ReflectionProperty($debugLog, '_logger');
         $this->assertSame($existing, $ref->getValue($debugLog));
     }
 

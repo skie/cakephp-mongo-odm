@@ -1692,7 +1692,7 @@ class BelongsToMany extends Association
      * taken from the junction's belongsTo associations when not configured.
      *
      * @param array<string, mixed> $options Pipeline options.
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function buildPipeline(array $options = []): array
     {

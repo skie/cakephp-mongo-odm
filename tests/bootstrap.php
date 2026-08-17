@@ -131,6 +131,7 @@ $testMigratorDatabase = mongoTestDatabaseName('test_migrator_db', 'TEST_MONGO_MI
 if (!defined('TEST_MONGO_DATABASE')) {
     define('TEST_MONGO_DATABASE', $testMongoDatabase);
 }
+
 if (!defined('TEST_MONGO_MIGRATION_DATABASE')) {
     define('TEST_MONGO_MIGRATION_DATABASE', $testMigratorDatabase);
 }

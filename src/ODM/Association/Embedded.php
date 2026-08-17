@@ -189,7 +189,7 @@ abstract class Embedded extends Association
      *
      * @param array<string, mixed> $options Pipeline options (`matching`,
      *   `negateMatch`, `conditions`).
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function buildPipeline(array $options = []): array
     {

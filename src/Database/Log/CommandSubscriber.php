@@ -8,6 +8,7 @@ use MongoDB\Driver\Monitoring\CommandStartedEvent;
 use MongoDB\Driver\Monitoring\CommandSubscriber as CommandSubscriberInterface;
 use MongoDB\Driver\Monitoring\CommandSucceededEvent;
 use Psr\Log\LogLevel;
+use RuntimeException;
 use function MongoDB\Driver\Monitoring\addSubscriber;
 use function MongoDB\Driver\Monitoring\removeSubscriber;
 
@@ -106,7 +107,7 @@ class CommandSubscriber implements CommandSubscriberInterface
     {
         $logger = $this->loggers === [] ? null : $this->loggers[array_key_first($this->loggers)];
         if (!$logger instanceof MongoLogger) {
-            throw new \RuntimeException('CommandSubscriber has no attached MongoLogger.');
+            throw new RuntimeException('CommandSubscriber has no attached MongoLogger.');
         }
 
         return $logger;

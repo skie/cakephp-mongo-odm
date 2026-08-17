@@ -124,7 +124,7 @@ class ComparisonExpression extends AbstractExpression
         }
 
         if ($field instanceof ExpressionInterface) {
-            $field = (string)$field->sql(new ValueBinder());
+            $field = $field->sql(new ValueBinder());
         }
 
         if ($value instanceof IdentifierExpression) {

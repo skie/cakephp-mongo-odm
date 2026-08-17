@@ -66,7 +66,7 @@ class EagerLoader
     /**
      * Aggregation stages added to the query by this loader.
      *
-     * @var list<array<int|string, mixed>>
+     * @var list<array<string, mixed>>
      */
     private array $attachedPipeline = [];
 
@@ -248,7 +248,7 @@ class EagerLoader
     /**
      * Returns the aggregation stages this loader attached to a query.
      *
-     * @return list<array<int|string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function getAttachedPipeline(): array
     {
@@ -434,7 +434,7 @@ class EagerLoader
      * Gets a flattened association map for result nesting.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     public function associationsMap(BaseCollection $repository): array
     {
@@ -444,7 +444,7 @@ class EagerLoader
             $this->map($this->matching->normalized($repository), $map);
         }
 
-        return $map;
+        return array_values($map);
     }
 
     /**
