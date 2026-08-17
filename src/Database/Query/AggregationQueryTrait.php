@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use Cake\Database\ExpressionInterface;
 use Closure;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
+use InvalidArgumentException;
 
 /**
  * Aggregation stage sugar methods for select queries.
@@ -64,23 +67,28 @@ trait AggregationQueryTrait
     /**
      * Adds an `$addFields` stage.
      *
+     * Values may be raw BSON or nested `func()` / `expr()` results
+     * (`MongoExpressionInterface`). Nested expressions are rendered before the
+     * stage is appended. Pair with `select([...])` so computed aliases survive
+     * the later `$project` (custom stages run before select projection).
+     *
      * @param array<string, mixed> $fields Computed fields to add.
      * @return $this
      */
     public function addFields(array $fields): static
     {
-        return $this->appendStage(['$addFields' => $fields]);
+        return $this->appendStage(['$addFields' => $this->resolveStageFields($fields)]);
     }
 
     /**
      * Adds a `$set` stage.
      *
-     * @param array<string, mixed> $fields Fields to set.
+     * @param array<string, mixed> $fields Fields to set (raw or nested `func()`/`expr()`).
      * @return $this
      */
     public function setFields(array $fields): static
     {
-        return $this->appendStage(['$set' => $fields]);
+        return $this->appendStage(['$set' => $this->resolveStageFields($fields)]);
     }
 
     /**
@@ -204,6 +212,51 @@ trait AggregationQueryTrait
     protected function appendStage(array $stage): static
     {
         return $this->pipeline([$stage]);
+    }
+
+    /**
+     * Renders nested `func()` / `expr()` values inside `$addFields` / `$set` maps.
+     *
+     * @param array<string, mixed> $fields Stage field map.
+     * @return array<string, mixed>
+     */
+    protected function resolveStageFields(array $fields): array
+    {
+        $resolved = [];
+        foreach ($fields as $key => $value) {
+            $resolved[$key] = $this->resolveStageValue($value);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Recursively renders a stage field value.
+     *
+     * @param mixed $value Raw BSON, nested arrays, or a Mongo expression.
+     * @return mixed
+     */
+    protected function resolveStageValue(mixed $value): mixed
+    {
+        if ($value instanceof MongoExpressionInterface) {
+            return $value->getConditions();
+        }
+        if ($value instanceof ExpressionInterface) {
+            throw new InvalidArgumentException(
+                'addFields/setFields values must be Mongo expressions from func()/expr(), got '
+                . $value::class,
+            );
+        }
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $k => $v) {
+                $out[$k] = $this->resolveStageValue($v);
+            }
+
+            return $out;
+        }
+
+        return $value;
     }
 
     /**

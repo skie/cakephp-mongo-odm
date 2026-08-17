@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
-use Cake\Database\Log\QueryLogger;
 use Cake\Database\StatementInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\Log\Log;
 use Cake\ORM\DtoMapper;
+use Crustum\Mongo\Database\Log\QueryLogger;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use Mockery;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -234,8 +234,8 @@ class ResultSetFactoryTest extends TestCase
         $messages = Log::engine('queries')->read();
         $this->assertNotEmpty($messages, 'The query should have been logged.');
         $message = (string)array_pop($messages);
-        $this->assertStringContainsString('"operation": "find"', $message);
-        $this->assertStringContainsString('"collection": "articles"', $message);
+        $this->assertMatchesRegularExpression('/"operation":\s*"find"/', $message);
+        $this->assertMatchesRegularExpression('/"collection":\s*"articles"/', $message);
 
         Log::reset();
     }

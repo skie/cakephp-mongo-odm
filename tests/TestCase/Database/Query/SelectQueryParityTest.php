@@ -163,6 +163,33 @@ class SelectQueryParityTest extends TestCase
     }
 
     /**
+     * Test select(['_id', 'virtual' => $query->func()->…]) puts a computed
+     * alias in the find projection (database-layer counterpart of the ODM
+     * virtual field). Array expressions are valid find projections in modern
+     * MongoDB; `$field` renames still force aggregate via hasComputedProjection.
+     *
+     * @return void
+     */
+    public function testSelectVirtualAliasWithFunc(): void
+    {
+        $query = new SelectQuery($this->connection, 'articles');
+        $query->select([
+            '_id',
+            'virtual' => $query->func()->concat([
+                'title' => 'identifier',
+                '!',
+            ]),
+        ]);
+
+        $this->assertOptions([
+            'projection' => [
+                '_id' => 1,
+                'virtual' => ['$concat' => ['$title', '!']],
+            ],
+        ], $query->compile());
+    }
+
+    /**
      * Test select() rejects a non-Mongo expression with a clear exception.
      *
      * @return void

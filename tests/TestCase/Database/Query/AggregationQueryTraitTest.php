@@ -75,4 +75,48 @@ class AggregationQueryTraitTest extends TestCase
             ['$unionWith' => ['coll' => 'archives']],
         ], $query->compile()['pipeline']);
     }
+
+    /**
+     * addFields/setFields accept nested func() expressions (not only raw BSON).
+     */
+    public function testAddFieldsWithNestedFuncExpressions(): void
+    {
+        $query = new SelectQuery();
+        $f = $query->func();
+        $query->addFields([
+            'title_upper' => $f->toUpper(['title' => 'identifier']),
+            'score' => $f->multiply(
+                $f->add('$x', 1),
+                2,
+            ),
+        ]);
+
+        self::assertSame([
+            ['$addFields' => [
+                'title_upper' => ['$toUpper' => '$title'],
+                'score' => ['$multiply' => [
+                    ['$add' => ['$x', 1]],
+                    2,
+                ]],
+            ]],
+        ], $query->compile()['pipeline']);
+    }
+
+    /**
+     * setFields also renders func() values directly (and nested).
+     */
+    public function testSetFieldsWithNestedFuncExpressions(): void
+    {
+        $query = new SelectQuery();
+        $f = $query->func();
+        $query->setFields([
+            'snippet' => $f->substr(['title' => 'identifier'], 0, 5),
+        ]);
+
+        self::assertSame([
+            ['$set' => [
+                'snippet' => ['$substrCP' => ['$title', 0, 5]],
+            ]],
+        ], $query->compile()['pipeline']);
+    }
 }

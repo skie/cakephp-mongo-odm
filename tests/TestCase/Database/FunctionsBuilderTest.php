@@ -176,6 +176,9 @@ class FunctionsBuilderTest extends TestCase
     /**
      * Test aggregate and __call build an arbitrary operator.
      *
+     * Operators without a dedicated method (toUpper, toLower, binarySize, …)
+     * must resolve through `__call` → FunctionExpression.
+     *
      * @return void
      */
     public function testAggregateAndMagicCall(): void
@@ -184,6 +187,18 @@ class FunctionsBuilderTest extends TestCase
         $this->assertSame(
             ['$toLower' => '$name'],
             $this->functions->aggregate('toLower', ['$name'])->getConditions(),
+        );
+
+        // __call — no toUpper()/toLower()/binarySize() methods on FunctionsBuilder.
+        $this->assertFalse(method_exists($this->functions, 'toUpper'));
+        $this->assertFalse(method_exists($this->functions, 'toLower'));
+        $this->assertSame(
+            ['$toUpper' => '$title'],
+            $this->functions->toUpper('$title')->getConditions(),
+        );
+        $this->assertSame(
+            ['$toLower' => '$name'],
+            $this->functions->toLower('$name')->getConditions(),
         );
         $this->assertSame(
             ['$binarySize' => '$data'],
