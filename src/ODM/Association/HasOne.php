@@ -7,6 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -41,7 +42,7 @@ class HasOne extends Association
      */
     protected function defaultStrategy(): string
     {
-        return self::STRATEGY_SELECT;
+        return self::STRATEGY_LOOKUP;
     }
 
     /**
@@ -124,7 +125,7 @@ class HasOne extends Association
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];
-        if ($this->getStrategy() === self::STRATEGY_LOOKUP) {
+        if ($this->usesLookup($options)) {
             return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
         }
 
@@ -140,25 +141,101 @@ class HasOne extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
-        $localKey = $this->fieldName($this->getBindingKey());
-        if (!empty($options['lookupPrefix'])) {
-            $localKey = $options['lookupPrefix'] . '.' . $localKey;
+        $property = $this->getProperty();
+        $pipelineOptions = $this->mergePipelineConditions($options);
+        $disableForeignKey = ($options['foreignKey'] ?? $this->getForeignKey()) === false;
+
+        $lookup = $builder->lookup($this->getTarget()->getCollection())->alias($property);
+
+        if ($disableForeignKey) {
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
+            });
+        } else {
+            $localKey = $this->fieldName($this->getBindingKey());
+            if (!empty($options['lookupPrefix'])) {
+                $localKey = $options['lookupPrefix'] . '.' . $localKey;
+            }
+
+            $foreignField = $this->fieldName($this->getForeignKey());
+            $lookup
+                ->let(['bindingValue' => '$' . $localKey])
+                ->pipeline(function (AggregationBuilder $sub) use ($foreignField, $pipelineOptions): void {
+                    $this->applyJoinLookupSubPipeline($sub, $foreignField, $pipelineOptions);
+                });
         }
 
-        $builder
-            ->lookup($this->getTarget()->getCollection())
-            ->localField($localKey)
-            ->foreignField($this->fieldName($this->getForeignKey()))
-            ->alias($this->getProperty());
-        $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
+        if (!empty($options['matching'])) {
+            $builder->unwind('$' . $property, [
+                'preserveNullAndEmptyArrays' => !empty($options['negateMatch']),
+            ]);
+        } else {
+            $builder->unwind('$' . $property, ['preserveNullAndEmptyArrays' => true]);
+        }
 
+        $postOptions = $options;
         if (!empty($options['matching']) && !empty($options['conditions'])) {
-            $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
+            $postOptions['conditions'] = $this->prefixMatchConditions($options['conditions'], $property);
+            $this->applyPipelineOptions($builder, $postOptions);
+        } elseif (!empty($options['matching'])) {
+            $this->applyPipelineOptions($builder, $postOptions);
         }
 
-        $this->applyPipelineOptions($builder, $options);
+        if (!empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {
+            $builder->match([$property => null]);
+        }
 
         return $builder->getPipeline();
+    }
+
+    /**
+     * Merges association conditions into pipeline containment options.
+     *
+     * @param array<string, mixed> $options Containment options.
+     * @return array<string, mixed>
+     */
+    protected function mergePipelineConditions(array $options): array
+    {
+        $associationConditions = $this->getConditions();
+        if (!is_array($associationConditions) || $associationConditions === []) {
+            return $options;
+        }
+
+        $callConditions = $options['conditions'] ?? [];
+        if (is_array($associationConditions) && is_array($callConditions)) {
+            $options['conditions'] = array_merge($associationConditions, $callConditions);
+        } elseif (!isset($options['conditions'])) {
+            $options['conditions'] = $associationConditions;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Applies a null-safe join match and containment stages inside `$lookup`.
+     *
+     * Null binding keys must not match null foreign keys (cake parity). Operators
+     * compose through `FunctionsBuilder`, not raw stage arrays.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The sub-pipeline builder.
+     * @param string $foreignField The target foreign key field.
+     * @param array<string, mixed> $options Containment options.
+     * @return void
+     */
+    protected function applyJoinLookupSubPipeline(
+        AggregationBuilder $builder,
+        string $foreignField,
+        array $options,
+    ): void {
+        $func = $builder->func();
+        $builder->match([
+            '$expr' => $func->and([
+                $func->ne('$$bindingValue', null),
+                $func->eq('$' . $foreignField, '$$bindingValue'),
+            ])->getConditions(),
+        ]);
+
+        $this->applyLookupSubPipeline($builder, $options, true);
     }
 
     /**

@@ -857,6 +857,64 @@ abstract class Association
     }
 
     /**
+     * Applies containment options as stages inside a `$lookup` sub-pipeline.
+     *
+     * Conditions, sort, projection and pagination target the joined collection
+     * directly — mirroring cake's join target-query options. When `fields` is set
+     * and `_id` is omitted, projection excludes `_id` to avoid bloating nested
+     * documents.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The sub-pipeline builder.
+     * @param array<string, mixed> $options Containment options.
+     * @param bool $limitToOne Whether to cap the result to one document (has-one).
+     * @return void
+     */
+    protected function applyLookupSubPipeline(AggregationBuilder $builder, array $options, bool $limitToOne = false): void
+    {
+        if (!empty($options['conditions'])) {
+            $builder->match($this->normalizePipelineConditions($options['conditions']));
+        }
+
+        if (!empty($options['sort'])) {
+            $sort = $this->normalizeSort($options['sort']);
+            $normalizedSort = [];
+            foreach ($sort as $field => $direction) {
+                $normalizedSort[$this->resolvePipelineField((string)$field)] = $direction;
+            }
+
+            $builder->sort($normalizedSort);
+        }
+
+        if (!empty($options['fields'])) {
+            $fields = (array)$options['fields'];
+            if (array_is_list($fields)) {
+                $fields = array_fill_keys($fields, 1);
+            }
+
+            $project = [];
+            foreach ($fields as $field => $value) {
+                $project[$this->resolvePipelineField((string)$field)] = $value;
+            }
+
+            if (!array_key_exists('_id', $project)) {
+                $project['_id'] = 0;
+            }
+
+            $builder->project($project);
+        }
+
+        if (!empty($options['skip'])) {
+            $builder->skip((int)$options['skip']);
+        }
+
+        if (!empty($options['limit'])) {
+            $builder->limit((int)$options['limit']);
+        } elseif ($limitToOne) {
+            $builder->limit(1);
+        }
+    }
+
+    /**
      * Strips the association alias prefix from pipeline condition fields.
      *
      * Match conditions inside a lookup pipeline address the target collection
@@ -1138,6 +1196,27 @@ abstract class Association
         $strategy = $options['strategy'] ?? $this->getStrategy();
 
         return $strategy === self::STRATEGY_SELECT;
+    }
+
+    /**
+     * Whether the association can load through an in-pipeline `$lookup`.
+     *
+     * `foreignKey => false` disables automatic join keys (cake parity) and must
+     * fall back to the external select loader instead.
+     *
+     * @param array<string, mixed> $options Containment options.
+     * @return bool
+     */
+    public function usesLookup(array $options = []): bool
+    {
+        $strategy = $options['strategy'] ?? $this->getStrategy();
+        if ($strategy !== self::STRATEGY_LOOKUP) {
+            return false;
+        }
+
+        $foreignKey = $options['foreignKey'] ?? $this->getForeignKey();
+
+        return $foreignKey !== false;
     }
 
     /**

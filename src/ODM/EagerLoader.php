@@ -232,6 +232,7 @@ class EagerLoader
         }
 
         $this->ensureKeyFieldsSelected($query, $repository);
+        $this->ensureLookupPropertiesProjected($query, $repository);
         $this->pipelineAttached = true;
     }
 
@@ -283,14 +284,10 @@ class EagerLoader
     protected function ensureKeyFieldsSelected(SelectQuery $query, BaseCollection $repository): void
     {
         $projection = $query->clause('select');
-        if ($projection === [] || $this->external === []) {
+        if ($projection === []) {
             return;
         }
 
-        // HasMany/BelongsToMany external loads join on the source `_id`; if the
-        // projection excluded it (`_id: 0`), restore it — but only for
-        // subquery/lookup loads that do not require explicit keys. An explicit
-        // `select` strategy must keep throwing when `_id` is not selected.
         $needsId = false;
         foreach ($this->external as $loadable) {
             $instance = $loadable->instance();
@@ -304,8 +301,30 @@ class EagerLoader
             }
         }
 
+        if (!$needsId) {
+            foreach ($this->normalized($repository) as $loadable) {
+                if (!empty($loadable->getConfig()['matching'])) {
+                    continue;
+                }
+
+                $instance = $loadable->instance();
+                if ($instance === null || !$instance->usesLookup($loadable->getConfig())) {
+                    continue;
+                }
+
+                if (in_array($instance->type(), [Association::ONE_TO_ONE, Association::ONE_TO_MANY], true)) {
+                    $needsId = true;
+                    break;
+                }
+            }
+        }
+
         if ($needsId && (int)($projection['_id'] ?? 1) === 0) {
             $query->select(['_id' => 1]);
+        }
+
+        if ($this->external === []) {
+            return;
         }
 
         $alias = $repository->getAlias();
@@ -338,6 +357,43 @@ class EagerLoader
 
             $query->select([$alias . '.' . $key]);
             $query->markAutoSelected($key);
+        }
+    }
+
+    /**
+     * Keeps in-pipeline lookup properties in a limited projection.
+     *
+     * Aggregation compiles `$project` after `$lookup`/`$unwind`, so an explicit
+     * `select()` that omits contained properties would strip them from the raw
+     * row before hydration — mirroring cake JOIN fields surviving a select list.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return void
+     */
+    protected function ensureLookupPropertiesProjected(SelectQuery $query, BaseCollection $repository): void
+    {
+        $projection = $query->clause('select');
+        if ($projection === []) {
+            return;
+        }
+
+        foreach ($this->normalized($repository) as $loadable) {
+            if (!empty($loadable->getConfig()['matching'])) {
+                continue;
+            }
+
+            $instance = $loadable->instance();
+            if ($instance === null || !$instance->usesLookup($loadable->getConfig())) {
+                continue;
+            }
+
+            $property = $instance->getProperty();
+            if (array_key_exists($property, $projection)) {
+                continue;
+            }
+
+            $query->select([$property => 1]);
         }
     }
 
@@ -704,7 +760,15 @@ class EagerLoader
                 $query->pipeline($stages);
                 $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
             }
-        } elseif (!$matching && ($strategy === 'select' || $strategy === 'reference' || $isNested)) {
+        } elseif (
+            !$matching
+            && (
+                $strategy === 'select'
+                || $strategy === 'reference'
+                || $isNested
+                || ($strategy === Association::STRATEGY_LOOKUP && !$association->usesLookup($loadable->getConfig()))
+            )
+        ) {
             $this->external[] = $loadable;
         } else {
             $config = $loadable->getConfig();

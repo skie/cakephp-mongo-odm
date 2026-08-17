@@ -8,6 +8,7 @@ use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Connection;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -601,7 +602,9 @@ class HasMany extends Association
 
         $pipelineOptions = $options;
         if (!empty($options['matching']) && !empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {
-            $lookup->pipeline($this->buildLookupPipeline($options));
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($options): void {
+                $this->applyLookupSubPipeline($sub, $options);
+            });
             $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
             $builder->match([$this->getProperty() => null]);
 
@@ -615,7 +618,9 @@ class HasMany extends Association
                 $property,
             );
         } elseif (empty($options['matching'])) {
-            $lookup->pipeline($this->buildLookupPipeline($pipelineOptions));
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                $this->applyLookupSubPipeline($sub, $pipelineOptions);
+            });
             unset($pipelineOptions['conditions'], $pipelineOptions['sort'], $pipelineOptions['fields'], $pipelineOptions['skip'], $pipelineOptions['limit']);
         }
 
@@ -627,63 +632,6 @@ class HasMany extends Association
         }
 
         return $builder->getPipeline();
-    }
-
-    /**
-     * Builds the inner lookup pipeline from containment options.
-     *
-     * Conditions, sort, projection and pagination apply to the joined target
-     * documents, so they become stages inside `$lookup` rather than after it —
-     * mirroring how cake applies `fields`/`conditions`/`sort`/`limit` to the
-     * target query of a HasMany join.
-     *
-     * @param array<string, mixed> $options Containment options.
-     * @return list<array<string, mixed>>
-     */
-    protected function buildLookupPipeline(array $options): array
-    {
-        $stages = [];
-
-        if (!empty($options['conditions'])) {
-            $stages[] = ['$match' => $this->normalizePipelineConditions($options['conditions'])];
-        }
-
-        if (!empty($options['sort'])) {
-            $sort = [];
-            foreach ($this->normalizeSort($options['sort']) as $field => $direction) {
-                $sort[$this->resolvePipelineField((string)$field)] = $direction;
-            }
-
-            $stages[] = ['$sort' => $sort];
-        }
-
-        if (!empty($options['fields'])) {
-            $fields = (array)$options['fields'];
-            if (array_is_list($fields)) {
-                $fields = array_fill_keys($fields, 1);
-            }
-
-            $project = [];
-            foreach ($fields as $field => $value) {
-                $project[$this->resolvePipelineField((string)$field)] = $value;
-            }
-
-            if (!array_key_exists('_id', $project)) {
-                $project['_id'] = 0;
-            }
-
-            $stages[] = ['$project' => $project];
-        }
-
-        if (!empty($options['skip'])) {
-            $stages[] = ['$skip' => (int)$options['skip']];
-        }
-
-        if (!empty($options['limit'])) {
-            $stages[] = ['$limit' => (int)$options['limit']];
-        }
-
-        return $stages;
     }
 
     /**

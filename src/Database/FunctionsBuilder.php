@@ -306,6 +306,18 @@ class FunctionsBuilder
     }
 
     /**
+     * Builds an `$ne` comparison expression.
+     *
+     * @param mixed $left The left operand (e.g. `$$item.field`).
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function ne(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$ne', [$left, $right]);
+    }
+
+    /**
      * Builds an `$and` group expression.
      *
      * @param list<mixed> $expressions The condition expressions to AND together.

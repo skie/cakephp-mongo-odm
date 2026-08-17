@@ -132,6 +132,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 $data = $this->convertRow((array)$result);
                 $data = $this->deconstructBelongsToMany($data);
                 $data = $this->applyMatchingData($data);
+                $data = $this->applyContainedDefaults($data);
 
                 return $this->hydrated[$index] = $data;
             }
@@ -367,7 +368,49 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
         }
 
-        return array_intersect_key($row, array_fill_keys($keep, true));
+        foreach ($this->_containMap as $assoc) {
+            if (!empty($assoc['matching'])) {
+                continue;
+            }
+
+            if (($assoc['config']['strategy'] ?? '') === Association::STRATEGY_SELECT) {
+                continue;
+            }
+
+            $keep[] = $assoc['instance']->getProperty();
+        }
+
+        return array_intersect_key($row, array_fill_keys(array_unique($keep), true));
+    }
+
+    /**
+     * Ensures empty has-one / belongs-to slots exist as null on raw rows.
+     *
+     * In-pipeline `$lookup` with no match can omit the property entirely after
+     * `$unwind`; cake parity expects the key present with a `null` value.
+     *
+     * @param array<string, mixed> $row The converted row data.
+     * @return array<string, mixed>
+     */
+    protected function applyContainedDefaults(array $row): array
+    {
+        foreach ($this->_containMap as $assoc) {
+            if (!empty($assoc['matching'])) {
+                continue;
+            }
+
+            $instance = $assoc['instance'];
+            if ($instance instanceof Embedded || $instance->type() !== Association::ONE_TO_ONE) {
+                continue;
+            }
+
+            $propertyName = $instance->getProperty();
+            if (!array_key_exists($propertyName, $row)) {
+                $row[$propertyName] = null;
+            }
+        }
+
+        return $row;
     }
 
     /**
@@ -396,6 +439,10 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             $propertyName = $instance->getProperty();
 
             if (!array_key_exists($propertyName, $row)) {
+                if (empty($assoc['matching']) && $instance->type() === Association::ONE_TO_ONE && !$instance instanceof Embedded) {
+                    $results[$propertyName] = null;
+                }
+
                 continue;
             }
 
@@ -478,14 +525,49 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         $document->patch($results + $row, ['guard' => false]);
 
+        foreach ($results as $value) {
+            $this->cleanNestedEntity($value);
+        }
+
         if ($matching !== []) {
             $document->set('_matchingData', $matching);
+            foreach ($matching as $matched) {
+                $this->cleanNestedEntity($matched);
+            }
         }
 
         $document->clean();
         $document->setNew(false);
 
         return $document;
+    }
+
+    /**
+     * Marks a nested association value clean after root patch.
+     *
+     * `patch()` can dirty contained documents loaded through in-pipeline
+     * `$lookup`; external select loaders attach via `set()` instead.
+     *
+     * @param mixed $value A nested entity or list of entities.
+     * @return void
+     */
+    protected function cleanNestedEntity(mixed $value): void
+    {
+        if ($value instanceof EntityInterface) {
+            $value->clean();
+
+            return;
+        }
+
+        if (!is_array($value)) {
+            return;
+        }
+
+        foreach ($value as $item) {
+            if ($item instanceof EntityInterface) {
+                $item->clean();
+            }
+        }
     }
 
     /**
