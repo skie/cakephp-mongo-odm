@@ -32,6 +32,7 @@ trait AssociationsNormalizerTrait
         'isMerge' => 1,
         'junctionProperty' => 1,
         'onlyIds' => 1,
+        'accessibleFields' => 1,
         'patchableFields' => 1,
         'sourceCollection' => 1,
         'strictFields' => 1,

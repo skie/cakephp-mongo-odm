@@ -279,11 +279,10 @@ class MarshallerTest extends TestCase
     }
 
     /**
-     * Test one() supports patchableFields option
+     * Test one() supports accessibleFields option
      */
     public function testOnePatchableFieldsOption(): void
     {
-        $this->markTestSkipped('F17: Marshaller `patchableFields` does not override protected mass-assignment (`author_id` stays null); see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -294,14 +293,14 @@ class MarshallerTest extends TestCase
 
         $marshall = new Marshaller($this->articles);
 
-        $result = $marshall->one($data, ['patchableFields' => ['body' => false]]);
+        $result = $marshall->one($data, ['accessibleFields' => ['body' => false]]);
         $this->assertNull($result->body);
 
-        $result = $marshall->one($data, ['patchableFields' => ['author_id' => true]]);
+        $result = $marshall->one($data, ['accessibleFields' => ['author_id' => true]]);
         $this->assertSame($data['author_id'], $result->author_id);
         $this->assertNull($result->not_in_schema);
 
-        $result = $marshall->one($data, ['patchableFields' => ['*' => true]]);
+        $result = $marshall->one($data, ['accessibleFields' => ['*' => true]]);
         $this->assertSame($data['author_id'], $result->author_id);
         $this->assertTrue($result->not_in_schema);
     }
@@ -369,7 +368,7 @@ class MarshallerTest extends TestCase
     }
 
     /**
-     * Test one() supports patchableFields option for associations
+     * Test one() supports accessibleFields option for associations
      */
     public function testOnePatchableFieldsOptionForAssociations(): void
     {
@@ -388,9 +387,9 @@ class MarshallerTest extends TestCase
 
         $result = $marshall->one($data, [
             'associated' => [
-                'Users' => ['patchableFields' => ['_id' => true]],
+                'Users' => ['accessibleFields' => ['_id' => true]],
             ],
-            'patchableFields' => ['body' => false, 'user' => true],
+            'accessibleFields' => ['body' => false, 'user' => true],
         ]);
         $this->assertNull($result->body);
         $this->assertNull($result->user->username);
@@ -1400,7 +1399,7 @@ class MarshallerTest extends TestCase
     }
 
     /**
-     * Test merge() with patchableFields options
+     * Test merge() with accessibleFields options
      */
     public function testMergePatchableFields(): void
     {
@@ -1419,7 +1418,7 @@ class MarshallerTest extends TestCase
         $document->setNew(false);
         $document->clean();
 
-        $result = $marshall->merge($document, $data, ['patchableFields' => ['body' => true]]);
+        $result = $marshall->merge($document, $data, ['accessibleFields' => ['body' => true]]);
 
         $this->assertSame($document, $result);
         $this->assertEquals(['title' => 'Foo', 'body' => 'New content'], $result->toArray());
@@ -2787,7 +2786,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneWithStrictFields(): void
     {
-        $this->markTestSkipped('F17: Marshaller `strictFields` still validates fields outside the `fields` list; see 18-orm-tests-port-plan.md.');
         // Add validation rules
         $this->articles->getValidator()
             ->requirePresence('title')
@@ -3300,7 +3298,6 @@ class MarshallerTest extends TestCase
      */
     public function testMergeWithValidation(): void
     {
-        $this->markTestSkipped('F17: Marshaller merge() applies update `_id` numeric rule when cake leaves `_id` error-empty; see 18-orm-tests-port-plan.md.');
         $data = [
             'title' => 'My title',
             'author_id' => 'foo',

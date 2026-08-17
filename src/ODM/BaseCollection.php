@@ -1735,8 +1735,8 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         /** @var \Cake\Datasource\EntityInterface $document */
         $document = $this->newEmptyDocument();
         if ($options['defaults'] && is_array($data)) {
-            $patchableFields = array_combine(array_keys($data), array_fill(0, count($data), true));
-            $document = $this->patchDocument($document, $data, ['patchableFields' => $patchableFields]);
+            $accessibleFields = array_combine(array_keys($data), array_fill(0, count($data), true));
+            $document = $this->patchDocument($document, $data, ['accessibleFields' => $accessibleFields]);
         }
 
         if ($callback !== null) {
@@ -2927,13 +2927,13 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      * ```
      *
      * The `fields` option lets you remove or restrict input data from ending up
-     * in the document. If you'd like to relax the document's default patchable
-     * fields, you can use the `patchableFields` option:
+     * in the document. If you'd like to relax the document's default accessible
+     * fields, you can use the `accessibleFields` option:
      *
      * ```
      * $user = $this->Users->newDocument(
      *   $this->request->getData(),
-     *   ['patchableFields' => ['protected_field' => true]]
+     *   ['accessibleFields' => ['protected_field' => true]]
      * );
      * ```
      *

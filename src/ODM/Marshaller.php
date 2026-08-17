@@ -55,6 +55,7 @@ class Marshaller
     {
         [$data, $options] = $this->prepare($data, $options);
         $document = $this->newDocument($options);
+        $this->applyAccessibleFields($document, $options);
 
         $errors = $this->validate($data, $options, true, $document);
         $properties = $this->marshalProperties($data, $options, $errors, $document);
@@ -95,7 +96,12 @@ class Marshaller
     public function merge(Document $document, array $data, array $options = []): Document
     {
         [$data, $options] = $this->prepare($data, $options + ['isMerge' => true]);
-        $errors = $this->validate($data, $options, $document->isNew(), $document);
+        $this->applyAccessibleFields($document, $options);
+        $validationData = $data;
+        if (!$document->isNew()) {
+            $validationData += $document->extract((array)$this->collection->getPrimaryKey());
+        }
+        $errors = $this->validate($validationData, $options, $document->isNew(), $document);
         $properties = $this->marshalProperties($data, $options, $errors, $document);
         $this->patch($document, $properties, $options);
         $document->setErrors($errors);
@@ -541,7 +547,7 @@ class Marshaller
 
         $extra = [];
         foreach ($original as $entity) {
-            $entity->setPatchable($junctionProperty, true);
+            $entity->setAccess($junctionProperty, true);
             $joinData = $entity->get($junctionProperty);
             if ($joinData instanceof Document) {
                 $extra[(string)$entity->get('_id')] = $joinData;
@@ -553,7 +559,7 @@ class Marshaller
             ? $associated[$junctionProperty]
             : [];
 
-        $options['patchableFields'] = [$junctionProperty => true];
+        $options['accessibleFields'] = [$junctionProperty => true];
         $target = $association->getTarget();
         $records = $target->marshaller()->mergeMany($original, array_values($value), $options);
 
@@ -687,9 +693,7 @@ class Marshaller
      */
     private function patch(Document $document, array $properties, array $options): void
     {
-        foreach ((array)($options['patchableFields'] ?? []) as $field => $patchable) {
-            $document->setPatchable((string)$field, (bool)$patchable);
-        }
+        $this->applyAccessibleFields($document, $options);
 
         $asOriginal = !($options['isMerge'] ?? false);
         $fields = $options['fieldList'] ?? $options['fields'] ?? null;
@@ -711,6 +715,24 @@ class Marshaller
         }
 
         $document->patch($properties, ['guard' => true, 'asOriginal' => $asOriginal]);
+    }
+
+    /**
+     * Applies accessibleFields overrides on the document before validation/patching.
+     *
+     * Cake 5 uses `accessibleFields` + `Entity::$_accessible` (via `setAccess()`).
+     * `patchableFields` is accepted as a cake60 port alias.
+     *
+     * @param \Crustum\Mongo\ODM\Document $document The document.
+     * @param array<string, mixed> $options The marshalling options.
+     * @return void
+     */
+    private function applyAccessibleFields(Document $document, array $options): void
+    {
+        $fields = $options['accessibleFields'] ?? $options['patchableFields'] ?? [];
+        foreach ((array)$fields as $field => $accessible) {
+            $document->setAccess((string)$field, (bool)$accessible);
+        }
     }
 
     /**
