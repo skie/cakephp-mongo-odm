@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
-use Cake\Database\Expression\IdentifierExpression;
 use Cake\Event\EventInterface;
 use Cake\I18n\DateTime;
 use Cake\Validation\Validator;
@@ -577,7 +576,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyJoinDataAssociated(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling); see 18-orm-tests-port-plan.md F14.');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -748,7 +746,6 @@ class MarshallerTest extends TestCase
 
     public function testOneBelongsToManyWithNestedAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling); see 18-orm-tests-port-plan.md F14.');
         $this->tags->belongsToMany('Articles');
         $data = [
             'name' => 'new tag',
@@ -801,7 +798,6 @@ class MarshallerTest extends TestCase
      */
     public function testOneBelongsToManyWithNestedAssociationsWithoutDotNotation(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
         $this->tags->belongsToMany('Articles');
         $data = [
             'name' => 'new tag',
@@ -1953,9 +1949,9 @@ class MarshallerTest extends TestCase
 
         // Adding a forced join to have another table with the same column names
         $this->articles->Tags->getEventManager()->on('Collection.beforeFind', function ($e, $query): void {
-            $left = new IdentifierExpression('Tags._id');
-            $right = new IdentifierExpression('a._id');
-            $query->leftJoin(['a' => 'tags'], $query->expr()->eq($left, $right));
+            $query->leftJoin(['a' => 'tags'], function ($q): void {
+                $q->where(fn($exp) => $exp->equalFields('Tags._id', 'a._id'));
+            });
         });
 
         $marshall = new Marshaller($this->articles);
@@ -3449,7 +3445,6 @@ class MarshallerTest extends TestCase
      */
     public function testBeforeMarshalEventOnAssociations(): void
     {
-        $this->markTestSkipped('ODM association layer: F14 (BelongsToMany junction/_joinData marshalling); see 18-orm-tests-port-plan.md F14.');
         $data = [
             'title' => 'My title',
             'body' => 'My content',
@@ -3487,28 +3482,28 @@ class MarshallerTest extends TestCase
 
         $this->articles->Users->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, array $data, $options): void {
+            function ($e, $data, $options): void {
                 $data['secret'] = 'h45h3d';
             },
         );
 
         $this->articles->Comments->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, array $data): void {
+            function ($e, $data): void {
                 $data['comment'] .= ' (modified)';
             },
         );
 
         $this->articles->Tags->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, array $data): void {
+            function ($e, $data): void {
                 $data['tag'] .= ' (modified)';
             },
         );
 
         $this->articles->Tags->junction()->getEventManager()->on(
             'Collection.beforeMarshal',
-            function ($e, array $data): void {
+            function ($e, $data): void {
                 $data['modified_by'] = 1;
             },
         );
@@ -3658,7 +3653,17 @@ class MarshallerTest extends TestCase
      */
     public function testInvalidTypesWhenLoadingAssociatedByIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->articles->Comments->setPrimaryKey('id');
+        $this->articles->Comments->setSchema([
+            'id' => 'integer',
+            'article_id' => 'integer',
+            'user_id' => 'integer',
+            'comment' => 'string',
+            'published' => 'string',
+            'created' => 'datetime',
+            'updated' => 'datetime',
+        ]);
+
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot convert value `foobar` of type `string` to int');
 
@@ -3679,7 +3684,17 @@ class MarshallerTest extends TestCase
      */
     public function testInvalidTypesWhenLoadingAssociatedByCompositeIds(): void
     {
-        $this->markTestSkipped('ODM association layer: F17 (association-layer); see 18-orm-tests-port-plan.md F17.');
+        $this->articles->Comments->setPrimaryKey(['id', 'article_id']);
+        $this->articles->Comments->setSchema([
+            'id' => 'integer',
+            'article_id' => 'integer',
+            'user_id' => 'integer',
+            'comment' => 'string',
+            'published' => 'string',
+            'created' => 'datetime',
+            'updated' => 'datetime',
+        ]);
+
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot convert value `foo` of type `string` to int');
 
@@ -3690,8 +3705,6 @@ class MarshallerTest extends TestCase
                 '_ids' => [['foo', 'bar']],
             ],
         ];
-
-        $this->articles->Comments->setPrimaryKey(['_id', 'article_id']);
 
         $marshaller = new Marshaller($this->articles);
         $marshaller->one($data, ['associated' => ['Comments']]);

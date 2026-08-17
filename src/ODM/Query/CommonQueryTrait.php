@@ -102,7 +102,7 @@ trait CommonQueryTrait
             $field = substr($field, strlen($alias) + 1);
         }
 
-        if ($field === 'id' && (string)$primaryKey === '_id') {
+        if ($field === 'id' && !is_array($primaryKey) && $primaryKey === '_id') {
             return '_id';
         }
 

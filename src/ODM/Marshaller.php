@@ -12,7 +12,6 @@ use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use InvalidArgumentException;
 use RuntimeException;
-use Throwable;
 
 /**
  * Contains the logic for converting request data into MongoDB documents.
@@ -300,9 +299,14 @@ class Marshaller
 
         $associated = (array)($options['associated'] ?? []);
         $associated = $this->normalizeAssociations($associated);
+        $junctionProperty = (string)($options['junctionProperty'] ?? '_joinData');
         foreach ($associated as $key => $nested) {
             $alias = (string)$key;
             if (str_starts_with($alias, '_')) {
+                continue;
+            }
+
+            if ($alias === $junctionProperty) {
                 continue;
             }
 
@@ -323,7 +327,12 @@ class Marshaller
             $property = $association->getProperty();
 
             if (($options['isMerge'] ?? false)) {
-                $map[$alias] = $map[$property] = (fn(mixed $value, Document $document): mixed => $this->mergeAssociation($document, $association, $value, $nestedOptions + ['associated' => []]));
+                $map[$alias] = $map[$property] = (fn(mixed $value, Document $document): mixed => $this->mergeAssociation(
+                    $document,
+                    $association,
+                    $value,
+                    $this->nestedAssociationOptions($association, $nestedOptions),
+                ));
 
                 continue;
             }
@@ -331,7 +340,7 @@ class Marshaller
             $map[$alias] = $map[$property] = fn(mixed $value): mixed => $this->marshalAssociation(
                 $association,
                 $value,
-                $nestedOptions + ['associated' => []],
+                $this->nestedAssociationOptions($association, $nestedOptions),
             );
         }
 
@@ -434,13 +443,25 @@ class Marshaller
 
         if ($many) {
             if ($type === 'manyToMany' && $association instanceof BelongsToMany) {
-                return $this->belongsToMany($association, $value, $options);
+                return $marshaller->belongsToMany($association, $value, $options);
             }
 
             return $marshaller->many($value, $options);
         }
 
         return $marshaller->one($value, $options);
+    }
+
+    /**
+     * Merges nested association options with the parent association reference.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The parent-side association.
+     * @param array<string, mixed> $options Nested marshaller options.
+     * @return array<string, mixed>
+     */
+    private function nestedAssociationOptions(Association $association, array $options): array
+    {
+        return $options + ['associated' => [], 'association' => $association];
     }
 
     /**
@@ -456,14 +477,17 @@ class Marshaller
      * @param array<string, mixed> $options Marshaller options.
      * @return array<int, \Crustum\Mongo\ODM\Document>
      */
-    private function belongsToMany(BelongsToMany $association, array $data, array $options): array
+    protected function belongsToMany(BelongsToMany $association, array $data, array $options): array
     {
         $associated = (array)($options['associated'] ?? []);
         $forceNew = (bool)($options['forceNew'] ?? false);
+        $junctionProperty = $association->getJunctionProperty();
+        $options += ['junctionProperty' => $junctionProperty];
 
         $data = array_values($data);
         $target = $association->getTarget();
-        $primaryKey = '_id';
+        $primaryKey = (array)$target->getPrimaryKey();
+        $primaryField = $primaryKey[0] ?? '_id';
         $records = [];
         $conditions = [];
 
@@ -472,8 +496,8 @@ class Marshaller
                 continue;
             }
 
-            if (isset($row[$primaryKey]) && $row[$primaryKey] !== '') {
-                $conditions[][$primaryKey] = $row[$primaryKey];
+            if (isset($row[$primaryField]) && $row[$primaryField] !== '') {
+                $conditions[][$primaryField] = $row[$primaryField];
                 if ($forceNew) {
                     $records[$i] = $this->one($row, $options);
                 }
@@ -485,22 +509,21 @@ class Marshaller
         if ($conditions !== []) {
             $existing = [];
             foreach ($target->find()->where(['OR' => $conditions])->all() as $document) {
-                $existing[(string)$document->get($primaryKey)] = $document;
+                $existing[(string)$document->get($primaryField)] = $document;
             }
 
             foreach ($data as $i => $row) {
-                if (!isset($row[$primaryKey]) || $row[$primaryKey] === '') {
+                if (!isset($row[$primaryField]) || $row[$primaryField] === '') {
                     continue;
                 }
 
-                $key = (string)$row[$primaryKey];
+                $key = (string)$row[$primaryField];
                 if (isset($existing[$key])) {
                     $records[$i] = $this->merge($existing[$key], $row, $options);
                 }
             }
         }
 
-        $junctionProperty = $association->getJunctionProperty();
         $jointMarshaller = $association->junction()->marshaller();
         $nested = isset($associated[$junctionProperty]) && is_array($associated[$junctionProperty])
             ? $associated[$junctionProperty]
@@ -531,7 +554,7 @@ class Marshaller
      * @param array<string, mixed> $options Marshaller options.
      * @return array<int, mixed>
      */
-    private function mergeBelongsToMany(array $original, BelongsToMany $association, array $value, array $options): array
+    protected function mergeBelongsToMany(array $original, BelongsToMany $association, array $value, array $options): array
     {
         $associated = (array)($options['associated'] ?? []);
         $junctionProperty = $association->getJunctionProperty();
@@ -640,7 +663,7 @@ class Marshaller
             }
 
             if ($type === 'manyToMany' && $association instanceof BelongsToMany) {
-                return $this->mergeBelongsToMany(is_array($existing) ? $existing : [], $association, $value, $options);
+                return $marshaller->mergeBelongsToMany(is_array($existing) ? $existing : [], $association, $value, $options);
             }
 
             return $marshaller->mergeMany(is_array($existing) ? $existing : [], array_values($value), $options);
@@ -656,11 +679,14 @@ class Marshaller
     /**
      * Loads associated documents for the given referenced identifiers.
      *
-     * When the target cannot resolve the identifiers, the raw ids are kept.
+     * Mirrors cake `Marshaller::_loadAssociatedByIds()`: build a find query from
+     * the target primary key and pass request `_ids` through unchanged. Type
+     * validation/conversion happens in the query compiler (`castValue()` →
+     * `toDatabase()`), not via `Type::marshal()` here.
      *
      * @param \Crustum\Mongo\ODM\Association $association The association.
      * @param array<int, mixed> $ids Referenced identifiers.
-     * @return array<int, mixed>
+     * @return array<int, \Crustum\Mongo\ODM\Document>
      */
     private function loadAssociatedByIds(Association $association, array $ids): array
     {
@@ -668,13 +694,31 @@ class Marshaller
             return [];
         }
 
-        try {
-            $query = $association->getTarget()->find();
+        $target = $association->getTarget();
+        $primaryKey = (array)$target->getPrimaryKey();
+        $multi = count($primaryKey) > 1;
 
-            return array_values($query->where(['_id IN' => $ids])->all()->toArray());
-        } catch (Throwable) {
-            return $ids;
+        if ($multi) {
+            $first = current($ids);
+            if (!is_array($first) || count($first) !== count($primaryKey)) {
+                return [];
+            }
+
+            $conditions = ['OR' => []];
+            foreach ($ids as $idSet) {
+                $row = [];
+                foreach ($primaryKey as $i => $column) {
+                    $row[$column] = is_array($idSet) ? ($idSet[$i] ?? $idSet[$column] ?? null) : null;
+                }
+                $conditions['OR'][] = $row;
+            }
+
+            return array_values($target->find()->where($conditions)->all()->toArray());
         }
+
+        $column = $primaryKey[0];
+
+        return array_values($target->find()->where([$column . ' IN' => $ids])->all()->toArray());
     }
 
     /**

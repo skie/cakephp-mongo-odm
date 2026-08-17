@@ -23,7 +23,7 @@ use RuntimeException;
 /**
  * Tests the migration Manager against a real Mongo database.
  *
- * Adapted from cakephp/migrations `ManagerTest` вЂ” the SQL-driven fixtures are
+ * Adapted from cakephp/migrations `ManagerTest` - the SQL-driven fixtures are
  * replaced by Mongo migrations under `tests/test_app/TestApp/config/ManagerMigrations`.
  */
 #[CoversClass(Manager::class)]
