@@ -189,56 +189,6 @@ class HasOne extends Association
     }
 
     /**
-     * Merges association conditions into pipeline containment options.
-     *
-     * @param array<string, mixed> $options Containment options.
-     * @return array<string, mixed>
-     */
-    protected function mergePipelineConditions(array $options): array
-    {
-        $associationConditions = $this->getConditions();
-        if (!is_array($associationConditions) || $associationConditions === []) {
-            return $options;
-        }
-
-        $callConditions = $options['conditions'] ?? [];
-        if (is_array($callConditions)) {
-            $options['conditions'] = array_merge($associationConditions, $callConditions);
-        } elseif (!isset($options['conditions'])) {
-            $options['conditions'] = $associationConditions;
-        }
-
-        return $options;
-    }
-
-    /**
-     * Applies a null-safe join match and containment stages inside `$lookup`.
-     *
-     * Null binding keys must not match null foreign keys (cake parity). Operators
-     * compose through `FunctionsBuilder`, not raw stage arrays.
-     *
-     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The sub-pipeline builder.
-     * @param string $foreignField The target foreign key field.
-     * @param array<string, mixed> $options Containment options.
-     * @return void
-     */
-    protected function applyJoinLookupSubPipeline(
-        AggregationBuilder $builder,
-        string $foreignField,
-        array $options,
-    ): void {
-        $func = $builder->func();
-        $builder->match([
-            '$expr' => $func->and([
-                $func->ne('$$bindingValue', null),
-                $func->eq('$' . $foreignField, '$$bindingValue'),
-            ])->getConditions(),
-        ]);
-
-        $this->applyLookupSubPipeline($builder, $options, true);
-    }
-
-    /**
      * @inheritDoc
      */
     public function cascadeDelete(EntityInterface $document, array $options = []): bool

@@ -7,6 +7,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Cake\Utility\Inflector;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -124,8 +125,7 @@ class BelongsTo extends Association
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];
-        $isNestedLoad = !empty($options['sourcePath']);
-        if ($this->getStrategy() === self::STRATEGY_LOOKUP && !$isNestedLoad) {
+        if ($this->usesLookup($options)) {
             return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
         }
 
@@ -163,36 +163,54 @@ class BelongsTo extends Association
     public function buildPipeline(array $options = []): array
     {
         $builder = $this->buildAggregation();
-        $localKey = $this->fieldName($this->getForeignKey());
-        if (!empty($options['lookupPrefix'])) {
-            $localKey = $options['lookupPrefix'] . '.' . $localKey;
-        }
-
+        $property = $this->getProperty();
+        $pipelineOptions = $this->mergePipelineConditions($options);
+        $disableForeignKey = ($options['foreignKey'] ?? $this->getForeignKey()) === false;
         $negateMatch = !empty($options['negateMatch']);
-        $pipeline = [];
-        if ($negateMatch && !empty($options['conditions'])) {
-            $pipeline[] = ['$match' => $this->normalizePipelineConditions($options['conditions'])];
-        }
+        $matching = !empty($options['matching']);
 
-        $lookup = $builder
-            ->lookup($this->getTarget()->getCollection())
-            ->localField($localKey)
-            ->foreignField($this->fieldName($this->getBindingKey()))
-            ->alias($this->getProperty());
-        if ($pipeline !== []) {
-            $lookup->pipeline($pipeline);
-        }
+        $lookup = $builder->lookup($this->getTarget()->getCollection())->alias($property);
 
-        $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
-
-        if ($negateMatch) {
-            $builder->match([$this->getProperty() => null]);
+        if ($disableForeignKey) {
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
+            });
         } else {
-            if (!empty($options['matching']) && !empty($options['conditions'])) {
-                $options['conditions'] = $this->prefixMatchConditions($options['conditions'], $this->getProperty());
+            $localKey = $this->fieldName($this->getForeignKey());
+            if (!empty($options['lookupPrefix'])) {
+                $localKey = $options['lookupPrefix'] . '.' . $localKey;
             }
 
-            $this->applyPipelineOptions($builder, $options);
+            $lookup
+                ->localField($localKey)
+                ->foreignField($this->fieldName($this->getBindingKey()));
+
+            if ($negateMatch && !empty($pipelineOptions['conditions'])) {
+                $lookup->pipeline([
+                    ['$match' => $this->normalizePipelineConditions($pipelineOptions['conditions'])],
+                ]);
+            }
+        }
+
+        if ($matching) {
+            $builder->unwind('$' . $property, [
+                'preserveNullAndEmptyArrays' => $negateMatch,
+            ]);
+        } else {
+            $builder->unwind('$' . $property, ['preserveNullAndEmptyArrays' => true]);
+        }
+
+        if ($negateMatch && empty($options['deferNegateMatch'])) {
+            $builder->match([$property => null]);
+        } elseif ($matching) {
+            $postOptions = $pipelineOptions;
+            if (!empty($pipelineOptions['conditions'])) {
+                $postOptions['conditions'] = $this->prefixMatchConditions($pipelineOptions['conditions'], $property);
+            }
+            $postOptions['matching'] = true;
+            $this->applyPipelineOptions($builder, $postOptions);
+        } else {
+            $this->applyPipelineOptions($builder, $pipelineOptions);
         }
 
         return $builder->getPipeline();

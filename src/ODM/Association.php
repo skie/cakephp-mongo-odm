@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use Cake\Collection\CollectionInterface;
 use Cake\Core\App;
 use Cake\Core\ConventionsTrait;
 use Cake\Database\Exception\DatabaseException;
@@ -11,6 +12,7 @@ use Cake\Database\ExpressionInterface;
 use Cake\Database\ValueBinder;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
+use Cake\Datasource\ResultSetInterface;
 use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
@@ -707,6 +709,171 @@ abstract class Association
     }
 
     /**
+     * Builds the surrogate target query used before lookup attachment.
+     *
+     * @param array<string, mixed> $options Attachment options.
+     * @return \Crustum\Mongo\ODM\Query\SelectQuery
+     */
+    public function buildAttachSurrogateQuery(array $options): SelectQuery
+    {
+        $options += [
+            'foreignKey' => $this->getForeignKey(),
+            'conditions' => [],
+            'finder' => $this->getFinder(),
+        ];
+
+        [$finder, $finderOptions] = $this->extractFinder($options['finder']);
+        $dummy = $this->find($finder, ...$finderOptions);
+        if (!$dummy instanceof SelectQuery) {
+            throw new DatabaseException(sprintf(
+                'Association `%s` target finder did not return a select query.',
+                $this->getName(),
+            ));
+        }
+
+        $dummy->eagerLoaded(true);
+
+        if (!empty($options['queryBuilder']) && is_callable($options['queryBuilder'])) {
+            $built = $options['queryBuilder']($dummy);
+            if (!$built instanceof SelectQuery) {
+                throw new DatabaseException(sprintf(
+                    'Query builder for association `%s` did not return a query.',
+                    $this->getName(),
+                ));
+            }
+
+            $dummy = $built;
+        }
+
+        $conditions = $options['conditions'];
+        if (is_array($conditions) && $conditions !== []) {
+            $dummy->where($conditions);
+        }
+
+        $associationConditions = $this->getConditions();
+        if (is_array($associationConditions) && $associationConditions !== []) {
+            $dummy->where($associationConditions);
+        }
+
+        $this->dispatchBeforeFind($dummy);
+
+        return $dummy;
+    }
+
+    /**
+     * Merges a surrogate target query back into lookup containment options.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $surrogate The surrogate query.
+     * @param array<string, mixed> $options Attachment options.
+     * @return array<string, mixed>
+     */
+    public function mergeSurrogateIntoConfig(SelectQuery $surrogate, array $options): array
+    {
+        $compiled = $surrogate->compile();
+        if ($compiled['filter'] ?? [] !== []) {
+            $options['conditions'] = array_merge(
+                is_array($options['conditions'] ?? null) ? $options['conditions'] : [],
+                $compiled['filter'],
+            );
+        }
+
+        $projection = $surrogate->clause('select');
+        if ($projection !== [] && empty($options['fields'])) {
+            $options['fields'] = array_keys($projection);
+        }
+
+        $sort = $surrogate->clause('order') ?? [];
+        if ($sort !== [] && !isset($options['sort'])) {
+            $options['sort'] = $sort;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Applies surrogate formatters to the nested association property on a query.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $surrogate The target surrogate query.
+     * @param array<string, mixed> $options Options including `propertyPath`.
+     * @return void
+     * @see cake60/src/ORM/Association.php (formatAssociationResults)
+     */
+    public function formatAssociationResults(SelectQuery $query, SelectQuery $surrogate, array $options): void
+    {
+        $formatters = $surrogate->getResultFormatters();
+
+        if (!$formatters || empty($options['propertyPath'])) {
+            return;
+        }
+
+        $property = $options['propertyPath'];
+        $propertyPath = explode('.', $property);
+        $query->formatResults(
+            function (CollectionInterface $results, SelectQuery $query) use ($formatters, $property, $propertyPath) {
+                $extracted = [];
+                foreach ($results as $result) {
+                    foreach ($propertyPath as $propertyPathItem) {
+                        if (!isset($result[$propertyPathItem])) {
+                            $result = null;
+                            break;
+                        }
+                        $result = $result[$propertyPathItem];
+                    }
+                    $extracted[] = $result;
+                }
+                $extracted = $query->resultSetFactory()->createResultSet($extracted);
+                $resultSetClass = $query->resultSetFactory()->getResultSetClass();
+                foreach ($formatters as $callable) {
+                    $extracted = $callable($extracted, $query);
+                    if (!$extracted instanceof ResultSetInterface) {
+                        $extracted = new $resultSetClass($extracted);
+                    }
+                }
+
+                $results = $results->insert($property, $extracted);
+                if ($query->isHydrationEnabled()) {
+                    return $results->map(function (EntityInterface $result) {
+                        $result->clean();
+
+                        return $result;
+                    });
+                }
+
+                return $results;
+            },
+            SelectQuery::PREPEND,
+        );
+    }
+
+    /**
+     * Copies nested containments from a surrogate query onto the source query.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $surrogate The target surrogate query.
+     * @param array<string, mixed> $options Options including `aliasPath`.
+     * @return void
+     * @see cake60/src/ORM/Association.php (bindNewAssociations)
+     */
+    public function bindNewAssociations(SelectQuery $query, SelectQuery $surrogate, array $options): void
+    {
+        $loader = $surrogate->getEagerLoader();
+        $contain = $loader->getContain();
+
+        if ($contain === []) {
+            return;
+        }
+
+        $aliasPath = $options['aliasPath'] ?? $this->getName();
+        $newContain = [];
+        foreach ($contain as $alias => $value) {
+            $newContain[$aliasPath . '.' . $alias] = $value;
+        }
+
+        $query->getEagerLoader()->contain($newContain);
+    }
+
+    /**
      * Attaches the association to a query as an in-pipeline lookup load.
      *
      * The ODM analog of cake60 `Association::attachTo()`: where cake builds a
@@ -963,7 +1130,14 @@ abstract class Association
             }
 
             if (!array_key_exists('_id', $project)) {
-                $project['_id'] = 0;
+                if ($limitToOne) {
+                    $bindingField = $this->resolvePipelineField($this->fieldName($this->getBindingKey()));
+                    if (!array_key_exists($bindingField, $project)) {
+                        $project[$bindingField] = 1;
+                    }
+                } else {
+                    $project['_id'] = 0;
+                }
             }
 
             $builder->project($project);
@@ -978,6 +1152,53 @@ abstract class Association
         } elseif ($limitToOne) {
             $builder->limit(1);
         }
+    }
+
+    /**
+     * Merges association conditions into pipeline containment options.
+     *
+     * @param array<string, mixed> $options Containment options.
+     * @return array<string, mixed>
+     */
+    protected function mergePipelineConditions(array $options): array
+    {
+        $associationConditions = $this->getConditions();
+        if (!is_array($associationConditions) || $associationConditions === []) {
+            return $options;
+        }
+
+        $callConditions = $options['conditions'] ?? [];
+        if (is_array($callConditions)) {
+            $options['conditions'] = array_merge($associationConditions, $callConditions);
+        } elseif (!isset($options['conditions'])) {
+            $options['conditions'] = $associationConditions;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Applies a null-safe join match and containment stages inside `$lookup`.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The sub-pipeline builder.
+     * @param string $foreignField The target join field.
+     * @param array<string, mixed> $options Containment options.
+     * @return void
+     */
+    protected function applyJoinLookupSubPipeline(
+        AggregationBuilder $builder,
+        string $foreignField,
+        array $options,
+    ): void {
+        $func = $builder->func();
+        $builder->match([
+            '$expr' => $func->and([
+                $func->ne('$$bindingValue', null),
+                $func->eq('$' . $foreignField, '$$bindingValue'),
+            ])->getConditions(),
+        ]);
+
+        $this->applyLookupSubPipeline($builder, $options, true);
     }
 
     /**
@@ -996,6 +1217,7 @@ abstract class Association
         $alias = $this->getAlias() . '.';
         $normalized = [];
         foreach ($conditions as $field => $value) {
+            $field = (string)$field;
             if (!$preservePrefix && str_starts_with($field, $alias)) {
                 $field = substr($field, strlen($alias));
             }

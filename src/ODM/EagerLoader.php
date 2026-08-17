@@ -71,6 +71,20 @@ class EagerLoader
     private array $attachedPipeline = [];
 
     /**
+     * Alias paths whose in-pipeline lookup stages were already attached.
+     *
+     * @var array<string, true>
+     */
+    private array $attachedLookupPaths = [];
+
+    /**
+     * Alias paths already queued for external loading.
+     *
+     * @var array<string, true>
+     */
+    private array $dispatchedExternalPaths = [];
+
+    /**
      * Options accepted by association containment configuration.
      *
      * @var array<string, true>
@@ -220,16 +234,23 @@ class EagerLoader
         }
 
         $this->external = [];
+        $this->attachedLookupPaths = [];
+        $this->dispatchedExternalPaths = [];
 
-        foreach ($this->normalized($repository) as $loadable) {
-            $this->dispatch($loadable, $query);
-        }
+        do {
+            $before = $this->containments;
+            $this->normalized = null;
 
-        if ($this->matching instanceof EagerLoader) {
-            foreach ($this->matching->normalized($repository) as $loadable) {
+            foreach ($this->normalized($repository) as $loadable) {
                 $this->dispatch($loadable, $query);
             }
-        }
+
+            if ($this->matching instanceof EagerLoader) {
+                foreach ($this->matching->normalized($repository) as $loadable) {
+                    $this->dispatch($loadable, $query);
+                }
+            }
+        } while ($this->containments !== $before);
 
         $this->ensureKeyFieldsSelected($query, $repository);
         $this->ensureLookupPropertiesProjected($query, $repository);
@@ -721,11 +742,7 @@ class EagerLoader
         $query = $target->query();
         $query->eagerLoaded(true);
         ($config['queryBuilder'])($query);
-        $query->triggerBeforeFind();
 
-        // Matching (joinWith) loads through a `$lookup` pipeline; containing
-        // nested associations from inside that pipeline is not supported
-        // (cake60 `Association::attachTo()` JOIN-strategy parity).
         if (!empty($config['matching']) && $query->getEagerLoader()->getContain() !== []) {
             throw new DatabaseException(sprintf(
                 '`%s` association cannot contain() associations when using JOIN strategy.',
@@ -734,9 +751,21 @@ class EagerLoader
         }
 
         $compiled = $query->compile();
-        $config['conditions'] ??= $compiled['filter'] ?? [];
-        $config['fields'] ??= array_keys($compiled['options']['projection'] ?? []);
-        $config['sort'] ??= $compiled['options']['sort'] ?? [];
+        if ($compiled['filter'] ?? [] !== []) {
+            $config['conditions'] ??= array_merge(
+                is_array($config['conditions'] ?? null) ? $config['conditions'] : [],
+                $compiled['filter'],
+            );
+        }
+
+        $projection = $compiled['options']['projection'] ?? [];
+        if ($projection !== [] && empty($config['fields'])) {
+            $config['fields'] = array_keys($projection);
+        }
+
+        if (($compiled['options']['sort'] ?? []) !== [] && !isset($config['sort'])) {
+            $config['sort'] = $compiled['options']['sort'];
+        }
 
         $nestedMatching = $query->getEagerLoader()->getMatching();
         if ($nestedMatching !== []) {
@@ -763,11 +792,25 @@ class EagerLoader
         $strategy = $loadable->getConfig()['strategy'];
         $matching = (bool)($loadable->getConfig()['matching'] ?? false);
         $isNested = str_contains($loadable->propertyPath() ?? '', '.');
-        if (!$matching && $association instanceof BelongsToMany) {
-            $stages = $association->buildPipeline($loadable->getConfig());
-            if ($stages !== []) {
-                $query->pipeline($stages);
-                $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
+        if ($association instanceof BelongsToMany) {
+            $path = $loadable->aliasPath() ?? $loadable->name();
+            if (!isset($this->attachedLookupPaths[$path])) {
+                $config = $loadable->getConfig();
+                if ($matching && $parentProperty !== null) {
+                    $config['lookupPrefix'] = $parentProperty;
+                }
+
+                if ($matching && $this->hasMatchingChildren($loadable)) {
+                    $config['deferNegateMatch'] = true;
+                }
+
+                $stages = $association->buildPipeline($config);
+                if ($stages !== []) {
+                    $query->pipeline($stages);
+                    $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
+                }
+
+                $this->attachedLookupPaths[$path] = true;
             }
         } elseif (
             !$matching
@@ -778,25 +821,55 @@ class EagerLoader
                 || ($strategy === Association::STRATEGY_LOOKUP && !$association->usesLookup($loadable->getConfig()))
             )
         ) {
-            $this->external[] = $loadable;
+            $path = $loadable->aliasPath() ?? $loadable->name();
+            if (!isset($this->dispatchedExternalPaths[$path])) {
+                $this->external[] = $loadable;
+                $this->dispatchedExternalPaths[$path] = true;
+            }
         } else {
+            $path = $loadable->aliasPath() ?? $loadable->name();
+            if (isset($this->attachedLookupPaths[$path])) {
+                foreach ($loadable->associations() as $nested) {
+                    $this->dispatch($nested, $query, $association->getProperty());
+                }
+
+                return;
+            }
+
             $config = $loadable->getConfig();
             if ($matching && $parentProperty !== null) {
                 $config['lookupPrefix'] = $parentProperty;
             }
 
-            // Deep `notMatching('a.b', ...)`: the negation applies at the
-            // deepest matching node; outer nodes unwind with preserve-null and
-            // defer the null-check to their children.
             if ($matching && $this->hasMatchingChildren($loadable)) {
                 $config['deferNegateMatch'] = true;
             }
+
+            $surrogate = $association->buildAttachSurrogateQuery($config);
+
+            if ($matching && $surrogate->getEagerLoader()->getContain() !== []) {
+                throw new DatabaseException(sprintf(
+                    '`%s` association cannot contain() associations when using JOIN strategy.',
+                    $association->getName(),
+                ));
+            }
+
+            $association->formatAssociationResults($query, $surrogate, [
+                'propertyPath' => $loadable->propertyPath(),
+            ]);
+            $association->bindNewAssociations($query, $surrogate, [
+                'aliasPath' => $loadable->aliasPath(),
+            ]);
+
+            $config = $association->mergeSurrogateIntoConfig($surrogate, $config);
 
             $stages = $association->buildPipeline($config);
             if ($stages !== []) {
                 $query->pipeline($stages);
                 $this->attachedPipeline = array_merge($this->attachedPipeline, $stages);
             }
+
+            $this->attachedLookupPaths[$path] = true;
         }
 
         foreach ($loadable->associations() as $nested) {
