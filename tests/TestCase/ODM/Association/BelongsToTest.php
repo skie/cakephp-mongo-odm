@@ -5,9 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use ArrayObject;
 use Cake\Database\Exception\DatabaseException;
-use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Database\TypeMap;
 use Cake\Event\Event;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\BaseCollection;
@@ -41,11 +38,6 @@ class BelongsToTest extends TestCase
     protected $client;
 
     /**
-     * @var \Cake\Database\TypeMap
-     */
-    protected $companiesTypeMap;
-
-    /**
      * Set up
      */
     protected function setUp(): void
@@ -69,14 +61,6 @@ class BelongsToTest extends TestCase
                     'primary' => ['type' => 'primary', 'columns' => ['_id']],
                 ],
             ],
-        ]);
-        $this->companiesTypeMap = new TypeMap([
-            'Companies._id' => 'integer',
-            '_id' => 'integer',
-            'Companies.company_name' => 'string',
-            'company_name' => 'string',
-            'Companies__id' => 'integer',
-            'Companies__company_name' => 'string',
         ]);
     }
 
@@ -233,7 +217,6 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
-        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->company->setPrimaryKey(['_id', 'tenant_id']);
         $config = [
             'foreignKey' => ['company_id', 'company_tenant_id'],
@@ -243,27 +226,31 @@ class BelongsToTest extends TestCase
         $association = new BelongsTo('Companies', $this->client, $config);
         $query = $this->client->selectQuery();
         $association->attachTo($query);
+        $query->getEagerLoader()->attachAssociations($query, $this->client);
 
-        $expected = [
-            'Companies__id' => 'Companies._id',
-            'Companies__company_name' => 'Companies.company_name',
-        ];
-        $this->assertEquals($expected, $query->clause('select'));
-
-        $field1 = new IdentifierExpression('Clients.company_id');
-        $field2 = new IdentifierExpression('Clients.company_tenant_id');
-        $expected = [
-            'Companies' => [
-                'conditions' => new QueryExpression([
-                    'Companies.is_active' => true,
-                    ['Companies._id' => $field1, 'Companies.tenant_id' => $field2],
-                ], $this->companiesTypeMap),
-                'collection' => 'companies',
-                'type' => 'LEFT',
-                'alias' => 'Companies',
+        $this->assertQueryLookupStage($query, [
+            'from' => 'companies',
+            'as' => 'company',
+            'let' => [
+                'bindingValue0' => '$company_id',
+                'bindingValue1' => '$company_tenant_id',
             ],
-        ];
-        $this->assertEquals($expected, $query->clause('join'));
+            'pipeline' => [
+                [
+                    '$match' => [
+                        '$expr' => [
+                            '$and' => [
+                                ['$ne' => ['$$bindingValue0', null]],
+                                ['$eq' => ['$_id', '$$bindingValue0']],
+                                ['$ne' => ['$$bindingValue1', null]],
+                                ['$eq' => ['$tenant_id', '$$bindingValue1']],
+                            ],
+                        ],
+                    ],
+                ],
+                ['$match' => ['is_active' => true]],
+            ],
+        ]);
     }
 
     /**
@@ -272,9 +259,8 @@ class BelongsToTest extends TestCase
      */
     public function testAttachToMultiPrimaryKeyMismatch(): void
     {
-        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->expectException(DatabaseException::class);
-        $this->expectExceptionMessage('Cannot match provided foreignKey for `Companies`, got `(company_id)` but expected foreign key for `(id, tenant_id)`');
+        $this->expectExceptionMessage('Cannot match provided foreignKey for `Companies`, got `(company_id)` but expected foreign key for `(_id, tenant_id)`');
         $this->company->setPrimaryKey(['_id', 'tenant_id']);
         $query = $this->client->selectQuery();
         $config = [

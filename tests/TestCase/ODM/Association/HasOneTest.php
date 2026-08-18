@@ -145,24 +145,6 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
-        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
-        $selectTypeMap = new TypeMap([
-            'Profiles._id' => 'integer',
-            '_id' => 'integer',
-            'Profiles.first_name' => 'string',
-            'first_name' => 'string',
-            'Profiles.user_id' => 'integer',
-            'user_id' => 'integer',
-            'Profiles__first_name' => 'string',
-            'Profiles__user_id' => 'integer',
-            'Profiles__id' => 'integer',
-            'Profiles__last_name' => 'string',
-            'Profiles.last_name' => 'string',
-            'last_name' => 'string',
-            'Profiles__is_active' => 'boolean',
-            'Profiles.is_active' => 'boolean',
-            'is_active' => 'boolean',
-        ]);
         $config = [
             'target' => $this->profile,
             'conditions' => ['Profiles.is_active' => true],
@@ -171,23 +153,34 @@ class HasOneTest extends TestCase
 
         $this->user->setPrimaryKey(['_id', 'site_id']);
         $association = new HasOne('Profiles', $this->user, $config);
-
-        $query = new SelectQuery($this->user);
-        $field1 = new IdentifierExpression('Profiles.user_id');
-        $field2 = new IdentifierExpression('Profiles.user_site_id');
-        $expected = [
-            'Profiles' => [
-                'conditions' => new QueryExpression([
-                    'Profiles.is_active' => true,
-                    ['Users._id' => $field1, 'Users.site_id' => $field2],
-                ], $selectTypeMap),
-                'type' => 'LEFT',
-                'collection' => 'profiles',
-                'alias' => 'Profiles',
-            ],
-        ];
+        $query = $this->user->selectQuery();
         $association->attachTo($query);
-        $this->assertEquals($expected, $query->clause('join'));
+        $query->getEagerLoader()->attachAssociations($query, $this->user);
+
+        $this->assertQueryLookupStage($query, [
+            'from' => 'profiles',
+            'as' => 'profile',
+            'let' => [
+                'bindingValue0' => '$_id',
+                'bindingValue1' => '$site_id',
+            ],
+            'pipeline' => [
+                [
+                    '$match' => [
+                        '$expr' => [
+                            '$and' => [
+                                ['$ne' => ['$$bindingValue0', null]],
+                                ['$eq' => ['$user_id', '$$bindingValue0']],
+                                ['$ne' => ['$$bindingValue1', null]],
+                                ['$eq' => ['$user_site_id', '$$bindingValue1']],
+                            ],
+                        ],
+                    ],
+                ],
+                ['$match' => ['is_active' => true]],
+                ['$limit' => 1],
+            ],
+        ]);
     }
 
     /**
@@ -196,9 +189,8 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKeyMismatch(): void
     {
-        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->expectException(DatabaseException::class);
-        $this->expectExceptionMessage('Cannot match provided foreignKey for `Profiles`, got `(user_id)` but expected foreign key for `(id, site_id)`');
+        $this->expectExceptionMessage('Cannot match provided foreignKey for `Profiles`, got `(user_id)` but expected foreign key for `(_id, site_id)`');
         $query = new SelectQuery($this->user);
         $config = [
             'target' => $this->profile,

@@ -16,6 +16,7 @@ use Cake\Datasource\ResultSetInterface;
 use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
@@ -528,9 +529,8 @@ abstract class Association
     /**
      * Converts a key configuration into a pipeline field name.
      *
-     * Composite keys are represented by their ordered dotted path here; the
-     * collection query layer can provide tuple handling when required. A
-     * `false`/`null` key (disabled foreign key) yields an empty string.
+     * Single keys are unchanged. Callers that need per-column composite
+     * handling should use {@see fieldNames()} instead of this dotted collapse.
      *
      * @param array<string>|string|false|null $key Key configuration.
      * @return string
@@ -542,6 +542,146 @@ abstract class Association
         }
 
         return implode('.', (array)$key);
+    }
+
+    /**
+     * Splits a key configuration into ordered pipeline field names.
+     *
+     * @param array<string>|string|false|null $key Key configuration.
+     * @return list<string>
+     */
+    protected function fieldNames(array|string|false|null $key): array
+    {
+        if ($key === false || $key === null || $key === '') {
+            return [];
+        }
+
+        $names = [];
+        foreach ((array)$key as $field) {
+            $names[] = $this->resolvePipelineField((string)$field);
+        }
+
+        return $names;
+    }
+
+    /**
+     * Prefixes local lookup fields when the source document is nested.
+     *
+     * @param list<string> $fields Local field names.
+     * @param array<string, mixed> $options Pipeline options.
+     * @return list<string>
+     */
+    protected function prefixLookupFields(array $fields, array $options): array
+    {
+        $prefix = $options['lookupPrefix'] ?? '';
+        if ($prefix === '') {
+            return $fields;
+        }
+
+        return array_map(static fn(string $field): string => $prefix . '.' . $field, $fields);
+    }
+
+    /**
+     * Builds `$lookup.let` variables for local join fields.
+     *
+     * A single field stays `bindingValue` for compatibility. Composite keys
+     * use `bindingValue0`, `bindingValue1`, …
+     *
+     * @param list<string> $localFields Local field names.
+     * @return array<string, string>
+     */
+    protected function lookupLet(array $localFields): array
+    {
+        $let = [];
+        $composite = count($localFields) > 1;
+        foreach (array_values($localFields) as $i => $field) {
+            $let[$composite ? 'bindingValue' . $i : 'bindingValue'] = '$' . $field;
+        }
+
+        return $let;
+    }
+
+    /**
+     * Ensures foreign and binding keys have the same column count.
+     *
+     * Cake analog: `Association::joinCondition()`.
+     *
+     * @param array<string>|string|false|null $foreignKey Foreign key fields.
+     * @param array<string>|string|false|null $bindingKey Binding key fields.
+     * @return void
+     * @throws \Cake\Database\Exception\DatabaseException When the key lists differ.
+     */
+    protected function assertJoinKeyCounts(array|string|false|null $foreignKey, array|string|false|null $bindingKey): void
+    {
+        if ($foreignKey === false || $foreignKey === null) {
+            return;
+        }
+
+        $foreignKey = (array)$foreignKey;
+        $bindingKey = $bindingKey === false || $bindingKey === null ? [] : (array)$bindingKey;
+        if (count($foreignKey) === count($bindingKey) && $bindingKey !== []) {
+            return;
+        }
+
+        if ($bindingKey === []) {
+            $collection = $this->isOwningSide()
+                ? $this->getTarget()->getCollection()
+                : $this->getSource()->getCollection();
+
+            throw new DatabaseException(sprintf(
+                'The `%s` collection does not define a primary key, and cannot have join conditions generated.',
+                $collection,
+            ));
+        }
+
+        throw new DatabaseException(sprintf(
+            'Cannot match provided foreignKey for `%s`, got `(%s)` but expected foreign key for `(%s)`',
+            $this->getName(),
+            implode(', ', $foreignKey),
+            implode(', ', $bindingKey),
+        ));
+    }
+
+    /**
+     * Applies local/foreign join keys to a `$lookup` stage.
+     *
+     * Single-column keys use `localField`/`foreignField`. Composite keys use
+     * `let` + `$expr` `$and` because Mongo `$lookup` has no multi-field localField.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\Stage\Lookup $lookup The lookup stage.
+     * @param list<string> $localFields Local field names.
+     * @param list<string> $foreignFields Foreign field names.
+     * @param array<string, mixed> $pipelineOptions Sub-pipeline options.
+     * @param bool $limitToOne Whether to cap the sub-pipeline to one document.
+     * @param bool $forcePipeline Always use let+pipeline (HasOne `$limit: 1`).
+     * @return bool True when a sub-pipeline was attached.
+     */
+    protected function attachLookupKeys(
+        Lookup $lookup,
+        array $localFields,
+        array $foreignFields,
+        array $pipelineOptions,
+        bool $limitToOne,
+        bool $forcePipeline = false,
+    ): bool {
+        if ($localFields === [] || $foreignFields === []) {
+            return false;
+        }
+
+        if (!$forcePipeline && count($localFields) === 1) {
+            $lookup->localField($localFields[0])->foreignField($foreignFields[0]);
+
+            return false;
+        }
+
+        $let = $this->lookupLet($localFields);
+        $lookup
+            ->let($let)
+            ->pipeline(function (AggregationBuilder $sub) use ($foreignFields, $let, $pipelineOptions, $limitToOne): void {
+                $this->applyJoinLookupSubPipeline($sub, $foreignFields, $let, $pipelineOptions, $limitToOne);
+            });
+
+        return true;
     }
 
     /**
@@ -930,6 +1070,10 @@ abstract class Association
             $options['fields'] = [];
         }
 
+        if ($options['foreignKey'] !== false) {
+            $this->assertJoinKeyCounts($options['foreignKey'], $this->getBindingKey());
+        }
+
         $dummy = $this->buildAttachSurrogateQuery($options);
 
         if (
@@ -1119,9 +1263,10 @@ abstract class Association
 
             if (!array_key_exists('_id', $project)) {
                 if ($limitToOne) {
-                    $bindingField = $this->resolvePipelineField($this->fieldName($this->getBindingKey()));
-                    if (!array_key_exists($bindingField, $project)) {
-                        $project[$bindingField] = 1;
+                    foreach ($this->fieldNames($this->getBindingKey()) as $bindingField) {
+                        if (!array_key_exists($bindingField, $project)) {
+                            $project[$bindingField] = 1;
+                        }
                     }
                 } else {
                     $project['_id'] = 0;
@@ -1168,25 +1313,36 @@ abstract class Association
     /**
      * Applies a null-safe join match and containment stages inside `$lookup`.
      *
+     * Composite keys AND one `$eq` per column against the matching `let` variable.
+     *
      * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The sub-pipeline builder.
-     * @param string $foreignField The target join field.
+     * @param list<string> $foreignFields Target join fields.
+     * @param array<string, string> $let Lookup let variables, in field order.
      * @param array<string, mixed> $options Containment options.
+     * @param bool $limitToOne Whether to cap the result to one document.
      * @return void
      */
     protected function applyJoinLookupSubPipeline(
         AggregationBuilder $builder,
-        string $foreignField,
+        array $foreignFields,
+        array $let,
         array $options,
+        bool $limitToOne = true,
     ): void {
         $func = $builder->func();
+        $letNames = array_keys($let);
+        $clauses = [];
+        foreach (array_values($foreignFields) as $i => $foreignField) {
+            $var = '$$' . $letNames[$i];
+            $clauses[] = $func->ne($var, null);
+            $clauses[] = $func->eq('$' . $foreignField, $var);
+        }
+
         $builder->match([
-            '$expr' => $func->and([
-                $func->ne('$$bindingValue', null),
-                $func->eq('$' . $foreignField, '$$bindingValue'),
-            ])->getConditions(),
+            '$expr' => $func->and($clauses)->getConditions(),
         ]);
 
-        $this->applyLookupSubPipeline($builder, $options, true);
+        $this->applyLookupSubPipeline($builder, $options, $limitToOne);
     }
 
     /**

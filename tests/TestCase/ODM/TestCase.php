@@ -10,6 +10,7 @@ use Cake\TestSuite\Fixture\TruncateStrategy;
 use Cake\TestSuite\TestCase as BaseTestCase;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\TestSuite\MongoTestTrait;
+use Crustum\Mongo\Test\TestSuite\PipelineAssertsTrait;
 
 /**
  * Base test case for ODM unit and integration tests.
@@ -23,6 +24,7 @@ abstract class TestCase extends BaseTestCase
 {
     use MongoTestTrait;
     use LocatorAwareTrait;
+    use PipelineAssertsTrait;
 
     /**
      * Returns the fixture strategy used by the ODM test harness.

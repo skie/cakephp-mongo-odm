@@ -166,25 +166,28 @@ class BelongsTo extends Association
                 $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
             });
         } else {
-            $localKey = $this->fieldName($this->getForeignKey());
-            if (!empty($options['lookupPrefix'])) {
-                $localKey = $options['lookupPrefix'] . '.' . $localKey;
-            }
+            $foreignKey = $options['foreignKey'] ?? $this->getForeignKey();
+            $this->assertJoinKeyCounts($foreignKey, $this->getBindingKey());
+            $usedPipeline = $this->attachLookupKeys(
+                $lookup,
+                $this->prefixLookupFields($this->fieldNames($foreignKey), $options),
+                $this->fieldNames($this->getBindingKey()),
+                $pipelineOptions,
+                true,
+            );
 
-            $lookup
-                ->localField($localKey)
-                ->foreignField($this->fieldName($this->getBindingKey()));
-
-            if ($negateMatch && !empty($pipelineOptions['conditions'])) {
-                $lookup->pipeline([
-                    ['$match' => $this->normalizePipelineConditions($pipelineOptions['conditions'])],
-                ]);
-            } elseif (!empty($options['targetPipeline'])) {
-                $lookup->pipeline($options['targetPipeline']);
-            } elseif (!$matching && $this->needsLookupTargetSubPipeline($pipelineOptions)) {
-                $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
-                    $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
-                });
+            if (!$usedPipeline) {
+                if ($negateMatch && !empty($pipelineOptions['conditions'])) {
+                    $lookup->pipeline([
+                        ['$match' => $this->normalizePipelineConditions($pipelineOptions['conditions'])],
+                    ]);
+                } elseif (!empty($options['targetPipeline'])) {
+                    $lookup->pipeline($options['targetPipeline']);
+                } elseif (!$matching && $this->needsLookupTargetSubPipeline($pipelineOptions)) {
+                    $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                        $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
+                    });
+                }
             }
         }
 

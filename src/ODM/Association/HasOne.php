@@ -152,17 +152,16 @@ class HasOne extends Association
                 $this->applyLookupSubPipeline($sub, $pipelineOptions, true);
             });
         } else {
-            $localKey = $this->fieldName($this->getBindingKey());
-            if (!empty($options['lookupPrefix'])) {
-                $localKey = $options['lookupPrefix'] . '.' . $localKey;
-            }
-
-            $foreignField = $this->fieldName($this->getForeignKey());
-            $lookup
-                ->let(['bindingValue' => '$' . $localKey])
-                ->pipeline(function (AggregationBuilder $sub) use ($foreignField, $pipelineOptions): void {
-                    $this->applyJoinLookupSubPipeline($sub, $foreignField, $pipelineOptions);
-                });
+            $foreignKey = $options['foreignKey'] ?? $this->getForeignKey();
+            $this->assertJoinKeyCounts($foreignKey, $this->getBindingKey());
+            $this->attachLookupKeys(
+                $lookup,
+                $this->prefixLookupFields($this->fieldNames($this->getBindingKey()), $options),
+                $this->fieldNames($foreignKey),
+                $pipelineOptions,
+                true,
+                true,
+            );
         }
 
         $builder->unwind('$' . $property, [

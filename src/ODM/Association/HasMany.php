@@ -585,17 +585,36 @@ class HasMany extends Association
      */
     public function buildPipeline(array $options = []): array
     {
-        $builder = $this->buildAggregation();
-        $localKey = $this->fieldName($this->getBindingKey());
-        if (!empty($options['lookupPrefix'])) {
-            $localKey = $options['lookupPrefix'] . '.' . $localKey;
-        }
+        $foreignKey = $options['foreignKey'] ?? $this->getForeignKey();
+        $this->assertJoinKeyCounts($foreignKey, $this->getBindingKey());
+        $localFields = $this->prefixLookupFields($this->fieldNames($this->getBindingKey()), $options);
+        $foreignFields = $this->fieldNames($foreignKey);
+        $composite = count($localFields) > 1;
+        $let = $composite ? $this->lookupLet($localFields) : [];
 
+        $builder = $this->buildAggregation();
         $lookup = $builder
             ->lookup($this->getTarget()->getCollection())
-            ->localField($localKey)
-            ->foreignField($this->fieldName($this->getForeignKey()))
             ->alias($this->getProperty());
+        if (!$composite && $localFields !== [] && $foreignFields !== []) {
+            $lookup->localField($localFields[0])->foreignField($foreignFields[0]);
+        } elseif ($composite) {
+            $lookup->let($let);
+        }
+
+        $applyJoinSubPipeline = function (AggregationBuilder $sub, array $subOptions) use (
+            $composite,
+            $let,
+            $foreignFields,
+        ): void {
+            if ($composite) {
+                $this->applyJoinLookupSubPipeline($sub, $foreignFields, $let, $subOptions, false);
+
+                return;
+            }
+
+            $this->applyLookupSubPipeline($sub, $subOptions);
+        };
 
         if (!empty($options['matching'])) {
             $builder->unwind('$' . $this->getProperty(), [
@@ -605,8 +624,8 @@ class HasMany extends Association
 
         $pipelineOptions = $options;
         if (!empty($options['matching']) && !empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {
-            $lookup->pipeline(function (AggregationBuilder $sub) use ($options): void {
-                $this->applyLookupSubPipeline($sub, $options);
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($applyJoinSubPipeline, $options): void {
+                $applyJoinSubPipeline($sub, $options);
             });
             $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => true]);
             $builder->match([$this->getProperty() => null]);
@@ -620,11 +639,20 @@ class HasMany extends Association
                 $pipelineOptions['conditions'],
                 $property,
             );
+            if ($composite) {
+                $lookup->pipeline(function (AggregationBuilder $sub) use ($applyJoinSubPipeline): void {
+                    $applyJoinSubPipeline($sub, []);
+                });
+            }
         } elseif (empty($options['matching'])) {
-            $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
-                $this->applyLookupSubPipeline($sub, $pipelineOptions);
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($applyJoinSubPipeline, $pipelineOptions): void {
+                $applyJoinSubPipeline($sub, $pipelineOptions);
             });
             unset($pipelineOptions['conditions'], $pipelineOptions['sort'], $pipelineOptions['fields'], $pipelineOptions['skip'], $pipelineOptions['limit']);
+        } elseif ($composite) {
+            $lookup->pipeline(function (AggregationBuilder $sub) use ($applyJoinSubPipeline): void {
+                $applyJoinSubPipeline($sub, []);
+            });
         }
 
         unset($pipelineOptions['fields']);
