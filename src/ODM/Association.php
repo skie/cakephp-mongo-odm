@@ -1577,8 +1577,13 @@ abstract class Association
      */
     protected function unwindPreservesNull(array $options): bool
     {
+        if (!empty($options['negateMatch'])) {
+            return true;
+        }
+
         if (!empty($options['matching'])) {
-            return !empty($options['negateMatch']);
+            return isset($options['joinType'])
+                && strtoupper((string)$options['joinType']) === 'LEFT';
         }
 
         return strtoupper((string)($options['joinType'] ?? $this->getJoinType())) !== 'INNER';

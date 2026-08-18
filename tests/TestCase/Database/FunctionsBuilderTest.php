@@ -56,6 +56,27 @@ class FunctionsBuilderTest extends TestCase
     }
 
     /**
+     * Test countField builds a grouped COUNT(column) via $sum/$cond/$ifNull.
+     *
+     * @return void
+     */
+    public function testCountField(): void
+    {
+        $this->assertSame(
+            [
+                '$sum' => [
+                    '$cond' => [
+                        ['$ne' => [['$ifNull' => ['$articles._id', null]], null]],
+                        1,
+                        0,
+                    ],
+                ],
+            ],
+            $this->functions->countField('articles._id')->getConditions(),
+        );
+    }
+
+    /**
      * Test rand and rowNumber render empty operator documents.
      *
      * @return void

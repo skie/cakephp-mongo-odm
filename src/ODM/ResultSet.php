@@ -475,6 +475,16 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             if ($assoc['matching']) {
+                $fields = $assoc['config']['fields'] ?? null;
+                if ($fields === false) {
+                    unset($row[$propertyName]);
+                    if ($instance instanceof BelongsToMany) {
+                        unset($row['_join_' . $propertyName]);
+                    }
+
+                    continue;
+                }
+
                 $target = $instance->getTarget();
                 $matching[$assoc['nestKey']] = $this->hydrateRow((array)$row[$propertyName], $target);
 

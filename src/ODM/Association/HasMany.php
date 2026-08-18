@@ -616,7 +616,7 @@ class HasMany extends Association
 
         if (!empty($options['matching'])) {
             $builder->unwind('$' . $this->getProperty(), [
-                'preserveNullAndEmptyArrays' => !empty($options['negateMatch']),
+                'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
             ]);
         }
 

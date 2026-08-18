@@ -86,6 +86,47 @@ class FunctionsBuilder
     }
 
     /**
+     * Counts non-null values of a field inside `$group` (SQL `COUNT(field)`).
+     *
+     * After a LEFT JOIN / `$lookup` + `$unwind`, joined rows with no match
+     * leave the field missing; a bare `$sum: 1` would count those rows too.
+     * This helper adds 1 only when the field is present and non-null.
+     *
+     * @param string $field The field path (`articles._id` or `$articles._id`).
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function countField(string $field): FunctionExpression
+    {
+        $path = str_starts_with($field, '$') ? $field : '$' . $field;
+
+        return $this->sum(
+            $this->cond(
+                $this->ne(
+                    $this->coalesce([$path, null]),
+                    null,
+                ),
+                1,
+                0,
+            ),
+        );
+    }
+
+    /**
+     * Returns one value or another depending on a condition.
+     *
+     * Renders as `['$cond' => [condition, then, else]]`.
+     *
+     * @param mixed $condition The condition expression.
+     * @param mixed $then The value when the condition is true.
+     * @param mixed $else The value when the condition is false.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function cond(mixed $condition, mixed $then, mixed $else): FunctionExpression
+    {
+        return new FunctionExpression('$cond', [$condition, $then, $else]);
+    }
+
+    /**
      * Concatenates strings.
      *
      * @param list<mixed> $args The expressions to concatenate

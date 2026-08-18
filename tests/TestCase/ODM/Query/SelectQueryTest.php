@@ -3346,14 +3346,16 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWith(): void
     {
-        // $this->markTestSkipped('// SQL aggregate projection `count(articles.id)` has no direct Mongo analog (`$lookup` + `$sum` rewrite pending); see 40-selectquerytest-failure-groups.md RF.');
         $collection = $this->getCollectionLocator()->get('authors');
         $collection->hasMany('articles');
         $collection->articles->deleteAll(['author_id' => '000000000000000000000004']);
 
-        $results = $collection
-            ->find()
-            ->select(['total_articles' => 'count(articles.id)'])
+        $query = $collection->find();
+        $func = $query->func();
+        $results = $query
+            ->select([
+                'total_articles' => $func->countField('articles._id'),
+            ])
             ->enableAutoFields()
             ->leftJoinWith('articles')
             ->groupBy(['authors.id', 'authors.name']);
@@ -3365,25 +3367,29 @@ class SelectQueryTest extends TestCase
             '000000000000000000000004' => 0,
         ];
         $this->assertEquals($expected, $results->all()->combine('id', 'total_articles')->toArray());
-        $fields = ['total_articles', 'id', 'name'];
-        $this->assertEquals($fields, array_keys($results->first()->toArray()));
+        $fields = ['total_articles', '_id', 'name'];
+        $this->assertEqualsCanonicalizing($fields, array_keys($results->first()->toArray()));
 
         $results = $collection
             ->find()
-            ->leftJoinWith('articles')
-            ->where(['articles.id IS' => null]);
+            ->leftJoinWith('articles', fn($q) => $q->where(['articles.id IS' => null]));
 
-        $this->assertEquals([2, 4], $results->all()->extract('id')->toList());
-        $this->assertEquals(['id', 'name'], array_keys($results->first()->toArray()));
+        $this->assertEquals(
+            ['000000000000000000000002', '000000000000000000000004'],
+            $results->all()->extract('id')->toList(),
+        );
+        $this->assertEqualsCanonicalizing(['_id', 'name'], array_keys($results->first()->toArray()));
 
         $results = $collection
             ->find()
-            ->leftJoinWith('articles')
-            ->where(['articles.id IS NOT' => null])
+            ->leftJoinWith('articles', fn($q) => $q->where(['articles.id IS NOT' => null]))
             ->orderBy(['authors.id']);
 
-        $this->assertEquals([1, 1, 3], $results->all()->extract('id')->toList());
-        $this->assertEquals(['id', 'name'], array_keys($results->first()->toArray()));
+        $this->assertEquals(
+            ['000000000000000000000001', '000000000000000000000001', '000000000000000000000003'],
+            $results->all()->extract('id')->toList(),
+        );
+        $this->assertEqualsCanonicalizing(['_id', 'name'], array_keys($results->first()->toArray()));
     }
 
     /**
