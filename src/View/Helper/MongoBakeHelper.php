@@ -28,7 +28,8 @@ use function Cake\Collection\collection;
  * parent (`columnData`, `enumSupportsLabel`, `aliasExtractor`).
  *
  * Templates use `MongoBake.mongoColumnData()` and friends with a
- * `CollectionSchema` / `BaseCollection`.
+ * `CollectionSchema` / `BaseCollection`. Identifier reads go through
+ * `mongoIdAccess()` / `mongoFieldAccess()` so `_id` bakes as `getId()`.
  */
 class MongoBakeHelper extends BakeHelper
 {
@@ -141,5 +142,41 @@ class MongoBakeHelper extends BakeHelper
         $association = $collection->getAssociation($assoc);
 
         return $association->getName();
+    }
+
+    /**
+     * PHP expression that reads a document's identifier.
+     *
+     * Mongo documents use `_id`; baked templates call `getId()` so ObjectId
+     * values stringify. Other primary-key names keep property access.
+     *
+     * @param string $document PHP expression for the document (`$article`, `$comment->article`).
+     * @param array<int, string>|string|null $primaryKey Primary key field name(s).
+     * @return string
+     */
+    public function mongoIdAccess(string $document, string|array|null $primaryKey = '_id'): string
+    {
+        $keys = array_values((array)($primaryKey ?? ['_id']));
+        $field = $keys[0] ?? '_id';
+
+        return $this->mongoFieldAccess($document, $field);
+    }
+
+    /**
+     * PHP expression that reads a document field.
+     *
+     * `_id` is read through `getId()`; other fields use property access.
+     *
+     * @param string $document PHP expression for the document.
+     * @param string $field Field name.
+     * @return string
+     */
+    public function mongoFieldAccess(string $document, string $field): string
+    {
+        if ($field === '_id') {
+            return $document . '->getId()';
+        }
+
+        return $document . '->' . $field;
     }
 }

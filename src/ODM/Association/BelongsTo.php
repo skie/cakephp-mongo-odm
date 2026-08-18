@@ -154,12 +154,13 @@ class BelongsTo extends Association
     {
         $builder = $this->buildAggregation();
         $property = $this->getProperty();
+        $lookupAlias = $this->containedLookupAlias($property, $options);
         $pipelineOptions = $this->mergePipelineConditions($options);
         $disableForeignKey = ($options['foreignKey'] ?? $this->getForeignKey()) === false;
         $negateMatch = !empty($options['negateMatch']);
         $matching = !empty($options['matching']);
 
-        $lookup = $builder->lookup($this->getTarget()->getCollection())->alias($property);
+        $lookup = $builder->lookup($this->getTarget()->getCollection())->alias($lookupAlias);
 
         if ($disableForeignKey) {
             $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
@@ -191,9 +192,10 @@ class BelongsTo extends Association
             }
         }
 
-        $builder->unwind('$' . $property, [
+        $builder->unwind('$' . $lookupAlias, [
             'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
         ]);
+        $this->nestContainedLookup($builder, $property, $options, $lookupAlias);
 
         if ($negateMatch && empty($options['deferNegateMatch'])) {
             $builder->match([$property => null]);

@@ -605,18 +605,26 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
     /**
      * Hydrates a single associated row into a document.
      *
+     * Query results must not go through {@see \Crustum\Mongo\ODM\Marshaller}:
+     * `newDocument()` mass-assigns with `guard` true, which drops inaccessible
+     * fields such as `_id` on baked documents. Cake's ResultSetFactory
+     * constructs entities with `guard` false for the same reason.
+     *
      * @param array<string, mixed> $row The row data.
      * @param \Crustum\Mongo\ODM\BaseCollection $repository The target repository.
      * @return \Cake\Datasource\EntityInterface
      */
     protected function hydrateRow(array $row, BaseCollection $repository): EntityInterface
     {
-        $row = $this->convertRow($row);
+        $row = $this->convertRowWith($row, $repository);
+        $class = $repository->getDocumentClass();
 
-        return $repository->newDocument($row, [
-            'source' => $repository->getRegistryAlias(),
-            'markNew' => false,
+        return new $class($row, [
+            'useSetters' => false,
             'markClean' => true,
+            'markNew' => false,
+            'guard' => false,
+            'source' => $repository->getRegistryAlias(),
         ]);
     }
 

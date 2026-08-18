@@ -171,6 +171,8 @@ class MongoTemplateCommandTest extends TestCase
         $this->assertStringContainsString('Products', $result);
         $this->assertStringContainsString('$products', $result);
         $this->assertStringContainsString('paginator', strtolower($result));
+        $this->assertStringContainsString('$product->getId()', $result);
+        $this->assertStringNotContainsString('$product->_id', $result);
     }
 
     /**
@@ -210,6 +212,8 @@ class MongoTemplateCommandTest extends TestCase
         $this->assertExitCode(CommandInterface::CODE_SUCCESS);
         $this->assertFileExists($this->generatedFile);
         $this->assertFileContains('form content', $this->generatedFile);
+        $this->assertFileContains('$product->getId()', $this->generatedFile);
+        $this->assertFileNotContains('$product->_id', $this->generatedFile);
     }
 
     /**
@@ -263,5 +267,7 @@ class MongoTemplateCommandTest extends TestCase
 
         $this->assertExitCode(CommandInterface::CODE_SUCCESS);
         $this->assertFileExists($this->generatedFile);
+        $this->assertFileContains('$product->getId()', $this->generatedFile);
+        $this->assertFileNotContains('$product->_id', $this->generatedFile);
     }
 }

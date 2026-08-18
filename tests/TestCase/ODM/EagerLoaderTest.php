@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Test\TestCase\ODM;
 
-use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\QueryExpression;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
 use Crustum\Mongo\ODM\EagerLoader;
@@ -164,11 +162,12 @@ class EagerLoaderTest extends TestCase
     }
 
     /**
-     * Tests that fully defined belongsTo and hasOne relationships are joined correctly
+     * Top-level and nested belongsTo/hasOne containments attach as `$lookup`
+     * (SQL JOIN analog). Nested results are moved under the parent property
+     * after `$unwind` so hydration sees `client.order`, not a root sibling.
      */
     public function testContainToJoinsOneLevel(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; join/select-clause white-box is SQL-only (F25).');
         $contains = [
             'clients' => [
                 'orders' => [
@@ -182,71 +181,67 @@ class EagerLoaderTest extends TestCase
             ],
         ];
 
-        $query = Mockery::mock(SelectQuery::class . '[join]', [$this->collection]);
-        $query->setTypeMap($this->clientsTypeMap);
-
-        $expectedTables = [
-            ['clients' => [
-                'collection' => 'clients',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['clients.id' => new IdentifierExpression('foo.client_id')],
-                ], new TypeMap($this->clientsTypeMap->getDefaults())),
-            ]],
-            ['orders' => [
-                'collection' => 'orders',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['clients.id' => new IdentifierExpression('orders.client_id')],
-                ], $this->ordersTypeMap),
-            ]],
-            ['orderTypes' => [
-                'collection' => 'order_types',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['orderTypes.id' => new IdentifierExpression('orders.order_type_id')],
-                ], $this->orderTypesTypeMap),
-            ]],
-            ['stuff' => [
-                'collection' => 'things',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['orders.id' => new IdentifierExpression('stuff.order_id')],
-                ], $this->stuffTypeMap),
-            ]],
-            ['stuffTypes' => [
-                'collection' => 'stuff_types',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['stuffTypes.id' => new IdentifierExpression('stuff.stuff_type_id')],
-                ], $this->stuffTypesTypeMap),
-            ]],
-            ['companies' => [
-                'collection' => 'organizations',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['companies.id' => new IdentifierExpression('clients.organization_id')],
-                ], $this->companiesTypeMap),
-            ]],
-            ['categories' => [
-                'collection' => 'categories',
-                'type' => 'LEFT',
-                'conditions' => new QueryExpression([
-                    ['categories.id' => new IdentifierExpression('companies.category_id')],
-                ], $this->categoriesTypeMap),
-            ]],
-        ];
-
-        foreach ($expectedTables as $collection) {
-            $query->shouldReceive('join')
-                ->with($collection)
-                ->andReturn($query)
-                ->once();
-        }
-
+        $query = new SelectQuery($this->collection);
         $loader = new EagerLoader();
         $loader->contain($contains);
-        $query->select('foo.id')->setEagerLoader($loader)->sql();
+
+        $query->select(['_id']);
+        $loader->attachAssociations($query, $this->collection);
+
+        $hasOne = static fn(string $from, string $as, string $local, string $foreign): array => ['$lookup' => [
+            'from' => $from,
+            'as' => $as,
+            'let' => ['bindingValue' => '$' . $local],
+            'pipeline' => [
+                ['$match' => ['$expr' => ['$and' => [
+                    ['$ne' => ['$$bindingValue', null]],
+                    ['$eq' => ['$' . $foreign, '$$bindingValue']],
+                ]]]],
+                ['$limit' => 1],
+            ],
+        ]];
+        $belongsTo = static fn(string $from, string $as, string $local): array => ['$lookup' => [
+            'from' => $from,
+            'as' => $as,
+            'localField' => $local,
+            'foreignField' => '_id',
+        ]];
+        $unwind = static fn(string $as): array => ['$unwind' => [
+            'path' => '$' . $as,
+            'preserveNullAndEmptyArrays' => true,
+        ]];
+        $nest = static fn(string $path, string $as): array => [
+            ['$addFields' => [$path => '$' . $as]],
+            ['$unset' => $as],
+        ];
+
+        $this->assertSame([
+            $belongsTo('clients', 'client', 'client_id'),
+            $unwind('client'),
+            $hasOne('orders', 'client__order', 'client._id', 'client_id'),
+            $unwind('client__order'),
+            ...$nest('client.order', 'client__order'),
+            $belongsTo('order_types', 'client__order__order_type', 'client.order.order_type_id'),
+            $unwind('client__order__order_type'),
+            ...$nest('client.order.order_type', 'client__order__order_type'),
+            $hasOne('things', 'client__order__stuff', 'client.order._id', 'order_id'),
+            $unwind('client__order__stuff'),
+            ...$nest('client.order.stuff', 'client__order__stuff'),
+            $belongsTo('stuff_types', 'client__order__stuff__stuff_type', 'client.order.stuff.stuff_type_id'),
+            $unwind('client__order__stuff__stuff_type'),
+            ...$nest('client.order.stuff.stuff_type', 'client__order__stuff__stuff_type'),
+            $belongsTo('organizations', 'client__company', 'client.organization_id'),
+            $unwind('client__company'),
+            ...$nest('client.company', 'client__company'),
+            $belongsTo('categories', 'client__company__category', 'client.company.category_id'),
+            $unwind('client__company__category'),
+            ...$nest('client.company.category', 'client__company__category'),
+        ], $loader->getAttachedPipeline());
+
+        $this->assertSame([], $loader->getExternalAssociations());
+
+        $companies = $loader->normalized($this->collection)['clients']->associations()['companies'];
+        $this->assertSame('organization_id', $companies->getConfig()['foreignKey']);
     }
 
     /**

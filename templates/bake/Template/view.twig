@@ -23,7 +23,7 @@
 {% set fieldsData = Bake.getViewFieldsData(fields, schema, associations) %}
 {% set associationFields = fieldsData.associationFields %}
 {% set groupedFields = fieldsData.groupedFields %}
-{% set pK = '$' ~ singularVar ~ '->' ~ primaryKey[0] %}
+{% set pK = MongoBake.mongoIdAccess('$' ~ singularVar, primaryKey) %}
 {% set done = [] %}
 <div class="row">
     <aside class="column">
@@ -46,12 +46,12 @@
             {%~ set details = associationFields[field] %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ details.property|humanize }}') ?></th>
-                    <td><?= ${{ singularVar }}->hasValue('{{ details.property }}') ? $this->Html->link(${{ singularVar }}->{{ details.property }}->{{ details.displayField }}, ['controller' => '{{ details.controller }}', 'action' => 'view', ${{ singularVar }}->{{ details.property }}->{{ details.primaryKey[0] }}]) : '' ?></td>
+                    <td><?= ${{ singularVar }}->hasValue('{{ details.property }}') ? $this->Html->link(${{ singularVar }}->{{ details.property }}->{{ details.displayField }}, ['controller' => '{{ details.controller }}', 'action' => 'view', {{ MongoBake.mongoIdAccess('$' ~ singularVar ~ '->' ~ details.property, details.primaryKey)|raw }}]) : '' ?></td>
                 </tr>
         {%~ else %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ field|humanize }}') ?></th>
-                    <td><?= h(${{ singularVar }}->{{ field }}) ?></td>
+                    <td><?= h({{ MongoBake.mongoFieldAccess('$' ~ singularVar, field)|raw }}) ?></td>
                 </tr>
         {%~ endif %}
     {%~ endfor %}
@@ -60,7 +60,7 @@
     {%~ for alias, details in associations.HasOne %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ alias|underscore|singularize|humanize }}') ?></th>
-                    <td><?= ${{ singularVar }}->hasValue('{{ details.property }}') ? $this->Html->link(${{ singularVar }}->{{ details.property }}->{{ details.displayField }}, ['controller' => '{{ details.controller }}', 'action' => 'view', ${{ singularVar }}->{{ details.property }}->{{ details.primaryKey[0] }}]) : '' ?></td>
+                    <td><?= ${{ singularVar }}->hasValue('{{ details.property }}') ? $this->Html->link(${{ singularVar }}->{{ details.property }}->{{ details.displayField }}, ['controller' => '{{ details.controller }}', 'action' => 'view', {{ MongoBake.mongoIdAccess('$' ~ singularVar ~ '->' ~ details.property, details.primaryKey)|raw }}]) : '' ?></td>
                 </tr>
     {%~ endfor %}
 {% endif %}
@@ -95,7 +95,7 @@
     {%~ for field in groupedFields.date %}
                 <tr>
                     <th><?= {% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'{{ field|humanize }}') ?></th>
-                    <td><?= h(${{ singularVar }}->{{ field }}) ?></td>
+                    <td><?= h({{ MongoBake.mongoFieldAccess('$' ~ singularVar, field)|raw }}) ?></td>
                 </tr>
     {%~ endfor %}
 {% endif %}
@@ -139,9 +139,9 @@
                         <?php foreach (${{ singularVar }}->{{ details.property }} as ${{ otherSingularVar }}) : ?>
                         <tr>
     {%~ for field in details.fields %}
-                            <td><?= h(${{ otherSingularVar }}->{{ field }}) ?></td>
+                            <td><?= h({{ MongoBake.mongoFieldAccess('$' ~ otherSingularVar, field)|raw }}) ?></td>
     {%~ endfor %}
-    {%~ set otherPk = '$' ~ otherSingularVar ~ '->' ~ details.primaryKey[0] %}
+    {%~ set otherPk = MongoBake.mongoIdAccess('$' ~ otherSingularVar, details.primaryKey) %}
                             <td class="actions">
                                 <?= $this->Html->link({% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'View'), ['controller' => '{{ details.controller }}', 'action' => 'view', {{ otherPk|raw }}]) ?>
                                 <?= $this->Html->link({% if useDomain %}__d('{{ plugin }}', {% else %}__({% endif %}'Edit'), ['controller' => '{{ details.controller }}', 'action' => 'edit', {{ otherPk|raw }}]) ?>

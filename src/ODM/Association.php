@@ -1579,6 +1579,63 @@ abstract class Association
     }
 
     /**
+     * `$lookup.as` for contained associations.
+     *
+     * Nested contain under an already-unwound parent uses a prefixed alias so
+     * a second `author` lookup does not overwrite the root `author` document.
+     *
+     * @param string $property The association property name.
+     * @param array<string, mixed> $options Pipeline options.
+     * @return string
+     */
+    protected function containedLookupAlias(string $property, array $options): string
+    {
+        if (!empty($options['matching'])) {
+            return $property;
+        }
+
+        $prefix = $options['lookupPrefix'] ?? '';
+        if (!is_string($prefix) || $prefix === '') {
+            return $property;
+        }
+
+        return str_replace('.', '__', $prefix) . '__' . $property;
+    }
+
+    /**
+     * Moves a contained lookup property under its parent after `$unwind`.
+     *
+     * Matching leaves the property at the document root so `_matchingData`
+     * can pick it up. Nested contain must nest (`client.order`) — a dotted
+     * `$lookup.as` would overwrite the already-unwound parent document.
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @param string $property The association property name.
+     * @param array<string, mixed> $options Pipeline options.
+     * @param string|null $lookupAlias The temporary `$lookup.as` field name.
+     * @return void
+     */
+    protected function nestContainedLookup(
+        AggregationBuilder $builder,
+        string $property,
+        array $options,
+        ?string $lookupAlias = null,
+    ): void {
+        if (!empty($options['matching'])) {
+            return;
+        }
+
+        $prefix = $options['lookupPrefix'] ?? '';
+        if (!is_string($prefix) || $prefix === '') {
+            return;
+        }
+
+        $lookupAlias ??= $property;
+        $builder->addFields()->field($prefix . '.' . $property, '$' . $lookupAlias);
+        $builder->unsetFields($lookupAlias);
+    }
+
+    /**
      * Helper method to infer the requested finder and its options.
      *
      * Returns the inferred options from the finder $type.

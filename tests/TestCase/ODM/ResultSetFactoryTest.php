@@ -17,6 +17,7 @@ use TestApp\Dto\AuthorArrayDto;
 use TestApp\Dto\AuthorDto;
 use TestApp\Dto\CommentDto;
 use TestApp\Dto\SimpleArticleDto;
+use TestApp\Model\Document\ProtectedArticle;
 
 /**
  * ResultSetFactory test case.
@@ -111,6 +112,30 @@ class ResultSetFactoryTest extends TestCase
         $this->assertNull($comment->article);
         $this->assertSame('000000000000000000000001', $comment->getId());
         $this->assertNotEmpty($comment->comment);
+    }
+
+    /**
+     * Contained belongsto rows keep `_id` even when the document class omits
+     * it from `$_accessible` (baked documents do this for the primary key).
+     */
+    public function testContainedAssociationHydratesInaccessiblePrimaryKey(): void
+    {
+        $articles = $this->getCollectionLocator()->get('Articles');
+        $articles->setDocumentClass(ProtectedArticle::class);
+
+        $comments = $this->getCollectionLocator()->get('Comments');
+        $comments->belongsTo('Articles');
+
+        $comment = $comments->find()
+            ->contain(['Articles'])
+            ->where(['Comments._id' => '000000000000000000000001'])
+            ->first();
+
+        $this->assertNotNull($comment->article);
+        $this->assertInstanceOf(ProtectedArticle::class, $comment->article);
+        $this->assertSame('000000000000000000000001', $comment->article->getId());
+        $this->assertNotEmpty($comment->article->title);
+        $this->assertSame('000000000000000000000001', $comment->article_id);
     }
 
     /**

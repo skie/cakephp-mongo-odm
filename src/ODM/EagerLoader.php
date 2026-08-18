@@ -7,6 +7,7 @@ use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
+use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 
@@ -915,12 +916,17 @@ class EagerLoader
 
         $strategy = $loadable->getConfig()['strategy'];
         $matching = (bool)($loadable->getConfig()['matching'] ?? false);
-        $isNested = str_contains($loadable->propertyPath() ?? '', '.');
+        $aliasPath = $loadable->aliasPath();
+        $parentAliasPath = str_contains($aliasPath, '.')
+            ? substr($aliasPath, 0, (int)strrpos($aliasPath, '.'))
+            : null;
+        $parentLookupMissing = $parentAliasPath !== null
+            && !isset($this->attachedLookupPaths[$parentAliasPath]);
         if ($association instanceof BelongsToMany) {
             $path = $loadable->aliasPath();
             if (!isset($this->attachedLookupPaths[$path])) {
                 $config = $loadable->getConfig();
-                if ($matching && $parentProperty !== null) {
+                if ($parentProperty !== null) {
                     $config['lookupPrefix'] = $parentProperty;
                 }
 
@@ -939,9 +945,10 @@ class EagerLoader
         } elseif (
             !$matching
             && (
-                $strategy === 'select'
+                $association instanceof HasMany
+                || $strategy === 'select'
                 || $strategy === 'reference'
-                || $isNested
+                || $parentLookupMissing
                 || ($strategy === Association::STRATEGY_LOOKUP && !$association->usesLookup($loadable->getConfig()))
             )
         ) {
@@ -954,14 +961,14 @@ class EagerLoader
             $path = $loadable->aliasPath();
             if (isset($this->attachedLookupPaths[$path])) {
                 foreach ($loadable->associations() as $nested) {
-                    $this->dispatch($nested, $query, $association->getProperty());
+                    $this->dispatch($nested, $query, $this->nestedLookupPrefix($loadable, $association));
                 }
 
                 return;
             }
 
             $config = $loadable->getConfig();
-            if ($matching && $parentProperty !== null) {
+            if ($parentProperty !== null) {
                 $config['lookupPrefix'] = $parentProperty;
             }
 
@@ -997,8 +1004,28 @@ class EagerLoader
         }
 
         foreach ($loadable->associations() as $nested) {
-            $this->dispatch($nested, $query, $association->getProperty());
+            $this->dispatch($nested, $query, $this->nestedLookupPrefix($loadable, $association));
         }
+    }
+
+    /**
+     * Prefix for a nested `$lookup.localField` (and contain nesting).
+     *
+     * Matching unwinds onto the document root, so the prefix is the parent
+     * property name. Nested contain keeps the parent document, so the prefix
+     * is the full property path (`client.order`).
+     *
+     * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The parent loadable.
+     * @param \Crustum\Mongo\ODM\Association $association The parent association.
+     * @return string
+     */
+    private function nestedLookupPrefix(EagerLoadable $loadable, Association $association): string
+    {
+        if (!empty($loadable->getConfig()['matching'])) {
+            return $association->getProperty();
+        }
+
+        return $loadable->propertyPath() ?? $association->getProperty();
     }
 
     /**

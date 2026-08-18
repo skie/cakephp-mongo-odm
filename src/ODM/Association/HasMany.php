@@ -10,7 +10,6 @@ use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\Association;
-use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
@@ -569,10 +568,6 @@ class HasMany extends Association
             'strategy' => $this->getStrategy(),
             'conditions' => $this->getConditions(),
         ];
-        $isNestedLoad = !empty($options['sourcePath']);
-        if ($this->getStrategy() === self::STRATEGY_LOOKUP && !$isNestedLoad) {
-            return (new LookupLoader(['association' => $this]))->buildEagerLoader($options + $loaderOptions);
-        }
 
         return (new SelectLoader($loaderOptions))->buildEagerLoader($options);
     }

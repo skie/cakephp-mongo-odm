@@ -75,4 +75,29 @@ class MongoBakeHelperTest extends TestCase
         $result = $this->MongoBakeHelper->mongoAliasExtractor($collection, 'HasMany');
         $this->assertSame([], $result);
     }
+
+    /**
+     * `_id` primary keys bake as `getId()`; other keys keep property access.
+     */
+    public function testMongoIdAccess(): void
+    {
+        $this->assertSame('$comment->getId()', $this->MongoBakeHelper->mongoIdAccess('$comment'));
+        $this->assertSame(
+            '$comment->article->getId()',
+            $this->MongoBakeHelper->mongoIdAccess('$comment->article', ['_id']),
+        );
+        $this->assertSame(
+            '$item->uuid',
+            $this->MongoBakeHelper->mongoIdAccess('$item', ['uuid']),
+        );
+    }
+
+    /**
+     * Field access uses `getId()` only for `_id`.
+     */
+    public function testMongoFieldAccess(): void
+    {
+        $this->assertSame('$tag->getId()', $this->MongoBakeHelper->mongoFieldAccess('$tag', '_id'));
+        $this->assertSame('$tag->name', $this->MongoBakeHelper->mongoFieldAccess('$tag', 'name'));
+    }
 }
