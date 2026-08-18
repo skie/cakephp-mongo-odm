@@ -204,6 +204,20 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Whether this association can be expressed as an in-pipeline `$lookup`.
+     *
+     * Cake BelongsToMany is joinable only for `matching()`, never for contain().
+     * Default subquery→lookup is a loader mapping, not a joinable contain().
+     *
+     * @param array<string, mixed> $options Containment options.
+     * @return bool
+     */
+    public function canBeJoined(array $options = []): bool
+    {
+        return !empty($options['matching']);
+    }
+
+    /**
      * Gets the default loading strategy.
      *
      * @return string

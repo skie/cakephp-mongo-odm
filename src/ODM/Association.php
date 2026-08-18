@@ -702,13 +702,18 @@ abstract class Association
     }
 
     /**
-     * Whether the association can be loaded through an in-pipeline join.
+     * Whether the association can be expressed as an in-pipeline `$lookup`.
      *
+     * Cake ORM uses `strategy === join`. The ODM analog is `lookup`.
+     *
+     * @param array<string, mixed> $options Containment options that may override strategy.
      * @return bool
      */
-    public function canBeJoined(): bool
+    public function canBeJoined(array $options = []): bool
     {
-        return false;
+        $strategy = $options['strategy'] ?? $this->getStrategy();
+
+        return $strategy === self::STRATEGY_LOOKUP;
     }
 
     /**

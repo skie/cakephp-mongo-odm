@@ -189,13 +189,16 @@ class HasMany extends Association
     }
 
     /**
-     * Has-many targets are never joined into the source pipeline.
+     * Whether this association can be expressed as an in-pipeline `$lookup`.
      *
+     * Cake HasMany is joinable only for `matching()`, never for contain().
+     *
+     * @param array<string, mixed> $options Containment options.
      * @return bool
      */
-    public function canBeJoined(): bool
+    public function canBeJoined(array $options = []): bool
     {
-        return false;
+        return !empty($options['matching']);
     }
 
     /**

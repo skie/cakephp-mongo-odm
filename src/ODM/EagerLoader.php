@@ -764,7 +764,16 @@ class EagerLoader
         $config = $this->applyQueryBuilder($config, $target);
         $nestedMatching = $config['_matching'] ?? [];
         unset($config['_matching']);
-        $loadable = new EagerLoadable($alias, $association, $config, $aliasPath, $propertyPath, false, $config['matching'] ?? null, $alias);
+        $loadable = new EagerLoadable(
+            $alias,
+            $association,
+            $config,
+            $aliasPath,
+            $propertyPath,
+            $association->canBeJoined($config),
+            $config['matching'] ?? null,
+            $alias,
+        );
 
         foreach ($options as $nestedAlias => $nestedOptions) {
             if (!isset($this->containOptions[$nestedAlias])) {

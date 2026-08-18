@@ -146,7 +146,6 @@ class HasManyTest extends TestCase
      */
     public function testCanBeJoined(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testCanBeJoined is SQL-only (F25).');
         $assoc = new HasMany('Test', $this->author);
         $this->assertFalse($assoc->canBeJoined());
     }
