@@ -337,6 +337,33 @@ class FunctionsBuilderTest extends TestCase
     }
 
     /**
+     * Test type/inArray/isMissingOrNull and condWhenPresent for optional unwind paths.
+     *
+     * @return void
+     */
+    public function testTypeAndCondWhenPresent(): void
+    {
+        $func = $this->functions;
+
+        $this->assertSame(['$type' => '$author'], $func->type('$author')->getConditions());
+        $this->assertSame(['$type' => '$author'], $func->type('author')->getConditions());
+        $this->assertSame(
+            ['$in' => [['$type' => '$author'], ['missing', 'null']]],
+            $func->isMissingOrNull('$author')->getConditions(),
+        );
+        $this->assertSame(
+            [
+                '$cond' => [
+                    ['$in' => [['$type' => '$author'], ['missing', 'null']]],
+                    null,
+                    ['name' => '$author.name'],
+                ],
+            ],
+            $func->condWhenPresent('$author', ['name' => '$author.name'])->getConditions(),
+        );
+    }
+
+    /**
      * Test string/conversion/math operators render their $-operator documents.
      *
      * @return void

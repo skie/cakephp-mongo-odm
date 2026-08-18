@@ -127,6 +127,66 @@ class FunctionsBuilder
     }
 
     /**
+     * Returns one value when a field path is present, otherwise another.
+     *
+     * After a LEFT `$unwind`, optional associations are `missing` or `null`;
+     * use this to keep the source row while projecting only matched data.
+     *
+     * @param mixed $expression The field path to test (`$author`, `author`, …).
+     * @param mixed $whenPresent The value when the path is present.
+     * @param mixed $whenMissing The value when the path is missing or null.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function condWhenPresent(mixed $expression, mixed $whenPresent, mixed $whenMissing = null): FunctionExpression
+    {
+        return $this->cond(
+            $this->isMissingOrNull($expression),
+            $whenMissing,
+            $whenPresent,
+        );
+    }
+
+    /**
+     * Returns the BSON type of an expression (`$type`).
+     *
+     * @param mixed $expression The field path or expression.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function type(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$type', [$this->fieldPath($expression)]);
+    }
+
+    /**
+     * Returns whether an expression is contained in a list (`$in`).
+     *
+     * Aggregation `$in` differs from query `{field: {$in: [...]}}`: the first
+     * operand is any expression and the second is a literal array of values.
+     *
+     * @param mixed $expression The left operand.
+     * @param list<mixed> $values The values to test membership against.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function inArray(mixed $expression, array $values): FunctionExpression
+    {
+        return new FunctionExpression('$in', [$expression, $values]);
+    }
+
+    /**
+     * Returns whether a field path is missing or null after `$unwind`.
+     *
+     * @param mixed $expression The field path (`$author` or `author`).
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function isMissingOrNull(mixed $expression): FunctionExpression
+    {
+        return $this->inArray(
+            $this->type($expression),
+            ['missing', 'null'],
+        );
+    }
+
+    /**
      * Concatenates strings.
      *
      * @param list<mixed> $args The expressions to concatenate
@@ -597,5 +657,24 @@ class FunctionsBuilder
         }
 
         return new FunctionExpression('$shift', [$args]);
+    }
+
+    /**
+     * Normalizes a bare field name to a `$field` aggregation path.
+     *
+     * @param mixed $expression The field path or expression.
+     * @return mixed
+     */
+    protected function fieldPath(mixed $expression): mixed
+    {
+        if (!is_string($expression)) {
+            return $expression;
+        }
+
+        if (str_starts_with($expression, '$')) {
+            return $expression;
+        }
+
+        return '$' . $expression;
     }
 }

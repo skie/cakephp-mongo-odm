@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\ODM\Association\Loader;
 
 use ArrayAccess;
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
@@ -87,8 +88,13 @@ class SelectLoader implements LoaderInterface
 
             $sourceHoldsForeignKey = ($options['associationType'] ?? '') === 'manyToOne';
             $foreignKeyDef = $options['foreignKey'] ?? '_id';
-            // `foreignKey => false` disables FK matching: the association loads
-            // by conditions alone (cake parity) and attaches the single match.
+            if ($foreignKeyDef === false && ($options['associationType'] ?? '') === 'oneToMany') {
+                throw new DatabaseException(
+                    'Cannot have foreignKey = false for hasMany associations. '
+                    . 'You must provide a foreignKey column.',
+                );
+            }
+
             $keyMatchingDisabled = in_array($foreignKeyDef, [false, null, ''], true);
             if ($keyMatchingDisabled && $sourceHoldsForeignKey && empty($options['conditions'])) {
                 return $entities;
@@ -121,26 +127,50 @@ class SelectLoader implements LoaderInterface
             }
 
             $conditions = $options['conditions'] ?? [];
+            $appliedClosureConditions = false;
             if ($conditions instanceof Closure) {
                 // Let the query layer invoke the closure with (expression, query)
                 // so association conditions match the `where()` contract.
                 $query->where($conditions);
-                $conditions = null;
+                $appliedClosureConditions = true;
+                $conditions = [];
+            } elseif (!is_array($conditions)) {
+                $conditions = [];
             }
 
-            $conditions = $conditions === null ? [] : (is_array($conditions) ? $conditions : []);
+            $keyFilter = [];
             if ($filterByKey && $tuples !== []) {
                 if (count($targetKeyFields) === 1) {
-                    $conditions[$targetKeyFields[0] . ' IN'] = array_map(
-                        static fn(array $tuple): mixed => $tuple[0],
-                        array_values($tuples),
-                    );
-                } elseif ($query instanceof Query) {
-                    $query->where(new TupleInExpression($targetKeyFields, array_values($tuples)));
+                    $keyFilter = [
+                        $targetKeyFields[0] . ' IN' => array_map(
+                            static fn(array $tuple): mixed => $tuple[0],
+                            array_values($tuples),
+                        ),
+                    ];
+                } else {
+                    $keyFilter = (new TupleInExpression($targetKeyFields, array_values($tuples)))
+                        ->getConditions();
                 }
             }
 
-            $query->where($conditions);
+            $mergeKeyFilter = $keyFilter !== []
+                && !$appliedClosureConditions
+                && !$this->conditionsOverlapKeyFilter($conditions, $targetKeyFields);
+
+            if ($mergeKeyFilter) {
+                $conditions = array_merge($conditions, $keyFilter);
+                $keyFilter = [];
+            }
+
+            if ($conditions !== []) {
+                $query->where($conditions);
+            }
+
+            if ($keyFilter !== [] && $query instanceof Query) {
+                $query->andWhere($keyFilter);
+            } elseif ($keyFilter !== []) {
+                $query->where($keyFilter);
+            }
             if (!empty($options['fields'])) {
                 $fields = $options['fields'];
                 if ($fields instanceof Closure) {
@@ -469,5 +499,52 @@ class SelectLoader implements LoaderInterface
         }
 
         $this->walkSourcePath($value, $segments, $collected);
+    }
+
+    /**
+     * Whether association conditions target the same fields as the key filter.
+     *
+     * @param array<string, mixed> $conditions Association conditions.
+     * @param list<string> $targetKeyFields Target-side key fields.
+     * @return bool
+     */
+    protected function conditionsOverlapKeyFilter(array $conditions, array $targetKeyFields): bool
+    {
+        if ($conditions === [] || $targetKeyFields === []) {
+            return false;
+        }
+
+        $conditionFields = $this->extractConditionFields($conditions);
+        foreach ($targetKeyFields as $field) {
+            if (in_array($field, $conditionFields, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extracts bare field names from a conditions array.
+     *
+     * @param array<string, mixed> $conditions Association conditions.
+     * @return list<string>
+     */
+    protected function extractConditionFields(array $conditions): array
+    {
+        $fields = [];
+        foreach (array_keys($conditions) as $key) {
+            if (!is_string($key) || $key === '$or' || $key === '$and') {
+                continue;
+            }
+
+            $field = preg_replace('/^[^.]+\./', '', $key);
+            $field = preg_replace('/\s+(=|!=|<>|<=|>=|<|>|IN|NOT IN|LIKE|IS|NOT)$/i', '', (string)$field);
+            if ($field !== '') {
+                $fields[] = $field;
+            }
+        }
+
+        return $fields;
     }
 }

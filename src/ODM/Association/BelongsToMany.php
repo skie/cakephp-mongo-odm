@@ -1784,7 +1784,9 @@ class BelongsToMany extends Association
         }
 
         $pipelineFields = $pipelineOptions['fields'] ?? null;
-        unset($pipelineOptions['fields']);
+        if (empty($options['matching'])) {
+            unset($pipelineOptions['fields']);
+        }
 
         if ($negateMatch && !$deferNegateMatch) {
             unset($pipelineOptions['conditions']);
@@ -1823,7 +1825,9 @@ class BelongsToMany extends Association
 
         $this->applyAssociationSort($builder);
         $this->applyFinderConditions($builder);
-        $this->applyFieldsProjection($builder, $pipelineFields);
+        if (empty($options['matching'])) {
+            $this->applyFieldsProjection($builder, $pipelineFields);
+        }
 
         return $builder->getPipeline();
     }

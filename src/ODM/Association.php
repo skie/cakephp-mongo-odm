@@ -937,9 +937,17 @@ abstract class Association
             );
         }
 
-        $projection = $surrogate->clause('select');
+        $projection = $compiled['options']['projection'] ?? [];
+        if ($projection === []) {
+            $projection = $surrogate->clause('select');
+        }
+
         if ($projection !== [] && empty($options['fields'])) {
-            $options['fields'] = array_keys($projection);
+            $options['fields'] = $projection;
+        }
+
+        if ($surrogate->isAutoFieldsEnabled()) {
+            $options['autoFields'] = true;
         }
 
         $sort = $surrogate->clause('order') ?? [];
@@ -1210,17 +1218,21 @@ abstract class Association
         }
 
         if (!empty($options['fields'])) {
-            $fields = (array)$options['fields'];
-            if (array_is_list($fields)) {
-                $fields = array_fill_keys($fields, 1);
-            }
+            if (!empty($options['matching'])) {
+                $this->applyMatchingFieldsProjection($builder, $options);
+            } else {
+                $fields = (array)$options['fields'];
+                if (array_is_list($fields)) {
+                    $fields = array_fill_keys($fields, 1);
+                }
 
-            $normalizedFields = [];
-            foreach ($fields as $field => $value) {
-                $normalizedFields[$this->resolvePipelineField((string)$field)] = $value;
-            }
+                $normalizedFields = [];
+                foreach ($fields as $field => $value) {
+                    $normalizedFields[$this->resolvePipelineField((string)$field)] = $value;
+                }
 
-            $builder->project($normalizedFields);
+                $builder->project($normalizedFields);
+            }
         }
 
         if (!empty($options['sort'])) {
@@ -1280,6 +1292,14 @@ abstract class Association
             $project = [];
             foreach ($fields as $field => $value) {
                 $project[$this->resolvePipelineField((string)$field)] = $value;
+            }
+
+            if (!empty($options['autoFields'])) {
+                foreach ($this->targetSchemaColumns() as $column) {
+                    if (!array_key_exists($column, $project)) {
+                        $project[$column] = 1;
+                    }
+                }
             }
 
             if (!array_key_exists('_id', $project)) {
@@ -1884,6 +1904,64 @@ abstract class Association
     protected function repositoryAlias(BaseCollection $repository): string
     {
         return $repository->getAlias();
+    }
+
+    /**
+     * Limits an unwound matching document to the requested fields.
+     *
+     * A root `$project` would drop parent columns, so matching uses `$addFields`
+     * to replace only the association property (cake JOIN select-list analog).
+     *
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @param array<string, mixed> $options Containment options including `fields`.
+     * @return void
+     */
+    protected function applyMatchingFieldsProjection(AggregationBuilder $builder, array $options): void
+    {
+        $fields = (array)($options['fields'] ?? []);
+        if ($fields === []) {
+            return;
+        }
+
+        if (array_is_list($fields)) {
+            $fields = array_fill_keys($fields, 1);
+        }
+
+        $property = $this->containedLookupAlias($this->getProperty(), $options);
+        $spec = [];
+        foreach ($fields as $field => $value) {
+            $bare = $this->resolvePipelineField((string)$field);
+            if ($bare === '') {
+                continue;
+            }
+
+            if ($value === 1 || $value === true) {
+                $spec[$bare] = '$' . $property . '.' . $bare;
+                continue;
+            }
+
+            $spec[$bare] = $value;
+        }
+
+        if ($spec === []) {
+            return;
+        }
+
+        $builder->addFields()->fieldWhenPresent($property, '$' . $property, $spec);
+    }
+
+    /**
+     * Schema column names on the association target, when available.
+     *
+     * @return list<string>
+     */
+    protected function targetSchemaColumns(): array
+    {
+        try {
+            return array_values($this->getTarget()->getSchema()->columns());
+        } catch (InvalidArgumentException) {
+            return [];
+        }
     }
 
     /**

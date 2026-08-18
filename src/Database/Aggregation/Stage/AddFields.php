@@ -46,6 +46,26 @@ class AddFields extends Stage
     }
 
     /**
+     * Sets a field when a path is present; otherwise null.
+     *
+     * After a LEFT `$unwind`, optional associations are missing or null on the
+     * document. A root `$project` would drop parent columns, so matching uses
+     * `$addFields` with this helper to replace only the association property.
+     *
+     * @param string $fieldName The output field name.
+     * @param string $path The field path to test (`$author`, `$articles`, …).
+     * @param mixed $value The expression when the path is present.
+     * @return $this
+     */
+    public function fieldWhenPresent(string $fieldName, string $path, mixed $value): static
+    {
+        return $this->field(
+            $fieldName,
+            $this->getBuilder()->func()->condWhenPresent($path, $value),
+        );
+    }
+
+    /**
      * Get the MongoDB aggregation stage expression
      *
      * @return array<string, mixed> The $addFields stage expression

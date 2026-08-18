@@ -250,6 +250,7 @@ class EagerLoader
         do {
             $before = $this->containments;
             $this->normalized = null;
+            $this->correctContainStrategiesForMatching($repository);
 
             foreach ($this->normalized($repository) as $loadable) {
                 $this->dispatch($loadable, $query);
@@ -845,6 +846,8 @@ class EagerLoader
             );
         }
 
+        $this->assignMatchingSelectFields($loadable);
+
         return $loadable;
     }
 
@@ -901,6 +904,11 @@ class EagerLoader
         $compiled = $query->compile();
         /** @var array<string, mixed> $filter */
         $filter = $compiled['filter'] ?? [];
+        if ($filter === [] && $query instanceof SelectQuery) {
+            /** @var array<string, mixed> $filter */
+            $filter = $query->clause('where') ?? [];
+        }
+
         if ($filter !== []) {
             $config['conditions'] = array_merge(
                 is_array($config['conditions'] ?? null) ? $config['conditions'] : [],
@@ -909,8 +917,16 @@ class EagerLoader
         }
 
         $projection = $this->extractCompiledProjection($compiled);
+        if ($projection === [] && $query instanceof SelectQuery) {
+            $projection = $query->clause('select') ?? [];
+        }
+
         if ($projection !== [] && empty($config['fields'])) {
             $config['fields'] = $projection;
+        }
+
+        if ($query instanceof SelectQuery && $query->isAutoFieldsEnabled()) {
+            $config['autoFields'] = true;
         }
 
         if (($compiled['options']['sort'] ?? []) !== [] && !isset($config['sort'])) {
@@ -985,6 +1001,168 @@ class EagerLoader
         }
 
         return [];
+    }
+
+    /**
+     * Forces contain of an association also used in matching / joinWith onto
+     * the external select loader (cake60 `EagerLoader::resolveJoins()`).
+     *
+     * Matching `$lookup.as` uses the short property name. A second contain
+     * lookup with the same alias would overwrite it, so contain hydrates
+     * separately and optional parents still return.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return void
+     */
+    private function correctContainStrategiesForMatching(BaseCollection $repository): void
+    {
+        if (!$this->matching instanceof EagerLoader) {
+            return;
+        }
+
+        $matching = $this->matching->normalized($repository);
+        foreach ($this->normalized($repository) as $alias => $loadable) {
+            if (!isset($matching[$alias]) || !empty($loadable->getConfig()['matching'])) {
+                continue;
+            }
+
+            $config = $loadable->getConfig();
+            $strategy = $config['strategy'] ?? Association::STRATEGY_LOOKUP;
+            if ($strategy === Association::STRATEGY_LOOKUP || $strategy === Association::STRATEGY_JOIN) {
+                $config['strategy'] = Association::STRATEGY_SELECT;
+                $loadable->setConfig($config);
+            }
+
+            $loadable->setCanBeJoined(false);
+        }
+    }
+
+    /**
+     * Moves dotted `select()` fields from a nested matching builder onto the
+     * association they belong to (cake JOIN select-list analog).
+     *
+     * `leftJoinWith('articles.tags', fn ($q) => $q->select(['articles.id', 'tags.name']))`
+     * runs the builder on the leaf query; parent columns must not leak into the
+     * tags `$project`.
+     *
+     * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The parent matching node.
+     * @return void
+     */
+    private function assignMatchingSelectFields(EagerLoadable $loadable): void
+    {
+        $association = $loadable->instance();
+        $config = $loadable->getConfig();
+        if ($association === null || empty($config['matching'])) {
+            return;
+        }
+
+        $parentPrefixes = $this->matchingFieldPrefixes($association);
+        $parentFields = $this->matchingFieldsMap($config['fields'] ?? null);
+
+        foreach ($loadable->associations() as $child) {
+            $this->assignMatchingSelectFields($child);
+            $childAssociation = $child->instance();
+            $childConfig = $child->getConfig();
+            $childFields = $this->matchingFieldsMap($childConfig['fields'] ?? null);
+            if ($childFields === []) {
+                continue;
+            }
+
+            $childPrefixes = $childAssociation instanceof Association
+                ? $this->matchingFieldPrefixes($childAssociation)
+                : [];
+            $kept = [];
+            foreach ($childFields as $field => $value) {
+                $field = (string)$field;
+                $parentBare = $this->matchingFieldBareName($field, $parentPrefixes);
+                if ($parentBare !== null) {
+                    $parentFields[$parentBare] = $value;
+                    continue;
+                }
+
+                $childBare = $this->matchingFieldBareName($field, $childPrefixes) ?? $field;
+                $kept[$this->matchingPrimaryKeyAlias($childBare)] = $value;
+            }
+
+            $childConfig['fields'] = $kept;
+            $child->setConfig($childConfig);
+        }
+
+        if ($parentFields !== []) {
+            $config['fields'] = $parentFields;
+            $loadable->setConfig($config);
+        }
+    }
+
+    /**
+     * Alias / property prefixes that own matching select fields.
+     *
+     * @param \Crustum\Mongo\ODM\Association $association The association.
+     * @return list<string>
+     */
+    private function matchingFieldPrefixes(Association $association): array
+    {
+        return array_values(array_unique(array_filter(
+            [
+                $association->getAlias(),
+                $association->getName(),
+                $association->getProperty(),
+            ],
+            static fn(string $prefix): bool => $prefix !== '',
+        )));
+    }
+
+    /**
+     * Normalizes a matching fields option to a field => value map.
+     *
+     * @param mixed $fields The fields option (`false` means filter-only).
+     * @return array<string, mixed>
+     */
+    private function matchingFieldsMap(mixed $fields): array
+    {
+        if (!is_array($fields) || $fields === []) {
+            return [];
+        }
+
+        if (array_is_list($fields)) {
+            return array_fill_keys(array_map(strval(...), $fields), 1);
+        }
+
+        $mapped = [];
+        foreach ($fields as $field => $value) {
+            $mapped[(string)$field] = $value === true ? 1 : $value;
+        }
+
+        return $mapped;
+    }
+
+    /**
+     * Strips an association prefix from a matching select field.
+     *
+     * @param string $field The raw field name.
+     * @param list<string> $prefixes Association aliases that own the field.
+     * @return string|null The bare field, or null when the field is not prefixed.
+     */
+    private function matchingFieldBareName(string $field, array $prefixes): ?string
+    {
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($field, $prefix . '.')) {
+                return $this->matchingPrimaryKeyAlias(substr($field, strlen($prefix) + 1));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Maps cake `id` onto Mongo `_id` in matching projections.
+     *
+     * @param string $field The bare field name.
+     * @return string
+     */
+    private function matchingPrimaryKeyAlias(string $field): string
+    {
+        return $field === 'id' ? '_id' : $field;
     }
 
     /**

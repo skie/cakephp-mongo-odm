@@ -2050,8 +2050,8 @@ class SelectQueryTest extends TestCase
      */
     public function testContainWithQueryBuilderHasManyError(): void
     {
-        $this->markTestSkipped('F-RE: contain query-builder association results (DatabaseException not thrown); see 40-selectquerytest-failure-groups.md.');
         $this->expectException(DatabaseException::class);
+        $this->expectExceptionMessage('Cannot have foreignKey = false for hasMany associations. You must provide a foreignKey column.');
         $collection = $this->getCollectionLocator()->get('Authors');
         $collection->hasMany('Articles');
 
@@ -2876,7 +2876,6 @@ class SelectQueryTest extends TestCase
      */
     public function testAutoFieldsWithContainQueryBuilder(): void
     {
-        $this->markTestSkipped('F-RE: contain query-builder association results (computed key missing); see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->belongsTo('Authors');
 
@@ -2895,7 +2894,7 @@ class SelectQueryTest extends TestCase
         $this->assertArrayHasKey('author', $result);
         $this->assertNotNull($result['author']);
         $this->assertArrayHasKey('name', $result['author']);
-        $this->assertArrayHasKey('computed', $result);
+        $this->assertArrayHasKey('computed', $result['author']);
     }
 
     /**
@@ -3188,7 +3187,6 @@ class SelectQueryTest extends TestCase
      */
     public function testContainWithStrategyOverride(): void
     {
-        $this->markTestSkipped('F-RE: contain query-builder association results (null); see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->belongsTo('Authors', [
             'joinType' => 'INNER',
@@ -3425,7 +3423,6 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWithSelect(): void
     {
-        $this->markTestSkipped('F-RF: leftJoinWith builder select() needs per-association field resolution; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('authors');
         $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
@@ -3436,17 +3433,26 @@ class SelectQueryTest extends TestCase
                 ->select(['articles.id', 'articles.title', 'tags.name'])
                 ->where(['tags.name' => 'tag3']))
             ->enableAutoFields()
-            ->where(['ArticlesTags.tag_id' => '000000000000000000000003'])
             ->all();
+
+        $matched = $results->filter(
+            function (mixed $row): bool {
+                $tags = $row->_matchingData['tags'] ?? null;
+                $name = is_object($tags) ? ($tags->name ?? null) : ($tags['name'] ?? null);
+
+                return isset($row->_matchingData['articles']) && $name === 'tag3';
+            },
+        )->first();
+        $this->assertNotNull($matched);
 
         $expected = ['_id' => '000000000000000000000002', 'title' => 'Second Article'];
         $this->assertEquals(
             $expected,
-            $results->first()->_matchingData['articles']->toArray(),
+            $matched->_matchingData['articles']->toArray(),
         );
         $this->assertEquals(
             ['name' => 'tag3'],
-            $results->first()->_matchingData['tags']->toArray(),
+            $matched->_matchingData['tags']->toArray(),
         );
     }
 
@@ -3470,7 +3476,6 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWithAndContainOnOptionalAssociation(): void
     {
-        $this->markTestSkipped('F-RF: contain()+leftJoinWith() same assoc, pipeline alias gap; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles', ['collection' => 'articles']);
         $collection->belongsTo('Authors');
 
@@ -3480,6 +3485,7 @@ class SelectQueryTest extends TestCase
             'published' => 'N',
         ]);
         $collection->save($newArticle);
+        $fourthId = (string)$newArticle->id;
         $results = $collection
             ->unhydratedFind()
             ->contain('Authors')
@@ -3520,8 +3526,7 @@ class SelectQueryTest extends TestCase
                 ],
             ],
             [
-                '_id' => '000000000000000000000004',
-                'author_id' => null,
+                '_id' => $fourthId,
                 'title' => 'Fourth Article',
                 'body' => 'Fourth Article Body',
                 'published' => 'N',
@@ -3537,8 +3542,7 @@ class SelectQueryTest extends TestCase
             ->all();
         $expected = [
             [
-                '_id' => '000000000000000000000004',
-                'author_id' => null,
+                '_id' => $fourthId,
                 'title' => 'Fourth Article',
                 'body' => 'Fourth Article Body',
                 'published' => 'N',

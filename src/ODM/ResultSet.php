@@ -678,13 +678,26 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 continue;
             }
 
+            if ($row[$propertyName] === null || $row[$propertyName] === []) {
+                if (!in_array($propertyName, $this->dualMatchingProperties(), true)) {
+                    unset($row[$propertyName]);
+                    if ($junctionKey !== null) {
+                        unset($row[$junctionKey]);
+                    }
+                }
+
+                continue;
+            }
+
             // `joinWith`/`innerJoinWith` matching with `fields => false` is a
             // filter only: the joined row is not exposed (cake parity). An
             // explicit `select()` in the builder re-enables it via `fields`.
             if ($fields === false) {
-                unset($row[$propertyName]);
-                if ($junctionKey !== null) {
-                    unset($row[$junctionKey]);
+                if (!in_array($propertyName, $this->dualMatchingProperties(), true)) {
+                    unset($row[$propertyName]);
+                    if ($junctionKey !== null) {
+                        unset($row[$junctionKey]);
+                    }
                 }
 
                 continue;

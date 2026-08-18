@@ -653,7 +653,10 @@ class HasMany extends Association
             });
         }
 
-        unset($pipelineOptions['fields']);
+        if (empty($options['matching'])) {
+            unset($pipelineOptions['fields']);
+        }
+
         $this->applyPipelineOptions($builder, $pipelineOptions);
 
         if (!empty($options['negateMatch']) && empty($options['deferNegateMatch'])) {

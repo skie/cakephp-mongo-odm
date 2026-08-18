@@ -109,4 +109,28 @@ class AddFieldsTest extends TestCase
         $this->assertCount(2, $pipeline);
         $this->assertArrayHasKey('$addFields', $pipeline[1]);
     }
+
+    /**
+     * Test fieldWhenPresent keeps null when an optional unwind path is missing.
+     *
+     * @return void
+     */
+    public function testFieldWhenPresent(): void
+    {
+        $builder = new AggregationBuilder();
+        $stage = $builder->addFields();
+        $projection = ['_id' => '$articles._id', 'title' => '$articles.title'];
+        $stage->fieldWhenPresent('articles', '$articles', $projection);
+
+        $this->assertSame(
+            [
+                '$cond' => [
+                    ['$in' => [['$type' => '$articles'], ['missing', 'null']]],
+                    null,
+                    $projection,
+                ],
+            ],
+            $stage->getExpression()['$addFields']['articles'],
+        );
+    }
 }
