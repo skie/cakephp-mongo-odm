@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Rule;
 
+use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\BelongsTo;
@@ -88,6 +89,78 @@ class LinkConstraint
     }
 
     /**
+     * Aliases fields on a collection.
+     *
+     * Cake parity helper used when building counting conditions so composite
+     * primary keys and foreign keys resolve to the correct collection prefix.
+     *
+     * @param list<string> $fields The fields that should be aliased.
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection to use for aliasing.
+     * @return list<string> The aliased fields.
+     * @see cake60/src/ORM/Rule/LinkConstraint.php::_aliasFields()
+     */
+    protected function aliasFields(array $fields, BaseCollection $collection): array
+    {
+        foreach ($fields as $key => $value) {
+            $fields[$key] = $collection->aliasField($value);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Builds a conditions array from parallel field and value lists.
+     *
+     * Validates that composite key tuples have the same number of fields and
+     * values before combining them (cake parity).
+     *
+     * @param list<string> $fields The condition fields.
+     * @param list<mixed> $values The condition values.
+     * @return array<string, mixed> A conditions array combined from the passed fields and values.
+     * @see cake60/src/ORM/Rule/LinkConstraint.php::_buildConditions()
+     */
+    protected function buildConditions(array $fields, array $values): array
+    {
+        if (count($fields) !== count($values)) {
+            throw new InvalidArgumentException(sprintf(
+                'The number of fields is expected to match the number of values, got %d field(s) and %d value(s).',
+                count($fields),
+                count($values),
+            ));
+        }
+
+        return array_combine($fields, $values);
+    }
+
+    /**
+     * Ensures the source document exposes all primary key parts.
+     *
+     * Composite primary keys must be fully present on the entity before a link
+     * count query is built; otherwise a {@see DatabaseException} is raised with
+     * the expected and extracted key parts (cake parity).
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $source The source collection.
+     * @param \Cake\Datasource\EntityInterface $document The entity involved in the operation.
+     * @return void
+     * @throws \Cake\Database\Exception\DatabaseException When a primary key part is missing.
+     * @see cake60/src/ORM/Rule/LinkConstraint.php::_countLinks()
+     */
+    protected function assertPrimaryKeyValues(BaseCollection $source, EntityInterface $document): void
+    {
+        $primaryKey = (array)$source->getPrimaryKey();
+
+        if (!$document->has($primaryKey)) {
+            throw new DatabaseException(sprintf(
+                'LinkConstraint rule on `%s` requires all primary key values for building the counting ' .
+                'conditions, expected values for `(%s)`, got `(%s)`.',
+                $source->getAlias(),
+                implode(', ', $primaryKey),
+                implode(', ', $document->extract($primaryKey)),
+            ));
+        }
+    }
+
+    /**
      * Count links.
      *
      * The number of related target documents is counted on the owning side of
@@ -99,21 +172,33 @@ class LinkConstraint
      *   document's binding key values.
      * - `belongsToMany`: junction links resolved through the join collection.
      *
+     * `belongsToMany` uses a source `matching()` query keyed by the source
+     * primary key (cake parity). Other association types count on the
+     * association query so configured conditions and finders are honoured —
+     * for example a `hasOne` whose conditions reference parent columns only
+     * counts targets that satisfy those filters.
+     *
+     * Composite keys are supported: source/target key lists are aliased and
+     * combined through {@see buildConditions()}. Missing source primary key
+     * parts raise {@see DatabaseException} via {@see assertPrimaryKeyValues()}.
+     *
      * @param \Crustum\Mongo\ODM\Association $association The association for which to count links.
      * @param \Cake\Datasource\EntityInterface $document The entity involved in the operation.
      * @return int The number of links.
+     * @see cake60/src/ORM/Rule/LinkConstraint.php::_countLinks()
      */
     protected function countLinks(Association $association, EntityInterface $document): int
     {
+        $source = $association->getSource();
+        $this->assertPrimaryKeyValues($source, $document);
+
         if ($association instanceof BelongsToMany) {
-            $source = $association->getSource();
             $primaryKey = (array)$source->getPrimaryKey();
-
-            if (count(array_filter($document->extract($primaryKey), static fn(mixed $value): bool => $value !== null)) !== count($primaryKey)) {
-                return 0;
-            }
-
-            $conditions = array_combine($primaryKey, $document->extract($primaryKey));
+            $aliasedPrimaryKey = $this->aliasFields($primaryKey, $source);
+            $conditions = $this->buildConditions(
+                $aliasedPrimaryKey,
+                $document->extract($primaryKey),
+            );
 
             return $source
                 ->find()
@@ -125,9 +210,11 @@ class LinkConstraint
         if ($association instanceof BelongsTo) {
             $sourceKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
             $targetKeys = (array)$association->getBindingKey();
+            $target = $association->getTarget();
         } else {
             $sourceKeys = (array)$association->getBindingKey();
             $targetKeys = array_values(array_filter((array)$association->getForeignKey(), is_string(...)));
+            $target = $association->getTarget();
         }
 
         $sourceValues = $document->extract($sourceKeys);
@@ -135,7 +222,8 @@ class LinkConstraint
             return 0;
         }
 
-        $conditions = array_combine($targetKeys, $sourceValues);
+        $aliasedTargetKeys = $this->aliasFields($targetKeys, $target);
+        $conditions = $this->buildConditions($aliasedTargetKeys, $sourceValues);
 
         return $association->find()->where($conditions)->count();
     }

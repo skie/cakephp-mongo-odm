@@ -104,11 +104,10 @@ class LinkConstraintTest extends TestCase
      */
     public function testMissingPrimaryKeyValues(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK LinkConstraint handling: F32');
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage(
             'LinkConstraint rule on `Articles` requires all primary key values for building the counting ' .
-            'conditions, expected values for `(id, nonexistent)`, got `(1, )`.',
+            'conditions, expected values for `(id, nonexistent)`, got `(000000000000000000000001, )`.',
         );
 
         $Articles = $this->getCollectionLocator()->get('Articles');
@@ -133,7 +132,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testNonMatchingKeyFields(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK LinkConstraint handling: F32');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'The number of fields is expected to match the number of values, got 0 field(s) and 1 value(s).',
@@ -229,7 +227,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustBeLinkedViaBelongsToIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: save-orphan auto-increment id: F34');
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
@@ -283,7 +280,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustBeLinkedViaBelongsToManyIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
         $orphan = $Tags->save($Tags->newDocument([
@@ -412,7 +408,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustNotBeLinkedViaBelongsToIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: save-orphan auto-increment id: F34');
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
@@ -465,7 +460,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testMustNotBeLinkedViaBelongsToManyIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: BTM junction count: F34');
         $Tags = $this->getCollectionLocator()->get('Tags');
 
         $orphan = $Tags->save($Tags->newDocument([
@@ -885,7 +879,6 @@ class LinkConstraintTest extends TestCase
      */
     public function testAssociationInstanceWithMustBeLinkedIsNotLinked(): void
     {
-        $this->markTestSkipped('ODM link-count integration gap: save-orphan auto-increment id: F34');
         $Comments = $this->getCollectionLocator()->get('Comments');
         $Comments->belongsTo('Articles');
 
