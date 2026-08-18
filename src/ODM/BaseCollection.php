@@ -2636,7 +2636,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
             return (bool)$event->getResult();
         }
 
-        if (!$this->cascadeDelete($document, $options->getArrayCopy())) {
+        if (!$this->associations->cascadeDelete($document, ['_primary' => false] + $options->getArrayCopy())) {
             return false;
         }
 
@@ -2661,17 +2661,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
      */
     protected function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
-        foreach ($this->associations as $association) {
-            if (!$association->getDependent()) {
-                continue;
-            }
-
-            if (!$association->cascadeDelete($document, $options)) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->associations->cascadeDelete($document, $options);
     }
 
     /**

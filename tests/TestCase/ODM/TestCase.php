@@ -9,8 +9,8 @@ use Cake\TestSuite\Fixture\FixtureStrategyInterface;
 use Cake\TestSuite\Fixture\TruncateStrategy;
 use Cake\TestSuite\TestCase as BaseTestCase;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
-use Crustum\Mongo\TestSuite\MongoTestTrait;
 use Crustum\Mongo\Test\TestSuite\PipelineAssertsTrait;
+use Crustum\Mongo\TestSuite\MongoTestTrait;
 
 /**
  * Base test case for ODM unit and integration tests.

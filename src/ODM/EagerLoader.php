@@ -674,12 +674,23 @@ class EagerLoader
                 $value = [];
             }
 
+            if ($value instanceof EagerLoadable) {
+                $asContain = $value->asContainArray();
+                $key = (string)key($asContain);
+                $value = current($asContain);
+            }
+
             $path = explode('.', $key);
             $leaf = array_pop($path);
             $pointer =& $result;
             foreach ($path as $part) {
                 $pointer[$part] ??= [];
                 $pointer =& $pointer[$part];
+            }
+
+            if (is_array($value) && isset($value['config'], $value['associations'])) {
+                $nested = $this->reformat($value['associations'], []);
+                $value = $value['config'] + $nested;
             }
 
             if (is_callable($value)) {
@@ -717,8 +728,10 @@ class EagerLoader
                 $first = $result['queryBuilder'];
                 $second = $value;
                 $result['queryBuilder'] = static fn($query) => $second($first($query));
-            } elseif (isset($this->containOptions[$key])) {
+            } elseif (isset($this->containOptions[$key]) || $key === 'association') {
                 $result[$key] = $value;
+            } elseif ($key === 'associations' || $key === 'config') {
+                continue;
             } elseif (is_array($value)) {
                 $result[$key] = $this->reformatOptions($value, $result[$key] ?? []);
             } else {
@@ -745,6 +758,7 @@ class EagerLoader
         if (!$association instanceof Association) {
             $association = $repository->getAssociation($alias);
         }
+
         unset($options['association']);
 
         if (($options['matching'] ?? false) === true) {
@@ -780,9 +794,22 @@ class EagerLoader
         );
 
         foreach ($options as $nestedAlias => $nestedOptions) {
-            if (isset($this->containOptions[$nestedAlias]) || $nestedAlias === 'association') {
+            if (isset($this->containOptions[$nestedAlias])) {
                 continue;
             }
+
+            if ($nestedAlias === 'association') {
+                continue;
+            }
+
+            if ($nestedAlias === 'associations') {
+                continue;
+            }
+
+            if ($nestedAlias === 'config') {
+                continue;
+            }
+
             if (!is_array($nestedOptions)) {
                 continue;
             }

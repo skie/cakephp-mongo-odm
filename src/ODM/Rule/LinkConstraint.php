@@ -94,9 +94,9 @@ class LinkConstraint
      * Cake parity helper used when building counting conditions so composite
      * primary keys and foreign keys resolve to the correct collection prefix.
      *
-     * @param list<string> $fields The fields that should be aliased.
+     * @param array<string> $fields The fields that should be aliased.
      * @param \Crustum\Mongo\ODM\BaseCollection $collection The collection to use for aliasing.
-     * @return list<string> The aliased fields.
+     * @return array<string> The aliased fields.
      * @see cake60/src/ORM/Rule/LinkConstraint.php::_aliasFields()
      */
     protected function aliasFields(array $fields, BaseCollection $collection): array
@@ -114,8 +114,8 @@ class LinkConstraint
      * Validates that composite key tuples have the same number of fields and
      * values before combining them (cake parity).
      *
-     * @param list<string> $fields The condition fields.
-     * @param list<mixed> $values The condition values.
+     * @param array<string> $fields The condition fields.
+     * @param array<mixed> $values The condition values.
      * @return array<string, mixed> A conditions array combined from the passed fields and values.
      * @see cake60/src/ORM/Rule/LinkConstraint.php::_buildConditions()
      */

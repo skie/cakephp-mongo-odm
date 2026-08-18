@@ -4,12 +4,10 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Database\Expression\OrderClauseExpression;
-use Cake\Database\ExpressionInterface;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
-use Closure;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\HasMany;

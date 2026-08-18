@@ -552,7 +552,7 @@ abstract class Association
      */
     protected function fieldNames(array|string|false|null $key): array
     {
-        if ($key === false || $key === null || $key === '') {
+        if (in_array($key, [false, null, ''], true)) {
             return [];
         }
 
@@ -594,7 +594,7 @@ abstract class Association
     {
         $let = [];
         $composite = count($localFields) > 1;
-        foreach (array_values($localFields) as $i => $field) {
+        foreach ($localFields as $i => $field) {
             $let[$composite ? 'bindingValue' . $i : 'bindingValue'] = '$' . $field;
         }
 
@@ -1332,7 +1332,7 @@ abstract class Association
         $func = $builder->func();
         $letNames = array_keys($let);
         $clauses = [];
-        foreach (array_values($foreignFields) as $i => $foreignField) {
+        foreach ($foreignFields as $i => $foreignField) {
             $var = '$$' . $letNames[$i];
             $clauses[] = $func->ne($var, null);
             $clauses[] = $func->eq('$' . $foreignField, $var);

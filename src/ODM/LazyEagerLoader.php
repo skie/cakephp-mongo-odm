@@ -74,7 +74,7 @@ class LazyEagerLoader
             $keys[] = $document->{$method}($primaryKey);
         }
 
-        return $source
+        $query = $source
             ->find()
             ->select((array)$primaryKey)
             ->where(function ($exp) use ($primaryKey, $keys, $source): mixed {
@@ -87,6 +87,14 @@ class LazyEagerLoader
                 return $exp->in($source->aliasField($primary), $keys);
             })
             ->contain($contain);
+
+        foreach ($query->getEagerLoader()->attachableAssociations($source) as $loadable) {
+            $config = $loadable->getConfig();
+            $config['includeFields'] = true;
+            $loadable->setConfig($config);
+        }
+
+        return $query;
     }
 
     /**

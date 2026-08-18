@@ -602,7 +602,10 @@ class HasMany extends Association
             $lookup->let($let);
         }
 
-        $applyJoinSubPipeline = function (AggregationBuilder $sub, array $subOptions) use (
+        $applyJoinSubPipeline = function (
+            AggregationBuilder $sub,
+            array $subOptions,
+        ) use (
             $composite,
             $let,
             $foreignFields,

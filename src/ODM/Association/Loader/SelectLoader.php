@@ -130,7 +130,7 @@ class SelectLoader implements LoaderInterface
                         static fn(array $tuple): mixed => $tuple[0],
                         array_values($tuples),
                     );
-                } else {
+                } elseif ($query instanceof Query) {
                     $query->where(new TupleInExpression($targetKeyFields, array_values($tuples)));
                 }
             }
@@ -205,7 +205,7 @@ class SelectLoader implements LoaderInterface
             $loadedMap = [];
             foreach ($sourceEntities as $i => $sourceEntity) {
                 if (!$filterByKey) {
-                    $matchedRows = $map['*'] ?? [];
+                    $matchedRows = $map['*'];
                     $loadedMap[$i] = $many ? $matchedRows : ($matchedRows !== [] ? reset($matchedRows) : null);
                     continue;
                 }
@@ -252,7 +252,7 @@ class SelectLoader implements LoaderInterface
      */
     protected function normalizeKeyFields(array|string|false|null $key): array
     {
-        if ($key === false || $key === null || $key === '') {
+        if (in_array($key, [false, null, ''], true)) {
             return [];
         }
 

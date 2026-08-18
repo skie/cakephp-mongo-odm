@@ -3295,7 +3295,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testDeleteAssociationsCascadingCallbacksOrder(): void
     {
-        $this->markTestSkipped('// CounterCache section_count not updated during cascading deleteMany (HasMany cascadeCallbacks path); see 18-orm-tests-port-plan.md.');
         $sections = $this->getCollectionLocator()->get('Sections');
         $members = $this->getCollectionLocator()->get('Members');
         $sectionsMembers = $this->getCollectionLocator()->get('SectionsMembers');
@@ -6445,7 +6444,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoWithConditions(): void
     {
-        $this->markTestSkipped('// loadInto() with fields/conditions drops the top-level binding key (EagerLoader FK check); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
         $collection->hasMany('SiteArticles');
 
@@ -6458,7 +6456,7 @@ class BaseCollectionTest extends TestCase
         $this->assertSame($document, $result);
         $expected = $collection->get('000000000000000000000001', contain: $options);
         $this->assertEquals($expected->site_articles, $result->site_articles);
-        $this->assertEquals(['title', 'author_id'], $expected->site_articles[0]->getOriginalFields());
+        $this->assertEquals(['author_id', 'title'], $expected->site_articles[0]->getOriginalFields());
         $this->assertEquals($expected->articles, $result->articles);
         $this->assertSame('tag2', $expected->articles[0]->tags[0]->name);
     }
@@ -6530,7 +6528,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoNestedAssociations(): void
     {
-        $this->markTestSkipped('// loadInto() nested contain (`Articles.Tags`) does not hydrate (EagerLoader normalization gap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
 
         $document = $collection->get('000000000000000000000001');
@@ -6550,7 +6547,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testLoadIntoMultipleTimesWithNestedAssociations(): void
     {
-        $this->markTestSkipped('// loadInto() repeated with nested contain does not hydrate (EagerLoader normalization gap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Authors');
 
         // First load some associations

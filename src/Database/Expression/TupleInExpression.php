@@ -43,7 +43,7 @@ class TupleInExpression extends AbstractExpression
             throw new InvalidArgumentException('TupleInExpression requires at least one field.');
         }
 
-        $this->fields = array_values($fields);
+        $this->fields = $fields;
         $this->tuples = array_map(
             function (array $tuple): array {
                 if (count($tuple) !== count($this->fields)) {
@@ -54,9 +54,9 @@ class TupleInExpression extends AbstractExpression
                     ));
                 }
 
-                return array_values($tuple);
+                return $tuple;
             },
-            array_values($tuples),
+            $tuples,
         );
     }
 
@@ -102,6 +102,7 @@ class TupleInExpression extends AbstractExpression
             foreach ($this->fields as $i => $field) {
                 $branch[$field] = $tuple[$i];
             }
+
             $branches[] = $branch;
         }
 
