@@ -250,6 +250,21 @@ class QueryExpression extends AbstractExpression implements Countable
     }
 
     /**
+     * Adds a tuple membership condition.
+     *
+     * Single-field tuples compile to `$in`. Composite tuples compile to `$or`
+     * of compound equality objects.
+     *
+     * @param list<string> $fields Field names.
+     * @param list<list<mixed>> $tuples Tuple rows aligned with `$fields`.
+     * @return $this
+     */
+    public function tupleIn(array $fields, array $tuples): static
+    {
+        return $this->add(new TupleInExpression($fields, $tuples));
+    }
+
+    /**
      * Adds a new condition in the form "field NOT IN (value1, value2)".
      *
      * @param string $field Field to compare
