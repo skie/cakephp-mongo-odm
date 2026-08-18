@@ -18,15 +18,15 @@ use function Cake\Core\namespaceSplit;
 
 /**
  * This behavior provides a way to translate dynamic data by keeping translations
- * in a separate table linked to the original record from another one. Translated
+ * in a separate collection linked to the original record from another one. Translated
  * fields can be configured to override those in the main collection when fetched or
  * put aside into another property for the same entity.
  *
  * If you wish to override fields, you need to call the `locale` method in this
- * behavior for setting the language you want to fetch from the translations table.
+ * behavior for setting the language you want to fetch from the translations collection.
  *
  * If you want to bring all or certain languages for each of the fetched records,
- * you can use the custom `translations` finders that is exposed to the table.
+ * you can use the custom `translations` finders that is exposed to the collection.
  */
 class TranslateBehavior extends Behavior implements PropertyMarshalInterface
 {
@@ -74,11 +74,11 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
      *   using `ShadowCollectionStrategy` then the list will be auto generated based on
      *   shadow collection schema.
      * - `defaultLocale`: The locale which is treated as default by the behavior.
-     *   Fields values for default locale will be stored in the primary table itself
-     *   and the rest in translation table. If not explicitly set the value of
+     *   Fields values for default locale will be stored in the primary collection itself
+     *   and the rest in translation collection. If not explicitly set the value of
      *   `I18n::getDefaultLocale()` will be used to get default locale.
      *   If you do not want any default locale and want translated fields
-     *   for all locales to be stored in translation table then set this config
+     *   for all locales to be stored in translation collection then set this config
      *   to empty string `''`.
      * - `allowEmptyTranslations`: By default if a record has been translated and
      *   stored as an empty string the translate behavior will take and use this
@@ -242,7 +242,7 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
 
     /**
      * Sets the locale that should be used for all future find and save operations on
-     * the table where this behavior is attached to.
+     * the collection where this behavior is attached to.
      *
      * When fetching records, the behavior will include the content for the locale set
      * via this method, and likewise when saving data, it will save the data in that
@@ -353,7 +353,6 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
         if ($class !== 'BaseCollection') {
             $name = match (true) {
                 str_ends_with($class, 'Collection') => substr($class, 0, -10),
-                str_ends_with($class, 'Table') => substr($class, 0, -5),
                 default => $class,
             };
             if ($name !== '') {

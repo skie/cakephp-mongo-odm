@@ -76,7 +76,7 @@ interface TranslateStrategyInterface extends PropertyMarshalInterface
     public function findTranslations(SelectQuery $query, array $locales = []): SelectQuery;
 
     /**
-     * Modifies the results from a table find in order to merge full translation records
+     * Modifies the results from a collection find in order to merge full translation records
      * into each entity under the `_translations` key.
      *
      * @param \Cake\Datasource\ResultSetInterface<array-key, \Cake\Datasource\EntityInterface|array<string, mixed>> $results Results to modify.
@@ -86,7 +86,7 @@ interface TranslateStrategyInterface extends PropertyMarshalInterface
 
     /**
      * Callback method that listens to the `beforeFind` event in the bound
-     * table. It modifies the passed query by eager loading the translated fields
+     * collection. It modifies the passed query by eager loading the translated fields
      * and adding a formatter to copy the values into the main collection records.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event The beforeFind event that was fired.

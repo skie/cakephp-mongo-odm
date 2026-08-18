@@ -30,6 +30,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionProperty;
 use TestApp\Model\Collection\ArticlesCollection;
 use TestApp\Model\Collection\AuthorsCollection;
+use TestApp\Model\Collection\TagsCollection;
 
 /**
  * Tests SelectQuery class
@@ -99,7 +100,7 @@ class SelectQueryTest extends TestCase
         $orders = $this->getCollectionLocator()->get('orders', ['schema' => $schema2]);
         $companies = $this->getCollectionLocator()->get('companies', ['schema' => $schema, 'collection' => 'organizations']);
         $this->getCollectionLocator()->get('orderTypes', ['schema' => $schema]);
-        $stuff = $this->getCollectionLocator()->get('stuff', ['schema' => $schema, 'table' => 'things']);
+        $stuff = $this->getCollectionLocator()->get('stuff', ['schema' => $schema, 'collection' => 'things']);
         $this->getCollectionLocator()->get('stuffTypes', ['schema' => $schema]);
         $this->getCollectionLocator()->get('categories', ['schema' => $schema]);
 
@@ -207,7 +208,7 @@ class SelectQueryTest extends TestCase
     #[DataProvider('strategiesProviderBelongsTo')]
     public function testContainResultFetchingOneLevel(string $strategy): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $collection->belongsTo('authors', ['strategy' => $strategy]);
 
         $query = new SelectQuery($collection);
@@ -598,7 +599,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
-            'table' => 'articles_tags',
+            'collection' => 'articles_tags',
         ]);
         $collection->belongsToMany('Tags', [
             'strategy' => $strategy,
@@ -771,7 +772,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
-            'table' => 'articles_tags',
+            'collection' => 'articles_tags',
         ]);
         $collection->belongsToMany('Tags');
 
@@ -1121,7 +1122,7 @@ class SelectQueryTest extends TestCase
      */
     public function testResultsAreWrappedInMapReduce(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->limit(2)->orderBy(['_id' => 'ASC']);
         $query->mapReduce(function (Document $v, $k, $mr): void {
@@ -1147,7 +1148,7 @@ class SelectQueryTest extends TestCase
      */
     public function testFirstDirtyQuery(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $result = $query->select(['_id'])->hydrate(false)->first();
         $this->assertEquals(['_id' => '000000000000000000000001'], $result);
@@ -1161,7 +1162,7 @@ class SelectQueryTest extends TestCase
      */
     public function testFirstCleanQuery(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->toArray();
 
@@ -1175,7 +1176,7 @@ class SelectQueryTest extends TestCase
      */
     public function testFirstSameResult(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])->toArray();
 
@@ -1197,7 +1198,7 @@ class SelectQueryTest extends TestCase
             $mapReduce->emit(count($values));
         };
 
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $query->select(['_id'])
             ->hydrate(false)
@@ -1226,7 +1227,7 @@ class SelectQueryTest extends TestCase
      */
     public function testHydrateSimple(): void
     {
-        $collection = $this->getCollectionLocator()->get('articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('articles', ['collection' => 'articles']);
         $query = new SelectQuery($collection);
         $results = $query->select()->toArray();
 
@@ -1290,7 +1291,7 @@ class SelectQueryTest extends TestCase
         $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $this->getCollectionLocator()->get('ArticlesTags', [
-            'table' => 'articles_tags',
+            'collection' => 'articles_tags',
         ]);
         $collection->belongsToMany('Tags');
         $query = new SelectQuery($collection);
@@ -1332,11 +1333,10 @@ class SelectQueryTest extends TestCase
      */
     public function testFormatResultsBelongsToMany(): void
     {
-        $this->markTestSkipped('F-RH: _joinData missing beforeFind flag; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $this->getCollectionLocator()->get('Tags');
         $articlesTags = $this->getCollectionLocator()->get('ArticlesTags', [
-            'table' => 'articles_tags',
+            'collection' => 'articles_tags',
         ]);
         $collection->belongsToMany('Tags');
 
@@ -1396,9 +1396,8 @@ class SelectQueryTest extends TestCase
 
     public function testBelongsToManyWithPreservedKeys(): void
     {
-        $this->markTestSkipped('F-RH: BTM preserved-key results missing keys; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
-        $this->getCollectionLocator()->get('Tags', ['className' => TagsTable::class]);
+        $this->getCollectionLocator()->get('Tags', ['className' => TagsCollection::class]);
         $collection->belongsToMany('Tags');
 
         $first = $collection->find()
@@ -1470,7 +1469,7 @@ class SelectQueryTest extends TestCase
         // phpcs:ignore
         $class = (new class extends Document {})::class;
         $collection = $this->getCollectionLocator()->get('articles', [
-            'table' => 'articles',
+            'collection' => 'articles',
             'documentClass' => '\\' . $class,
         ]);
         $query = new SelectQuery($collection);

@@ -544,14 +544,6 @@ abstract class TranslateBehaviorTestBase extends TestCase
      */
     public function testTranslationsHasMany(): void
     {
-        // This test fails on mysql8 + php8 due to no data in the tables
-        // We have been unable to explain the behavior so disabling for now
-        $driver = ConnectionManager::get('test_mongo')->getDriver();
-        $this->skipIf(
-            $driver instanceof Mysql &&
-            version_compare($driver->version(), '8.0.0', '>='),
-        );
-
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->addBehavior('Translate', ['fields' => ['title', 'body']]);
         $collection->hasMany('Comments');

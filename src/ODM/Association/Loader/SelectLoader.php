@@ -212,9 +212,13 @@ class SelectLoader implements LoaderInterface
             }
 
             $rows = $query->all();
+            $preserveKeys = $query instanceof SelectQuery
+                && (bool)($query->getOptions()['preserveKeys'] ?? false);
             $map = [];
             if (!$filterByKey) {
-                $map['*'] = $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
+                $map['*'] = $rows instanceof Traversable
+                    ? iterator_to_array($rows, $preserveKeys)
+                    : (array)$rows;
             } else {
                 foreach ($rows as $rowKey => $row) {
                     $tuple = $this->extractKeyTuple($row, $targetKeyFields);
@@ -224,10 +228,10 @@ class SelectLoader implements LoaderInterface
 
                     $mapKey = $this->tupleMapKey($tuple);
                     if ($many) {
-                        if (is_int($rowKey)) {
-                            $map[$mapKey][] = $row;
-                        } else {
+                        if ($preserveKeys || !is_int($rowKey)) {
                             $map[$mapKey][$rowKey] = $row;
+                        } else {
+                            $map[$mapKey][] = $row;
                         }
                     } else {
                         $map[$mapKey] = $row;

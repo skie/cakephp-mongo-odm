@@ -100,7 +100,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
 
     /**
      * Callback method that listens to the `beforeFind` event in the bound
-     * table. It modifies the passed query by eager loading the translated fields
+     * collection. It modifies the passed query by eager loading the translated fields
      * and adding a formatter to copy the values into the main collection records.
      *
      * @param \Cake\Event\EventInterface<\Crustum\Mongo\ODM\BaseCollection> $event The beforeFind event that was fired.
@@ -269,7 +269,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
      *
      * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array> $query The query to check.
      * @param array<string, mixed> $config The config to use for adding fields.
-     * @return bool Whether a join to the translation table is required.
+     * @return bool Whether a join to the translation collection is required.
      */
     protected function addFieldsToQuery(SelectQuery $query, array $config): bool
     {
@@ -306,7 +306,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
      * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array> $query the query to check.
      * @param string $name The clause name.
      * @param array<string, mixed> $config The config to use for adding fields.
-     * @return bool Whether a join to the translation table is required.
+     * @return bool Whether a join to the translation collection is required.
      */
     protected function iterateClause(SelectQuery $query, string $name = '', array $config = []): bool
     {
@@ -343,7 +343,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
      * @param \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array> $query the query to check.
      * @param string $name The clause name.
      * @param array<string, mixed> $config The config to use for adding fields.
-     * @return bool Whether a join to the translation table is required.
+     * @return bool Whether a join to the translation collection is required.
      */
     protected function traverseClause(SelectQuery $query, string $name = '', array $config = []): bool
     {
@@ -609,7 +609,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
     }
 
     /**
-     * Modifies the results from a table find in order to merge full translation
+     * Modifies the results from a collection find in order to merge full translation
      * records into each entity under the `_translations` key.
      *
      * @param \Cake\Collection\CollectionInterface<mixed, mixed> $results Results to modify.

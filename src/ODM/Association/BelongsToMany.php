@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM\Association;
 
+use Cake\Collection\CollectionInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
+use Cake\Datasource\ResultSetInterface;
 use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
@@ -20,6 +22,7 @@ use MongoDB\BSON\ObjectId;
 use MongoDB\Driver\Exception\InvalidArgumentException as InvalidArgumentExceptionDriver;
 use SplObjectStorage;
 use Throwable;
+use Traversable;
 
 /**
  * Represents a many-to-many relationship.
@@ -1699,6 +1702,99 @@ class BelongsToMany extends Association
     }
 
     /**
+     * Applies target and junction formatters to contained many-to-many rows.
+     *
+     * Cake's SelectWithPivotLoader runs target finders (including `indexBy`)
+     * and junction `beforeFind` formatters on the fetch query. ODM contain
+     * uses `$lookup`, so those formatters are applied per parent row here.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $surrogate The target surrogate query.
+     * @param array<string, mixed> $options Options including `propertyPath`.
+     * @return void
+     */
+    public function formatAssociationResults(SelectQuery $query, SelectQuery $surrogate, array $options): void
+    {
+        $property = (string)($options['propertyPath'] ?? '');
+        if ($property === '' || str_contains($property, '.')) {
+            parent::formatAssociationResults($query, $surrogate, $options);
+            $this->formatJunctionAssociationResults($query, $options);
+
+            return;
+        }
+
+        $targetFormatters = $surrogate->getResultFormatters();
+        $formatterQuery = $options['formatterQuery'] ?? $surrogate;
+        if (!$formatterQuery instanceof SelectQuery) {
+            $formatterQuery = $surrogate;
+        }
+
+        [$junctionFormatters, $junctionQuery] = $this->junctionFormatterContext();
+        if ($targetFormatters === [] && $junctionFormatters === []) {
+            return;
+        }
+
+        $junctionProperty = $this->getJunctionProperty();
+
+        $query->formatResults(
+            function (
+                CollectionInterface $results,
+                SelectQuery $sourceQuery,
+            ) use (
+                $targetFormatters,
+                $formatterQuery,
+                $junctionFormatters,
+                $junctionQuery,
+                $property,
+                $junctionProperty,
+            ): CollectionInterface {
+                return $results->map(function (mixed $row) use (
+                    $targetFormatters,
+                    $formatterQuery,
+                    $junctionFormatters,
+                    $junctionQuery,
+                    $property,
+                    $junctionProperty,
+                    $sourceQuery,
+                ): mixed {
+                    $nested = $this->readAssociationProperty($row, $property);
+                    if (!is_array($nested)) {
+                        return $row;
+                    }
+
+                    if ($junctionFormatters !== [] && $junctionQuery instanceof SelectQuery) {
+                        $this->applyFormattersToJoinData(
+                            $nested,
+                            $junctionFormatters,
+                            $junctionQuery,
+                            $sourceQuery,
+                            $junctionProperty,
+                        );
+                    }
+
+                    if ($targetFormatters === []) {
+                        return $row;
+                    }
+
+                    $nested = $this->applyFormattersToList(
+                        $nested,
+                        $targetFormatters,
+                        $formatterQuery,
+                        $sourceQuery,
+                    );
+                    $row = $this->writeAssociationProperty($row, $property, $nested);
+                    if ($row instanceof EntityInterface) {
+                        $row->clean();
+                    }
+
+                    return $row;
+                });
+            },
+            SelectQuery::PREPEND,
+        );
+    }
+
+    /**
      * Builds lookup stages through the junction collection.
      *
      * The junction is resolved through {@see junction()} (either the configured
@@ -2057,5 +2153,207 @@ class BelongsToMany extends Association
         }
 
         return '_id';
+    }
+
+    /**
+     * Applies junction `beforeFind` formatters using a dotted property path.
+     *
+     * Used when the containment is nested and target formatters fall back to
+     * the generic extract/insert path.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
+     * @param array<string, mixed> $options Options including `propertyPath`.
+     * @return void
+     */
+    protected function formatJunctionAssociationResults(SelectQuery $query, array $options): void
+    {
+        $property = (string)($options['propertyPath'] ?? '');
+        if ($property === '') {
+            return;
+        }
+
+        [$junctionFormatters, $junctionQuery] = $this->junctionFormatterContext();
+        if ($junctionFormatters === [] || !$junctionQuery instanceof SelectQuery) {
+            return;
+        }
+
+        $propertyPath = explode('.', $property);
+        $junctionProperty = $this->getJunctionProperty();
+
+        $query->formatResults(
+            function (
+                CollectionInterface $results,
+                SelectQuery $sourceQuery,
+            ) use (
+                $junctionFormatters,
+                $junctionQuery,
+                $propertyPath,
+                $junctionProperty,
+            ): CollectionInterface {
+                return $results->map(function (mixed $row) use (
+                    $junctionFormatters,
+                    $junctionQuery,
+                    $propertyPath,
+                    $junctionProperty,
+                    $sourceQuery,
+                ): mixed {
+                    $nested = $row;
+                    foreach ($propertyPath as $segment) {
+                        $nested = $this->readAssociationProperty($nested, $segment);
+                        if ($nested === null) {
+                            return $row;
+                        }
+                    }
+
+                    if (is_array($nested)) {
+                        $this->applyFormattersToJoinData(
+                            $nested,
+                            $junctionFormatters,
+                            $junctionQuery,
+                            $sourceQuery,
+                            $junctionProperty,
+                        );
+                    }
+
+                    return $row;
+                });
+            },
+            SelectQuery::PREPEND,
+        );
+    }
+
+    /**
+     * Builds a junction query and collects `beforeFind` formatters.
+     *
+     * @return array{0: array<int, callable>, 1: \Crustum\Mongo\ODM\Query\SelectQuery|null}
+     */
+    protected function junctionFormatterContext(): array
+    {
+        $surrogate = $this->junction()->find();
+        if (!$surrogate instanceof SelectQuery) {
+            return [[], null];
+        }
+
+        $surrogate->eagerLoaded(true);
+        $surrogate->triggerBeforeFind();
+
+        return [$surrogate->getResultFormatters(), $surrogate];
+    }
+
+    /**
+     * Runs formatters against `_joinData` on each associated target.
+     *
+     * @param array<array-key, mixed> $tags Associated target rows.
+     * @param array<int, callable> $formatters Junction result formatters.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $formatterQuery Query passed to formatters.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $sourceQuery The source query.
+     * @param string $junctionProperty Junction property name.
+     * @return void
+     */
+    protected function applyFormattersToJoinData(
+        array $tags,
+        array $formatters,
+        SelectQuery $formatterQuery,
+        SelectQuery $sourceQuery,
+        string $junctionProperty,
+    ): void {
+        $joinDocs = [];
+        foreach ($tags as $i => $tag) {
+            $join = $this->readAssociationProperty($tag, $junctionProperty);
+            if ($join !== null) {
+                $joinDocs[$i] = $join;
+            }
+        }
+
+        if ($joinDocs === []) {
+            return;
+        }
+
+        $formatted = $this->applyFormattersToList(
+            $joinDocs,
+            $formatters,
+            $formatterQuery,
+            $sourceQuery,
+        );
+        foreach ($formatted as $i => $join) {
+            if (!isset($tags[$i])) {
+                continue;
+            }
+
+            $this->writeAssociationProperty($tags[$i], $junctionProperty, $join);
+        }
+    }
+
+    /**
+     * Applies result formatters to a list of associated rows.
+     *
+     * @param array<array-key, mixed> $items Associated rows.
+     * @param array<int, callable> $formatters Result formatters.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $formatterQuery Query passed to formatters.
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $sourceQuery The source query.
+     * @return array<array-key, mixed>
+     */
+    protected function applyFormattersToList(
+        array $items,
+        array $formatters,
+        SelectQuery $formatterQuery,
+        SelectQuery $sourceQuery,
+    ): array {
+        $extracted = $sourceQuery->resultSetFactory()->createResultSet($items);
+        $resultSetClass = $sourceQuery->resultSetFactory()->getResultSetClass();
+        foreach ($formatters as $callable) {
+            $extracted = $callable($extracted, $formatterQuery);
+            if (!$extracted instanceof ResultSetInterface) {
+                $extracted = new $resultSetClass($extracted);
+            }
+        }
+
+        return $extracted instanceof Traversable
+            ? iterator_to_array($extracted)
+            : (array)$extracted;
+    }
+
+    /**
+     * Reads an association property from an entity or array row.
+     *
+     * @param mixed $row The row.
+     * @param string $property Property name.
+     * @return mixed
+     */
+    protected function readAssociationProperty(mixed $row, string $property): mixed
+    {
+        if ($row instanceof EntityInterface) {
+            return $row->get($property);
+        }
+
+        if (is_array($row)) {
+            return $row[$property] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Writes an association property onto an entity or array row.
+     *
+     * @param mixed $row The row.
+     * @param string $property Property name.
+     * @param mixed $value The value to assign.
+     * @return mixed
+     */
+    protected function writeAssociationProperty(mixed $row, string $property, mixed $value): mixed
+    {
+        if ($row instanceof EntityInterface) {
+            $row->set($property, $value, ['guard' => false]);
+            $row->setDirty($property, false);
+
+            return $row;
+        }
+
+        if (is_array($row)) {
+            $row[$property] = $value;
+        }
+
+        return $row;
     }
 }
