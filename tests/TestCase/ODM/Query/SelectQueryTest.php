@@ -3398,16 +3398,16 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWithNested(): void
     {
-        $this->markTestSkipped('// SQL aggregate projection `count(tags.id)` has no direct Mongo analog (`$lookup` + `$sum` rewrite pending); see 40-selectquerytest-failure-groups.md RF.');
         $collection = $this->getCollectionLocator()->get('authors');
         $articles = $collection->hasMany('articles');
         $articles->belongsToMany('tags');
 
+        $query = $collection->find();
         $results = $collection
             ->find()
             ->select([
                 'authors.id',
-                'tagged_articles' => 'count(tags.id)',
+                'tagged_articles' => $query->func()->countField('tags._id'),
             ])
             ->leftJoinWith('articles.tags', fn($q) => $q->where(['tags.name' => 'tag3']))
             ->groupBy(['authors.id']);

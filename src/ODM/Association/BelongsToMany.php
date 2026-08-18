@@ -1738,6 +1738,8 @@ class BelongsToMany extends Association
             ->alias($join);
 
         $negateMatch = !empty($options['negateMatch']);
+        $leftJoinMatch = !empty($options['matching'])
+            && strtoupper((string)($options['joinType'] ?? $this->getJoinType())) === 'LEFT';
         $deferNegateMatch = !empty($options['deferNegateMatch']);
         $pipelineOptions = $options + $this->associationPipelineOptions();
         $targetConditions = $pipelineOptions['conditions'] ?? [];
@@ -1747,14 +1749,16 @@ class BelongsToMany extends Association
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField($targetBindingKey)
             ->alias($this->getProperty());
-        if ($negateMatch && is_array($targetConditions) && $targetConditions !== []) {
+        if (($negateMatch || $leftJoinMatch) && is_array($targetConditions) && $targetConditions !== []) {
             $lookupTags->pipeline(function (AggregationBuilder $sub) use ($targetConditions): void {
                 $sub->match($this->normalizePipelineConditions($targetConditions));
             });
         }
 
         if (!empty($options['matching'])) {
-            $builder->unwind('$' . $this->getProperty(), ['preserveNullAndEmptyArrays' => $negateMatch]);
+            $builder->unwind('$' . $this->getProperty(), [
+                'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
+            ]);
         }
 
         $junctionConditions = [];
@@ -1802,12 +1806,16 @@ class BelongsToMany extends Association
                 unset($pipelineOptions['conditions']);
             }
 
-            if (!empty($options['matching']) && !empty($pipelineOptions['conditions'])) {
+            if (!empty($options['matching']) && !empty($pipelineOptions['conditions']) && !$leftJoinMatch) {
                 $property = $this->getProperty();
                 $pipelineOptions['conditions'] = $this->prefixMatchConditions(
                     $pipelineOptions['conditions'],
                     $property,
                 );
+            }
+
+            if ($leftJoinMatch) {
+                unset($pipelineOptions['conditions']);
             }
 
             $this->applyPipelineOptions($builder, $pipelineOptions);

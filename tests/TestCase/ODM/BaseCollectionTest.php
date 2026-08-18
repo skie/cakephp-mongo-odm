@@ -5446,20 +5446,23 @@ class BaseCollectionTest extends TestCase
      * Test that get() will use the primary key for searching and return the first
      * entity found
      *
+     * ODM uses an explicit `primaryKey` option (Mongo `_id` is the default BSON
+     * key; SQL-style `_constraints.primary` is not inferred from schema arrays).
+     * Conditions are unqualified field names, not `Alias.field`.
+     *
      * @param array $options
      */
     #[DataProvider('providerForTestGet')]
     public function testGet(array $options): void
     {
-        $this->markTestSkipped('// SQL primary-key schema constraints vs ODM `_id` (no id-_id automap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
+                'primaryKey' => 'bar',
                 'schema' => [
                     'id' => ['type' => 'integer'],
                     'bar' => ['type' => 'integer'],
-                    '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['bar']]],
                 ],
             ]])
             ->getMock();
@@ -5476,13 +5479,13 @@ class BaseCollectionTest extends TestCase
         $query->expects($this->once())->method('applyOptions')
             ->with(['fields' => ['id']]);
         $query->expects($this->once())->method('where')
-            ->with([$collection->getAlias() . '.bar' => 10])
+            ->with(['bar' => 10])
             ->willReturnSelf();
         $query->expects($this->never())->method('cache');
         $query->expects($this->once())->method('firstOrFail')
             ->willReturn($document);
 
-        $result = $collection->get('000000000000000000000010', ...$options);
+        $result = $collection->get(10, ...$options);
         $this->assertSame($document, $result);
     }
 
@@ -5491,15 +5494,15 @@ class BaseCollectionTest extends TestCase
         return [
             [
                 ['fields' => ['id'], 'cache' => 'default'],
-                'get-test-table_name-[10]', 'default', 10,
+                'get-table_name-[10]', 'default', 10,
             ],
             [
                 ['fields' => ['id'], 'cache' => 'default'],
-                'get-test-table_name-["uuid"]', 'default', 'uuid',
+                'get-table_name-["uuid"]', 'default', 'uuid',
             ],
             [
                 ['fields' => ['id'], 'cache' => 'default'],
-                'get-test-table_name-["2020-07-08T00:00:00+00:00"]', 'default', new DateTime('2020-07-08'),
+                'get-table_name-["2020-07-08T00:00:00+00:00"]', 'default', new DateTime('2020-07-08'),
             ],
             [
                 ['fields' => ['id'], 'cache' => 'default', 'cacheKey' => 'custom_key'],
@@ -5519,19 +5522,18 @@ class BaseCollectionTest extends TestCase
     #[DataProvider('providerForTestGetWithCache')]
     public function testGetWithCache(array $options, string $cacheKey, string $cacheConfig, int|string|DateTime $primaryKey): void
     {
-        $this->markTestSkipped('// SQL primary-key schema constraints vs ODM `_id` (no id-_id automap); see 18-orm-tests-port-plan.md.');
         $collection = $this->getMockBuilder(BaseCollection::class)
             ->onlyMethods(['selectQuery'])
             ->setConstructorArgs([[
                 'connection' => $this->connection,
+                'primaryKey' => 'bar',
+                'collection' => 'table_name',
                 'schema' => [
                     'id' => ['type' => 'integer'],
                     'bar' => ['type' => 'integer'],
-                    '_constraints' => ['primary' => ['type' => 'primary', 'columns' => ['bar']]],
                 ],
             ]])
             ->getMock();
-        $collection->setCollection('table_name');
 
         $query = $this->getMockBuilder(SelectQuery::class)
             ->onlyMethods(['addDefaultTypes', 'firstOrFail', 'where', 'cache', 'applyOptions'])
@@ -5545,7 +5547,7 @@ class BaseCollectionTest extends TestCase
         $query->expects($this->once())->method('applyOptions')
             ->with(['fields' => ['id']]);
         $query->expects($this->once())->method('where')
-            ->with([$collection->getAlias() . '.bar' => $primaryKey])
+            ->with(['bar' => $primaryKey])
             ->willReturnSelf();
         $query->expects($this->once())->method('cache')
             ->with($cacheKey, $cacheConfig)
