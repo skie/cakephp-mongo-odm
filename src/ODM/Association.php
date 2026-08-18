@@ -960,7 +960,9 @@ abstract class Association
      *
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The source query.
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $surrogate The target surrogate query.
-     * @param array<string, mixed> $options Options including `propertyPath`.
+     * @param array<string, mixed> $options Options including `propertyPath` and optional
+     *   `formatterQuery` (the query passed as the formatter's second argument;
+     *   defaults to `$query`). Non-joined contain (BTM) passes the target surrogate.
      * @return void
      * @see cake60/src/ORM/Association.php (formatAssociationResults)
      */
@@ -974,8 +976,21 @@ abstract class Association
 
         $property = $options['propertyPath'];
         $propertyPath = explode('.', (string)$property);
+        $formatterQuery = $options['formatterQuery'] ?? $query;
+        if (!$formatterQuery instanceof SelectQuery) {
+            $formatterQuery = $query;
+        }
+
         $query->formatResults(
-            function (CollectionInterface $results, SelectQuery $query) use ($formatters, $property, $propertyPath): CollectionInterface {
+            function (
+                CollectionInterface $results,
+                SelectQuery $sourceQuery,
+            ) use (
+                $formatters,
+                $property,
+                $propertyPath,
+                $formatterQuery,
+            ): CollectionInterface {
                 $extracted = [];
                 foreach ($results as $result) {
                     foreach ($propertyPath as $propertyPathItem) {
@@ -990,17 +1005,17 @@ abstract class Association
                     $extracted[] = $result;
                 }
 
-                $extracted = $query->resultSetFactory()->createResultSet($extracted);
-                $resultSetClass = $query->resultSetFactory()->getResultSetClass();
+                $extracted = $sourceQuery->resultSetFactory()->createResultSet($extracted);
+                $resultSetClass = $sourceQuery->resultSetFactory()->getResultSetClass();
                 foreach ($formatters as $callable) {
-                    $extracted = $callable($extracted, $query);
+                    $extracted = $callable($extracted, $formatterQuery);
                     if (!$extracted instanceof ResultSetInterface) {
                         $extracted = new $resultSetClass($extracted);
                     }
                 }
 
                 $results = $results->insert($property, $extracted);
-                if ($query->isHydrationEnabled()) {
+                if ($sourceQuery->isHydrationEnabled()) {
                     return $results->map(function (EntityInterface $result): EntityInterface {
                         $result->clean();
 

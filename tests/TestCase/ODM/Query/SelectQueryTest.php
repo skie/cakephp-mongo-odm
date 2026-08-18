@@ -2276,7 +2276,6 @@ class SelectQueryTest extends TestCase
      */
     public function testResultFormatterReceivesTheTargetQueryForNonJoinedAssociationsWhenUsingContainCallables(): void
     {
-        $this->markTestSkipped('F-RD: formatter must receive target query (non-joined) identity; see 40-selectquerytest-failure-groups.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsToMany('Tags');
 
@@ -4055,7 +4054,6 @@ class SelectQueryTest extends TestCase
 
     public function testJoinWithConflictingAliases(): void
     {
-        $this->markTestSkipped('F-RH: AssertionError not thrown for conflicting aliases; see 40-selectquerytest-failure-groups.md.');
         $comments = $this->getCollectionLocator()->get('Comments');
 
         $comments->belongsTo('Authors', [
@@ -4085,7 +4083,6 @@ class SelectQueryTest extends TestCase
 
     public function testMatchingConflictingAliases(): void
     {
-        $this->markTestSkipped('F-RH: AssertionError not thrown for conflicting aliases; see 40-selectquerytest-failure-groups.md.');
         $comments = $this->getCollectionLocator()->get('Comments');
 
         $comments->belongsTo('Authors', [

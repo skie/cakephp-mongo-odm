@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\ODM;
 
+use AssertionError;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
@@ -244,6 +245,7 @@ class EagerLoader
         $this->external = [];
         $this->attachedLookupPaths = [];
         $this->dispatchedExternalPaths = [];
+        $this->assertMatchingJoinAliases($repository);
 
         do {
             $before = $this->containments;
@@ -878,11 +880,15 @@ class EagerLoader
         $query = $target->query();
         $query->eagerLoaded(true);
         $this->inheritQueryModes($query, $parentConfig);
-        ($config['queryBuilder'])($query);
+        $built = ($config['queryBuilder'])($query);
+        if ($built instanceof SelectQuery) {
+            $query = $built;
+        }
 
         if ($query instanceof SelectQuery) {
             $config['_hydrate'] = $query->isHydrationEnabled();
             $config['_resultsCasting'] = $query->isResultsCastingEnabled();
+            $config['_surrogateQuery'] = $query;
         }
 
         if (!empty($config['matching']) && $query->getEagerLoader()->getContain() !== []) {
@@ -982,6 +988,71 @@ class EagerLoader
     }
 
     /**
+     * Throws when matching / joinWith aliases collide, matching cake60
+     * `EagerLoader::mergeJoins()`.
+     *
+     * Matching `$lookup.as` uses the association property name. Two joins that
+     * share the short alias (`Authors` vs `Articles.Authors`) would overwrite
+     * the same pipeline field, so the query is rejected instead.
+     *
+     * Contain uses prefixed lookup aliases and is not checked here.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $repository The source collection.
+     * @return void
+     */
+    private function assertMatchingJoinAliases(BaseCollection $repository): void
+    {
+        if (!$this->matching instanceof EagerLoader) {
+            return;
+        }
+
+        $this->resolveMatchingJoins($this->matching->normalized($repository));
+    }
+
+    /**
+     * Collects matching joins keyed by short alias, merging nested joins.
+     *
+     * @param array<string, \Crustum\Mongo\ODM\EagerLoadable> $associations Matching loadables.
+     * @return array<string, \Crustum\Mongo\ODM\EagerLoadable>
+     */
+    private function resolveMatchingJoins(array $associations): array
+    {
+        $result = [];
+        foreach ($associations as $alias => $loadable) {
+            $result[$alias] = $loadable;
+            $result = $this->mergeMatchingJoins(
+                $result,
+                $this->resolveMatchingJoins($loadable->associations()),
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Merges association joins and throws when two paths share a short alias.
+     *
+     * @param array<string, \Crustum\Mongo\ODM\EagerLoadable> $existing Joins already collected.
+     * @param array<string, \Crustum\Mongo\ODM\EagerLoadable> $incoming Nested joins to merge.
+     * @return array<string, \Crustum\Mongo\ODM\EagerLoadable>
+     */
+    private function mergeMatchingJoins(array $existing, array $incoming): array
+    {
+        foreach ($incoming as $alias => $loadable) {
+            if (isset($existing[$alias])) {
+                throw new AssertionError(sprintf(
+                    'You cannot join with `%s` because it conflicts with the existing `%s` join.'
+                        . ' The existing join will be lost.',
+                    $loadable->aliasPath(),
+                    $existing[$alias]->aliasPath(),
+                ));
+            }
+        }
+
+        return $existing + $incoming;
+    }
+
+    /**
      * Dispatches one normalized node and all of its descendants.
      *
      * @param \Crustum\Mongo\ODM\EagerLoadable $loadable The node to dispatch.
@@ -1022,6 +1093,21 @@ class EagerLoader
                 }
 
                 $this->attachedLookupPaths[$path] = true;
+
+                if (!$matching) {
+                    $surrogate = $config['_surrogateQuery'] ?? null;
+                    if (!$surrogate instanceof SelectQuery) {
+                        $surrogate = $association->buildAttachSurrogateQuery($config);
+                    }
+
+                    $association->formatAssociationResults($query, $surrogate, [
+                        'propertyPath' => $loadable->propertyPath(),
+                        'formatterQuery' => $surrogate,
+                    ]);
+                    $association->bindNewAssociations($query, $surrogate, [
+                        'aliasPath' => $loadable->aliasPath(),
+                    ]);
+                }
             }
         } elseif (
             !$matching

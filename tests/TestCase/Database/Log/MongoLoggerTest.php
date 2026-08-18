@@ -121,7 +121,7 @@ class MongoLoggerTest extends TestCase
         $this->assertArrayNotHasKey('filter', $payload);
     }
 
-    /**
+    /** 
      * Test find commands keep filter and drop driver metadata.
      *
      * @return void
