@@ -23,6 +23,12 @@ class BakeSimpleMigrationCommandTest extends TestCase
      */
     protected array $baked = [];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        mongoTestCleanMigrationDir();
+    }
+
     /**
      * Tear down after each test.
      *
@@ -30,11 +36,7 @@ class BakeSimpleMigrationCommandTest extends TestCase
      */
     protected function tearDown(): void
     {
-        foreach ($this->baked as $file) {
-            if (file_exists($file)) {
-                unlink($file);
-            }
-        }
+        mongoTestCleanMigrationDir();
 
         parent::tearDown();
     }
@@ -65,11 +67,11 @@ class BakeSimpleMigrationCommandTest extends TestCase
      */
     public function testBakesPlainMigration(): void
     {
-        $output = $this->runCommand(['BakeSimpleTest']);
+        $output = $this->runCommand(['BakeSimpleTest', '--source', mongoTestMigrationSource()]);
 
-        $this->assertStringContainsString('Baked migration `BakeSimpleTest`', $output);
+        $this->assertStringContainsString('Baked `BakeSimpleTest`', $output);
 
-        $files = glob(CONFIG . 'MongoMigrations' . DS . '*_bake_simple_test.php');
+        $files = glob(mongoTestMigrationDir() . '*_BakeSimpleTest.php');
         $this->assertNotEmpty($files);
         $this->baked[] = $files[0];
 

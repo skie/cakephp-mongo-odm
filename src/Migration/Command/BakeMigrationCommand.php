@@ -10,17 +10,12 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Migration\Command;
 
-use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
-use Crustum\Mongo\Migration\Config\ConfigInterface;
-use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Util\ColumnParser;
-use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
-use Crustum\Mongo\Migration\Util\Util;
-use RuntimeException;
+use Override;
 
 /**
  * Bakes a Mongo migration class into the migrations folder.
@@ -35,8 +30,22 @@ use RuntimeException;
  * bin/cake bake mongo_migration CreateArticles name:string age:int? email:string:unique
  * ```
  */
-class BakeMigrationCommand extends Command
+class BakeMigrationCommand extends BakeSimpleMigrationCommand
 {
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function name(): string
+    {
+        return 'mongo_migration';
+    }
+
+    /**
+     * Migration class name for the current bake run.
+     */
+    protected string $migrationName = '';
+
     /**
      * @inheritDoc
      */
@@ -46,9 +55,7 @@ class BakeMigrationCommand extends Command
     }
 
     /**
-     * The default name added to the application command list.
-     *
-     * @return string
+     * @inheritDoc
      */
     public static function defaultName(): string
     {
@@ -56,13 +63,64 @@ class BakeMigrationCommand extends Command
     }
 
     /**
-     * Configure the option parser.
-     *
-     * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
-     * @return \Cake\Console\ConsoleOptionParser
+     * @inheritDoc
      */
+    #[Override]
+    protected function bake(string $name, Arguments $args, ConsoleIo $io): void
+    {
+        $this->migrationName = $name;
+        parent::bake($name, $args, $io);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
+    public function templateData(Arguments $arguments): array
+    {
+        $className = $this->migrationName;
+        $data = parent::templateData($arguments);
+
+        /** @var array<int, string> $args */
+        $args = $arguments->getArguments();
+        unset($args[0]);
+
+        $columnParser = new ColumnParser();
+        $fields = $columnParser->parseFields($args);
+        $indexes = $columnParser->parseIndexes($args);
+        $action = $this->detectAction($className);
+
+        if (!$action && $fields !== []) {
+            $this->io->abort(
+                'When applying fields the migration name should start with one of the following prefixes: '
+                . '`Create`, `Drop`, `Add`, `Remove`, `Alter`.',
+            );
+        }
+
+        if ($action === []) {
+            return $data;
+        }
+
+        [$actionName, $collection] = $action;
+
+        return array_merge($data, [
+            'action' => $actionName,
+            'collections' => [$collection],
+            'columns' => [
+                'fields' => $fields,
+                'indexes' => $indexes,
+            ],
+        ]);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
+        $parser = parent::buildOptionParser($parser);
+
         $parser->setDescription([
             'Bake a Mongo migration class',
             '',
@@ -70,207 +128,58 @@ class BakeMigrationCommand extends Command
             '<info>bin/cake bake mongo_migration CreateArticles name:string age:int? email:string:unique</info>',
             '',
             'Column grammar: name:type[length]?[:unique] — e.g. name:string[100], age:int?, email:string:unique',
-        ])->addOption('plugin', [
-            'short' => 'p',
-            'help' => 'The plugin to run migrations for',
-        ])->addOption('connection', [
-            'short' => 'c',
-            'help' => 'The datasource connection to use',
-            'default' => 'mongo',
-        ])->addOption('source', [
-            'short' => 's',
-            'default' => ConfigInterface::DEFAULT_MIGRATION_FOLDER,
-            'help' => 'The folder where your migrations are',
-        ])->addOption('force', [
-            'short' => 'f',
-            'boolean' => true,
-            'help' => 'Force overwriting an existing migration with the same name',
         ]);
 
         return $parser;
     }
 
     /**
-     * Execute the command.
+     * Detects the action and collection from the migration class name.
      *
-     * @param \Cake\Console\Arguments $args The command arguments
-     * @param \Cake\Console\ConsoleIo $io The console io
-     * @return int|null The exit code or null for success
+     * @param string $name Migration class name
+     * @return array<int, string>
      */
-    public function execute(Arguments $args, ConsoleIo $io): ?int
+    public function detectAction(string $name): array
     {
-        $all = $args->getArguments();
-        $name = isset($all[0]) && is_string($all[0]) ? $all[0] : null;
-        if ($name === null || $name === '') {
-            $io->err('You must provide a migration name in CamelCase.');
-            $this->abort();
+        if (preg_match('/^(Create|Drop)(.*)/', $name, $matches)) {
+            $action = strtolower($matches[1]) . '_table';
+            $collection = Inflector::underscore($matches[2]);
+
+            return [$action, $collection];
         }
 
-        $className = Inflector::camelize($name);
-        if (!preg_match('/^[A-Z]{1}[a-zA-Z0-9]+$/', $className)) {
-            $io->err('The class name can only contain "A-Z" and "0-9" and has to start with a letter.');
-            $this->abort();
+        if (preg_match('/^(Add).+?(?:To)(.*)/', $name, $matches)) {
+            return ['add_field', Inflector::underscore($matches[2])];
         }
 
-        $path = $this->migrationPath($args);
-        if (!is_dir($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
-            throw new RuntimeException(sprintf('Could not create migrations folder `%s`.', $path));
+        if (preg_match('/^(Remove).+?(?:From)(.*)/', $name, $matches)) {
+            return ['drop_field', Inflector::underscore($matches[2])];
         }
 
-        $version = Util::getCurrentTimestamp();
-        $file = $path . DIRECTORY_SEPARATOR . $version . '_' . Inflector::underscore($className) . '.php';
-
-        $existing = glob($path . DIRECTORY_SEPARATOR . '*_' . Inflector::underscore($className) . '.php');
-        $existing = is_array($existing) ? $existing : [];
-        if ($existing && !$args->getOption('force')) {
-            $io->abort(sprintf(
-                'A migration with the name `%s` already exists. Use --force to overwrite.',
-                $className,
-            ));
+        if (preg_match('/^(Alter).+?(?:On)(.*)/', $name, $matches)) {
+            return ['alter_field', Inflector::underscore($matches[2])];
         }
 
-        foreach ($existing as $oldFile) {
-            if (file_exists($oldFile)) {
-                unlink($oldFile);
-            }
+        if (preg_match('/^(Alter)(.*)/', $name, $matches)) {
+            return ['alter_table', Inflector::underscore($matches[2])];
         }
 
-        $parser = new ColumnParser();
-        $columnArgs = array_values(array_filter(
-            $all,
-            fn($arg): bool => is_string($arg) && $arg !== $name,
-        ));
-        $fields = $parser->parseFields($columnArgs);
-        $indexes = $parser->parseIndexes($columnArgs);
-
-        $content = $this->buildFile($className, $fields, $indexes);
-
-        if (file_put_contents($file, $content) === false) {
-            throw new RuntimeException(sprintf('Could not write migration file `%s`.', $file));
-        }
-
-        $io->success(sprintf('Baked `%s` to `%s`.', $className, $file));
-
-        return self::CODE_SUCCESS;
-    }
-
-    /**
-     * Builds the migration file content.
-     *
-     * @param string $className Migration class name
-     * @param array<string, array<string, mixed>> $fields Parsed fields
-     * @param array<string, array{key: array<string, int>, unique: bool}> $indexes Parsed indexes
-     * @return string PHP file content
-     */
-    protected function buildFile(string $className, array $fields, array $indexes): string
-    {
-        $collectionName = $this->collectionName($className);
-
-        $body = [];
-
-        if ($fields !== [] || $indexes !== []) {
-            $printer = new PhpArrayPrinter();
-            $lines = [];
-            $lines[] = sprintf("        \$this->collection('%s')", $collectionName);
-
-            foreach ($fields as $fieldName => $definition) {
-                $type = $definition['type'];
-                $options = [];
-                if ($definition['null'] ?? false) {
-                    $options['null'] = true;
-                }
-
-                if (isset($definition['default'])) {
-                    $options['default'] = $definition['default'];
-                }
-
-                $optionsStr = $options !== [] ? ', ' . $printer->print($options, 3) : '';
-                $lines[] = sprintf("            ->addColumn('%s', '%s'%s)", $fieldName, $type, $optionsStr);
-            }
-
-            foreach ($indexes as $index) {
-                $options = ['unique' => $index['unique']];
-                $lines[] = sprintf(
-                    '            ->addIndex(%s, %s)',
-                    $printer->print($index['key'], 3),
-                    $printer->print($options, 3),
-                );
-            }
-
-            $terminator = str_starts_with($className, 'Create') ? 'create' : 'update';
-            $lines[] = '            ->' . $terminator . '();';
-
-            $body[] = implode("\n", $lines);
-        } else {
-            $body[] = '        // Write your migration logic here.';
-        }
-
-        $upBody = implode("\n", $body);
-
-        return <<<PHP
-<?php
-declare(strict_types=1);
-
-use Crustum\Mongo\Migration\BaseMigration;
-
-class {$className} extends BaseMigration
-{
-    public function up(): void
-    {
-{$upBody}
-    }
-
-    public function down(): void
-    {
-    }
-}
-
-PHP;
+        return [];
     }
 
     /**
      * Infers the collection name from the migration class name.
      *
-     * Handles the cake naming conventions:
-     * - `CreateArticles` → `articles`
-     * - `AddPriceToProducts` → `products`
-     * - `RemoveFieldsFromUsers` → `users`
-     *
      * @param string $className Migration class name
      * @return string The collection name
      */
-    protected function collectionName(string $className): string
+    public function collectionName(string $className): string
     {
-        if (preg_match('/^Create(.+)$/', $className, $matches)) {
-            return Inflector::underscore($matches[1]);
-        }
-
-        if (preg_match('/^(?:Add|Remove|Alter).+?To(.*)$/', $className, $matches)) {
-            return Inflector::underscore($matches[1]);
-        }
-
-        if (preg_match('/^(?:Add|Remove|Alter)(?:Fields|Field|Columns|Column)?(?:From)?(.*)$/', $className, $matches)) {
-            return Inflector::underscore($matches[1]);
+        $action = $this->detectAction($className);
+        if ($action !== []) {
+            return $action[1];
         }
 
         return Inflector::underscore($className);
-    }
-
-    /**
-     * Resolves the migrations folder path.
-     *
-     * @param \Cake\Console\Arguments $args The command arguments
-     * @return string The migrations folder
-     */
-    protected function migrationPath(Arguments $args): string
-    {
-        $factory = new ManagerFactory([
-            'plugin' => $args->getOption('plugin'),
-            'source' => $args->getOption('source'),
-            'connection' => (string)$args->getOption('connection'),
-        ]);
-        $config = $factory->createConfig();
-
-        return $config->getMigrationPath();
     }
 }

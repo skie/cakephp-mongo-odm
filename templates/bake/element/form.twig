@@ -46,7 +46,9 @@
             {%~ endif %}
         {%~ elseif field not in ['created', 'modified', 'updated'] %}
             {%~ set fieldData = MongoBake.mongoColumnData(field, schema) %}
-            {%~ if fieldData.type in ['date', 'datetime', 'time'] and fieldData.null %}
+            {%~ if fieldData.type == 'text' %}
+                    echo $this->Form->control('{{ field }}', ['type' => 'textarea']);
+            {%~ elseif fieldData.type in ['date', 'datetime', 'time'] and fieldData.null %}
                     echo $this->Form->control('{{ field }}', ['empty' => true]);
             {%~ else %}
                     echo $this->Form->control('{{ field }}');

@@ -33,6 +33,7 @@ class TypeFactory
         'bin_bytearray' => BinaryByteArrayType::class,
         'bin_custom' => BinaryCustomType::class,
         'string' => StringType::class,
+        'text' => StringType::class,
         'uuid' => UuidType::class,
         'nativeuuid' => UuidType::class,
         'time' => TimeType::class,

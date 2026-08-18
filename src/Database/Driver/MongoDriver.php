@@ -255,6 +255,8 @@ class MongoDriver implements DriverInterface, LoggerAwareInterface
             $this->connect();
         }
 
+        assert($this->client instanceof Client);
+
         return $this->client;
     }
 

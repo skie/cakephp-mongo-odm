@@ -133,7 +133,7 @@ class BakeMigrationSnapshotCommand extends Command
 
         $className = Inflector::camelize($name);
         $version = Util::getCurrentTimestamp();
-        $file = $path . DIRECTORY_SEPARATOR . $version . '_' . Inflector::underscore($className) . '.php';
+        $file = $path . DIRECTORY_SEPARATOR . $version . '_' . Inflector::camelize($className) . '.php';
 
         $content = $this->buildSnapshot($className, $schema);
 

@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\Command;
 
 use Cake\Console\BaseCommand;
 use Crustum\Mongo\Migration\Command\BakeMigrationCommand;
-use ReflectionClass;
 
 /**
  * BakeMigrationCommandTest class
@@ -37,14 +36,8 @@ class BakeMigrationCommandTest extends TestCase
      */
     protected function tearDown(): void
     {
+        mongoTestCleanMigrationDir($this->migrationDir());
         parent::tearDown();
-        foreach (glob($this->migrationDir() . '*_bake_*.php') ?: [] as $file) {
-            unlink($file);
-        }
-
-        foreach (glob($this->migrationDir() . '*_add_price_to_products.php') ?: [] as $file) {
-            unlink($file);
-        }
     }
 
     /**
@@ -57,12 +50,13 @@ class BakeMigrationCommandTest extends TestCase
         $this->exec($this->withMigrationSource('bake mongo_migration BakeNoContents --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob($this->migrationDir() . '*_bake_no_contents.php');
+        $files = glob($this->migrationDir() . '*_BakeNoContents.php');
         $this->assertNotEmpty($files);
         $result = file_get_contents($files[0]);
 
         $this->assertStringContainsString('class BakeNoContents extends BaseMigration', $result);
         $this->assertStringContainsString('use Crustum\\Mongo\\Migration\\BaseMigration;', $result);
+        $this->assertStringContainsString('public function change(): void', $result);
     }
 
     /**
@@ -72,18 +66,19 @@ class BakeMigrationCommandTest extends TestCase
      */
     public function testCreateWithFields(): void
     {
-        $this->exec($this->withMigrationSource('bake mongo_migration BakeCreateUsers name:string age:int? email:string:unique --connection mongo'));
+        $this->exec($this->withMigrationSource('bake mongo_migration CreateUsers name:string age:int? email:string:unique --connection mongo'));
 
-        $files = glob($this->migrationDir() . '*_bake_create_users.php');
+        $files = glob($this->migrationDir() . '*_CreateUsers.php');
         $this->assertNotEmpty($files);
         $result = file_get_contents($files[0]);
 
-        $this->assertStringContainsString("->addColumn('name', 'string')", $result);
+        $this->assertStringContainsString("->addColumn('name', 'string', [", $result);
         $this->assertStringContainsString("->addColumn('age', 'integer', [", $result);
         $this->assertStringContainsString("'null' => true,", $result);
-        $this->assertStringContainsString("->addColumn('email', 'string')", $result);
+        $this->assertStringContainsString("->addColumn('email', 'string', [", $result);
         $this->assertStringContainsString("'unique' => true,", $result);
-        $this->assertStringContainsString('->update();', $result);
+        $this->assertStringContainsString('public function change(): void', $result);
+        $this->assertStringContainsString('->create();', $result);
     }
 
     /**
@@ -95,7 +90,7 @@ class BakeMigrationCommandTest extends TestCase
     {
         $this->exec($this->withMigrationSource('bake mongo_migration AddPriceToProducts price:int --connection mongo'));
 
-        $files = glob($this->migrationDir() . '*_add_price_to_products.php');
+        $files = glob($this->migrationDir() . '*_AddPriceToProducts.php');
         $this->assertNotEmpty($files);
         $result = file_get_contents($files[0]);
 
@@ -111,12 +106,10 @@ class BakeMigrationCommandTest extends TestCase
     public function testCollectionNameInference(): void
     {
         $command = new BakeMigrationCommand();
-        $method = (new ReflectionClass($command))->getMethod('collectionName');
-
-        $this->assertSame('articles', $method->invoke($command, 'CreateArticles'));
-        $this->assertSame('products', $method->invoke($command, 'AddPriceToProducts'));
-        $this->assertSame('users', $method->invoke($command, 'RemoveFieldsFromUsers'));
-        $this->assertSame('things', $method->invoke($command, 'Things'));
+        $this->assertSame('articles', $command->collectionName('CreateArticles'));
+        $this->assertSame('products', $command->collectionName('AddPriceToProducts'));
+        $this->assertSame('users', $command->collectionName('RemoveFieldsFromUsers'));
+        $this->assertSame('things', $command->collectionName('Things'));
     }
 
     /**
@@ -141,14 +134,14 @@ class BakeMigrationCommandTest extends TestCase
     public function testCreateDuplicateNameWithForce(): void
     {
         $this->exec($this->withMigrationSource('bake mongo_migration BakeDupCreate --connection mongo'));
-        $files = glob($this->migrationDir() . '*_bake_dup_create.php');
+        $files = glob($this->migrationDir() . '*_BakeDupCreate.php');
         $filePath = $files[0] ?? null;
         sleep(1);
 
         $this->exec($this->withMigrationSource('bake mongo_migration BakeDupCreate --connection mongo --force'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob($this->migrationDir() . '*_bake_dup_create.php');
+        $files = glob($this->migrationDir() . '*_BakeDupCreate.php');
         $this->assertNotEquals($filePath, $files[0] ?? null);
     }
 }

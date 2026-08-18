@@ -22,48 +22,55 @@ class LazyEagerLoader
      *
      * The properties for the associations to be loaded will be overwritten on each document.
      *
-     * @param \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> $entities a single document or list of documents
+     * @param \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> $documents a single document or list of documents
      * @param array<int|string, mixed> $contain A `contain()` compatible array.
      * @see \Crustum\Mongo\ODM\Query\SelectQuery::contain()
      * @param \Crustum\Mongo\ODM\BaseCollection $source The collection to use for fetching the top level documents
      * @return \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface>
      */
-    public function loadInto(EntityInterface|array $entities, array $contain, BaseCollection $source): EntityInterface|array
+    public function loadInto(EntityInterface|array $documents, array $contain, BaseCollection $source): EntityInterface|array
     {
         $returnSingle = false;
 
-        if ($entities instanceof EntityInterface) {
-            $entities = [$entities];
+        if ($documents instanceof EntityInterface) {
+            $documents = [$documents];
             $returnSingle = true;
         }
 
-        $query = $this->getQuery($entities, $contain, $source);
+        $query = $this->getQuery($documents, $contain, $source);
         $associations = array_values(array_filter(
             array_keys($query->getContain()),
             is_string(...),
         ));
 
-        $entities = $this->injectResults($entities, $query, $associations, $source);
+        $documents = $this->injectResults($documents, $query, $associations, $source);
 
-        return $returnSingle ? array_shift($entities) : $entities;
+        if (!$returnSingle) {
+            return $documents;
+        }
+
+        $document = array_shift($documents);
+        assert($document instanceof EntityInterface);
+
+        return $document;
     }
 
     /**
      * Builds a query that loads the passed documents plus the requested
      * associations, mirroring cake60 `LazyEagerLoader::getQuery()`.
      *
-     * @param array<\Cake\Datasource\EntityInterface> $entities The original documents.
+     * @param array<\Cake\Datasource\EntityInterface> $documents The original documents.
      * @param array<int|string, mixed> $contain The associations to be loaded.
      * @param \Crustum\Mongo\ODM\BaseCollection $source The collection the documents came from.
      * @return \Crustum\Mongo\ODM\Query\SelectQuery
      */
-    protected function getQuery(array $entities, array $contain, BaseCollection $source): SelectQuery
+    protected function getQuery(array $documents, array $contain, BaseCollection $source): SelectQuery
     {
         $primaryKey = $source->getPrimaryKey();
         $method = is_string($primaryKey) ? 'get' : 'extract';
 
         $keys = [];
-        foreach ($entities as $document) {
+        foreach ($documents as $document) {
             $keys[] = $document->{$method}($primaryKey);
         }
 
@@ -107,14 +114,14 @@ class LazyEagerLoader
      * Injects the results of the eager loader query into the original list of
      * documents.
      *
-     * @param array<\Cake\Datasource\EntityInterface> $entities The original list of documents
+     * @param array<\Cake\Datasource\EntityInterface> $documents The original list of documents
      * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The eager-loading query
      * @param array<string> $associations The top level associations that were loaded
      * @param \Crustum\Mongo\ODM\BaseCollection $source The collection where the documents came from
      * @return array<\Cake\Datasource\EntityInterface>
      */
     protected function injectResults(
-        array $entities,
+        array $documents,
         SelectQuery $query,
         array $associations,
         BaseCollection $source,
@@ -131,7 +138,7 @@ class LazyEagerLoader
             }
         }
 
-        foreach ($entities as $k => $object) {
+        foreach ($documents as $k => $object) {
             $key = implode(';', $object->extract($primaryKey));
             if (!isset($results[$key])) {
                 $injected[$k] = $object;

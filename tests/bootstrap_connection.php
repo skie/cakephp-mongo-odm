@@ -108,6 +108,30 @@ if (!function_exists('mongoTestMigrationDir')) {
     }
 }
 
+if (!function_exists('mongoTestCleanMigrationDir')) {
+    /**
+     * Removes baked migration files and schema lock from the test migrations folder.
+     *
+     * @param string|null $dir Absolute migrations directory; defaults to the worker folder.
+     * @return void
+     */
+    function mongoTestCleanMigrationDir(?string $dir = null): void
+    {
+        $dir ??= mongoTestMigrationDir();
+
+        foreach (glob($dir . '*.php') ?: [] as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+
+        $lock = $dir . 'schema-dump-mongo.lock';
+        if (is_file($lock)) {
+            unlink($lock);
+        }
+    }
+}
+
 if (!function_exists('mongoTestEnsureSchema')) {
     /**
      * Loads `schema_mongo.php` once per PHP process (bootstrap / ParaTest worker).

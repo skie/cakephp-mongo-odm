@@ -1,0 +1,40 @@
+{#
+/**
+ * Mongo migration bake skeleton (change method).
+ */
+#}
+{% set wantedOptions = {'length': '', 'default': '', 'null': '', 'precision': '', 'scale': ''} %}
+{% set collectionMethod = MongoMigration.collectionMethod(action) %}
+{% set columnMethod = MongoMigration.columnMethod(action) %}
+{% set indexMethod = MongoMigration.indexMethod(action) %}
+<?php
+declare(strict_types=1);
+
+use Crustum\Mongo\Migration\BaseMigration;
+
+class {{ name }} extends BaseMigration
+{
+    /**
+     * Change Method.
+     *
+     * More information on this method is available here:
+     * https://book.cakephp.org/migrations/5/guides/writing-migrations/migration-methods.html#the-change-method
+     *
+     * @return void
+     */
+    public function change(): void
+    {
+{% if action -%}
+{{- element('Crustum/Mongo.Migration/change-method-body', {
+    collections: collections,
+    columns: columns,
+    collectionMethod: collectionMethod,
+    columnMethod: columnMethod,
+    indexMethod: indexMethod,
+    wantedOptions: wantedOptions,
+}) -}}
+{% else %}
+        // Write your migration here.
+{% endif %}
+    }
+}

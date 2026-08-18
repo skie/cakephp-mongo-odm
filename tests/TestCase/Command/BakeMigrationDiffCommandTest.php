@@ -23,15 +23,8 @@ class BakeMigrationDiffCommandTest extends TestCase
      */
     protected function tearDown(): void
     {
+        mongoTestCleanMigrationDir($this->migrationDir());
         parent::tearDown();
-        foreach (glob($this->migrationDir() . '*_bake_schema_sync*.php') ?: [] as $file) {
-            unlink($file);
-        }
-
-        $lock = $this->migrationDir() . 'schema-dump-mongo.lock';
-        if (file_exists($lock)) {
-            unlink($lock);
-        }
     }
 
     /**
@@ -87,7 +80,7 @@ class BakeMigrationDiffCommandTest extends TestCase
         $this->exec($this->withMigrationSource('bake mongo_migration_diff BakeSchemaSync --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob($this->migrationDir() . '*_bake_schema_sync.php');
+        $files = glob($this->migrationDir() . '*_BakeSchemaSync.php');
         $this->assertNotEmpty($files);
         $result = file_get_contents($files[0]);
 

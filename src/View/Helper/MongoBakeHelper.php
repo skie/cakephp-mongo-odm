@@ -12,8 +12,10 @@ namespace Crustum\Mongo\View\Helper;
 
 use Bake\View\Helper\BakeHelper;
 use Cake\Datasource\SchemaInterface;
+use Crustum\Mongo\Bake\MongoAssociationFilter;
 use Crustum\Mongo\Database\Schema\CollectionSchema;
 use Crustum\Mongo\ODM\Association;
+use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\BaseCollection;
 use function Cake\Collection\collection;
 
@@ -30,6 +32,14 @@ use function Cake\Collection\collection;
  */
 class MongoBakeHelper extends BakeHelper
 {
+    /**
+     * Association filter used to drop HasMany aliases that already exist as
+     * BelongsToMany junctions.
+     *
+     * @var \Crustum\Mongo\Bake\MongoAssociationFilter|null
+     */
+    protected ?MongoAssociationFilter $mongoAssociationFilter = null;
+
     /**
      * Get column data from schema.
      *
@@ -71,10 +81,18 @@ class MongoBakeHelper extends BakeHelper
             return [];
         }
 
-        return array_map(
-            fn($association): string => $association->getTarget()->getAlias(),
+        $aliases = array_map(
+            fn(Association $association): string => $association->getName(),
             $collection->associations()->getByType($class),
         );
+
+        if (is_a($class, HasMany::class, true)) {
+            $this->mongoAssociationFilter ??= new MongoAssociationFilter();
+
+            return $this->mongoAssociationFilter->filterHasManyAssociationsAliases($collection, $aliases);
+        }
+
+        return $aliases;
     }
 
     /**
@@ -122,6 +140,6 @@ class MongoBakeHelper extends BakeHelper
     {
         $association = $collection->getAssociation($assoc);
 
-        return $association->getTarget()->getAlias();
+        return $association->getName();
     }
 }

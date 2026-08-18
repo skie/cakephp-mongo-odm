@@ -382,6 +382,7 @@ class BelongsToTest extends TestCase
         ];
         $called = false;
         $this->company->getEventManager()->on('Collection.beforeFind', function ($event, $query, $options) use (&$called): void {
+            $this->assertInstanceOf(ArrayObject::class, $options);
             $this->assertSame('more', $options['something']);
             $called = true;
         });

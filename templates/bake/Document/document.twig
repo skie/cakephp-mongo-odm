@@ -40,9 +40,12 @@
 {%- set enumShort = enumTypes is defined and enumTypes[field.name] is defined ? enumTypes[field.name]|split('\\')|last : null %}
 {%- if field.embedded is defined and field.embedded is not null %}
 #[Embedded(many: {{ field.embeddedMany ? 'true' : 'false' }}, key: '{{ field.embeddedKey }}')]
+
 {%- else %}
 #[Field(name: '{{ field.name }}', type: {{ field.constant is not null ? 'CollectionSchemaInterface::' ~ field.constant : "'" ~ field.type ~ "'" }}{{ field.nullable ? ', nullable: true' : '' }}{{ field.primaryKey ? ', primaryKey: true' : '' }}{{ enumShort ? ", enumType: '\\" ~ enumTypes[field.name] ~ "'" : '' }})]
+
 {%- endif %}
+
 {% endfor %}
 {% endif %}
 class {{ name }} extends Document{{ fileBuilder.classBuilder.implements ? ' implements ' ~ fileBuilder.classBuilder.implements|join(', ') : '' }}

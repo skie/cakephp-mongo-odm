@@ -556,11 +556,10 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     {
         $result = $this->all()->first();
         if ($result === null) {
-            $collection = '?';
             $repository = $this->getRepository();
-            if (method_exists($repository, 'getCollection')) {
-                $collection = $repository->getCollection();
-            }
+            $collection = $repository instanceof BaseCollection
+                ? $repository->getCollection()
+                : '?';
 
             throw new RecordNotFoundException(sprintf(
                 'Record not found in collection `%s`.',
@@ -1241,7 +1240,8 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      */
     protected function addDefaultFields(): void
     {
-        if ($this->autoFields !== true || !$this->repository instanceof BaseCollection) {
+        $repository = $this->repository;
+        if ($this->autoFields !== true || !$repository instanceof BaseCollection) {
             return;
         }
 
@@ -1250,12 +1250,12 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
             return;
         }
 
-        foreach ($this->collectionFields($this->repository->getCollection()) as $field) {
+        foreach ($this->collectionFields($repository->getCollection()) as $field) {
             if (isset($projection[$field])) {
                 continue;
             }
 
-            if (isset($projection[$this->repository->getAlias() . '.' . $field])) {
+            if (isset($projection[$repository->getAlias() . '.' . $field])) {
                 continue;
             }
 

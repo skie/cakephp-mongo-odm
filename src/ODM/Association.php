@@ -106,9 +106,9 @@ abstract class Association
     /**
      * Entity property populated by the association.
      *
-     * @var string|null
+     * @var string
      */
-    protected ?string $propertyName = null;
+    protected string $propertyName;
 
     /**
      * Foreign key fields on the target collection.
@@ -216,7 +216,10 @@ abstract class Association
     {
         [, $this->name] = pluginSplit($alias);
         $this->className = $options['className'] ?? $alias;
-        $this->propertyName = $options['propertyName'] ?? null;
+        if (isset($options['propertyName'])) {
+            $this->propertyName = (string)$options['propertyName'];
+        }
+
         $this->foreignKey = $options['foreignKey'] ?? null;
         $this->bindingKey = $options['bindingKey'] ?? null;
         $this->conditions = $options['conditions'] ?? [];
@@ -288,7 +291,7 @@ abstract class Association
      */
     public function getProperty(): string
     {
-        if ($this->propertyName === null) {
+        if (!isset($this->propertyName)) {
             $this->setProperty($this->propertyName());
         }
 
@@ -770,10 +773,12 @@ abstract class Association
     public function mergeSurrogateIntoConfig(SelectQuery $surrogate, array $options): array
     {
         $compiled = $surrogate->compile();
-        if ($compiled['filter'] ?? [] !== []) {
+        /** @var array<string, mixed> $filter */
+        $filter = $compiled['filter'] ?? [];
+        if ($filter !== []) {
             $options['conditions'] = array_merge(
                 is_array($options['conditions'] ?? null) ? $options['conditions'] : [],
-                $compiled['filter'],
+                $filter,
             );
         }
 
@@ -813,9 +818,9 @@ abstract class Association
         }
 
         $property = $options['propertyPath'];
-        $propertyPath = explode('.', $property);
+        $propertyPath = explode('.', (string)$property);
         $query->formatResults(
-            function (CollectionInterface $results, SelectQuery $query) use ($formatters, $property, $propertyPath) {
+            function (CollectionInterface $results, SelectQuery $query) use ($formatters, $property, $propertyPath): CollectionInterface {
                 $extracted = [];
                 foreach ($results as $result) {
                     foreach ($propertyPath as $propertyPathItem) {
@@ -823,10 +828,13 @@ abstract class Association
                             $result = null;
                             break;
                         }
+
                         $result = $result[$propertyPathItem];
                     }
+
                     $extracted[] = $result;
                 }
+
                 $extracted = $query->resultSetFactory()->createResultSet($extracted);
                 $resultSetClass = $query->resultSetFactory()->getResultSetClass();
                 foreach ($formatters as $callable) {
@@ -838,7 +846,7 @@ abstract class Association
 
                 $results = $results->insert($property, $extracted);
                 if ($query->isHydrationEnabled()) {
-                    return $results->map(function (EntityInterface $result) {
+                    return $results->map(function (EntityInterface $result): EntityInterface {
                         $result->clean();
 
                         return $result;
@@ -1400,10 +1408,16 @@ abstract class Association
         $finderData = (array)$finderData;
 
         if (is_numeric(key($finderData))) {
-            return [current($finderData), []];
+            $finder = current($finderData);
+            assert(is_string($finder));
+
+            return [$finder, []];
         }
 
-        return [key($finderData), current($finderData)];
+        $finder = key($finderData);
+        assert(is_string($finder));
+
+        return [$finder, current($finderData)];
     }
 
     /**

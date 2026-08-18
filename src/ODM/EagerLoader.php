@@ -551,8 +551,12 @@ class EagerLoader
 
         $propertySet = array_flip($propertyOrder);
         $rootKeys = [];
-        foreach ($entity->toArray() as $key => $value) {
-            if (!is_string($key) || $key === '_matchingData' || isset($propertySet[$key])) {
+        foreach (array_keys($entity->toArray()) as $key) {
+            if ($key === '_matchingData') {
+                continue;
+            }
+
+            if (isset($propertySet[$key])) {
                 continue;
             }
 
@@ -825,10 +829,12 @@ class EagerLoader
         }
 
         $compiled = $query->compile();
-        if ($compiled['filter'] ?? [] !== []) {
-            $config['conditions'] ??= array_merge(
+        /** @var array<string, mixed> $filter */
+        $filter = $compiled['filter'] ?? [];
+        if ($filter !== []) {
+            $config['conditions'] = array_merge(
                 is_array($config['conditions'] ?? null) ? $config['conditions'] : [],
-                $compiled['filter'],
+                $filter,
             );
         }
 
@@ -867,7 +873,7 @@ class EagerLoader
         $matching = (bool)($loadable->getConfig()['matching'] ?? false);
         $isNested = str_contains($loadable->propertyPath() ?? '', '.');
         if ($association instanceof BelongsToMany) {
-            $path = $loadable->aliasPath() ?? $loadable->name();
+            $path = $loadable->aliasPath();
             if (!isset($this->attachedLookupPaths[$path])) {
                 $config = $loadable->getConfig();
                 if ($matching && $parentProperty !== null) {
@@ -895,13 +901,13 @@ class EagerLoader
                 || ($strategy === Association::STRATEGY_LOOKUP && !$association->usesLookup($loadable->getConfig()))
             )
         ) {
-            $path = $loadable->aliasPath() ?? $loadable->name();
+            $path = $loadable->aliasPath();
             if (!isset($this->dispatchedExternalPaths[$path])) {
                 $this->external[] = $loadable;
                 $this->dispatchedExternalPaths[$path] = true;
             }
         } else {
-            $path = $loadable->aliasPath() ?? $loadable->name();
+            $path = $loadable->aliasPath();
             if (isset($this->attachedLookupPaths[$path])) {
                 foreach ($loadable->associations() as $nested) {
                     $this->dispatch($nested, $query, $association->getProperty());

@@ -44,6 +44,8 @@ interface CollectionSchemaInterface extends SchemaInterface
 
     public const string TYPE_STRING = 'string';
 
+    public const string TYPE_TEXT = 'text';
+
     public const string TYPE_UUID = 'uuid';
 
     public const string TYPE_TIME = 'time';

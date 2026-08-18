@@ -1,0 +1,32 @@
+{#
+/**
+ * Body of a baked Mongo migration change() method.
+ */
+#}
+{% for collection in collections %}
+        $collection = $this->collection('{{ collection }}');
+    {%~ if collectionMethod != 'drop' %}
+        {%~ if columnMethod == 'removeField' %}
+            {%~ for column, config in columns['fields'] %}
+        $collection->{{ columnMethod }}('{{ column }}');
+            {%~ endfor %}
+            {%~ for indexName, config in columns['indexes'] %}
+        $collection->{{ indexMethod }}('{{ indexName }}');
+            {%~ endfor %}
+        {%~ else %}
+            {%~ for column, config in columns['fields'] %}
+        $collection->{{ columnMethod }}('{{ column }}', '{{ config['type'] }}'{% if MongoMigration.fieldOptions(config) %}, [{{ MongoMigration.stringifyList(MongoMigration.fieldOptions(config), {'indent': 3}, wantedOptions) | raw }}]{% endif %});
+            {%~ endfor %}
+            {%~ for indexName, config in columns['indexes'] %}
+        $collection->{{ indexMethod }}([{{ MongoMigration.stringifyList(config['key'], {'indent': 3}) | raw }}], [{{ MongoMigration.stringifyList({'unique': config['unique']}, {'indent': 3}) | raw }}]);
+            {%~ endfor %}
+        {%~ endif %}
+    {%~ endif %}
+        {%~ if collectionMethod == 'drop' %}
+        $collection->drop()->create();
+        {%~ elseif collectionMethod == 'create' %}
+        $collection->create();
+        {%~ else %}
+        $collection->update();
+        {%~ endif %}
+{%- endfor -%}

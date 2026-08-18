@@ -51,12 +51,16 @@ class MongoAssociationFilter
     public function filterAssociations(BaseCollection $model): array
     {
         $associations = [];
+        $junctionAliases = $this->belongsToManyJunctionAliases($model);
 
         foreach (static::TYPE_CLASSES as $type => $class) {
             foreach ($model->associations()->type($class) as $assoc) {
                 $target = $assoc->getTarget();
                 $assocName = $assoc->getName();
                 $alias = $target->getAlias();
+                if ($type === 'HasMany' && in_array($alias, $junctionAliases, true)) {
+                    continue;
+                }
 
                 $navLink = true;
                 if ($model::class === BaseCollection::class) {
@@ -86,6 +90,35 @@ class MongoAssociationFilter
         }
 
         return $associations;
+    }
+
+    /**
+     * Removes HasMany aliases that are already BelongsToMany junction collections.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection Collection.
+     * @param array<string> $aliases HasMany aliases.
+     * @return array<string>
+     */
+    public function filterHasManyAssociationsAliases(BaseCollection $collection, array $aliases): array
+    {
+        return array_values(array_diff($aliases, $this->belongsToManyJunctionAliases($collection)));
+    }
+
+    /**
+     * Junction aliases for every BelongsToMany association on the collection.
+     *
+     * @param \Crustum\Mongo\ODM\BaseCollection $collection Collection.
+     * @return array<string>
+     */
+    protected function belongsToManyJunctionAliases(BaseCollection $collection): array
+    {
+        /** @var array<\Crustum\Mongo\ODM\Association\BelongsToMany> $associations */
+        $associations = $collection->associations()->type(BelongsToMany::class);
+
+        return array_map(
+            fn(BelongsToMany $association): string => $association->junction()->getAlias(),
+            $associations,
+        );
     }
 
     /**

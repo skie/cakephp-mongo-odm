@@ -348,26 +348,21 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
      */
     protected function referenceName(BaseCollection $collection): string
     {
-        $name = namespaceSplit($collection::class);
-        $class = end($name);
+        $parts = namespaceSplit($collection::class);
+        $class = end($parts);
         if ($class !== 'BaseCollection') {
-            $name = preg_replace('/Collection$/', '', $class);
-            $name = preg_replace('/Table$/', '', (string)$name);
+            $name = match (true) {
+                str_ends_with($class, 'Collection') => substr($class, 0, -10),
+                str_ends_with($class, 'Table') => substr($class, 0, -5),
+                default => $class,
+            };
             if ($name !== '') {
                 return $name;
             }
         }
 
-        [, $alias] = pluginSplit($collection->getRegistryAlias());
+        $name = $collection->getCollection() ?: $collection->getAlias();
 
-        // Generic (fallback) collections derive the reference name from the
-        // storage collection name rather than the alias, so a self-join
-        // (`belongsTo('Copy', ['className' => 'Articles'])`) resolves the
-        // same `articles_translations` table as its source (cake parity: the
-        // reference name is based on the target table class).
-        $collectionName = $collection->getCollection() ?: $alias;
-        $name = Inflector::camelize($collectionName);
-
-        return $name !== '' ? $name : $alias;
+        return Inflector::camelize($name);
     }
 }

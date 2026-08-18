@@ -296,6 +296,22 @@ class ColumnParserTest extends TestCase
         $this->assertSame('array', $this->columnParser->mapType('array'));
         $this->assertSame('collection', $this->columnParser->mapType('collection'));
         $this->assertSame('string', $this->columnParser->mapType('unknown_type'));
+        $this->assertSame('text', $this->columnParser->mapType('text'));
+    }
+
+    /**
+     * Test parseFields preserves an explicit text column type.
+     *
+     * @return void
+     */
+    public function testParseFieldsWithTextType(): void
+    {
+        $this->assertSame([
+            'body' => [
+                'type' => 'text',
+                'null' => false,
+            ],
+        ], $this->columnParser->parseFields(['body:text']));
     }
 
     /**

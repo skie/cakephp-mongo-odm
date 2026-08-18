@@ -168,6 +168,7 @@ class AssociationCollectionTest extends TestCase
             ['BelongsTo', 'BelongsToMany'],
             ['belongsTo', 'belongsToMany'],
             ['belongsto', 'belongstomany'],
+            [BelongsTo::class, BelongsToMany::class],
         ];
     }
 

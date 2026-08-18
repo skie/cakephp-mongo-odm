@@ -471,8 +471,8 @@ class MongoModelCommandTest extends TestCase
 
         $this->assertNotEmpty($result['belongsTo']);
         $aliases = array_column($result['belongsTo'], 'alias');
-        $this->assertContains('Article', $aliases);
-        $this->assertContains('User', $aliases);
+        $this->assertContains('Articles', $aliases);
+        $this->assertContains('Users', $aliases);
     }
 
     /**
@@ -517,6 +517,31 @@ class MongoModelCommandTest extends TestCase
     }
 
     /**
+     * Test that baked documents include association properties in $_accessible.
+     *
+     * @return void
+     */
+    public function testBakeModelAccessibleAssociations(): void
+    {
+        $this->generatedFiles = [
+            APP . 'Model/Document/BakeArticle.php',
+            APP . 'Model/Collection/BakeArticlesCollection.php',
+        ];
+        $this->exec('bake mongo_model BakeArticles --no-test --no-fixture --connection mongo --collection articles');
+
+        $this->assertExitCode(CommandInterface::CODE_SUCCESS);
+        $this->assertFilesExist($this->generatedFiles);
+
+        $document = file_get_contents($this->generatedFiles[0]);
+        $this->assertStringContainsString("'author' => true,", $document);
+        $this->assertStringContainsString("'tags' => true,", $document);
+
+        $collection = file_get_contents($this->generatedFiles[1]);
+        $this->assertStringContainsString("belongsTo('Authors', [", $collection);
+        $this->assertStringContainsString("belongsToMany('Tags', [", $collection);
+    }
+
+    /**
      * Test that baked documents canonicalize Mongo bsonTypes to
      * `CollectionSchemaInterface::TYPE_*` constants, matching `bake document`.
      *
@@ -552,9 +577,9 @@ class MongoModelCommandTest extends TestCase
         $this->assertFilesExist($this->generatedFiles);
 
         $collection = file_get_contents($this->generatedFiles[0]);
-        $this->assertStringContainsString("belongsTo('Article'", $collection);
-        $this->assertStringContainsString("'className' => 'Articles'", $collection);
+        $this->assertStringContainsString("belongsTo('Articles', [", $collection);
         $this->assertStringContainsString("'foreignKey' => 'article_id'", $collection);
+        $this->assertStringNotContainsString("'className' => 'Articles'", $collection);
     }
 
     /**

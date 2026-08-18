@@ -72,11 +72,9 @@ class MongoModelCommandAssociationDetectionTest extends TestCase
     public function testBakeAssociationDetectionCommentsTable(): void
     {
         $this->_compareBakeCollectionResult('Comments', [
-            "belongsTo('Article', [",
-            "'className' => 'Articles',",
+            "belongsTo('Articles', [",
             "'foreignKey' => 'article_id'",
-            "belongsTo('User', [",
-            "'className' => 'Users',",
+            "belongsTo('Users', [",
             "'foreignKey' => 'user_id'",
             "hasMany('Attachments', [",
             "'foreignKey' => 'comment_id'",
@@ -96,8 +94,7 @@ class MongoModelCommandAssociationDetectionTest extends TestCase
     public function testBakeAssociationDetectionArticlesTable(): void
     {
         $this->_compareBakeCollectionResult('BakeArticles', [
-            "belongsTo('Author', [",
-            "'className' => 'Authors',",
+            "belongsTo('Authors', [",
             "'foreignKey' => 'author_id'",
         ], [], 'articles');
     }

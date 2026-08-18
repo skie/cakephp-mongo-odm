@@ -52,7 +52,7 @@ class ColumnParser
     protected array $typeMap = [
         'string' => 'string',
         'char' => 'string',
-        'text' => 'string',
+        'text' => 'text',
         'uuid' => 'string',
         'objectid' => 'objectid',
         'id' => 'objectid',

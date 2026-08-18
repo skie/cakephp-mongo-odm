@@ -339,16 +339,21 @@ class MongoModelCommand extends BakeCommand
                 continue;
             }
 
-            $alias = Inflector::classify(Inflector::singularize($this->_camelize($targetCollection)));
+            $alias = $this->_modelNameFromKey($fieldName);
             if ($alias === $model->getAlias()) {
                 continue;
             }
 
-            $associations['belongsTo'][] = [
+            $className = $this->_camelize($targetCollection);
+            $assoc = [
                 'alias' => $alias,
-                'className' => $this->_camelize($targetCollection),
                 'foreignKey' => $fieldName,
             ];
+            if ($className !== $alias) {
+                $assoc['className'] = $className;
+            }
+
+            $associations['belongsTo'][] = $assoc;
         }
 
         return $associations;
@@ -1090,7 +1095,26 @@ class MongoModelCommand extends BakeCommand
 
         $fields = $this->resolveEmbedded($name, $fields);
 
+        $accessibleFieldNames = $data['fields'] ?? false;
+        if (
+            $accessibleFieldNames === false
+            || !is_array($accessibleFieldNames)
+            || ($accessibleFieldNames !== [] && !is_string($accessibleFieldNames[0] ?? null))
+        ) {
+            $accessibleFieldNames = null;
+        }
+
         $fieldNames = array_values(array_diff(array_column($fields, 'name'), ['_id']));
+        if ($accessibleFieldNames !== null) {
+            $fieldNames = $accessibleFieldNames;
+        } else {
+            foreach ($model->associations() as $association) {
+                $fieldNames[] = $association->getProperty();
+            }
+
+            $fieldNames = array_values(array_unique($fieldNames));
+        }
+
         $useConstants = array_any($fields, fn(array $field): bool => $field['constant'] !== null);
 
         $data += [
@@ -1446,6 +1470,7 @@ class MongoModelCommand extends BakeCommand
         $map = [
             'objectid' => 'TYPE_OBJECTID',
             'string' => 'TYPE_STRING',
+            'text' => 'TYPE_TEXT',
             'uuid' => 'TYPE_UUID',
             'integer' => 'TYPE_INTEGER',
             'int64' => 'TYPE_INT64',

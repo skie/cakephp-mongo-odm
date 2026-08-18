@@ -21,10 +21,8 @@ class BakeMigrationSnapshotCommandTest extends TestCase
      */
     protected function tearDown(): void
     {
+        mongoTestCleanMigrationDir($this->migrationDir());
         parent::tearDown();
-        foreach (glob($this->migrationDir() . '*_bake_snapshot*.php') ?: [] as $file) {
-            unlink($file);
-        }
     }
 
     /**
@@ -37,7 +35,7 @@ class BakeMigrationSnapshotCommandTest extends TestCase
         $this->exec($this->withMigrationSource('bake mongo_migration_snapshot BakeSnapshotArticles --connection mongo'));
 
         $this->assertExitCode(BaseCommand::CODE_SUCCESS);
-        $files = glob($this->migrationDir() . '*_bake_snapshot_articles.php');
+        $files = glob($this->migrationDir() . '*_BakeSnapshotArticles.php');
         $this->assertNotEmpty($files);
 
         $result = file_get_contents($files[0]);

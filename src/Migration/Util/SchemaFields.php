@@ -220,6 +220,7 @@ class SchemaFields
             'bin_bytearray' => 'TYPE_BINARY_BYTEARRAY',
             'bin_custom' => 'TYPE_BINARY_CUSTOM',
             'string' => 'TYPE_STRING',
+            'text' => 'TYPE_TEXT',
             'uuid' => 'TYPE_UUID',
             'time' => 'TYPE_TIME',
             'json' => 'TYPE_JSON',

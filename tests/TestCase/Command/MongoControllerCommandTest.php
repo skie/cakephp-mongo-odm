@@ -243,4 +243,32 @@ class MongoControllerCommandTest extends TestCase
         $this->assertFileExists($this->generatedFile);
         $this->assertFileContains('BakeProductsController extends AppController', $this->generatedFile);
     }
+
+    /**
+     * Test that baked controllers contain associated collections.
+     *
+     * @return void
+     */
+    public function testBakeActionsContent(): void
+    {
+        $this->generatedFile = APP . 'Controller/ArticlesController.php';
+        $this->exec('bake mongocontroller Articles --connection mongo --no-test');
+
+        $this->assertExitCode(CommandInterface::CODE_SUCCESS);
+        $this->assertFileExists($this->generatedFile);
+
+        $controller = file_get_contents($this->generatedFile);
+        $this->assertStringContainsString("->contain(['Authors']);", $controller);
+        $this->assertStringContainsString("contain: ['Authors', 'Tags']", $controller);
+        $this->assertStringContainsString("contain: ['Tags']", $controller);
+        $this->assertStringContainsString(
+            '$authors = $this->Articles->Authors->find(\'list\', limit: 200)->all();',
+            $controller,
+        );
+        $this->assertStringContainsString(
+            '$tags = $this->Articles->Tags->find(\'list\', limit: 200)->all();',
+            $controller,
+        );
+        $this->assertStringNotContainsString('ArticlesTags', $controller);
+    }
 }

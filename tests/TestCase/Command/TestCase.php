@@ -46,6 +46,7 @@ abstract class TestCase extends BaseTestCase
         $this->configApplication(BakeTestApplication::class, null);
         self::setAppNamespace('TestApp');
         mongoTestMigrationDir();
+        mongoTestCleanMigrationDir();
     }
 
     /**
@@ -102,6 +103,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         $this->generatedFiles = [];
+        mongoTestCleanMigrationDir();
     }
 
     /**

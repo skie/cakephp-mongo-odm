@@ -213,6 +213,7 @@ class BelongsTo extends Association
             if (!empty($pipelineOptions['conditions'])) {
                 $postOptions['conditions'] = $this->prefixMatchConditions($pipelineOptions['conditions'], $property);
             }
+
             $postOptions['matching'] = true;
             $this->applyPipelineOptions($builder, $postOptions);
         }

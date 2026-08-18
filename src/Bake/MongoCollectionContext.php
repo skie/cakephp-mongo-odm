@@ -286,9 +286,9 @@ class MongoCollectionContext
             $rules['boolean'] = ['rule' => 'boolean', 'args' => []];
         } elseif (in_array($type, ['date', 'datetime', 'timestamp'], true)) {
             $rules['dateTime'] = ['rule' => 'dateTime', 'args' => []];
-        } elseif ($type === 'string') {
+        } elseif ($type === 'string' || $type === 'text') {
             $rules['scalar'] = ['rule' => 'scalar', 'args' => []];
-            if (isset($field['length']) && $field['length'] > 0) {
+            if ($type === 'string' && isset($field['length']) && $field['length'] > 0) {
                 $rules['maxLength'] = ['rule' => 'maxLength', 'args' => [(int)$field['length']]];
             }
         }

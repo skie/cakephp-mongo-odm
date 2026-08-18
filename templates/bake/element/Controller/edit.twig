@@ -14,7 +14,7 @@
  */
 #}
 {% set belongsTo = MongoBake.mongoAliasExtractor(modelObj, 'BelongsTo') %}
-{% set belongsToMany = MongoBake.mongoAliasExtractor(modelObj, 'belongsToMany') %}
+{% set belongsToMany = MongoBake.mongoAliasExtractor(modelObj, 'BelongsToMany') %}
 {% set compact = ["'#{singularName}'"] %}
     /**
      * Edit method

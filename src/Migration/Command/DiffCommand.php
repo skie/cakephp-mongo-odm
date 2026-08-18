@@ -237,9 +237,14 @@ PHP;
             throw new RuntimeException(sprintf('Could not create migrations folder `%s`.', $path));
         }
 
+        foreach (glob($path . DIRECTORY_SEPARATOR . '*_' . $className . '.php') ?: [] as $existing) {
+            if (is_file($existing)) {
+                unlink($existing);
+            }
+        }
+
         $version = Util::getCurrentTimestamp();
-        $snake = strtolower((string)preg_replace('/(?<!^)[A-Z]/', '_$0', $className));
-        $file = $path . DIRECTORY_SEPARATOR . $version . '_' . $snake . '.php';
+        $file = $path . DIRECTORY_SEPARATOR . $version . '_' . $className . '.php';
 
         if (file_put_contents($file, $content) === false) {
             throw new RuntimeException(sprintf('Could not write migration file `%s`.', $file));

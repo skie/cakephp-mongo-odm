@@ -179,12 +179,19 @@ class AssociationCollection implements Countable, IteratorAggregate
     /**
      * Gets associations matching one or more class names.
      *
-     * @param array<class-string<\Crustum\Mongo\ODM\Association>>|class-string<\Crustum\Mongo\ODM\Association> $class Association classes.
+     * Accepts short names (`BelongsTo`) or fully-qualified class names. Matching
+     * is case-insensitive on the class basename, matching cake `getByType()`.
+     *
+     * @param array<class-string<\Crustum\Mongo\ODM\Association>|string>|class-string<\Crustum\Mongo\ODM\Association>|string $class Association classes.
      * @return array<int, \Crustum\Mongo\ODM\Association>
      */
     public function getByType(array|string $class): array
     {
-        $classes = array_map(strtolower(...), (array)$class);
+        $classes = array_map(function (string $value): string {
+            [, $name] = namespaceSplit($value);
+
+            return strtolower($name);
+        }, (array)$class);
 
         return array_values(array_filter($this->items, function (Association $association) use ($classes): bool {
             [, $name] = namespaceSplit($association::class);
