@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use Cake\Database\Expression\OrderClauseExpression;
-use Cake\Database\Expression\TupleComparison;
 use Cake\Database\ExpressionInterface;
 use Cake\Database\TypeMap;
 use Cake\Datasource\ConnectionManager;
@@ -461,11 +460,10 @@ class HasManyTest extends TestCase
     }
 
     /**
-     * Test the eager loader method with no extra options
+     * Test composite binding keys compile to a tuple `$or` filter and attach matches.
      */
     public function testEagerLoaderMultipleKeys(): void
     {
-        $this->markTestSkipped('// SQL composite-key `TupleComparison` (`author_id, site_id IN`) has no Mongo analog; see 18-orm-tests-port-plan.md.');
         $config = [
             'target' => $this->article,
             'strategy' => 'select',
@@ -474,37 +472,26 @@ class HasManyTest extends TestCase
 
         $this->author->setPrimaryKey(['_id', 'site_id']);
         $association = new HasMany('Articles', $this->author, $config);
-        $keys = [[1, 10], [2, 20], [3, 30], [4, 40]];
         $results = new ResultSet([
-            ['_id' => '000000000000000000000001', 'title' => 'article 1', 'author_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
-            ['_id' => '000000000000000000000002', 'title' => 'article 2', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
+            new Document([
+                '_id' => '000000000000000000000001',
+                'title' => 'article 1',
+                'author_id' => '000000000000000000000002',
+                'site_id' => '000000000000000000000010',
+            ]),
+            new Document([
+                '_id' => '000000000000000000000002',
+                'title' => 'article 2',
+                'author_id' => '000000000000000000000001',
+                'site_id' => '000000000000000000000020',
+            ]),
         ]);
-        $tuple = new TupleComparison(
-            ['Articles.author_id', 'Articles.site_id'],
-            $keys,
-            ['integer'],
-            'IN',
-        );
-        $query = new class ($this->article, $results, $tuple) extends SelectQuery {
-            public bool $andWhereCalled = false;
-
+        $query = new class ($this->article, $results) extends SelectQuery {
             public function __construct(
                 BaseCollection $collection,
                 protected ResultSet $resultSet,
-                protected TupleComparison $expectedTuple,
             ) {
                 parent::__construct($collection);
-            }
-
-            public function andWhere(
-                ExpressionInterface|Closure|array|string $conditions,
-                array $types = [],
-            ): static {
-                if ($conditions == $this->expectedTuple) {
-                    $this->andWhereCalled = true;
-                }
-
-                return $this;
             }
 
             public function all(): ResultSetInterface
@@ -516,21 +503,22 @@ class HasManyTest extends TestCase
             ->with('all')
             ->andReturn($query);
 
-        $callable = $association->eagerLoader(['keys' => $keys, 'query' => $query]);
-        $this->assertTrue($query->andWhereCalled);
-        $row = ['Authors__id' => 2, 'Authors__site_id' => 10, 'username' => 'author 1'];
-        $result = $callable($row);
-        $row['Articles'] = [
-            ['_id' => '000000000000000000000001', 'title' => 'article 1', 'author_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
+        $callable = $association->eagerLoader(['query' => $query]);
+        $authors = [
+            ['_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
+            ['_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
         ];
-        $this->assertEquals($row, $result);
+        $result = $callable($authors);
 
-        $row = ['Authors__id' => 1, 'username' => 'author 2', 'Authors__site_id' => 20];
-        $result = $callable($row);
-        $row['Articles'] = [
-            ['_id' => '000000000000000000000002', 'title' => 'article 2', 'author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
-        ];
-        $this->assertEquals($row, $result);
+        $where = $query->clause('where');
+        $this->assertEqualsCanonicalizing([
+            ['author_id' => '000000000000000000000002', 'site_id' => '000000000000000000000010'],
+            ['author_id' => '000000000000000000000001', 'site_id' => '000000000000000000000020'],
+        ], $where['$or']);
+        $this->assertCount(1, $result[0]['articles']);
+        $this->assertSame('000000000000000000000001', $result[0]['articles'][0]->get('_id'));
+        $this->assertCount(1, $result[1]['articles']);
+        $this->assertSame('000000000000000000000002', $result[1]['articles'][0]->get('_id'));
     }
 
     /**

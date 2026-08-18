@@ -7,6 +7,7 @@ use ArrayAccess;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
 use Closure;
+use Crustum\Mongo\Database\Expression\TupleInExpression;
 use Crustum\Mongo\Database\Query\Query;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Traversable;
@@ -80,40 +81,40 @@ class SelectLoader implements LoaderInterface
                 || ($options['associationType'] ?? '') === 'manyToMany';
 
             $sourceHoldsForeignKey = ($options['associationType'] ?? '') === 'manyToOne';
-            $rawSourceKey = $sourceHoldsForeignKey
-                ? ($options['foreignKey'] ?? '_id')
-                : ($options['bindingKey'] ?? '_id');
+            $foreignKeyDef = $options['foreignKey'] ?? '_id';
             // `foreignKey => false` disables FK matching: the association loads
             // by conditions alone (cake parity) and attaches the single match.
-            $disableKey = in_array($rawSourceKey, [false, null, ''], true);
-            if ($disableKey && empty($options['conditions'])) {
+            $keyMatchingDisabled = in_array($foreignKeyDef, [false, null, ''], true);
+            if ($keyMatchingDisabled && $sourceHoldsForeignKey && empty($options['conditions'])) {
                 return $entities;
             }
 
-            $keys = [];
-            $sourceKey = (string)$rawSourceKey;
+            $sourceKeyFields = $this->normalizeKeyFields(
+                $sourceHoldsForeignKey ? $foreignKeyDef : ($options['bindingKey'] ?? '_id'),
+            );
+            $targetKeyFields = $this->normalizeKeyFields(
+                $sourceHoldsForeignKey ? ($options['bindingKey'] ?? '_id') : $foreignKeyDef,
+            );
+            $filterByKey = !$keyMatchingDisabled && $targetKeyFields !== [];
+            $collectSourceKeys = !$keyMatchingDisabled && $sourceKeyFields !== [];
+
             $sourcePath = isset($options['sourcePath']) ? (string)$options['sourcePath'] : '';
             $sourceEntities = $this->collectSourceEntities($entities, $sourcePath);
-            if (!$disableKey) {
+
+            $tuples = [];
+            if ($collectSourceKeys) {
                 foreach ($sourceEntities as $sourceEntity) {
-                    $key = $sourceEntity instanceof EntityInterface
-                        ? $sourceEntity->get($sourceKey)
-                        : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
-                    if ($key !== null) {
-                        $keys[(string)$key] = $key;
+                    $tuple = $this->extractKeyTuple($sourceEntity, $sourceKeyFields);
+                    if ($tuple !== null) {
+                        $tuples[$this->tupleMapKey($tuple)] = $tuple;
                     }
                 }
             }
 
-            if (!$disableKey && $keys === []) {
+            if ($collectSourceKeys && $tuples === []) {
                 return $entities;
             }
 
-            $targetKey = $disableKey
-                ? ''
-                : (string)($sourceHoldsForeignKey
-                    ? ($options['bindingKey'] ?? '_id')
-                    : ($options['foreignKey'] ?? '_id'));
             $conditions = $options['conditions'] ?? [];
             if ($conditions instanceof Closure) {
                 // Let the query layer invoke the closure with (expression, query)
@@ -123,8 +124,15 @@ class SelectLoader implements LoaderInterface
             }
 
             $conditions = $conditions === null ? [] : (is_array($conditions) ? $conditions : []);
-            if ($targetKey !== '') {
-                $conditions[$targetKey . ' IN'] = array_values($keys);
+            if ($filterByKey && $tuples !== []) {
+                if (count($targetKeyFields) === 1) {
+                    $conditions[$targetKeyFields[0] . ' IN'] = array_map(
+                        static fn(array $tuple): mixed => $tuple[0],
+                        array_values($tuples),
+                    );
+                } else {
+                    $query->where(new TupleInExpression($targetKeyFields, array_values($tuples)));
+                }
             }
 
             $query->where($conditions);
@@ -135,8 +143,10 @@ class SelectLoader implements LoaderInterface
                 }
 
                 $fields = (array)$fields;
-                if (!in_array($targetKey, $fields, true)) {
-                    $fields[] = $targetKey;
+                foreach ($targetKeyFields as $field) {
+                    if (!in_array($field, $fields, true)) {
+                        $fields[] = $field;
+                    }
                 }
 
                 $query->select($fields);
@@ -168,43 +178,41 @@ class SelectLoader implements LoaderInterface
 
             $rows = $query->all();
             $map = [];
-            $disabledKey = $targetKey === '';
-            if ($disabledKey) {
+            if (!$filterByKey) {
                 $map['*'] = $rows instanceof Traversable ? iterator_to_array($rows, false) : (array)$rows;
             } else {
                 foreach ($rows as $rowKey => $row) {
-                    $value = $row instanceof EntityInterface ? $row->get($targetKey) : ($row[$targetKey] ?? null);
-                    if ($value === null) {
+                    $tuple = $this->extractKeyTuple($row, $targetKeyFields);
+                    if ($tuple === null) {
                         continue;
                     }
 
+                    $mapKey = $this->tupleMapKey($tuple);
                     if ($many) {
                         if (is_int($rowKey)) {
-                            $map[(string)$value][] = $row;
+                            $map[$mapKey][] = $row;
                         } else {
-                            $map[(string)$value][$rowKey] = $row;
+                            $map[$mapKey][$rowKey] = $row;
                         }
                     } else {
-                        $map[(string)$value] = $row;
+                        $map[$mapKey] = $row;
                     }
                 }
             }
 
             $property = (string)$options['nestKey'];
-            $many = ($options['associationType'] ?? '') === 'oneToMany'
-                || ($options['associationType'] ?? '') === 'manyToMany';
 
             $loadedMap = [];
             foreach ($sourceEntities as $i => $sourceEntity) {
-                if ($disabledKey) {
-                    $loadedMap[$i] = $many ? $map['*'] : ($map['*'][0] ?? null);
-                } else {
-                    $value = $sourceEntity instanceof EntityInterface
-                        ? $sourceEntity->get($sourceKey)
-                        : (is_array($sourceEntity) ? ($sourceEntity[$sourceKey] ?? null) : null);
-                    $key = $value === null ? '' : (string)$value;
-                    $loadedMap[$i] = $many ? ($map[$key] ?? []) : ($map[$key] ?? null);
+                if (!$filterByKey) {
+                    $matchedRows = $map['*'] ?? [];
+                    $loadedMap[$i] = $many ? $matchedRows : ($matchedRows !== [] ? reset($matchedRows) : null);
+                    continue;
                 }
+
+                $tuple = $this->extractKeyTuple($sourceEntity, $sourceKeyFields);
+                $mapKey = $tuple === null ? '' : $this->tupleMapKey($tuple);
+                $loadedMap[$i] = $many ? ($map[$mapKey] ?? []) : ($map[$mapKey] ?? null);
             }
 
             $sourcePaths = $sourcePath === ''
@@ -234,6 +242,60 @@ class SelectLoader implements LoaderInterface
 
             return $entities;
         };
+    }
+
+    /**
+     * Normalizes an association key definition to a list of field names.
+     *
+     * @param array<string>|string|false|null $key The key definition.
+     * @return list<string>
+     */
+    protected function normalizeKeyFields(array|string|false|null $key): array
+    {
+        if ($key === false || $key === null || $key === '') {
+            return [];
+        }
+
+        return array_values(array_filter((array)$key, is_string(...)));
+    }
+
+    /**
+     * Extracts a tuple of key values from an entity or array row.
+     *
+     * @param mixed $entity The source row.
+     * @param list<string> $fields The key field names.
+     * @return list<mixed>|null The tuple, or null when any field is missing.
+     */
+    protected function extractKeyTuple(mixed $entity, array $fields): ?array
+    {
+        if ($fields === []) {
+            return null;
+        }
+
+        $tuple = [];
+        foreach ($fields as $field) {
+            $value = $entity instanceof EntityInterface
+                ? $entity->get($field)
+                : (is_array($entity) ? ($entity[$field] ?? null) : null);
+            if ($value === null) {
+                return null;
+            }
+
+            $tuple[] = $value;
+        }
+
+        return $tuple;
+    }
+
+    /**
+     * Builds a stable map key for a tuple of values.
+     *
+     * @param list<mixed> $tuple The tuple values.
+     * @return string
+     */
+    protected function tupleMapKey(array $tuple): string
+    {
+        return implode(';', array_map(static fn(mixed $value): string => (string)$value, $tuple));
     }
 
     /**
