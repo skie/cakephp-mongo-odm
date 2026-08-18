@@ -15,6 +15,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass(ExistsInNullable::class)]
 class ExistsInNullableTest extends TestCase
 {
+    private const string SITE_ONE = '000000000000000000000001';
+
+    private const string AUTHOR_MARK = '000000000000000000000001';
+
+    private const string INVALID_AUTHOR = '507f1f77bcf86cd799439011';
+
+    private const string INVALID_SITE = '000000000000000000009999';
+
     /**
      * Fixtures to be loaded
      *
@@ -26,16 +34,25 @@ class ExistsInNullableTest extends TestCase
     ];
 
     /**
+     * Mirrors composite binding key setup from RulesCheckerIntegrationTest.
+     *
+     * @return void
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->getCollectionLocator()->get('SiteAuthors')->setPrimaryKey(['_id', 'site_id']);
+    }
+
+    /**
      * Test that allowNullableNulls is true by default
      */
     public function testAllowNullableNullsDefaultValue(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
             'author_id' => null,
-            'site_id' => 1,
-            'name' => 'New Site Article without Author',
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article without Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -51,12 +68,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testAllowNullableNullsCanBeOverridden(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
             'author_id' => null,
-            'site_id' => 1,
-            'name' => 'New Site Article without Author',
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article without Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -74,12 +89,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testAllKeysSet(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
-            'author_id' => 1,
-            'site_id' => 1,
-            'name' => 'New Site Article with Author',
+            'author_id' => self::AUTHOR_MARK,
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article with Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -95,12 +108,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testInvalidKey(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
-            'author_id' => 99999999,
-            'site_id' => 1,
-            'name' => 'New Site Article with Author',
+            'author_id' => self::INVALID_AUTHOR,
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article with Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -121,12 +132,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testInvalidKeys(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
-            'author_id' => 99999999,
-            'site_id' => 99999999,
-            'name' => 'New Site Article with Author',
+            'author_id' => self::INVALID_AUTHOR,
+            'site_id' => self::INVALID_SITE,
+            'title' => 'New Site Article with Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -147,19 +156,16 @@ class ExistsInNullableTest extends TestCase
      */
     public function testSaveMany(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $documents = [
             new Document([
-                'id' => 1,
                 'author_id' => null,
-                'site_id' => 1,
-                'name' => 'New Site Article without Author',
+                'site_id' => self::SITE_ONE,
+                'title' => 'New Site Article without Author',
             ]),
             new Document([
-                'id' => 2,
-                'author_id' => 1,
-                'site_id' => 1,
-                'name' => 'New Site Article with Author',
+                'author_id' => self::AUTHOR_MARK,
+                'site_id' => self::SITE_ONE,
+                'title' => 'New Site Article with Author',
             ]),
         ];
         $collection = $this->getCollectionLocator()->get('SiteArticles');
@@ -188,12 +194,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testWithTableObject(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
             'author_id' => null,
-            'site_id' => 1,
-            'name' => 'New Site Article without Author',
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article without Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $authorsCollection = $this->getCollectionLocator()->get('SiteAuthors');
@@ -208,12 +212,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testCustomMessage(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
-            'author_id' => 99999999,
-            'site_id' => 1,
-            'name' => 'New Site Article with Author',
+            'author_id' => self::INVALID_AUTHOR,
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article with Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -234,12 +236,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testUsingRulesCheckerMethod(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
             'author_id' => null,
-            'site_id' => 1,
-            'name' => 'New Site Article without Author',
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article without Author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
@@ -255,12 +255,10 @@ class ExistsInNullableTest extends TestCase
      */
     public function testUsingRulesCheckerMethodWithCustomMessage(): void
     {
-        $this->markTestSkipped('ODM missing composite-FK ExistsIn handling: F32');
         $document = new Document([
-            'id' => 10,
-            'author_id' => 99999999,
-            'site_id' => 1,
-            'name' => 'New Site Article with invalid author',
+            'author_id' => self::INVALID_AUTHOR,
+            'site_id' => self::SITE_ONE,
+            'title' => 'New Site Article with invalid author',
         ]);
         $collection = $this->getCollectionLocator()->get('SiteArticles');
         $collection->belongsTo('SiteAuthors');
