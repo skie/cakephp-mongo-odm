@@ -1741,18 +1741,16 @@ class BelongsToMany extends Association
         $deferNegateMatch = !empty($options['deferNegateMatch']);
         $pipelineOptions = $options + $this->associationPipelineOptions();
         $targetConditions = $pipelineOptions['conditions'] ?? [];
-        $targetPipeline = [];
-        if ($negateMatch && is_array($targetConditions) && $targetConditions !== []) {
-            $targetPipeline[] = ['$match' => $this->normalizePipelineConditions($targetConditions)];
-        }
 
         $lookupTags = $builder
             ->lookup($target->getCollection())
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField($targetBindingKey)
             ->alias($this->getProperty());
-        if ($targetPipeline !== []) {
-            $lookupTags->pipeline($targetPipeline);
+        if ($negateMatch && is_array($targetConditions) && $targetConditions !== []) {
+            $lookupTags->pipeline(function (AggregationBuilder $sub) use ($targetConditions): void {
+                $sub->match($this->normalizePipelineConditions($targetConditions));
+            });
         }
 
         if (!empty($options['matching'])) {
@@ -1845,24 +1843,34 @@ class BelongsToMany extends Association
 
         $alias = $this->getTarget()->getAlias();
         $projection = [];
-        foreach (array_keys($fields) as $field) {
+        foreach ($fields as $field => $value) {
+            if (is_int($field)) {
+                $field = (string)$value;
+                $value = 1;
+            }
+
             if (str_starts_with((string)$field, $alias . '.')) {
                 $field = substr((string)$field, strlen($alias) + 1);
+            }
+
+            if (is_array($value)) {
+                $projection[(string)$field] = $value;
+
+                continue;
+            }
+
+            if ((int)$value === 0) {
+                continue;
             }
 
             $projection[(string)$field] = '$$item.' . $field;
         }
 
         $property = $this->getProperty();
-        $builder->addStage('$addFields', [
-            $property => [
-                '$map' => [
-                    'input' => '$' . $property,
-                    'as' => 'item',
-                    'in' => $projection,
-                ],
-            ],
-        ]);
+        $builder->addFields()->field(
+            $property,
+            $builder->func()->map('$' . $property, 'item', $projection),
+        );
     }
 
     /**
@@ -1893,33 +1901,36 @@ class BelongsToMany extends Association
         }
 
         $property = $this->getProperty();
-        $var = '$' . $property;
-        $builder->addStage('$addFields', [
-            $property => [
-                '$filter' => [
-                    'input' => $var,
-                    'as' => 'item',
-                    'cond' => $this->filterExpression($filter, '$$item'),
-                ],
-            ],
-        ]);
+        $builder->addFields()->field(
+            $property,
+            $builder->func()->filter(
+                '$' . $property,
+                'item',
+                $this->finderFilterExpression($filter, '$$item', $builder),
+            ),
+        );
     }
 
     /**
-     * Converts a Mongo filter into an `$expr`-style condition expression.
+     * Converts a compiled finder filter into an `$expr`-style condition expression.
      *
      * @param array<string, mixed> $filter The Mongo filter.
      * @param string $var The item variable prefix (`$$item`).
-     * @return array<string, mixed>
+     * @param \Crustum\Mongo\Database\Aggregation\AggregationBuilder $builder The pipeline builder.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
      */
-    protected function filterExpression(array $filter, string $var): array
-    {
+    protected function finderFilterExpression(
+        array $filter,
+        string $var,
+        AggregationBuilder $builder,
+    ): FunctionExpression {
+        $func = $builder->func();
         $expr = [];
         foreach ($filter as $field => $value) {
             if (strtoupper((string)$field) === '$AND' && is_array($value)) {
                 foreach ($value as $nested) {
                     if (is_array($nested)) {
-                        $expr[] = $this->filterExpression($nested, $var);
+                        $expr[] = $this->finderFilterExpression($nested, $var, $builder);
                     }
                 }
 
@@ -1930,10 +1941,10 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $expr[] = ['$eq' => [$var . '.' . $field, $value]];
+            $expr[] = $func->eq($var . '.' . $field, $value);
         }
 
-        return ['$and' => $expr];
+        return $expr === [] ? $func->literal(true) : $func->and($expr);
     }
 
     /**
@@ -1969,14 +1980,10 @@ class BelongsToMany extends Association
         }
 
         $property = $this->getProperty();
-        $builder->addStage('$addFields', [
-            $property => [
-                '$sortArray' => [
-                    'input' => '$' . $property,
-                    'sortBy' => $stripped,
-                ],
-            ],
-        ]);
+        $builder->addFields()->field(
+            $property,
+            $builder->func()->sortArray('$' . $property, $stripped),
+        );
     }
 
     /**

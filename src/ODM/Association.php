@@ -874,8 +874,14 @@ abstract class Association
             'finder' => $this->getFinder(),
         ];
 
-        [$finder, $finderOptions] = $this->extractFinder($options['finder']);
-        $dummy = $this->find($finder, ...$finderOptions);
+        $finderValue = $options['finder'];
+        if ($finderValue instanceof Closure) {
+            $dummy = $finderValue();
+        } else {
+            [$finder, $finderOptions] = $this->extractFinder($finderValue);
+            $dummy = $this->find($finder, ...$finderOptions);
+        }
+
         if (!$dummy instanceof SelectQuery) {
             throw new DatabaseException(sprintf(
                 'Association `%s` target finder did not return a select query.',

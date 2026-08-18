@@ -159,14 +159,17 @@ class SelectQueryParityTest extends TestCase
         $query = new SelectQuery($this->connection, 'articles');
         $query->select(['total' => new FunctionExpression('$sum', ['$x'])]);
 
-        $this->assertOptions(['projection' => ['total' => ['$sum' => '$x']]], $query->compile());
+        $compiled = $query->compile();
+        $this->assertSame('aggregate', $compiled['type']);
+        $this->assertPipeline([
+            ['$project' => ['total' => ['$sum' => '$x']]],
+        ], $compiled);
     }
 
     /**
-     * Test select(['_id', 'virtual' => $query->func()->…]) puts a computed
-     * alias in the find projection (database-layer counterpart of the ODM
-     * virtual field). Array expressions are valid find projections in modern
-     * MongoDB; `$field` renames still force aggregate via hasComputedProjection.
+     * Test select(['_id', 'virtual' => $query->func()->…]) compiles computed
+     * aliases through aggregation `$project` (Mongo find projection cannot run
+     * operator documents such as `$concat` / `$add`).
      *
      * @return void
      */
@@ -181,12 +184,14 @@ class SelectQueryParityTest extends TestCase
             ]),
         ]);
 
-        $this->assertOptions([
-            'projection' => [
+        $compiled = $query->compile();
+        $this->assertSame('aggregate', $compiled['type']);
+        $this->assertPipeline([
+            ['$project' => [
                 '_id' => 1,
                 'virtual' => ['$concat' => ['$title', '!']],
-            ],
-        ], $query->compile());
+            ]],
+        ], $compiled);
     }
 
     /**

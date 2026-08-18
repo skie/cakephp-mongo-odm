@@ -179,9 +179,9 @@ class BelongsTo extends Association
 
             if (!$usedPipeline) {
                 if ($negateMatch && !empty($pipelineOptions['conditions'])) {
-                    $lookup->pipeline([
-                        ['$match' => $this->normalizePipelineConditions($pipelineOptions['conditions'])],
-                    ]);
+                    $lookup->pipeline(function (AggregationBuilder $sub) use ($pipelineOptions): void {
+                        $sub->match($this->normalizePipelineConditions($pipelineOptions['conditions']));
+                    });
                 } elseif (!empty($options['targetPipeline'])) {
                     $lookup->pipeline($options['targetPipeline']);
                 } elseif (!$matching && $this->needsLookupTargetSubPipeline($pipelineOptions)) {

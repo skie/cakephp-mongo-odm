@@ -1233,6 +1233,18 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
     }
 
     /**
+     * Compiles the query after applying auto-field projection.
+     *
+     * @return array<string, mixed>
+     */
+    public function compile(): array
+    {
+        $this->addDefaultFields();
+
+        return parent::compile();
+    }
+
+    /**
      * Appends repository schema fields to the projection when auto-fields are
      * enabled and a limited projection is in effect.
      *

@@ -23,6 +23,11 @@ use InvalidArgumentException;
 class EagerLoader
 {
     /**
+     * Source query currently attaching associations (hydration/casting inheritance).
+     */
+    private ?SelectQuery $attachQuery = null;
+
+    /**
      * User-provided containment configuration.
      *
      * @var array<int|string, mixed>
@@ -235,6 +240,7 @@ class EagerLoader
             return;
         }
 
+        $this->attachQuery = $query;
         $this->external = [];
         $this->attachedLookupPaths = [];
         $this->dispatchedExternalPaths = [];
@@ -751,10 +757,17 @@ class EagerLoader
      * @param string $alias The association alias.
      * @param string $aliasPath The dotted alias path.
      * @param string $propertyPath The dotted property path.
+     * @param array<string, mixed>|null $parentConfig Parent loadable config for mode inheritance.
      * @return \Crustum\Mongo\ODM\EagerLoadable
      */
-    private function normalize(BaseCollection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
-    {
+    private function normalize(
+        BaseCollection $repository,
+        string $alias,
+        array $options,
+        string $aliasPath,
+        string $propertyPath,
+        ?array $parentConfig = null,
+    ): EagerLoadable {
         $association = $options['association'] ?? null;
         if (!$association instanceof Association) {
             $association = $repository->getAssociation($alias);
@@ -780,7 +793,7 @@ class EagerLoader
             $config['finder'] = fn(): QueryInterface => $association->find($finderName);
         }
 
-        $config = $this->applyQueryBuilder($config, $target);
+        $config = $this->applyQueryBuilder($config, $target, $parentConfig);
         $nestedMatching = $config['_matching'] ?? [];
         unset($config['_matching']);
         $loadable = new EagerLoadable(
@@ -817,7 +830,7 @@ class EagerLoader
 
             $loadable->addAssociation(
                 $nestedAlias,
-                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
+                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath, $config),
             );
         }
 
@@ -826,7 +839,7 @@ class EagerLoader
             $nestedOptions['matching'] = true;
             $loadable->addAssociation(
                 $nestedAlias,
-                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
+                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath, $config),
             );
         }
 
@@ -856,7 +869,7 @@ class EagerLoader
      * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
      * @return array<string, mixed>
      */
-    private function applyQueryBuilder(array $config, BaseCollection $target): array
+    private function applyQueryBuilder(array $config, BaseCollection $target, ?array $parentConfig = null): array
     {
         if (!isset($config['queryBuilder']) || !is_callable($config['queryBuilder'])) {
             return $config;
@@ -864,7 +877,13 @@ class EagerLoader
 
         $query = $target->query();
         $query->eagerLoaded(true);
+        $this->inheritQueryModes($query, $parentConfig);
         ($config['queryBuilder'])($query);
+
+        if ($query instanceof SelectQuery) {
+            $config['_hydrate'] = $query->isHydrationEnabled();
+            $config['_resultsCasting'] = $query->isResultsCastingEnabled();
+        }
 
         if (!empty($config['matching']) && $query->getEagerLoader()->getContain() !== []) {
             throw new DatabaseException(sprintf(
@@ -883,9 +902,9 @@ class EagerLoader
             );
         }
 
-        $projection = $compiled['options']['projection'] ?? [];
+        $projection = $this->extractCompiledProjection($compiled);
         if ($projection !== [] && empty($config['fields'])) {
-            $config['fields'] = array_keys($projection);
+            $config['fields'] = $projection;
         }
 
         if (($compiled['options']['sort'] ?? []) !== [] && !isset($config['sort'])) {
@@ -898,6 +917,68 @@ class EagerLoader
         }
 
         return $config;
+    }
+
+    /**
+     * Copies hydration and result-casting mode from the attaching or parent query.
+     *
+     * @param \Crustum\Mongo\ODM\Query\SelectQuery $query The target query.
+     * @param array<string, mixed>|null $parentConfig Parent loadable config.
+     * @return void
+     */
+    private function inheritQueryModes(SelectQuery $query, ?array $parentConfig = null): void
+    {
+        if ($parentConfig !== null) {
+            if (array_key_exists('_hydrate', $parentConfig)) {
+                $query->hydrate((bool)$parentConfig['_hydrate']);
+            }
+
+            if (array_key_exists('_resultsCasting', $parentConfig)) {
+                if ($parentConfig['_resultsCasting']) {
+                    $query->enableResultsCasting();
+                } else {
+                    $query->disableResultsCasting();
+                }
+            }
+
+            return;
+        }
+
+        if (!$this->attachQuery instanceof SelectQuery) {
+            return;
+        }
+
+        $query->hydrate($this->attachQuery->isHydrationEnabled());
+        if ($this->attachQuery->isResultsCastingEnabled()) {
+            $query->enableResultsCasting();
+        } else {
+            $query->disableResultsCasting();
+        }
+    }
+
+    /**
+     * Reads a compiled query's field projection.
+     *
+     * Find queries store projection on `options`; aggregate queries store it on
+     * the first `$project` pipeline stage.
+     *
+     * @param array<string, mixed> $compiled The compiled query.
+     * @return array<string, mixed>
+     */
+    private function extractCompiledProjection(array $compiled): array
+    {
+        $projection = $compiled['options']['projection'] ?? [];
+        if ($projection !== []) {
+            return $projection;
+        }
+
+        foreach ($compiled['pipeline'] ?? [] as $stage) {
+            if (isset($stage['$project']) && is_array($stage['$project'])) {
+                return $stage['$project'];
+            }
+        }
+
+        return [];
     }
 
     /**

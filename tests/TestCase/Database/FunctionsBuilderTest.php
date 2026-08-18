@@ -230,6 +230,47 @@ class FunctionsBuilderTest extends TestCase
     }
 
     /**
+     * Test map() builds a $map array-projection operator.
+     *
+     * @return void
+     */
+    public function testMap(): void
+    {
+        $func = $this->functions;
+        $projection = [
+            'id' => '$$item.id',
+            'name' => '$$item.name',
+        ];
+
+        $this->assertSame(
+            ['$map' => [
+                'input' => '$tags',
+                'as' => 'item',
+                'in' => $projection,
+            ]],
+            $func->map('$tags', 'item', $projection)->getConditions(),
+        );
+    }
+
+    /**
+     * Test sortArray() builds a $sortArray in-document sort operator.
+     *
+     * @return void
+     */
+    public function testSortArray(): void
+    {
+        $func = $this->functions;
+
+        $this->assertSame(
+            ['$sortArray' => [
+                'input' => '$tags',
+                'sortBy' => ['name' => 1],
+            ]],
+            $func->sortArray('$tags', ['name' => 1])->getConditions(),
+        );
+    }
+
+    /**
      * Test comparison/conjunction operators render $expr-style documents.
      *
      * These are used as `$filter` conditions over in-document arrays (junction

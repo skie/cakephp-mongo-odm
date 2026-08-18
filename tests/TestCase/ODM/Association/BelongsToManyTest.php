@@ -1042,7 +1042,7 @@ class BelongsToManyTest extends TestCase
      */
     public function testReplaceLinkBinaryUuid(): void
     {
-        $this->markTestSkipped('36-char UUID _id (binaryuuid PK) is SQL-ism — Mongo ODM uses ObjectId _id; junction FK casts to objectid and rejects UUID (F29).');
+        $this->markTestSkipped('BinaryUuid fixtures/schema use string _id; junction FK type must match bin_uuid PK — rewrite fixtures + schema_mongo (F29).');
         $items = $this->getCollectionLocator()->get('BinaryUuidItems');
         $tags = $this->getCollectionLocator()->get('BinaryUuidTags');
 
@@ -1456,13 +1456,14 @@ class BelongsToManyTest extends TestCase
      */
     public function testEagerLoadingBelongsToManyLimitedFieldsWithAutoFields(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testEagerLoadingBelongsToManyLimitedFieldsWithAutoFields is SQL-only (F25).');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->belongsToMany('Tags');
 
         $result = $collection
             ->find()
-            ->contain(['Tags' => fn(SelectQuery $q): SelectQuery => $q->select(['two' => $q->expr()])->enableAutoFields()])
+            ->contain(['Tags' => fn(SelectQuery $q): SelectQuery => $q
+                ->select(['two' => $q->func()->add(1, 1)])
+                ->enableAutoFields()])
             ->first();
 
         $this->assertNotEmpty($result->tags[0]->two, 'Should have computed field');

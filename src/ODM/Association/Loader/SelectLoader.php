@@ -75,6 +75,11 @@ class SelectLoader implements LoaderInterface
 
             if ($query instanceof SelectQuery && $parentQuery instanceof SelectQuery) {
                 $query->hydrate($parentQuery->isHydrationEnabled());
+                if ($parentQuery->isResultsCastingEnabled()) {
+                    $query->enableResultsCasting();
+                } else {
+                    $query->disableResultsCasting();
+                }
             }
 
             $many = ($options['associationType'] ?? '') === 'oneToMany'

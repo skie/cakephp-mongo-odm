@@ -717,8 +717,9 @@ class QueryCompiler
      * Whether the projection contains computed (field-path) values.
      *
      * A projection value of the form `$field` (e.g. `select(['extra' => '_id'])`)
-     * cannot be expressed in a find() projection alongside include fields, so
-     * the query must compile as an aggregation `$project` stage.
+     * or an aggregation operator document (e.g. `select(['two' => $q->func()->add(1, 1)])`)
+     * cannot be expressed in a find() projection, so the query must compile as an
+     * aggregation `$project` stage.
      *
      * @return bool
      */
@@ -726,6 +727,15 @@ class QueryCompiler
     {
         foreach ($this->projection as $value) {
             if (is_string($value) && str_starts_with($value, '$')) {
+                return true;
+            }
+
+            if (is_array($value)) {
+                $operator = array_key_first($value);
+                if ($operator === '$literal') {
+                    continue;
+                }
+
                 return true;
             }
         }

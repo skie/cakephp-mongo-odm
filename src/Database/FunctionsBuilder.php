@@ -290,6 +290,46 @@ class FunctionsBuilder
     }
 
     /**
+     * Builds a `$map` array-transform expression.
+     *
+     * `$map` iterates `input`, aliases each element as `as`, and replaces the
+     * array with the values produced by `in` (a field path, projection object,
+     * or nested operator expression).
+     *
+     * @param mixed $input The input array expression (`$field` path or expression).
+     * @param string $as The element variable name (without `$`).
+     * @param mixed $in The per-element output expression.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function map(mixed $input, string $as, mixed $in): FunctionExpression
+    {
+        return new FunctionExpression('$map', [[
+            'input' => $input,
+            'as' => $as,
+            'in' => $in,
+        ]]);
+    }
+
+    /**
+     * Builds a `$sortArray` in-document array sort expression.
+     *
+     * Sorts the elements of `input` by the field/direction map in `sortBy`.
+     * Used when association sort must apply to a loaded lookup array rather
+     * than the top-level result set.
+     *
+     * @param mixed $input The input array expression (`$field` path or expression).
+     * @param array<string, int|string> $sortBy The sort field map.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function sortArray(mixed $input, array $sortBy): FunctionExpression
+    {
+        return new FunctionExpression('$sortArray', [[
+            'input' => $input,
+            'sortBy' => $sortBy,
+        ]]);
+    }
+
+    /**
      * Builds an `$eq` comparison expression.
      *
      * Renders as `['$eq' => [$left, $right]]` — the `$expr` form used inside

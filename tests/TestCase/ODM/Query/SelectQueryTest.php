@@ -3009,7 +3009,6 @@ class SelectQueryTest extends TestCase
      */
     public function testContainFinderBelongsTo(): void
     {
-        $this->markTestSkipped('F-RG: contain finder FK _id condition clobbers finder condition; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->belongsTo(
             'Authors',
@@ -3943,7 +3942,6 @@ class SelectQueryTest extends TestCase
      */
     public function testSelectLoaderAssociationsInheritHydrationAndResultsCastingMode(): void
     {
-        $this->markTestSkipped('F-RH: select-loader hydration/casting mode inheritance false; see 40-selectquerytest-failure-groups.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
 
         $tags = $articles->belongsToMany('Tags');
