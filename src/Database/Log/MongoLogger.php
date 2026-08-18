@@ -91,6 +91,19 @@ class MongoLogger extends AbstractLogger
     ];
 
     /**
+     * Driver/session keys stripped from logged command documents.
+     *
+     * @var list<string>
+     */
+    protected const COMMAND_META_KEYS = [
+        '$db',
+        'lsid',
+        '$clusterTime',
+        '$readPreference',
+        '$session',
+    ];
+
+    /**
      * Constructor.
      *
      * ### Options
@@ -239,19 +252,7 @@ class MongoLogger extends AbstractLogger
 
         if (isset($context['command']) && is_array($context['command'])) {
             $command = $context['command'];
-            $operation = array_find_key(
-                $command,
-                fn(mixed $value, string|int $key): bool => is_string($key)
-                    && in_array($key, static::OPERATION_KEYS, true),
-            ) ?? 'command';
-
-            $logData = [
-                'operation' => $operation,
-                'database' => $context['database'] ?? '',
-                'collection' => $context['collection'] ?? '',
-                'filter' => $command['filter'] ?? [],
-                'options' => $context['options'] ?? [],
-            ];
+            $logData = $this->formatCommandLog($command, $context);
         }
 
         $encoded = json_encode($logData, $this->jsonFlags) ?: $message;
@@ -271,5 +272,54 @@ class MongoLogger extends AbstractLogger
         }
 
         $this->logger->log($level, $encoded, $context);
+    }
+
+    /**
+     * Builds a log payload that mirrors the driver command document.
+     *
+     * The previous shape kept only `filter` and `options`, which dropped
+     * aggregate pipelines and other operation-specific fields visible in
+     * Speculum / APM raw command logs.
+     *
+     * @param array<string|int, mixed> $command The command document.
+     * @param array<string, mixed> $context Subscriber context.
+     * @return array<string, mixed>
+     */
+    protected function formatCommandLog(array $command, array $context): array
+    {
+        $operation = array_find_key(
+            $command,
+            fn(mixed $value, string|int $key): bool => is_string($key)
+                && in_array($key, static::OPERATION_KEYS, true),
+        ) ?? 'command';
+
+        return array_merge(
+            [
+                'operation' => $operation,
+                'database' => $context['database'] ?? '',
+                'collection' => $context['collection'] ?? '',
+            ],
+            $this->sanitizeCommand($command),
+        );
+    }
+
+    /**
+     * Removes driver/session metadata from a command document.
+     *
+     * @param array<string|int, mixed> $command The command document.
+     * @return array<string|int, mixed>
+     */
+    protected function sanitizeCommand(array $command): array
+    {
+        $sanitized = [];
+        foreach ($command as $key => $value) {
+            if (is_string($key) && in_array($key, static::COMMAND_META_KEYS, true)) {
+                continue;
+            }
+
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
     }
 }

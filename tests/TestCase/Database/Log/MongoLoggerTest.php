@@ -80,4 +80,74 @@ class MongoLoggerTest extends TestCase
         ]);
         $this->assertTrue($withSchema->isSchemaCommand(['listIndexes' => 'tags']));
     }
+
+    /**
+     * Test aggregate commands log the full pipeline, not an empty filter.
+     *
+     * @return void
+     */
+    public function testAggregateLogsPipeline(): void
+    {
+        $inner = new MemoryLogger();
+        $logger = new MongoLogger($inner, ['database' => 'mongo_demo']);
+
+        $pipeline = [
+            ['$match' => ['_id' => ['$oid' => '6a83402dffa5eb770505fa77']]],
+            ['$lookup' => ['from' => 'profiles', 'as' => 'profile']],
+        ];
+
+        $logger->log('debug', 'aggregate', [
+            'command' => [
+                'aggregate' => 'users',
+                'pipeline' => $pipeline,
+                'cursor' => [],
+                '$db' => 'mongo_demo',
+                'lsid' => ['id' => ['$binary' => 'abc', '$type' => '04']],
+            ],
+            'database' => 'mongo_demo',
+            'collection' => 'users',
+            'duration_ms' => 0.688,
+            'numReturn' => 1,
+        ]);
+
+        $this->assertCount(1, $inner->records);
+        $payload = json_decode($inner->records[0][1], true);
+        $this->assertSame('aggregate', $payload['operation']);
+        $this->assertSame('users', $payload['collection']);
+        $this->assertSame('users', $payload['aggregate']);
+        $this->assertSame($pipeline, $payload['pipeline']);
+        $this->assertArrayNotHasKey('$db', $payload);
+        $this->assertArrayNotHasKey('lsid', $payload);
+        $this->assertArrayNotHasKey('filter', $payload);
+    }
+
+    /**
+     * Test find commands keep filter and drop driver metadata.
+     *
+     * @return void
+     */
+    public function testFindLogsFilter(): void
+    {
+        $inner = new MemoryLogger();
+        $logger = new MongoLogger($inner, ['database' => 'mongo_demo']);
+
+        $filter = ['user_id' => ['$in' => [['$oid' => '6a83402dffa5eb770505fa77']]]];
+
+        $logger->log('debug', 'find', [
+            'command' => [
+                'find' => 'profiles',
+                'filter' => $filter,
+                '$db' => 'mongo_demo',
+            ],
+            'database' => 'mongo_demo',
+            'collection' => 'profiles',
+            'duration_ms' => 0.5,
+            'numReturn' => 1,
+        ]);
+
+        $payload = json_decode($inner->records[0][1], true);
+        $this->assertSame('find', $payload['operation']);
+        $this->assertSame('profiles', $payload['find']);
+        $this->assertSame($filter, $payload['filter']);
+    }
 }
