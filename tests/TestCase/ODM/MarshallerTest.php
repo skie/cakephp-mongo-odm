@@ -2189,7 +2189,7 @@ class MarshallerTest extends TestCase
         $this->assertTrue($result->tags[0]->_joinData->isDirty('author_id'), 'Field not modified');
         $this->assertTrue($result->tags[0]->_joinData->isDirty('highlighted'), 'Field not modified');
         $this->assertSame('99', $result->tags[0]->_joinData->author_id);
-        $this->assertSame('1', $result->tags[0]->_joinData->highlighted);
+        $this->assertTrue($result->tags[0]->_joinData->highlighted);
     }
 
     /**

@@ -624,8 +624,8 @@ class BelongsToMany extends Association
             $sourceKeys = array_combine($foreignKey, $sourceEntity->extract($bindingKey));
             $targetKeys = array_combine($assocForeignKey, $e->extract($targetBindingKey));
 
-            $changedKeys = $sourceKeys !== $joint->extract($foreignKey) ||
-                $targetKeys !== $joint->extract($assocForeignKey);
+            $changedKeys = $this->associationKeysDiffer($sourceKeys, $joint->extract($foreignKey)) ||
+                $this->associationKeysDiffer($targetKeys, $joint->extract($assocForeignKey));
 
             if ($changedKeys) {
                 $joint->setNew(true);
@@ -651,6 +651,54 @@ class BelongsToMany extends Association
         }
 
         return true;
+    }
+
+    /**
+     * Returns whether two association key maps differ.
+     *
+     * ObjectId values are compared by their hex string so two instances of the
+     * same identifier are treated as equal. Mirrors cake60 `diffLinks()` object
+     * equality (`==`) for value objects, which PHP `!==` on arrays does not.
+     *
+     * @param array<string, mixed> $left Left-hand key map.
+     * @param array<string, mixed> $right Right-hand key map.
+     * @return bool
+     */
+    protected function associationKeysDiffer(array $left, array $right): bool
+    {
+        foreach ($left as $field => $value) {
+            if (!$this->associationKeyEquals($value, $right[$field] ?? null)) {
+                return true;
+            }
+        }
+
+        foreach ($right as $field => $value) {
+            if (!array_key_exists($field, $left) && !$this->associationKeyEquals(null, $value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns whether two association key values are equal.
+     *
+     * @param mixed $left Left-hand value.
+     * @param mixed $right Right-hand value.
+     * @return bool
+     */
+    protected function associationKeyEquals(mixed $left, mixed $right): bool
+    {
+        if ($left instanceof ObjectId || $right instanceof ObjectId) {
+            return (string)$left === (string)$right;
+        }
+
+        if (is_object($left) && is_object($right)) {
+            return $left == $right;
+        }
+
+        return $left === $right;
     }
 
     /**
@@ -733,7 +781,8 @@ class BelongsToMany extends Association
      */
     protected function findExistingLinks(BaseCollection $junction, array $foreignKey, array $assocForeignKey, array $primaryValue): array
     {
-        $conditions = array_combine($foreignKey, $primaryValue);
+        $conditions = array_combine($foreignKey, $primaryValue) ?: [];
+        $conditions += $this->junctionConditionFilter();
 
         $links = $junction->find()
             ->where($conditions)
@@ -903,6 +952,7 @@ class BelongsToMany extends Association
     public function setThrough(BaseCollection|string $through): static
     {
         $this->through = $through;
+        $this->junctionCollection = null;
 
         return $this;
     }
@@ -953,8 +1003,11 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Configures the junction collection schema so link foreign keys are
-     * converted to ObjectId on write.
+     * Ensures junction foreign keys are present on the collection schema.
+     *
+     * Existing described fields (including extra junction columns such as
+     * `foreign_model`) are kept. Only missing `_id` / FK columns are added so
+     * ObjectId conversion still applies on write.
      *
      * @param \Crustum\Mongo\ODM\BaseCollection $junction The junction collection.
      * @return void
@@ -963,26 +1016,42 @@ class BelongsToMany extends Association
     {
         try {
             $schema = $junction->getSchema();
-            if (method_exists($schema, 'hasField') && $schema->hasField('_id')) {
-                return;
-            }
+            $existing = $schema->columns();
 
-            $fields = [
-                '_id' => ['type' => 'objectid'],
-            ];
+            $needed = ['_id' => 'objectid'];
             $sourceKey = $this->getForeignKey();
             if (is_string($sourceKey)) {
-                $fields[$sourceKey] = ['type' => 'objectid'];
+                $needed[$sourceKey] = 'objectid';
             }
 
             $targetKey = $this->getTargetForeignKey();
             if (is_string($targetKey)) {
-                $fields[$targetKey] = ['type' => 'objectid'];
+                $needed[$targetKey] = 'objectid';
+            }
+
+            $missing = [];
+            foreach ($needed as $name => $type) {
+                if (!in_array($name, $existing, true)) {
+                    $missing[$name] = $type;
+                }
+            }
+
+            if ($missing === []) {
+                return;
+            }
+
+            $fields = [];
+            foreach ($existing as $name) {
+                $type = $schema->getColumnType($name);
+                $fields[$name] = ['type' => $type ?? ($needed[$name] ?? 'string')];
+            }
+            foreach ($missing as $name => $type) {
+                $fields[$name] = ['type' => $type];
             }
 
             $junction->setSchemaFromArray($fields);
         } catch (Throwable) {
-            // Junction may be a partial mock without schema support; skip.
+            return;
         }
     }
 
@@ -1460,6 +1529,35 @@ class BelongsToMany extends Association
         }
 
         return $extracted;
+    }
+
+    /**
+     * Junction conditions with collection aliases stripped for a direct find.
+     *
+     * `PolymorphicTagged.foreign_model => Articles` becomes
+     * `foreign_model => Articles` so replace/unlink only sees matching links.
+     *
+     * @return array<string, mixed>
+     */
+    protected function junctionConditionFilter(): array
+    {
+        $conditions = $this->getConditions();
+        if (!is_array($conditions) || $conditions === []) {
+            return [];
+        }
+
+        $extracted = $this->extractJunctionConditions($conditions, $this->junction()->getAlias());
+        $filter = [];
+        foreach ($extracted as $field => $value) {
+            if (is_string($field) && !in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
+                $filter[$this->resolvePipelineField($field)] = $value;
+                continue;
+            }
+
+            $filter[$field] = $value;
+        }
+
+        return $filter;
     }
 
     /**

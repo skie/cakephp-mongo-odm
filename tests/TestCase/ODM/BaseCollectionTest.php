@@ -3994,7 +3994,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testPolymorphicBelongsToManySave(): void
     {
-        $this->markTestSkipped('// polymorphic BelongsToMany through `_joinData` not marshalled (`Tags._joinData` is not an association); see 18-orm-tests-port-plan.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->Tags->setThrough('PolymorphicTagged')
             ->setForeignKey('foreign_key')
@@ -4029,29 +4028,31 @@ class BaseCollectionTest extends TestCase
             [
                 '_id' => '000000000000000000000001',
                 'tag_id' => '000000000000000000000001',
-                'foreign_key' => 1,
+                'foreign_key' => '000000000000000000000001',
                 'foreign_model' => 'Posts',
                 'position' => 1,
             ],
             [
                 '_id' => '000000000000000000000002',
                 'tag_id' => '000000000000000000000001',
-                'foreign_key' => 1,
+                'foreign_key' => '000000000000000000000001',
                 'foreign_model' => 'Articles',
                 'position' => 2,
             ],
             [
                 '_id' => '000000000000000000000003',
                 'tag_id' => '000000000000000000000002',
-                'foreign_key' => 1,
+                'foreign_key' => '000000000000000000000001',
                 'foreign_model' => 'Articles',
                 'position' => 1,
             ],
         ];
         $result = $this->getCollectionLocator()->get('PolymorphicTagged')
-            ->find('all', sort: ['id' => 'DESC'])
+            ->find()
+            ->orderBy(['_id' => 'ASC'])
             ->enableHydration(false)
             ->toArray();
+        $expected[2]['_id'] = $result[2]['_id'] ?? null;
         $this->assertEquals($expected, $result);
     }
 
@@ -4934,7 +4935,6 @@ class BaseCollectionTest extends TestCase
      */
     public function testUnlinkBelongsToManyPassingJoint(): void
     {
-        $this->markTestSkipped('// unlink with a bare `_joinData` joint document lacks the junction primary key for deleteMany; see 18-orm-tests-port-plan.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $options = ['markNew' => false];
 

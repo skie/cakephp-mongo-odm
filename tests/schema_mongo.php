@@ -473,7 +473,7 @@ return [
     'polymorphic_tagged' => [
         'fields' => [
             'tag_id' => ['bsonType' => 'objectId'],
-            'foreign_key' => ['bsonType' => 'int'],
+            'foreign_key' => ['bsonType' => 'objectId'],
             'foreign_model' => ['bsonType' => 'string'],
             'position' => ['bsonType' => 'int'],
         ],

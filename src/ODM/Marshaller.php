@@ -598,9 +598,30 @@ class Marshaller
         $extra = [];
         foreach ($original as $entity) {
             $entity->setAccess($junctionProperty, true);
-            $joinData = $entity->get($junctionProperty);
+            $joinData = $entity->has($junctionProperty) ? $entity->get($junctionProperty) : null;
             if ($joinData instanceof Document) {
-                $extra[(string)$entity->get('_id')] = $joinData;
+                $extra[spl_object_hash($entity)] = $joinData;
+                $id = $entity->get('_id');
+                if ($id !== null) {
+                    $extra[(string)$id] = $joinData;
+                }
+            }
+        }
+
+        $incomingJoin = [];
+        foreach (array_values($value) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $join = $row[$junctionProperty] ?? null;
+            if (!is_array($join)) {
+                continue;
+            }
+
+            $targetId = $row['_id'] ?? $row['id'] ?? null;
+            if ($targetId !== null && $targetId !== '') {
+                $incomingJoin[(string)$targetId] = $join;
             }
         }
 
@@ -610,26 +631,33 @@ class Marshaller
             : [];
 
         $options['accessibleFields'] = [$junctionProperty => true];
+        $options += ['junctionProperty' => $junctionProperty];
         $target = $association->getTarget();
         $records = $target->marshaller()->mergeMany($original, array_values($value), $options);
 
         foreach ($records as $record) {
-            $current = $record->get($junctionProperty);
+            $current = $record->has($junctionProperty) ? $record->get($junctionProperty) : null;
+            $targetId = (string)$record->get('_id');
+            $incoming = $incomingJoin[$targetId] ?? (is_array($current) ? $current : null);
 
-            if ($current instanceof EntityInterface) {
-                continue;
-            }
+            if ($incoming === null) {
+                if ($current instanceof EntityInterface) {
+                    continue;
+                }
 
-            if (!is_array($current)) {
                 $record->unset($junctionProperty);
                 continue;
             }
 
-            $key = (string)$record->get('_id');
-            if (isset($extra[$key])) {
-                $record->set($junctionProperty, $jointMarshaller->merge($extra[$key], $current, $nested));
+            $existing = $extra[spl_object_hash($record)] ?? $extra[$targetId] ?? null;
+            if (!$existing instanceof Document && $current instanceof Document) {
+                $existing = $current;
+            }
+
+            if ($existing instanceof Document) {
+                $record->set($junctionProperty, $jointMarshaller->merge($existing, $incoming, $nested));
             } else {
-                $record->set($junctionProperty, $jointMarshaller->one($current, $nested));
+                $record->set($junctionProperty, $jointMarshaller->one($incoming, $nested));
             }
         }
 
