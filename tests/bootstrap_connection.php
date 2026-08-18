@@ -156,19 +156,27 @@ if (!function_exists('mongoTestEnsureSchema')) {
         if (mongoTestEnv('MONGO_TEST_SCHEMA_FORCE_RELOAD') !== '1') {
             /** @var \Crustum\Mongo\Database\Connection $mongoConnection */
             $mongoConnection = ConnectionManager::get($connection);
-            $hasCollections = false;
-            foreach ($mongoConnection->getDatabase()->listCollectionNames() as $name) {
-                unset($name);
-                $hasCollections = true;
-                break;
-            }
 
-            if ($hasCollections) {
+            $schemaHash = md5_file($schemaPath) ?: '';
+            $sentinel = $mongoConnection->getDatabase()->selectCollection('_schema_sentinel');
+            $record = $sentinel->findOne(['_id' => 'schema_hash']);
+            $storedHash = is_object($record) ? (string)($record->hash ?? '') : (string)($record['hash'] ?? '');
+
+            if ($storedHash === $schemaHash) {
                 return;
             }
         }
 
         $generator = new SchemaGenerator($schemaPath, $connection);
         $generator->reload();
+
+        /** @var \Crustum\Mongo\Database\Connection $mongoConnection */
+        $mongoConnection = ConnectionManager::get($connection);
+        $schemaHash = md5_file($schemaPath) ?: '';
+        $mongoConnection->getDatabase()->selectCollection('_schema_sentinel')->replaceOne(
+            ['_id' => 'schema_hash'],
+            ['_id' => 'schema_hash', 'hash' => $schemaHash],
+            ['upsert' => true],
+        );
     }
 }
