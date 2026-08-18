@@ -188,13 +188,9 @@ class BelongsTo extends Association
             }
         }
 
-        if ($matching) {
-            $builder->unwind('$' . $property, [
-                'preserveNullAndEmptyArrays' => $negateMatch,
-            ]);
-        } else {
-            $builder->unwind('$' . $property, ['preserveNullAndEmptyArrays' => true]);
-        }
+        $builder->unwind('$' . $property, [
+            'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
+        ]);
 
         if ($negateMatch && empty($options['deferNegateMatch'])) {
             $builder->match([$property => null]);

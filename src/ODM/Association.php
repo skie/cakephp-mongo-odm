@@ -223,6 +223,10 @@ abstract class Association
         $this->foreignKey = $options['foreignKey'] ?? null;
         $this->bindingKey = $options['bindingKey'] ?? null;
         $this->conditions = $options['conditions'] ?? [];
+        if (isset($options['joinType'])) {
+            $this->joinType = (string)$options['joinType'];
+        }
+
         $this->dependent = (bool)($options['dependent'] ?? false);
         $this->onDelete = (string)($options['onDelete'] ?? ($this->dependent ? 'cascade' : 'nullify'));
         $this->cascadeCallbacks = (bool)($options['cascadeCallbacks'] ?? false);
@@ -909,6 +913,7 @@ abstract class Association
     public function attachTo(SelectQuery $query, array $options = []): void
     {
         $options += [
+            'includeFields' => true,
             'foreignKey' => $this->getForeignKey(),
             'conditions' => [],
             'joinType' => $this->getJoinType(),
@@ -917,6 +922,11 @@ abstract class Association
         ];
 
         if ($options['fields'] === false) {
+            $options['fields'] = [];
+            $options['includeFields'] = false;
+        }
+
+        if ($options['includeFields'] === false) {
             $options['fields'] = [];
         }
 
@@ -945,6 +955,8 @@ abstract class Association
             'aliasPath' => $this->getName(),
         ]);
 
+        unset($options['includeFields']);
+        $options['association'] = $this;
         $query->getEagerLoader()->contain([$this->getName() => $options]);
     }
 
@@ -1390,6 +1402,24 @@ abstract class Association
     public function getJoinType(): string
     {
         return $this->joinType;
+    }
+
+    /**
+     * Whether `$unwind` should keep source rows with no associated document.
+     *
+     * Cake INNER join drops unmatched source rows. `matching()` already does
+     * that unless `negateMatch` is set. LEFT (the default) keeps them.
+     *
+     * @param array<string, mixed> $options Pipeline / contain options.
+     * @return bool
+     */
+    protected function unwindPreservesNull(array $options): bool
+    {
+        if (!empty($options['matching'])) {
+            return !empty($options['negateMatch']);
+        }
+
+        return strtoupper((string)($options['joinType'] ?? $this->getJoinType())) !== 'INNER';
     }
 
     /**

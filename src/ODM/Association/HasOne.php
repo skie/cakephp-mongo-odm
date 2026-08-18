@@ -165,13 +165,9 @@ class HasOne extends Association
                 });
         }
 
-        if (!empty($options['matching'])) {
-            $builder->unwind('$' . $property, [
-                'preserveNullAndEmptyArrays' => !empty($options['negateMatch']),
-            ]);
-        } else {
-            $builder->unwind('$' . $property, ['preserveNullAndEmptyArrays' => true]);
-        }
+        $builder->unwind('$' . $property, [
+            'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
+        ]);
 
         $postOptions = $options;
         if (!empty($options['matching']) && !empty($options['conditions'])) {

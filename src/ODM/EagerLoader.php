@@ -741,7 +741,11 @@ class EagerLoader
      */
     private function normalize(BaseCollection $repository, string $alias, array $options, string $aliasPath, string $propertyPath): EagerLoadable
     {
-        $association = $repository->getAssociation($alias);
+        $association = $options['association'] ?? null;
+        if (!$association instanceof Association) {
+            $association = $repository->getAssociation($alias);
+        }
+        unset($options['association']);
 
         if (($options['matching'] ?? false) === true) {
             $propertyPath = '_matchingData.' . $alias;
@@ -776,13 +780,17 @@ class EagerLoader
         );
 
         foreach ($options as $nestedAlias => $nestedOptions) {
-            if (!isset($this->containOptions[$nestedAlias])) {
-                $nestedOptions = is_array($nestedOptions) ? $nestedOptions : [];
-                $loadable->addAssociation(
-                    $nestedAlias,
-                    $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
-                );
+            if (isset($this->containOptions[$nestedAlias]) || $nestedAlias === 'association') {
+                continue;
             }
+            if (!is_array($nestedOptions)) {
+                continue;
+            }
+
+            $loadable->addAssociation(
+                $nestedAlias,
+                $this->normalize($target, $nestedAlias, $nestedOptions, $aliasPath . '.' . $nestedAlias, $propertyPath),
+            );
         }
 
         foreach ($nestedMatching as $nestedAlias => $nestedOptions) {

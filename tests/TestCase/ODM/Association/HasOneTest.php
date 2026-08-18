@@ -5,9 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Association;
 
 use ArrayObject;
 use Cake\Database\Exception\DatabaseException;
-use Cake\Database\Expression\IdentifierExpression;
-use Cake\Database\Expression\QueryExpression;
-use Cake\Database\TypeMap;
 use Cake\Event\Event;
 use Crustum\Mongo\ODM\Association\HasOne;
 use Crustum\Mongo\ODM\BaseCollection;
@@ -100,15 +97,14 @@ class HasOneTest extends TestCase
     }
 
     /**
-     * Tests that the correct join and fields are attached to a query depending on
-     * the association config
+     * Tests that attachTo registers an in-pipeline lookup (the ODM analog of a
+     * SQL join) and that INNER + conditions drop unmatched source rows.
      */
     public function testAttachTo(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachTo is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
-            'property' => 'profile',
+            'propertyName' => 'profile',
             'joinType' => 'INNER',
             'conditions' => ['Profiles.is_active' => true],
         ];
@@ -116,9 +112,13 @@ class HasOneTest extends TestCase
         $query = $this->user->find();
         $association->attachTo($query);
 
+        $contain = $query->getEagerLoader()->getContain();
+        $this->assertArrayHasKey('Profiles', $contain);
+        $this->assertSame('lookup', $contain['Profiles']['strategy'] ?? null);
+
         $results = $query->orderBy('Users._id')->toArray();
         $this->assertCount(1, $results, 'Only one record because of conditions & join type');
-        $this->assertSame('masters', $results[0]->Profiles['last_name']);
+        $this->assertSame('masters', $results[0]->profile->last_name);
     }
 
     /**
@@ -126,7 +126,6 @@ class HasOneTest extends TestCase
      */
     public function testAttachToNoFields(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachToNoFields is SQL-only (F25).');
         $config = [
             'target' => $this->profile,
             'conditions' => ['Profiles.is_active' => true],
@@ -134,7 +133,10 @@ class HasOneTest extends TestCase
         $association = new HasOne('Profiles', $this->user, $config);
         $query = $this->user->find();
         $association->attachTo($query, ['includeFields' => false]);
-        $this->assertEmpty($query->clause('select'));
+
+        $contain = $query->getEagerLoader()->getContain();
+        $this->assertArrayHasKey('Profiles', $contain);
+        $this->assertSame([], $contain['Profiles']['fields'] ?? null, 'fields should not be added.');
     }
 
     /**
@@ -143,7 +145,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKey(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachToMultiPrimaryKey is SQL-only (F25).');
+        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $selectTypeMap = new TypeMap([
             'Profiles._id' => 'integer',
             '_id' => 'integer',
@@ -194,7 +196,7 @@ class HasOneTest extends TestCase
      */
     public function testAttachToMultiPrimaryKeyMismatch(): void
     {
-        $this->markTestSkipped('ODM has no SQL joins; testAttachToMultiPrimaryKeyMismatch is SQL-only (F25).');
+        $this->markTestSkipped('ODM $lookup supports a single localField/foreignField; multi-column primary keys are SQL-only (F25).');
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('Cannot match provided foreignKey for `Profiles`, got `(user_id)` but expected foreign key for `(id, site_id)`');
         $query = new SelectQuery($this->user);
