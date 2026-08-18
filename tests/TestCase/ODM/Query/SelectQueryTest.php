@@ -2167,7 +2167,6 @@ class SelectQueryTest extends TestCase
      */
     public function testResultFormatterReceivesTheSourceQueryForJoinedAssociationsWhenUsingBeforeFind(): void
     {
-        $this->markTestSkipped('F-RD: formatter must receive source query (joined) identity; see 40-selectquerytest-failure-groups.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $authors = $articles->belongsTo('Authors');
 
@@ -2205,7 +2204,6 @@ class SelectQueryTest extends TestCase
      */
     public function testResultFormatterReceivesTheSourceQueryForJoinedAssociationWhenUsingContainCallables(): void
     {
-        $this->markTestSkipped('F-RD: formatter must receive source query (joined) identity; see 40-selectquerytest-failure-groups.md.');
         $articles = $this->getCollectionLocator()->get('Articles');
         $articles->belongsTo('Authors');
 
@@ -3168,7 +3166,6 @@ class SelectQueryTest extends TestCase
      */
     public function testContainWithCustomJoinType(): void
     {
-        $this->markTestSkipped('F-RE: contain query-builder association results (size mismatch); see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->belongsTo('Authors');
 
@@ -3349,7 +3346,7 @@ class SelectQueryTest extends TestCase
      */
     public function testLeftJoinWith(): void
     {
-        $this->markTestSkipped('// SQL aggregate projection `count(articles.id)` has no direct Mongo analog (`$lookup` + `$sum` rewrite pending); see 40-selectquerytest-failure-groups.md RF.');
+        // $this->markTestSkipped('// SQL aggregate projection `count(articles.id)` has no direct Mongo analog (`$lookup` + `$sum` rewrite pending); see 40-selectquerytest-failure-groups.md RF.');
         $collection = $this->getCollectionLocator()->get('authors');
         $collection->hasMany('articles');
         $collection->articles->deleteAll(['author_id' => '000000000000000000000004']);
@@ -3362,10 +3359,10 @@ class SelectQueryTest extends TestCase
             ->groupBy(['authors.id', 'authors.name']);
 
         $expected = [
-            1 => 2,
-            2 => 0,
-            3 => 1,
-            4 => 0,
+            '000000000000000000000001' => 2,
+            '000000000000000000000002' => 0,
+            '000000000000000000000003' => 1,
+            '000000000000000000000004' => 0,
         ];
         $this->assertEquals($expected, $results->all()->combine('id', 'total_articles')->toArray());
         $fields = ['total_articles', 'id', 'name'];
@@ -3410,10 +3407,10 @@ class SelectQueryTest extends TestCase
             ->groupBy(['authors.id']);
 
         $expected = [
-            1 => 0,
-            2 => 0,
-            3 => 1,
-            4 => 0,
+            '000000000000000000000001' => 0,
+            '000000000000000000000002' => 0,
+            '000000000000000000000003' => 1,
+            '000000000000000000000004' => 0,
         ];
         $this->assertEquals($expected, $results->all()->combine('id', 'tagged_articles')->toArray());
     }
@@ -3469,7 +3466,7 @@ class SelectQueryTest extends TestCase
     public function testLeftJoinWithAndContainOnOptionalAssociation(): void
     {
         $this->markTestSkipped('F-RF: contain()+leftJoinWith() same assoc, pipeline alias gap; see 40-selectquerytest-failure-groups.md.');
-        $collection = $this->getCollectionLocator()->get('Articles', ['table' => 'articles']);
+        $collection = $this->getCollectionLocator()->get('Articles', ['collection' => 'articles']);
         $collection->belongsTo('Authors');
 
         $newArticle = $collection->newDocument([
@@ -3531,7 +3528,7 @@ class SelectQueryTest extends TestCase
             ->unhydratedFind()
             ->contain('Authors')
             ->leftJoinWith('Authors')
-            ->where(['Articles.author_id is' => null])
+            ->where(['Articles.author_id IS' => null])
             ->all();
         $expected = [
             [
