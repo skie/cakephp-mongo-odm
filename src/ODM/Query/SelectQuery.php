@@ -415,7 +415,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
                 'conditions', 'where' => $this->where($value),
                 'limit' => $this->limit($value),
                 'offset', 'skip' => $this->skip($value),
-                'order', 'orderBy' => $this->orderBy($value),
+                'order', 'orderBy', 'sort' => $this->orderBy($value),
                 'group', 'groupBy' => $this->groupBy($value),
                 'having' => $this->having($value),
                 'page' => $this->page($value),

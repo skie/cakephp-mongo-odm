@@ -973,6 +973,21 @@ class SelectQueryTest extends TestCase
     }
 
     /**
+     * Finder `sort` option is compiled like `orderBy` (`id` → `_id`, DESC → -1).
+     */
+    public function testApplyOptionsSort(): void
+    {
+        $query = new SelectQuery($this->collection);
+        $query->applyOptions(['sort' => ['id' => 'DESC']]);
+
+        $this->assertEquals(['_id' => -1], $query->clause('order'));
+
+        $compiled = $query->compile();
+        $this->assertSame(['_id' => -1], $compiled['options']['sort'] ?? null);
+        $this->assertSame([], $query->getOptions());
+    }
+
+    /**
      * Test that page is applied after limit.
      */
     public function testApplyOptionsPageIsLast(): void
