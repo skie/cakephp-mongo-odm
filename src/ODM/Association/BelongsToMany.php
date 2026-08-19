@@ -542,13 +542,16 @@ class BelongsToMany extends Association
 
                 $existing = $this->findExistingLinks($junction, $foreignKey, $assocForeignKey, $primaryValue);
                 $jointEntities = $this->collectJointEntities($sourceEntity, $targetEntities);
-                $inserts = $this->diffLinks($existing, $jointEntities, $targetEntities, $options);
-                if ($inserts === false) {
-                    return false;
-                }
+                [$inserts, $deletes] = $this->diffLinks($existing, $jointEntities, $targetEntities);
 
                 if ($inserts && !$this->saveTarget($sourceEntity, $inserts, $options)) {
                     return false;
+                }
+
+                foreach ($deletes as $document) {
+                    if (!$junction->delete($document, $options) && !empty($options['atomic'])) {
+                        return false;
+                    }
                 }
 
                 $property = $this->getProperty();
@@ -832,22 +835,23 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Helper method used to delete the difference between the links passed in
-     * `$existing` and `$jointEntities`.
+     * Computes the difference between existing links and the joint entities to keep.
+     *
+     * Inserts are saved before deletes so a failed target save (domain rules)
+     * leaves the previous junction rows in place when Mongo cannot roll back.
      *
      * @param array<\Cake\Datasource\EntityInterface> $existing existing link documents
      * @param array<\Cake\Datasource\EntityInterface> $jointEntities link documents that should be persisted
      * @param array<int, mixed> $targetEntities entities in target collection that are related to
      *   the `$jointEntities`
-     * @param array<string, mixed> $options list of options accepted by `BaseCollection::delete()`
-     * @return array<int, mixed>|false Array of entities not deleted or false in case of deletion failure.
+     * @return array{0: array<int, mixed>, 1: list<\Cake\Datasource\EntityInterface>} Remaining
+     *   targets to insert, then junction documents to delete.
      */
     protected function diffLinks(
         array $existing,
         array $jointEntities,
         array $targetEntities,
-        array $options = [],
-    ): array|false {
+    ): array {
         $junction = $this->junction();
         $target = $this->getTarget();
         $belongsTo = $junction->getAssociation($target->getAlias());
@@ -906,13 +910,7 @@ class BelongsToMany extends Association
             }
         }
 
-        foreach ($deletes as $document) {
-            if (!$junction->delete($document, $options) && !empty($options['atomic'])) {
-                return false;
-            }
-        }
-
-        return $targetEntities;
+        return [$targetEntities, $deletes];
     }
 
     /**
@@ -1339,7 +1337,7 @@ class BelongsToMany extends Association
                 $matching[$field] = $value;
             }
 
-            if (in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
+            if (QueryBuilder::isLogicalKey((string)$field)) {
                 $matching[$field] = is_array($value) && array_is_list($value) === false
                     ? [$value]
                     : $value;
@@ -1484,7 +1482,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            if (is_string($field) && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (is_string($field) && QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $nested = $this->stripJunctionConditions($value, $junctionAlias);
                 if ($nested !== []) {
                     $stripped[$field] = $nested;
@@ -1521,7 +1519,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            if (is_string($field) && in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (is_string($field) && QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $nested = $this->extractJunctionConditions($value, $junctionAlias);
                 if ($nested !== []) {
                     $extracted[$field] = $nested;
@@ -1547,11 +1545,15 @@ class BelongsToMany extends Association
             return [];
         }
 
+        $junctionAlias = $this->junction()->getAlias() . '.';
         $extracted = $this->extractJunctionConditions($conditions, $this->junction()->getAlias());
         $filter = [];
         foreach ($extracted as $field => $value) {
-            if (is_string($field) && !in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
-                $filter[$this->resolvePipelineField($field)] = $value;
+            if (is_string($field) && !QueryBuilder::isLogicalKey($field)) {
+                if (str_starts_with($field, $junctionAlias)) {
+                    $field = substr($field, strlen($junctionAlias));
+                }
+                $filter[$field === 'id' ? '_id' : $field] = $value;
                 continue;
             }
 
@@ -1931,6 +1933,28 @@ class BelongsToMany extends Association
             && strtoupper((string)($options['joinType'] ?? $this->getJoinType())) === 'LEFT';
         $deferNegateMatch = !empty($options['deferNegateMatch']);
         $pipelineOptions = $options + $this->associationPipelineOptions();
+
+        $junctionConditions = [];
+        if (!empty($pipelineOptions['conditions']) && is_array($pipelineOptions['conditions'])) {
+            $junctionConditions = $this->extractJunctionConditions($pipelineOptions['conditions'], $junction->getAlias());
+            $pipelineOptions['conditions'] = $this->stripJunctionConditions(
+                $pipelineOptions['conditions'],
+                $junction->getAlias(),
+            );
+        }
+
+        if ($junctionConditions !== []) {
+            $junctionAlias = $junction->getAlias() . '.';
+            $builder->addFields()->field(
+                $join,
+                $builder->func()->filter(
+                    '$' . $join,
+                    'item',
+                    $this->junctionCondExpression($junctionConditions, $junctionAlias, $builder),
+                ),
+            );
+        }
+
         $targetConditions = $pipelineOptions['conditions'] ?? [];
 
         $lookupTags = $builder
@@ -1948,28 +1972,6 @@ class BelongsToMany extends Association
             $builder->unwind('$' . $this->getProperty(), [
                 'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
             ]);
-        }
-
-        $junctionConditions = [];
-        if (!empty($pipelineOptions['conditions']) && is_array($pipelineOptions['conditions'])) {
-            $junctionConditions = $this->extractJunctionConditions($pipelineOptions['conditions'], $junction->getAlias());
-            $pipelineOptions['conditions'] = $this->stripJunctionConditions(
-                $pipelineOptions['conditions'],
-                $junction->getAlias(),
-            );
-        }
-
-        if ($junctionConditions !== []) {
-            $join = '_join_' . $this->getProperty();
-            $junctionAlias = $junction->getAlias() . '.';
-            $builder->addFields()->field(
-                $join,
-                $builder->func()->filter(
-                    '$' . $join,
-                    'item',
-                    $this->junctionCondExpression($junctionConditions, $junctionAlias, $builder),
-                ),
-            );
         }
 
         $pipelineFields = $pipelineOptions['fields'] ?? null;
