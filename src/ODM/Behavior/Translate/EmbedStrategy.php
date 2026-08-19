@@ -503,11 +503,6 @@ class EmbedStrategy implements TranslateStrategyInterface
     {
         $result = [];
         foreach ($conditions as $key => $value) {
-            if (!is_string($key)) {
-                $result[$key] = $value;
-                continue;
-            }
-
             [$field] = QueryBuilder::splitConditionKey($key);
             $suffix = substr(trim($key), strlen($field));
 

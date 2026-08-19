@@ -281,7 +281,7 @@ class MongoLogger extends AbstractLogger
      * aggregate pipelines and other operation-specific fields visible in
      * Speculum / APM raw command logs.
      *
-     * @param array<string|int, mixed> $command The command document.
+     * @param array<string, mixed> $command The command document.
      * @param array<string, mixed> $context Subscriber context.
      * @return array<string, mixed>
      */
@@ -289,8 +289,7 @@ class MongoLogger extends AbstractLogger
     {
         $operation = array_find_key(
             $command,
-            fn(mixed $value, string|int $key): bool => is_string($key)
-                && in_array($key, static::OPERATION_KEYS, true),
+            fn(mixed $value, string $key): bool => in_array($key, static::OPERATION_KEYS, true),
         ) ?? 'command';
 
         return array_merge(
@@ -306,14 +305,14 @@ class MongoLogger extends AbstractLogger
     /**
      * Removes driver/session metadata from a command document.
      *
-     * @param array<string|int, mixed> $command The command document.
-     * @return array<string|int, mixed>
+     * @param array<string, mixed> $command The command document.
+     * @return array<string, mixed>
      */
     protected function sanitizeCommand(array $command): array
     {
         $sanitized = [];
         foreach ($command as $key => $value) {
-            if (is_string($key) && in_array($key, static::COMMAND_META_KEYS, true)) {
+            if (in_array($key, static::COMMAND_META_KEYS, true)) {
                 continue;
             }
 

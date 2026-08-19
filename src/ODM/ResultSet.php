@@ -475,36 +475,44 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             if ($assoc['matching']) {
+                $targetField = $this->matchingField($assoc, $propertyName);
+                $junctionField = $this->matchingJunctionField($assoc, $propertyName);
                 $fields = $assoc['config']['fields'] ?? null;
                 if ($fields === false) {
-                    unset($row[$propertyName]);
-                    if ($instance instanceof BelongsToMany) {
-                        unset($row['_join_' . $propertyName]);
+                    unset($row[$targetField]);
+                    if ($junctionField !== null) {
+                        unset($row[$junctionField]);
                     }
 
                     continue;
                 }
 
-                $target = $instance->getTarget();
-                $matching[$assoc['nestKey']] = $this->hydrateRow((array)$row[$propertyName], $target);
-
-                if ($instance instanceof BelongsToMany) {
-                    $junctionKey = '_join_' . $propertyName;
-                    if (isset($row[$junctionKey])) {
-                        $junction = $instance->junction();
-                        $matching[$junction->getAlias()] = $this->hydrateRow((array)$row[$junctionKey], $junction);
-                        unset($row[$junctionKey]);
-                    }
+                if (!array_key_exists($targetField, $row)) {
+                    continue;
                 }
 
-                unset($row[$propertyName]);
+                $target = $instance->getTarget();
+                $matching[$assoc['nestKey']] = $this->hydrateRow((array)$row[$targetField], $target);
+
+                if ($instance instanceof BelongsToMany && $junctionField !== null && isset($row[$junctionField])) {
+                    $junction = $instance->junction();
+                    $matching[$junction->getAlias()] = $this->hydrateRow((array)$row[$junctionField], $junction);
+                    unset($row[$junctionField]);
+                }
+
+                unset($row[$targetField]);
                 continue;
             }
 
             // A `contain()` on the same association that is `matching()`ed has
             // its property provided by the external loader (the row value is the
-            // pipeline-matched document, not the contained collection).
-            if (in_array($propertyName, $this->dualMatchingProperties(), true)) {
+            // pipeline-matched document, not the contained collection). BTM
+            // containment stays in-pipeline under its own alias, so it hydrates
+            // normally here.
+            if (
+                $instance instanceof BelongsToMany
+                && in_array($propertyName, $this->dualMatchingProperties(), true)
+            ) {
                 continue;
             }
 
@@ -657,32 +665,33 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
             $instance = $assoc['instance'];
             $propertyName = $instance->getProperty();
-            $junctionKey = $instance instanceof BelongsToMany ? '_join_' . $propertyName : null;
+            $targetField = $this->matchingField($assoc, $propertyName);
+            $junctionField = $this->matchingJunctionField($assoc, $propertyName);
             $negateMatch = (bool)($assoc['config']['negateMatch'] ?? false);
             $fields = $assoc['config']['fields'] ?? null;
 
-            if (!array_key_exists($propertyName, $row)) {
-                if ($junctionKey !== null && array_key_exists($junctionKey, $row)) {
-                    unset($row[$junctionKey]);
+            if (!array_key_exists($targetField, $row)) {
+                if ($junctionField !== null && array_key_exists($junctionField, $row)) {
+                    unset($row[$junctionField]);
                 }
 
                 continue;
             }
 
             if ($negateMatch) {
-                if ($junctionKey !== null) {
-                    unset($row[$junctionKey]);
+                if ($junctionField !== null) {
+                    unset($row[$junctionField]);
                 }
 
-                unset($row[$propertyName]);
+                unset($row[$targetField]);
                 continue;
             }
 
-            if ($row[$propertyName] === null || $row[$propertyName] === []) {
+            if ($row[$targetField] === null || $row[$targetField] === []) {
                 if (!in_array($propertyName, $this->dualMatchingProperties(), true)) {
-                    unset($row[$propertyName]);
-                    if ($junctionKey !== null) {
-                        unset($row[$junctionKey]);
+                    unset($row[$targetField]);
+                    if ($junctionField !== null) {
+                        unset($row[$junctionField]);
                     }
                 }
 
@@ -694,9 +703,9 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             // explicit `select()` in the builder re-enables it via `fields`.
             if ($fields === false) {
                 if (!in_array($propertyName, $this->dualMatchingProperties(), true)) {
-                    unset($row[$propertyName]);
-                    if ($junctionKey !== null) {
-                        unset($row[$junctionKey]);
+                    unset($row[$targetField]);
+                    if ($junctionField !== null) {
+                        unset($row[$junctionField]);
                     }
                 }
 
@@ -704,12 +713,12 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             }
 
             $matchingKey = $assoc['nestKey'];
-            $row['_matchingData'][$matchingKey] = $row[$propertyName];
-            unset($row[$propertyName]);
+            $row['_matchingData'][$matchingKey] = $row[$targetField];
+            unset($row[$targetField]);
 
-            if ($instance instanceof BelongsToMany && $junctionKey !== null && isset($row[$junctionKey])) {
+            if ($instance instanceof BelongsToMany && $junctionField !== null && isset($row[$junctionField])) {
                 $junction = $instance->junction();
-                $junctionRows = (array)$row[$junctionKey];
+                $junctionRows = (array)$row[$junctionField];
                 $targetFk = $instance->getTargetForeignKey();
                 $matched = (array)$row['_matchingData'][$matchingKey];
                 $matchedId = (string)($matched['_id'] ?? '');
@@ -731,7 +740,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
                 }
 
                 $row['_matchingData'][$junction->getAlias()] = $selected;
-                unset($row[$junctionKey]);
+                unset($row[$junctionField]);
             }
         }
 
@@ -760,6 +769,39 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
         }
 
         return array_values(array_unique($dual));
+    }
+
+    /**
+     * Pipeline field that holds a matching association's target row.
+     *
+     * A matching + contain on the same BTM alias keeps the contain under the
+     * short property name and the matching under a distinct `$lookup.as`
+     * (`__matching_<property>`), so hydration must read the row from the
+     * matching alias rather than the property.
+     *
+     * @param array<string, mixed> $assoc The contain-map entry.
+     * @param string $propertyName The association property.
+     * @return string
+     */
+    protected function matchingField(array $assoc, string $propertyName): string
+    {
+        return (string)($assoc['config']['lookupAlias'] ?? $propertyName);
+    }
+
+    /**
+     * Pipeline field that holds a matching BTM's junction rows.
+     *
+     * @param array<string, mixed> $assoc The contain-map entry.
+     * @param string $propertyName The association property.
+     * @return string|null
+     */
+    protected function matchingJunctionField(array $assoc, string $propertyName): ?string
+    {
+        if (isset($assoc['config']['lookupJoinAlias'])) {
+            return (string)$assoc['config']['lookupJoinAlias'];
+        }
+
+        return $assoc['instance'] instanceof BelongsToMany ? '_join_' . $propertyName : null;
     }
 
     /**

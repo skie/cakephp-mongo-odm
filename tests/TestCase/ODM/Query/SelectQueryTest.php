@@ -3233,7 +3233,6 @@ class SelectQueryTest extends TestCase
      */
     public function testNotSoFarMatchingWithContainOnTheSameAssociation(): void
     {
-        $this->markTestSkipped('F-RF: matching()+contain() same BTM assoc, pipeline $lookup alias collision; see 40-selectquerytest-failure-groups.md.');
         $collection = $this->getCollectionLocator()->get('articles');
         $collection->belongsToMany('tags');
 

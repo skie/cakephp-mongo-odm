@@ -1553,6 +1553,7 @@ class BelongsToMany extends Association
                 if (str_starts_with($field, $junctionAlias)) {
                     $field = substr($field, strlen($junctionAlias));
                 }
+
                 $filter[$field === 'id' ? '_id' : $field] = $value;
                 continue;
             }
@@ -1916,7 +1917,8 @@ class BelongsToMany extends Association
         $through = $junction->getCollection();
 
         $builder = $this->buildAggregation();
-        $join = '_join_' . $this->getProperty();
+        $join = $options['lookupJoinAlias'] ?? '_join_' . $this->getProperty();
+        $lookupAlias = $options['lookupAlias'] ?? $this->getProperty();
         $localKey = $this->fieldName($this->getBindingKey());
         if (!empty($options['lookupPrefix'])) {
             $localKey = $options['lookupPrefix'] . '.' . $localKey;
@@ -1961,7 +1963,7 @@ class BelongsToMany extends Association
             ->lookup($target->getCollection())
             ->localField($join . '.' . $targetForeignKey)
             ->foreignField($targetBindingKey)
-            ->alias($this->getProperty());
+            ->alias($lookupAlias);
         if (($negateMatch || $leftJoinMatch) && is_array($targetConditions) && $targetConditions !== []) {
             $lookupTags->pipeline(function (AggregationBuilder $sub) use ($targetConditions): void {
                 $sub->match($this->normalizePipelineConditions($targetConditions));
@@ -1969,7 +1971,7 @@ class BelongsToMany extends Association
         }
 
         if (!empty($options['matching'])) {
-            $builder->unwind('$' . $this->getProperty(), [
+            $builder->unwind('$' . $lookupAlias, [
                 'preserveNullAndEmptyArrays' => $this->unwindPreservesNull($options),
             ]);
         }
@@ -1982,7 +1984,7 @@ class BelongsToMany extends Association
         if ($negateMatch && !$deferNegateMatch) {
             unset($pipelineOptions['conditions']);
             $this->applyPipelineOptions($builder, $pipelineOptions);
-            $builder->match([$this->getProperty() => null]);
+            $builder->match([$lookupAlias => null]);
         } else {
             $targetConditions = $pipelineOptions['conditions'] ?? [];
             if (empty($options['matching']) && is_array($targetConditions) && $targetConditions !== []) {
@@ -2390,9 +2392,7 @@ class BelongsToMany extends Association
             }
         }
 
-        return $extracted instanceof Traversable
-            ? iterator_to_array($extracted)
-            : (array)$extracted;
+        return iterator_to_array($extracted);
     }
 
     /**

@@ -873,6 +873,7 @@ class EagerLoader
      *
      * @param array<string, mixed> $config The association config.
      * @param \Crustum\Mongo\ODM\BaseCollection $target The target collection.
+     * @param array<string, mixed>|null $parentConfig The parent association config.
      * @return array<string, mixed>
      */
     private function applyQueryBuilder(array $config, BaseCollection $target, ?array $parentConfig = null): array
@@ -888,6 +889,7 @@ class EagerLoader
         if ($built instanceof SelectQuery) {
             $query = $built;
         }
+
         $config['_hydrate'] = $query->isHydrationEnabled();
         $config['_resultsCasting'] = $query->isResultsCastingEnabled();
         $config['_surrogateQuery'] = $query;
@@ -902,7 +904,7 @@ class EagerLoader
         $compiled = $query->compile();
         /** @var array<string, mixed> $filter */
         $filter = $compiled['filter'] ?? [];
-        if ($filter === [] && $query instanceof SelectQuery) {
+        if ($filter === []) {
             /** @var array<string, mixed> $filter */
             $filter = $query->clause('where') ?? [];
         }
@@ -915,7 +917,7 @@ class EagerLoader
         }
 
         $projection = QueryCompiler::compiledProjection($compiled);
-        if ($projection === [] && $query instanceof SelectQuery) {
+        if ($projection === []) {
             $projection = $query->clause('select') ?? [];
         }
 
@@ -977,6 +979,24 @@ class EagerLoader
     }
 
     /**
+     * Distinct `$lookup.as` used when a matching BTM collides with a contain on
+     * the same alias. The contain keeps the short property name; matching gets a
+     * prefixed alias so both in-pipeline lookups coexist.
+     *
+     * @param \Crustum\Mongo\ODM\Association\BelongsToMany $association The BTM association.
+     * @param string $part `target` or `junction`.
+     * @return string
+     */
+    private function matchingLookupAlias(BelongsToMany $association, string $part): string
+    {
+        $property = $association->getProperty();
+
+        return $part === 'junction'
+            ? '__matching_join_' . $property
+            : '__matching_' . $property;
+    }
+
+    /**
      * Forces contain of an association also used in matching / joinWith onto
      * the external select loader (cake60 `EagerLoader::resolveJoins()`).
      *
@@ -998,9 +1018,11 @@ class EagerLoader
             if (!isset($matching[$alias])) {
                 continue;
             }
+
             if (!empty($loadable->getConfig()['matching'])) {
                 continue;
             }
+
             $config = $loadable->getConfig();
             $strategy = $config['strategy'] ?? Association::STRATEGY_LOOKUP;
             if ($strategy === Association::STRATEGY_LOOKUP || $strategy === Association::STRATEGY_JOIN) {
@@ -1229,16 +1251,26 @@ class EagerLoader
             && !isset($this->attachedLookupPaths[$parentAliasPath]);
         if ($association instanceof BelongsToMany) {
             $path = $loadable->aliasPath();
-            if (!isset($this->attachedLookupPaths[$path])) {
-                $config = $loadable->getConfig();
-                if ($parentProperty !== null) {
-                    $config['lookupPrefix'] = $parentProperty;
-                }
+            $config = $loadable->getConfig();
+            if ($parentProperty !== null) {
+                $config['lookupPrefix'] = $parentProperty;
+            }
 
-                if ($matching && $this->hasMatchingChildren($loadable)) {
-                    $config['deferNegateMatch'] = true;
-                }
+            if ($matching && $this->hasMatchingChildren($loadable)) {
+                $config['deferNegateMatch'] = true;
+            }
 
+            // matching() + contain() on the same BTM alias share the short
+            // `$lookup.as`. When the contain already claimed the path, matching
+            // must use distinct junction/target aliases so both lookups coexist
+            // in the pipeline instead of one silently overwriting the other.
+            if ($matching && isset($this->attachedLookupPaths[$path]) && !isset($config['lookupAlias'])) {
+                $config['lookupAlias'] = $this->matchingLookupAlias($association, 'target');
+                $config['lookupJoinAlias'] = $this->matchingLookupAlias($association, 'junction');
+                $loadable->setConfig($config);
+            }
+
+            if (!isset($this->attachedLookupPaths[$path]) || $matching) {
                 $stages = $association->buildPipeline($config);
                 if ($stages !== []) {
                     $query->pipeline($stages);
