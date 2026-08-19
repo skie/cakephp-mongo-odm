@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Query;
 use Cake\Database\ExpressionInterface;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\Aggregation\Stage\Project;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\Expression\OrderByExpression;
@@ -1161,6 +1162,31 @@ class QueryCompiler
     public function getProjection(): array
     {
         return $this->projection;
+    }
+
+    /**
+     * Reads a compiled query's field projection.
+     *
+     * Find queries store projection on `options`; aggregate queries store it on
+     * the first `$project` pipeline stage.
+     *
+     * @param array<string, mixed> $compiled The compiled query.
+     * @return array<string, mixed>
+     */
+    public static function compiledProjection(array $compiled): array
+    {
+        $projection = $compiled['options']['projection'] ?? [];
+        if ($projection !== []) {
+            return $projection;
+        }
+
+        foreach ($compiled['pipeline'] ?? [] as $stage) {
+            if (is_array($stage) && isset($stage[Project::OPERATOR]) && is_array($stage[Project::OPERATOR])) {
+                return $stage[Project::OPERATOR];
+            }
+        }
+
+        return [];
     }
 
     /**

@@ -77,7 +77,7 @@ class IsUnique
             }
 
             if (array_filter($keys, static fn(mixed $value): bool => $value !== null)) {
-                $conditions['_id'] = ['$ne' => $keys['_id'] ?? null];
+                $conditions['_id !='] = $keys['_id'] ?? null;
             }
         }
 

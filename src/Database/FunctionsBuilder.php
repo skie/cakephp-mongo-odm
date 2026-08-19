@@ -580,6 +580,17 @@ class FunctionsBuilder
     }
 
     /**
+     * Wraps an aggregation expression as an `$expr` match operand.
+     *
+     * @param mixed $expression The inner expression.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function expr(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$expr', [$expression]);
+    }
+
+    /**
      * Converts a value to a string.
      *
      * @param mixed $expression The input expression

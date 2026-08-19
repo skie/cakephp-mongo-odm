@@ -37,6 +37,7 @@ use Crustum\Mongo\Database\Aggregation\Stage\UnionWith;
 use Crustum\Mongo\Database\Aggregation\Stage\UnsetStage;
 use Crustum\Mongo\Database\Aggregation\Stage\Unwind;
 use Crustum\Mongo\Database\Aggregation\Stage\VectorSearch;
+use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
 use Crustum\Mongo\Database\FunctionsBuilder;
 use OutOfRangeException;
 
@@ -68,11 +69,15 @@ class AggregationBuilder
     /**
      * Add a $match stage.
      *
-     * @param array<string, mixed> $conditions The match conditions
+     * @param \Crustum\Mongo\Database\Expression\MongoExpressionInterface|array<string, mixed> $conditions The match conditions
      * @return \Crustum\Mongo\Database\Aggregation\Stage\MatchStage
      */
-    public function match(array $conditions): MatchStage
+    public function match(array|MongoExpressionInterface $conditions): MatchStage
     {
+        if ($conditions instanceof MongoExpressionInterface) {
+            $conditions = $conditions->getConditions();
+        }
+
         return $this->pipeline->addStage(new MatchStage($this, $conditions));
     }
 

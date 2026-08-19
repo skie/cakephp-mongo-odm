@@ -16,6 +16,13 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 class Project extends Stage
 {
     /**
+     * The aggregation operator name.
+     *
+     * @var string
+     */
+    public const string OPERATOR = '$project';
+
+    /**
      * The projection specification.
      *
      * @var array<string, mixed>
@@ -54,6 +61,6 @@ class Project extends Stage
      */
     public function getExpression(): array
     {
-        return ['$project' => $this->projection];
+        return [self::OPERATOR => $this->projection];
     }
 }

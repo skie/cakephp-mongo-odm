@@ -1340,8 +1340,7 @@ class BelongsToMany extends Association
             }
 
             if (in_array(strtoupper($field), ['OR', 'NOT', 'AND', 'XOR'], true)) {
-                $operator = '$' . strtolower($field);
-                $matching[$operator] = in_array($operator, ['$or', '$and'], true) && is_array($value) && array_is_list($value) === false
+                $matching[$field] = is_array($value) && array_is_list($value) === false
                     ? [$value]
                     : $value;
             }
@@ -1384,8 +1383,7 @@ class BelongsToMany extends Association
         $junctionAlias = $junction->getAlias() . '.';
         foreach ($this->junctionConditions() as $field => $value) {
             $field = (string)$field;
-            $upper = strtoupper(ltrim($field, '$'));
-            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $match[$field] = $this->stripJunctionAlias($value, $junctionAlias, $join);
                 continue;
             }
@@ -1397,7 +1395,7 @@ class BelongsToMany extends Association
             $match[$field] = $value;
         }
 
-        $builder->match($match);
+        $builder->match((new QueryBuilder())->parse($match));
 
         $query->pipeline($builder->getPipeline());
     }
@@ -1416,7 +1414,7 @@ class BelongsToMany extends Association
     {
         $prefixed = [];
         foreach ($conditions as $field => $value) {
-            if (in_array(strtoupper((string)$field), ['$OR', '$AND', 'OR', 'AND'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey((string)$field) && is_array($value)) {
                 $prefixed[$field] = array_map(
                     fn(mixed $item): mixed => is_array($item) ? $this->prefixMatchConditions($item, $property) : $item,
                     $value,
@@ -1588,7 +1586,7 @@ class BelongsToMany extends Association
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
             $upper = strtoupper(ltrim($field, '$'));
-            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $parts[] = $this->junctionGroupExpression($upper, $value, $junctionAlias, $builder);
                 continue;
             }
@@ -1620,7 +1618,7 @@ class BelongsToMany extends Association
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
             $upper = strtoupper(ltrim($field, '$'));
-            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $parts[] = $this->junctionGroupExpression($upper, $value, $junctionAlias, $builder);
                 continue;
             }
@@ -1658,7 +1656,7 @@ class BelongsToMany extends Association
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
             $upper = strtoupper(ltrim($field, '$'));
-            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $parts[] = $this->targetGroupExpression($upper, $value, $targetAlias, $builder);
                 continue;
             }
@@ -1690,7 +1688,7 @@ class BelongsToMany extends Association
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
             $upper = strtoupper(ltrim($field, '$'));
-            if (in_array($upper, ['OR', 'NOT', 'AND', 'XOR'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey($field) && is_array($value)) {
                 $parts[] = $this->targetGroupExpression($upper, $value, $targetAlias, $builder);
                 continue;
             }
@@ -2130,7 +2128,7 @@ class BelongsToMany extends Association
         $func = $builder->func();
         $expr = [];
         foreach ($filter as $field => $value) {
-            if (strtoupper((string)$field) === '$AND' && is_array($value)) {
+            if (QueryBuilder::isLogicalKey((string)$field) && strtoupper(ltrim((string)$field, '$')) === 'AND' && is_array($value)) {
                 foreach ($value as $nested) {
                     if (is_array($nested)) {
                         $expr[] = $this->finderFilterExpression($nested, $var, $builder);

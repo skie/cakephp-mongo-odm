@@ -30,6 +30,39 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
+     * Test isLogicalKey recognizes Cake and Mongo conjunction keys.
+     *
+     * @return void
+     */
+    public function testIsLogicalKey(): void
+    {
+        $this->assertTrue(QueryBuilder::isLogicalKey('OR'));
+        $this->assertTrue(QueryBuilder::isLogicalKey('$and'));
+        $this->assertTrue(QueryBuilder::isLogicalKey('NOT'));
+        $this->assertFalse(QueryBuilder::isLogicalKey('title'));
+        $this->assertFalse(QueryBuilder::isLogicalKey('title LIKE'));
+    }
+
+    /**
+     * Test ne and notIn compile through the expression objects.
+     *
+     * @return void
+     */
+    public function testNeAndNotIn(): void
+    {
+        $builder = new QueryBuilder();
+
+        $this->assertSame(
+            ['_id' => ['$ne' => '000000000000000000000001']],
+            $builder->ne('_id', '000000000000000000000001')->getConditions(),
+        );
+        $this->assertSame(
+            ['status' => ['$nin' => [null, []]]],
+            $builder->notIn('status', [null, []])->getConditions(),
+        );
+    }
+
+    /**
      * Test conditionFields strips operators and optional aliases.
      *
      * @return void

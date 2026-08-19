@@ -17,6 +17,7 @@ use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
+use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\Database\Type\ObjectIdType;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -1378,9 +1379,9 @@ abstract class Association
             $clauses[] = $func->eq('$' . $foreignField, $var);
         }
 
-        $builder->match([
-            '$expr' => $func->and($clauses)->getConditions(),
-        ]);
+        $builder->match(
+            $func->expr($func->and($clauses)),
+        );
 
         $this->applyLookupSubPipeline($builder, $options, $limitToOne);
     }
@@ -1406,7 +1407,7 @@ abstract class Association
                 $field = substr($field, strlen($alias));
             }
 
-            if (is_array($value) && in_array(strtoupper($field), ['OR', 'AND', 'NOT', '$OR', '$AND', '$NOT'], true)) {
+            if (is_array($value) && QueryBuilder::isLogicalKey($field)) {
                 $value = array_map(fn(array $group): array => $this->normalizePipelineConditions($group, $preservePrefix), $value);
             } elseif (is_array($value) && array_is_list($value)) {
                 $value = array_map(
@@ -1969,7 +1970,7 @@ abstract class Association
     {
         $prefixed = [];
         foreach ($conditions as $field => $value) {
-            if (in_array(strtoupper((string)$field), ['$OR', '$AND', 'OR', 'AND'], true) && is_array($value)) {
+            if (QueryBuilder::isLogicalKey((string)$field) && is_array($value)) {
                 $prefixed[$field] = array_map(
                     fn(mixed $item): mixed => is_array($item) ? $this->prefixMatchConditions($item, $property) : $item,
                     $value,

@@ -6,6 +6,8 @@ namespace Crustum\Mongo\ODM\Association;
 use Cake\Datasource\EntityInterface;
 use Cake\Validation\Validator;
 use Closure;
+use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
+use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
@@ -201,28 +203,21 @@ abstract class Embedded extends Association
         $field = $this->getLocalKey();
         $negate = (bool)($options['negateMatch'] ?? false);
         $conditions = $options['conditions'] ?? [];
+        $query = new QueryBuilder();
+        $builder = new AggregationBuilder();
 
         if ($negate) {
-            return [[
-                '$match' => [
-                    $field => ['$in' => [null, []]],
-                ],
-            ]];
+            $builder->match($query->in($field, [null, []]));
+        } elseif ($conditions !== []) {
+            $builder->match($query->elemMatch($field, $conditions));
+        } else {
+            $builder->match(array_replace_recursive(
+                $query->exists($field)->getConditions(),
+                $query->notIn($field, [null, []])->getConditions(),
+            ));
         }
 
-        if ($conditions !== []) {
-            return [[
-                '$match' => [
-                    $field => ['$elemMatch' => $conditions],
-                ],
-            ]];
-        }
-
-        return [[
-            '$match' => [
-                $field => ['$exists' => true, '$nin' => [null, []]],
-            ],
-        ]];
+        return $builder->getPipeline();
     }
 
     /**

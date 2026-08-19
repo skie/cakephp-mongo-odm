@@ -102,8 +102,7 @@ class QueryBuilder
                 continue;
             }
 
-            $upper = strtoupper(ltrim($key, '$'));
-            if (in_array($upper, ['OR', 'AND', 'NOT', 'XOR'], true)) {
+            if (self::isLogicalKey($key)) {
                 continue;
             }
 
@@ -401,6 +400,41 @@ class QueryBuilder
     public function eq(string $field, mixed $value): ComparisonExpression
     {
         return new ComparisonExpression($field, $value, '$eq');
+    }
+
+    /**
+     * Creates a not-equals comparison.
+     *
+     * @param string $field The field to compare
+     * @param mixed $value The value to compare against
+     * @return \Crustum\Mongo\Database\Expression\ComparisonExpression
+     */
+    public function ne(string $field, mixed $value): ComparisonExpression
+    {
+        return new ComparisonExpression($field, $value, '$ne');
+    }
+
+    /**
+     * Creates a NOT IN expression.
+     *
+     * @param string $field The field name
+     * @param array<int, mixed> $values The values to exclude
+     * @return \Crustum\Mongo\Database\Expression\InExpression
+     */
+    public function notIn(string $field, array $values): InExpression
+    {
+        return new InExpression($field, $values, '$nin');
+    }
+
+    /**
+     * Whether a condition key is a logical group (`OR`, `$and`, …).
+     *
+     * @param string $key The condition key.
+     * @return bool
+     */
+    public static function isLogicalKey(string $key): bool
+    {
+        return in_array(strtoupper(ltrim($key, '$')), ['OR', 'AND', 'NOT', 'XOR'], true);
     }
 
     /**

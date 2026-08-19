@@ -7,6 +7,7 @@ use AssertionError;
 use Cake\Database\Exception\DatabaseException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\QueryInterface;
+use Crustum\Mongo\Database\Query\QueryCompiler;
 use Crustum\Mongo\ODM\Association\BelongsToMany;
 use Crustum\Mongo\ODM\Association\HasMany;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -913,7 +914,7 @@ class EagerLoader
             );
         }
 
-        $projection = $this->extractCompiledProjection($compiled);
+        $projection = QueryCompiler::compiledProjection($compiled);
         if ($projection === [] && $query instanceof SelectQuery) {
             $projection = $query->clause('select') ?? [];
         }
@@ -973,31 +974,6 @@ class EagerLoader
         } else {
             $query->disableResultsCasting();
         }
-    }
-
-    /**
-     * Reads a compiled query's field projection.
-     *
-     * Find queries store projection on `options`; aggregate queries store it on
-     * the first `$project` pipeline stage.
-     *
-     * @param array<string, mixed> $compiled The compiled query.
-     * @return array<string, mixed>
-     */
-    private function extractCompiledProjection(array $compiled): array
-    {
-        $projection = $compiled['options']['projection'] ?? [];
-        if ($projection !== []) {
-            return $projection;
-        }
-
-        foreach ($compiled['pipeline'] ?? [] as $stage) {
-            if (isset($stage['$project']) && is_array($stage['$project'])) {
-                return $stage['$project'];
-            }
-        }
-
-        return [];
     }
 
     /**

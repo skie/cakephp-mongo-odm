@@ -8,6 +8,7 @@ use Cake\Collection\CollectionInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\Event\EventInterface;
+use Crustum\Mongo\Database\Expression\QueryExpression;
 use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
@@ -439,7 +440,7 @@ class EmbedStrategy implements TranslateStrategyInterface
         }
 
         if ($filter) {
-            $query->where([$config['embedField'] . '.' . $locale => ['$exists' => true]]);
+            $query->where((new QueryExpression())->exists($config['embedField'] . '.' . $locale));
         }
     }
 

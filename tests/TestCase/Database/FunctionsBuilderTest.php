@@ -358,6 +358,10 @@ class FunctionsBuilderTest extends TestCase
             ['$regexMatch' => ['input' => '$$item.name', 'regex' => '^tag.*$']],
             $func->regexMatch('$$item.name', '^tag.*$')->getConditions(),
         );
+        $this->assertSame(
+            ['$expr' => ['$eq' => [1, 0]]],
+            $func->expr($func->eq(1, 0))->getConditions(),
+        );
     }
 
     /**

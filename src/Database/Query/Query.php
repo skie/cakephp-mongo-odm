@@ -613,7 +613,7 @@ abstract class Query implements Stringable
         ];
 
         if ($options['allowEmpty'] && !$values) {
-            return $this->where(['$expr' => ['$eq' => [1, 0]]]);
+            return $this->whereAlways(false);
         }
 
         return $this->where([$field . ' IN' => $values], $options['types']);
@@ -638,7 +638,7 @@ abstract class Query implements Stringable
         ];
 
         if ($options['allowEmpty'] && !$values) {
-            return $this->where(['$expr' => ['$eq' => [1, 1]]]);
+            return $this->whereAlways(true);
         }
 
         return $this->where([$field . ' NOT IN' => $values], $options['types']);
@@ -663,7 +663,7 @@ abstract class Query implements Stringable
         ];
 
         if ($options['allowEmpty'] && !$values) {
-            return $this->where(['$expr' => ['$eq' => [1, 1]]]);
+            return $this->whereAlways(true);
         }
 
         return $this->where(
@@ -672,6 +672,21 @@ abstract class Query implements Stringable
             ],
             $options['types'],
         );
+    }
+
+    /**
+     * Adds an always-true or always-false `$expr` filter.
+     *
+     * Used when `allowEmpty` list helpers would otherwise emit an empty `$in`.
+     *
+     * @param bool $matches Whether the filter should match every document.
+     * @return $this
+     */
+    protected function whereAlways(bool $matches): static
+    {
+        $func = $this->func();
+
+        return $this->where($func->expr($func->eq(1, $matches ? 1 : 0)));
     }
 
     /**

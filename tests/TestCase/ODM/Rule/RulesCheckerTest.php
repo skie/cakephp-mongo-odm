@@ -28,12 +28,13 @@ final class RulesCheckerTest extends TestCase
 
     public function testUniqueUpdateExcludesCurrentDocument(): void
     {
+        $documentId = '507f1f77bcf86cd799439011';
         $repository = $this->createMock(RepositoryInterface::class);
         $repository->expects($this->once())
             ->method('exists')
             ->with([
                 'email' => 'user@example.com',
-                '_id' => ['$ne' => $documentId = '507f1f77bcf86cd799439011'],
+                '_id !=' => $documentId,
             ])
             ->willReturn(false);
 

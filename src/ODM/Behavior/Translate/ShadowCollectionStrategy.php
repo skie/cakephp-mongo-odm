@@ -139,11 +139,9 @@ class ShadowCollectionStrategy extends AbstractStrategy
         $query->lookup($this->translationCollection->getCollection(), [
             'let' => ['rootId' => '$_id'],
             'as' => 'translation',
-            'pipeline' => fn($q) => $q
-                ->where([
-                    '$expr' => ['$eq' => ['$_shadow_id', '$$rootId']],
-                    'locale' => $locale,
-                ]),
+            'pipeline' => fn($q) => $q->where(
+                $q->expr()->equalFields('_shadow_id', '$$rootId')->eq('locale', $locale),
+            ),
         ]);
         $query->unwind('$translation', ['preserveNullAndEmptyArrays' => $preserveNull]);
 
@@ -595,9 +593,9 @@ class ShadowCollectionStrategy extends AbstractStrategy
             'let' => ['rootId' => '$_id'],
             'as' => 'translations',
             'pipeline' => function ($q) use ($locales): void {
-                $q->where(['$expr' => ['$eq' => ['$_shadow_id', '$$rootId']]]);
+                $q->where($q->expr()->equalFields('_shadow_id', '$$rootId'));
                 if ($locales !== []) {
-                    $q->where(['locale' => ['$in' => array_values($locales)]]);
+                    $q->where(['locale IN' => array_values($locales)]);
                 }
             },
         ]);
