@@ -3620,6 +3620,58 @@ class SelectQueryTest extends TestCase
     }
 
     /**
+     * Tests an aliased root select() combined with innerJoinWith().
+     *
+     * `select(['article_title' => 'articles.title'])` compiles to the computed
+     * projection `{article_title: '$articles.title'}`. ResultSet must not treat
+     * the computed value (a non-zero string) as an exclusion projection, and
+     * must keep the aliased key rather than the association-qualified value.
+     */
+    public function testInnerJoinWithAliasedRootSelect(): void
+    {
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+
+        $results = $collection
+            ->find()
+            ->select(['article_title' => 'articles.title'])
+            ->innerJoinWith('articles')
+            ->all()
+            ->toArray();
+
+        $this->assertCount(3, $results);
+        foreach ($results as $row) {
+            $this->assertIsString($row['article_title']);
+        }
+        $this->assertSame(
+            ['First Article', 'Third Article', 'Second Article'],
+            array_column($results, 'article_title'),
+        );
+    }
+
+    /**
+     * Tests an aliased root select() combined with matching().
+     */
+    public function testMatchingAliasedRootSelect(): void
+    {
+        $collection = $this->getCollectionLocator()->get('authors');
+        $collection->hasMany('articles');
+
+        $results = $collection
+            ->find()
+            ->select(['article_title' => 'articles.title'])
+            ->matching('articles')
+            ->all()
+            ->toArray();
+
+        $this->assertCount(3, $results);
+        $this->assertSame(
+            ['First Article', 'Third Article', 'Second Article'],
+            array_column($results, 'article_title'),
+        );
+    }
+
+    /**
      * Tests contain() in query returned by innerJoinWith throws exception.
      */
     public function testInnerJoinWithContain(): void

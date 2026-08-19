@@ -351,7 +351,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
 
         $exclude = array_all(
             $projection,
-            fn(mixed $v): bool => (int)$v === 0,
+            fn(mixed $v): bool => $v === 0 || $v === '0',
         );
         if ($exclude) {
             return array_diff_key($row, array_flip(array_keys($projection)));
@@ -364,7 +364,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             } elseif (is_string($value) && str_starts_with($value, '$')) {
                 $keep[] = (string)$key;
             } elseif (is_string($value) && !str_starts_with($value, '$')) {
-                $keep[] = $value;
+                $keep[] = is_string($key) ? (string)$key : $value;
             }
         }
 
