@@ -20,10 +20,9 @@ return Architecture::define()
     ->ruleset([
         'Database' => ['+Cache', 'Datasource', 'I18n'],
         'Datasource' => ['Cache', 'Collection', 'Database', '+Event', 'Utility'],
-        // 'ODM' => ['Collection', 'Database', 'Datasource', 'Event', '+Utility', 'Validation'],
         'Database' => ['+Cache', 'Datasource', 'CakeDatasource', 'CakeDatabase', 'I18n', 'Collection', 'Utility'],
         'Datasource' => ['Cache', 'Collection', 'CakeDatasource', 'Database', '+Event', 'Utility'],
-        'ODM' => ['Collection', 'Database', 'CakeDatabase', 'Datasource', 'CakeDatasource', 'Event', '+Utility', 'Validation'],
+        'ODM' => ['Collection', 'Database', 'CakeDatabase', 'Datasource', 'CakeDatasource', 'Event', 'I18n', '+Utility', 'Validation'],
         'Orm' => ['CakeORM', 'Datasource', 'Database', 'CakeDatasource', 'CakeDatabase', 'ODM', 'Collection', 'Event', '+Utility', 'Validation'],
     ])
     ->skipClassViolation(

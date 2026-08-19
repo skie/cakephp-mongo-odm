@@ -22,7 +22,6 @@ use RuntimeException;
  *
  * @template TDocument of \Cake\Datasource\EntityInterface
  * @see cake60/src/ORM/Marshaller.php
- * @see src/ODM/Marshaller.php
  */
 class Marshaller
 {

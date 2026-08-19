@@ -7,6 +7,7 @@ use Cake\ORM\Table;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\Orm\Bridge\DBRef;
 use Crustum\Mongo\Orm\Bridge\MongoCollectionAwareInterface;
+use Crustum\Mongo\Orm\Bridge\Row\DocumentWrapper;
 use Crustum\Mongo\Test\TestCase\ODM\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use TestApp\Model\Entity\File;
@@ -108,6 +109,41 @@ class DBRefTest extends TestCase
         $association->load([$file]);
 
         $this->assertNull($file->file);
+    }
+
+    /**
+     * Tests that DBRef honors autoWrap and wraps the loaded document.
+     *
+     * @return void
+     */
+    public function testLoadDbrefWithAutoWrap(): void
+    {
+        $association = new DBRef('Files', $this->Files, [
+            'autoWrap' => true,
+        ]);
+
+        $file = new File(['id' => 1, 'name' => 'report.pdf', 'file_ref' => '000000000000000000000001']);
+        $association->load([$file]);
+
+        $this->assertInstanceOf(DocumentWrapper::class, $file->file);
+        $this->assertSame('/a/b.pdf', $file->file->get('path'));
+    }
+
+    /**
+     * Tests that DBRef save() is a no-op (no bogus target document).
+     *
+     * @return void
+     */
+    public function testSaveIsNoOp(): void
+    {
+        $association = new DBRef('Files', $this->Files);
+        $countBefore = $this->Target->find()->count();
+
+        $file = new File(['id' => 1, 'name' => 'report.pdf', 'file_ref' => '000000000000000000000001']);
+        $result = $association->save($file, ['path' => '/bogus.pdf']);
+
+        $this->assertTrue($result);
+        $this->assertSame($countBefore, $this->Target->find()->count(), 'DBRef save() must not create a target document');
     }
 
     /**

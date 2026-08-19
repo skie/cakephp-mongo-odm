@@ -47,6 +47,23 @@ class BelongsTo extends Association
     }
 
     /**
+     * Direction-1 save is a no-op for BelongsTo.
+     *
+     * The foreign key lives on the SQL column; the referenced Mongo document
+     * already exists. The base `Association::save()` would marshal the value
+     * into a bogus new target document stamped with the source binding key, so
+     * it must not run during `saveWithBridge()`.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The source entity.
+     * @param mixed $value The dirty association value.
+     * @return bool Whether the write succeeded.
+     */
+    public function save(EntityInterface $entity, mixed $value): bool
+    {
+        return true;
+    }
+
+    /**
      * @inheritDoc
      */
     protected function sourceKeyField(): string

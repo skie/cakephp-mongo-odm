@@ -142,6 +142,26 @@ class BelongsToTest extends TestCase
     }
 
     /**
+     * Tests that BelongsTo save() is a no-op (no bogus target document).
+     *
+     * @return void
+     */
+    public function testSaveIsNoOp(): void
+    {
+        $association = new BelongsTo('Authors', $this->Orders, [
+            'property' => 'author',
+        ]);
+        $authors = $this->getCollectionLocator()->get('Authors');
+        $countBefore = $authors->find()->count();
+
+        $order = new Order(['id' => 1, 'author_id' => '000000000000000000000002']);
+        $result = $association->save($order, ['name' => 'bogus']);
+
+        $this->assertTrue($result);
+        $this->assertSame($countBefore, $authors->find()->count(), 'BelongsTo save() must not create a target document');
+    }
+
+    /**
      * Tests that custom foreign key / property options are honoured.
      *
      * @return void

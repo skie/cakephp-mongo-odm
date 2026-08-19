@@ -179,4 +179,42 @@ class ProxyTest extends TestCase
         $this->assertCount(1, $docs);
         $this->assertSame('bridged doc', $docs[0]->get('title'));
     }
+
+    /**
+     * Tests that saveWithBridge() honors the `associate` option.
+     *
+     * Only the listed bridge properties are persisted; unlisted dirty ones are
+     * skipped.
+     *
+     * @return void
+     */
+    public function testSaveWithBridgeAssociateFiltersProperties(): void
+    {
+        $documents = $this->getCollectionLocator()->get('Documents');
+        $profiles = $this->getCollectionLocator()->get('Profiles');
+        $documents->deleteAll([]);
+        $profilesBefore = $profiles->find()->count();
+
+        $order = $this->Orders->newEmptyEntity();
+        $order->set('customer_name', 'bridged');
+        $order->set('documents', [['title' => 'kept']]);
+        $order->setDirty('documents', true);
+        $order->set('profile', ['username' => 'skipped']);
+        $order->setDirty('profile', true);
+
+        $saved = $this->Orders->saveWithBridge($order, ['associate' => ['documents']]);
+
+        $this->assertNotFalse($saved);
+        $this->assertNotNull($saved->get('id'));
+
+        $docs = $documents->find()->where(['order_id' => $saved->get('id')])->toArray();
+        $this->assertCount(1, $docs);
+        $this->assertSame('kept', $docs[0]->get('title'));
+
+        $this->assertSame(
+            $profilesBefore,
+            $profiles->find()->count(),
+            'bridge properties not listed in `associate` must be skipped',
+        );
+    }
 }

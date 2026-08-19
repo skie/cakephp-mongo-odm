@@ -34,7 +34,6 @@ use function Cake\Core\triggerWarning;
  * aggregation pipeline.
  *
  * @see cake60/src/ORM/Association.php
- * @see src/ODM/Association.php
  */
 abstract class Association
 {

@@ -20,7 +20,6 @@ use InvalidArgumentException;
  * strategies.
  *
  * @see cake60/src/ORM/EagerLoader.php
- * @see src/ODM/EagerLoader.php
  */
 class EagerLoader
 {

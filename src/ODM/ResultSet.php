@@ -31,7 +31,6 @@ use MongoDB\Model\BSONDocument;
  * deconstructed into hydrated Documents. Result formatters, MapReduce and DTO
  * projection run on the query layer, mirroring the pre-refactor `src/ODM/ResultSet.php`.
  *
- * @see src/ODM/ResultSet.php (pre-refactor working shape)
  * @see elastic-search/src/ResultSet.php (simpler sibling)
  * @template TKey
  * @template TValue

@@ -36,7 +36,6 @@ use Crustum\Mongo\ODM\Query\UpdateQuery;
  * - `sort`: optional numeric sibling-order field maintained by `moveUp()` /
  *   `moveDown()`
  * - `scope`: optional conditions (array or closure) restricting the tree
- * - `recoverOrder`: ordering used by `recover()` for sibling traversal
  * - `cascadeCallbacks`: whether `beforeDelete` deletes descendants one-by-one
  *   (firing callbacks) instead of a bulk delete
  *
@@ -67,7 +66,6 @@ class TreeBehavior extends Behavior
         'level' => null,
         'sort' => null,
         'scope' => null,
-        'recoverOrder' => null,
         'cascadeCallbacks' => false,
     ];
 

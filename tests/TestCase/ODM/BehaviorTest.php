@@ -8,9 +8,9 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Behavior;
 use Mockery;
 use PHPUnit\Framework\Attributes\CoversClass;
-use TestApp\Model\Behavior\Test2Behavior;
-use TestApp\Model\Behavior\Test3Behavior;
-use TestApp\Model\Behavior\TestBehavior;
+use TestApp\Model\MongoBehavior\Test2Behavior;
+use TestApp\Model\MongoBehavior\Test3Behavior;
+use TestApp\Model\MongoBehavior\TestBehavior;
 
 /**
  * Port of `Cake\Test\TestCase\ORM\BehaviorTest` for the ODM layer.

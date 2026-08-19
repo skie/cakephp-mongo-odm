@@ -158,6 +158,8 @@ trait MongoAssociationsTrait
     public function saveWithBridge(EntityInterface $entity, array $options = []): EntityInterface|false
     {
         $isNew = $entity->isNew();
+        $associate = (array)($options['associate'] ?? []);
+        unset($options['associate']);
         $options['atomic'] = false;
         $options['associated'] = false;
 
@@ -165,6 +167,10 @@ trait MongoAssociationsTrait
         foreach ($this->getBridgeAssociations() as $association) {
             $property = $association->getProperty();
             if (!$entity->isDirty($property)) {
+                continue;
+            }
+
+            if ($associate !== [] && !in_array($property, $associate, true)) {
                 continue;
             }
 

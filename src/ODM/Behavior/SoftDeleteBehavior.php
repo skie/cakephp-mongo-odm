@@ -64,6 +64,12 @@ class SoftDeleteBehavior extends Behavior
             [$field => new UTCDateTime(new DateTimeImmutable('now', new DateTimeZone('UTC')))],
             $conditions,
         );
+
+        $this->collection()->dispatchEvent('Collection.afterSoftDelete', [
+            'document' => $document,
+            'options' => $options,
+        ]);
+
         $event->stopPropagation();
         $event->setResult(true);
     }

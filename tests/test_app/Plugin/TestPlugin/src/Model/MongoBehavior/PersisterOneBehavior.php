@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace TestPlugin\Model\Behavior;
+namespace TestPlugin\Model\MongoBehavior;
 
 use Crustum\Mongo\ODM\Behavior;
 

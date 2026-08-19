@@ -253,6 +253,64 @@ class CounterCacheBehaviorTest extends TestCase
     }
 
     /**
+     * Testing counter cache decrement when a record is soft-deleted.
+     *
+     * The `SoftDeleteBehavior` stops the delete event, so the regular
+     * `afterDelete` never fires — the new `Collection.afterSoftDelete` event
+     * keeps the counter in sync instead.
+     */
+    public function testDeleteWithSoftDelete(): void
+    {
+        $this->comment->belongsTo('Users');
+
+        $this->comment->addBehavior('CounterCache', [
+            'Users' => [
+                'comment_count',
+            ],
+        ]);
+        $this->comment->addBehavior('SoftDelete');
+
+        $before = $this->getUser();
+        $comment = $this->comment->find('all')
+            ->where(['user_id' => '000000000000000000000001'])
+            ->first();
+        $this->comment->delete($comment);
+
+        $after = $this->getUser();
+
+        $this->assertSame(2, $before->get('comment_count'));
+        $this->assertSame(1, $after->get('comment_count'));
+    }
+
+    /**
+     * Testing counter cache decrement when a record is force-deleted while the
+     * SoftDelete behavior is attached. `forceDelete` skips the soft-delete
+     * path, so the physical delete runs and `afterDelete` updates the counter.
+     */
+    public function testDeleteWithSoftDeleteForce(): void
+    {
+        $this->comment->belongsTo('Users');
+
+        $this->comment->addBehavior('CounterCache', [
+            'Users' => [
+                'comment_count',
+            ],
+        ]);
+        $this->comment->addBehavior('SoftDelete');
+
+        $before = $this->getUser();
+        $comment = $this->comment->find('all')
+            ->where(['user_id' => '000000000000000000000001'])
+            ->first();
+        $this->comment->delete($comment, ['forceDelete' => true]);
+
+        $after = $this->getUser();
+
+        $this->assertSame(2, $before->get('comment_count'));
+        $this->assertSame(1, $after->get('comment_count'));
+    }
+
+    /**
      * Testing update simple counter caching when updating a record association
      */
     public function testUpdate(): void

@@ -72,7 +72,7 @@ class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterfac
      */
     public static function className(string $class): ?string
     {
-        $candidate = App::className($class, 'Model/Behavior', 'Behavior')
+        $candidate = App::className($class, 'Model/MongoBehavior', 'Behavior')
             ?: App::className($class, 'ODM/Behavior', 'Behavior');
         if ($candidate !== null && is_a($candidate, Behavior::class, true)) {
             return $candidate;

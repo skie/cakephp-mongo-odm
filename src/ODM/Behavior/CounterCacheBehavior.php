@@ -26,6 +26,44 @@ class CounterCacheBehavior extends Behavior
     protected array $ignoreDirty = [];
 
     /**
+     * Model callbacks implemented by this behavior.
+     *
+     * Adds the `Collection.afterSoftDelete` event dispatched by
+     * `SoftDeleteBehavior` so counter caches stay in sync when a document is
+     * soft-deleted (the regular `Collection.afterDelete` never fires for those).
+     *
+     * @return array<string, mixed>
+     */
+    public function implementedEvents(): array
+    {
+        return parent::implementedEvents() + [
+            'Collection.afterSoftDelete' => 'afterSoftDelete',
+        ];
+    }
+
+    /**
+     * afterSoftDelete callback.
+     *
+     * Makes sure to update counter cache when a record is soft-deleted by the
+     * `SoftDeleteBehavior`. The count is recomputed via `getCount()`, which
+     * excludes soft-deleted records because it adds the SoftDelete filter when
+     * that behavior is attached to the source collection.
+     *
+     * @param \Cake\Event\EventInterface<object> $event The afterSoftDelete event that was fired.
+     * @param \Cake\Datasource\EntityInterface $document The document that was soft-deleted.
+     * @param \ArrayObject<string, mixed> $options The options for the query.
+     * @return void
+     */
+    public function afterSoftDelete(EventInterface $event, EntityInterface $document, ArrayObject $options): void
+    {
+        if (($options['ignoreCounterCache'] ?? false) === true) {
+            return;
+        }
+
+        $this->processAssociations($event, $document);
+    }
+
+    /**
      * beforeSave callback.
      *
      * Check if a field, which should be ignored, is dirty.
@@ -309,6 +347,11 @@ class CounterCacheBehavior extends Behavior
         }
 
         $config['conditions'] = array_merge($conditions, $config['conditions'] ?? []);
+
+        if ($this->collection->hasBehavior('SoftDelete')) {
+            $field = $this->collection->getBehavior('SoftDelete')->getConfig('field');
+            $config['conditions'][$field . ' IS'] = null;
+        }
 
         return $this->collection->find($finder, ...$config)->count();
     }

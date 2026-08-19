@@ -10,7 +10,6 @@ namespace Crustum\Mongo\ODM;
  * the paths used when nesting the hydrated result.
  *
  * @see cake60/src/ORM/EagerLoadable.php
- * @see src/ODM/EagerLoadable.php
  */
 class EagerLoadable
 {
