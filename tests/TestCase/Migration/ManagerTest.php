@@ -439,9 +439,7 @@ class ManagerTest extends TestCase
         $config = new Config($configArray);
 
         $this->manager->setConfig($config);
-        $this->manager->setEnvironment($this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock());
+        $this->manager->setEnvironment($this->createStub(Environment::class));
 
         $this->assertSame([], $this->manager->printStatus());
     }
@@ -570,12 +568,8 @@ class ManagerTest extends TestCase
      */
     public function testExecuteSeedWorksAsExpected(): void
     {
-        $envStub = $this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock();
-        $envStub->expects($this->any())
-            ->method('getAdapter')
-            ->willReturn(new FakeAdapter());
+        $envStub = $this->createStub(Environment::class);
+        $envStub->method('getAdapter')->willReturn(new FakeAdapter());
         $this->manager->setEnvironment($envStub);
 
         $this->manager->seed();
@@ -593,12 +587,8 @@ class ManagerTest extends TestCase
      */
     public function testExecuteASingleSeedWorksAsExpected(): void
     {
-        $envStub = $this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock();
-        $envStub->expects($this->any())
-            ->method('getAdapter')
-            ->willReturn(new FakeAdapter());
+        $envStub = $this->createStub(Environment::class);
+        $envStub->method('getAdapter')->willReturn(new FakeAdapter());
         $this->manager->setEnvironment($envStub);
 
         $this->manager->seed('UserSeeder');
@@ -614,9 +604,7 @@ class ManagerTest extends TestCase
      */
     public function testExecuteANonExistentSeedWorksAsExpected(): void
     {
-        $envStub = $this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock();
+        $envStub = $this->createStub(Environment::class);
         $this->manager->setEnvironment($envStub);
 
         $this->expectException(InvalidArgumentException::class);
@@ -646,12 +634,8 @@ class ManagerTest extends TestCase
      */
     public function testSeedWillNotBeExecuted(): void
     {
-        $envStub = $this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock();
-        $envStub->expects($this->any())
-            ->method('getAdapter')
-            ->willReturn(new FakeAdapter());
+        $envStub = $this->createStub(Environment::class);
+        $envStub->method('getAdapter')->willReturn(new FakeAdapter());
         $this->manager->setEnvironment($envStub);
 
         $this->manager->seed('UserSeederNotExecuted');
@@ -778,13 +762,9 @@ class ManagerTest extends TestCase
      */
     public function testIsSeedExecuted(): void
     {
-        $envStub = $this->getMockBuilder(Environment::class)
-            ->setConstructorArgs(['mockenv', []])
-            ->getMock();
+        $envStub = $this->createStub(Environment::class);
         $fake = new FakeAdapter();
-        $envStub->expects($this->any())
-            ->method('getAdapter')
-            ->willReturn($fake);
+        $envStub->method('getAdapter')->willReturn($fake);
         $this->manager->setEnvironment($envStub);
 
         $seeds = $this->manager->getSeeds();

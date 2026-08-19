@@ -551,8 +551,8 @@ class EnvironmentTest extends TestCase
      */
     public function testGettingInputObject(): void
     {
-        $mock = $this->getMockBuilder(ConsoleIo::class)->getMock();
-        $this->environment->setIo($mock);
+        $stub = $this->createStub(ConsoleIo::class);
+        $this->environment->setIo($stub);
 
         $this->assertInstanceOf(ConsoleIo::class, $this->environment->getIo());
     }
