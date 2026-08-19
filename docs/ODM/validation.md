@@ -1,0 +1,902 @@
+# Validating Data
+
+> ### PENDING
+>
+> This page is ported from the Cake ORM cookbook page
+> `docs/orm/validation.md` in full. Two-stage validation (request-data
+> validation vs. application rules), `validationDefault()`/named validation
+> sets, per-association validators, combining validators, validation providers,
+> `getValidator()`, `_validatorClass`, the `RulesChecker` API (`isUnique`,
+> `existsIn`, `existsInNullable`, `validCount`, `isLinkedTo`, `isNotLinkedTo`),
+> custom rules and disabling rules are all covered here.
+>
+> Every claim and code sample was checked against
+> `crustum/src/ODM/BaseCollection.php`, `crustum/src/ODM/RulesChecker.php`,
+> `crustum/src/ODM/Rule/`, `crustum/src/ODM/Marshaller.php`,
+> `vendor/cakephp/cakephp/src/Validation/ValidatorAwareTrait.php` and
+> `tests/TestCase/ODM/BaseCollectionTest.php`. Before the `### PENDING` banner
+> is removed, the remaining samples must be run against a live test database
+> (see `docs/working-memory-docs/55-validation-diffs.md`).
+
+Before you [save your data](../ODM/saving-data) you will probably want to ensure
+the data is correct and consistent. In Crustum we have two stages of validation:
+
+1. Before request data is converted into documents, validation rules around
+    data types and formatting can be applied.
+2. Before data is saved, domain or application rules can be applied. These
+    rules help ensure that your application's data remains consistent.
+
+<a id="validating-request-data"></a>
+
+## Validating Data Before Building Documents
+
+When marshalling data into documents, you can validate data. Validating data
+allows you to check the type, shape and size of data. By default, request data
+will be validated before it is converted into documents. If any validation rules
+fail, the returned document will contain errors. The fields with errors will not
+be present in the returned document:
+
+```php
+$article = $articles->newDocument($this->request->getData());
+if ($article->getErrors()) {
+    // Document failed validation.
+}
+```
+
+When building a document with validation enabled the following occurs:
+
+1. The validator object is created.
+2. The `collection` and `default` validation provider are attached.
+3. The named validation method is invoked. For example `validationDefault`.
+4. The `Collection.buildValidator` event will be triggered.
+5. Request data will be validated.
+6. Request data will be type-cast into types that match the field types.
+7. Errors will be set into the document.
+8. Valid data will be set into the document, while fields that failed
+    validation will be excluded.
+
+If you'd like to disable validation when converting request data, set the
+`validate` option to false:
+
+```php
+$article = $articles->newDocument(
+    $this->request->getData(),
+    ['validate' => false],
+);
+```
+
+The same can be said about the `patchDocument()` method:
+
+```php
+$article = $articles->patchDocument($article, $newData, [
+    'validate' => false,
+]);
+```
+
+## Creating A Default Validation Set
+
+Validation rules are defined in the collection classes for convenience. This
+defines what data should be validated in conjunction with where it will be
+saved.
+
+To create a default validation object in your collection, create the
+`validationDefault()` function:
+
+```php
+use Crustum\Mongo\ODM\BaseCollection;
+use Cake\Validation\Validator;
+
+class ArticlesCollection extends BaseCollection
+{
+    public function validationDefault(Validator $validator): Validator
+    {
+        $validator
+            ->requirePresence('title', 'create')
+            ->notEmptyString('title');
+
+        $validator
+            ->allowEmptyString('link')
+            ->add('link', 'valid-url', ['rule' => 'url']);
+
+        ...
+
+        return $validator;
+    }
+}
+```
+
+The available validation methods and rules come from the `Validator` class and
+are documented in the [Creating Validators](../core-libraries/validation#creating-validators) section.
+
+> [!NOTE]
+> Validation objects are intended primarily for validating user input, i.e.
+> forms and any other posted request data.
+
+## Using A Different Validation Set
+
+In addition to disabling validation you can choose which validation rule set you
+want applied:
+
+```php
+$article = $articles->newDocument(
+    $this->request->getData(),
+    ['validate' => 'update'],
+);
+```
+
+The above would call the `validationUpdate()` method on the collection instance
+to build the required rules. By default, the `validationDefault()` method will
+be used. An example validator for our articles collection would be:
+
+```php
+class ArticlesCollection extends BaseCollection
+{
+    public function validationUpdate(Validator $validator): Validator
+    {
+        $validator
+            ->notEmptyString('title', __('You need to provide a title'))
+            ->notEmptyString('body', __('A body is required'));
+
+        return $validator;
+    }
+}
+```
+
+You can have as many validation sets as necessary. See the
+[validation chapter](../core-libraries/validation) for more information on
+building validation rule-sets.
+
+<a id="using-different-validators-per-association"></a>
+
+### Using A Different Validation Set For Associations
+
+Validation sets can also be defined per association. When using the
+`newDocument()` or `patchDocument()` methods, you can pass extra options to each
+of the associations to be converted:
+
+```php
+$data = [
+    'title' => 'My title',
+    'body' => 'The text',
+    'user_id' => '000000000000000000000001',
+    'user' => [
+        'username' => 'mark',
+    ],
+    'comments' => [
+        ['body' => 'First comment'],
+        ['body' => 'Second comment'],
+    ],
+];
+
+$article = $articles->patchDocument($article, $data, [
+    'validate' => 'update',
+    'associated' => [
+        'Users' => ['validate' => 'signup'],
+        'Comments' => ['validate' => 'custom'],
+    ],
+]);
+```
+
+## Combining Validators
+
+Because of how validator objects are built, you can decompose their construction
+process into multiple reusable steps:
+
+```php
+// UsersCollection.php
+
+public function validationDefault(Validator $validator): Validator
+{
+    $validator->notEmptyString('username');
+    $validator->notEmptyString('password');
+    $validator->add('email', 'valid-email', ['rule' => 'email']);
+    ...
+
+    return $validator;
+}
+
+public function validationHardened(Validator $validator): Validator
+{
+    $validator = $this->validationDefault($validator);
+
+    $validator->add('password', 'length', ['rule' => ['lengthBetween', 8, 100]]);
+
+    return $validator;
+}
+```
+
+Given the above setup, when using the `hardened` validation set, it will also
+contain the validation rules declared in the `default` set.
+
+## Validation Providers
+
+Validation rules can use functions defined on any known providers. By default
+Crustum sets up a few providers:
+
+1. Methods on the collection class or its behaviors are available on the
+    `collection` provider.
+2. The core `Cake\Validation\Validation` class is setup as the `default`
+    provider.
+
+When a validation rule is created you can name the provider of that rule. For
+example, if your collection has an `isValidRole` method you can use it as a
+validation rule:
+
+```php
+use Crustum\Mongo\ODM\BaseCollection;
+use Cake\Validation\Validator;
+
+class UsersCollection extends BaseCollection
+{
+    public function validationDefault(Validator $validator): Validator
+    {
+        $validator
+            ->add('role', 'validRole', [
+                'rule' => 'isValidRole',
+                'message' => __('You need to provide a valid role'),
+                'provider' => 'collection',
+            ]);
+
+        return $validator;
+    }
+
+    public function isValidRole($value, array $context): bool
+    {
+        return in_array($value, ['admin', 'editor', 'author'], true);
+    }
+
+}
+```
+
+> [!NOTE]
+> The provider name is `collection` in Crustum (not `table`). This differs from
+> the Cake ORM convention.
+
+### Using Provider Methods Directly
+
+In some cases, you may want to call provider methods directly within a custom
+validation rule. You can access a provider class using `getProvider()` and then
+call its methods statically. However, for the default `Validation` class, you
+can simply call its methods directly:
+
+```php
+use Cake\Validation\Validation;
+
+$validator->add('start_on', 'dateOrDatetime', [
+    'rule' => function ($value): bool {
+        return Validation::datetime($value) || Validation::date($value);
+    },
+    'message' => __('Must be a date or datetime'),
+]);
+```
+
+This approach is useful when you need to combine multiple validation rules with
+OR logic, which is not directly supported by the validator's fluent interface.
+
+## Using Closures as Validation Rules
+
+You can also use closures for validation rules:
+
+```php
+$validator->add('name', 'myRule', [
+    'rule' => function ($value, array $context) {
+        if ($value > 1) {
+            return true;
+        }
+
+        return 'Not a good value.';
+    },
+]);
+```
+
+Validation methods can return error messages when they fail. This is a simple
+way to make error messages dynamic based on the provided value.
+
+## Getting Validators From Collections
+
+Once you have created a few validation sets in your collection class, you can
+get the resulting object by name:
+
+```php
+$defaultValidator = $usersCollection->getValidator('default');
+
+$hardenedValidator = $usersCollection->getValidator('hardened');
+```
+
+## Default Validator Class
+
+As stated above, by default the validation methods receive an instance of
+`Cake\Validation\Validator`. Instead, if you want your custom validator's
+instance to be used each time, you can use collection's `_validatorClass`
+property:
+
+```php
+// In your collection class
+public function initialize(array $config): void
+{
+    $this->_validatorClass = \FullyNamespaced\Custom\Validator::class;
+}
+```
+
+<a id="application-rules"></a>
+
+## Applying Application Rules
+
+While basic data validation is done when [request data is converted into
+documents](#validating-request-data), many applications also have more complex
+validation that should only be applied after basic validation has completed.
+
+Where validation ensures the form or syntax of your data is correct, rules focus
+on comparing data against the existing state of your application and/or network.
+
+These types of rules are often referred to as 'domain rules' or 'application
+rules'. Crustum exposes this concept through 'RulesCheckers' which are applied
+before documents are persisted. Some example application rules are:
+
+- Ensuring email uniqueness
+- State transitions or workflow steps, for example, updating an invoice's status.
+- Preventing the modification of soft deleted items.
+- Enforcing usage/rate limit caps.
+
+Application rules are checked when calling the collection `save()` and
+`delete()` methods.
+
+### Creating a Rules Checker
+
+Rules checker classes are generally defined by the `buildRules()` method in your
+collection class. Behaviors and other event subscribers can use the
+`Collection.buildRules` event to augment the rules checker for a given
+collection class:
+
+```php
+use Crustum\Mongo\ODM\RulesChecker;
+
+// In a collection class
+public function buildRules(RulesChecker $rules): RulesChecker
+{
+    // Add a rule that is applied for create and update operations
+    $rules->add(function ($document, $options) {
+        // Return a boolean to indicate pass/failure
+    }, 'ruleName');
+
+    // Add a rule for create.
+    $rules->addCreate(function ($document, $options) {
+        // Return a boolean to indicate pass/failure
+    }, 'ruleName');
+
+    // Add a rule for update
+    $rules->addUpdate(function ($document, $options) {
+        // Return a boolean to indicate pass/failure
+    }, 'ruleName');
+
+    // Add a rule for the deleting.
+    $rules->addDelete(function ($document, $options) {
+        // Return a boolean to indicate pass/failure
+    }, 'ruleName');
+
+    return $rules;
+}
+```
+
+Your rules functions can expect to get the document being checked and an array
+of options. The options array will contain `errorField`, `message`, and
+`repository`. The `repository` option will contain the collection class the
+rules are attached to. Because rules accept any `callable`, you can also use
+instance functions:
+
+```php
+$rules->addCreate([$this, 'uniqueEmail'], 'uniqueEmail');
+```
+
+or callable classes:
+
+```php
+$rules->addCreate(new IsUnique(['email']), 'uniqueEmail');
+```
+
+When adding rules you can define the field the rule is for and the error message
+as options:
+
+```php
+$rules->add([$this, 'isValidState'], 'validState', [
+    'errorField' => 'status',
+    'message' => 'This invoice cannot be moved to that status.',
+]);
+```
+
+The error will be visible when calling the `getErrors()` method on the document:
+
+```php
+$document->getErrors(); // Contains the domain rules error messages
+```
+
+### Creating Unique Field Rules
+
+Because unique rules are quite common, Crustum includes a simple rule class that
+allows you to define unique field sets:
+
+```php
+use Crustum\Mongo\ODM\Rule\IsUnique;
+
+// A single field.
+$rules->add($rules->isUnique(['email']));
+
+// A list of fields
+$rules->add($rules->isUnique(
+    ['username', 'account_id'],
+    'This username & account_id combination has already been used.',
+));
+```
+
+When setting rules on foreign key fields it is important to remember, that only
+the fields listed are used in the rule. The unique set of rules will be found
+with `find('all')`. This means that setting `$user->account->id` will not
+trigger the above rule.
+
+Many database engines allow NULLs to be unique values in UNIQUE indexes. To
+simulate this, set the `allowMultipleNulls` options to true:
+
+```php
+$rules->add($rules->isUnique(
+    ['username', 'account_id'],
+    ['allowMultipleNulls' => true],
+));
+```
+
+### Foreign Key Rules
+
+While you could rely on database errors to enforce constraints, using rules code
+can help provide a nicer user experience. Because of this Crustum includes an
+`ExistsIn` rule class:
+
+```php
+// A single field.
+$rules->add($rules->existsIn('article_id', 'Articles'));
+
+// Multiple keys, useful for composite primary keys.
+$rules->add($rules->existsIn(['site_id', 'article_id'], 'Articles'));
+```
+
+The fields to check existence against in the related collection must be part of
+the primary key.
+
+You can enforce `existsIn` to pass when nullable parts of your composite foreign
+key are null:
+
+```php
+// Example: A composite primary key within NodesCollection is (parent_id, site_id).
+// A Node may reference a parent Node but does not need to. In latter case, parent_id is null.
+// Allow this rule to pass, even if fields that are nullable, like parent_id, are null:
+$rules->add($rules->existsIn(
+    ['parent_id', 'site_id'], // Schema: parent_id NULL, site_id NOT NULL
+    'ParentNodes',
+    ['allowNullableNulls' => true],
+));
+
+// A Node however should in addition also always reference a Site.
+$rules->add($rules->existsIn(['site_id'], 'Sites'));
+```
+
+You can also use `existsInNullable()` for nullable composite foreign keys. This
+rule allows `null` values in nullable foreign key columns, which is semantically
+correct for optional relationships:
+
+```php
+// Allow null values in nullable composite foreign keys.
+$rules->add($rules->existsInNullable(
+    ['author_id', 'site_id'],
+    'SiteAuthors',
+));
+```
+
+Use `existsInNullable()` instead of `existsIn()` when you want to permit null
+values in foreign keys without requiring the `allowNullableNulls` option.
+
+In most SQL databases multi-column `UNIQUE` indexes allow multiple null values
+to exist as `NULL` is not equal to itself. While, allowing multiple null values
+is the default behavior of Crustum, you can include null values in your unique
+checks using `allowMultipleNulls`:
+
+```php
+// Only one null value can exist in `parent_id` and `site_id`
+$rules->add($rules->existsIn(
+    ['parent_id', 'site_id'],
+    'ParentNodes',
+    ['allowMultipleNulls' => false],
+));
+```
+
+### Association Count Rules
+
+If you need to validate that a property or association contains the correct
+number of values, you can use the `validCount()` rule:
+
+```php
+// In the ArticlesCollection.php file
+// No more than 5 tags on an article.
+$rules->add($rules->validCount('tags', 5, '<=', 'You can only have 5 tags'));
+```
+
+When defining count based rules, the third parameter lets you define the
+comparison operator to use. `==`, `>=`, `<=`, `>`, `<`, and `!=` are the
+accepted operators. To ensure a property's count is within a range, use two
+rules:
+
+```php
+// In the ArticlesCollection.php file
+// Between 3 and 5 tags
+$rules->add($rules->validCount('tags', 3, '>=', 'You must have at least 3 tags'));
+$rules->add($rules->validCount('tags', 5, '<=', 'You must have at most 5 tags'));
+```
+
+Note that `validCount` returns `false` if the property is not countable or does
+not exist:
+
+```php
+// The save operation will fail if tags is null.
+$rules->add($rules->validCount('tags', 0, '<=', 'You must not have any tags'));
+```
+
+### Association Link Constraint Rule
+
+The `LinkConstraint` lets you emulate SQL constraints in databases that don't
+support them, or when you want to provide more user friendly error messages when
+constraints would fail. This rule enables you to check if an association does or
+does not have related records depending on the mode used:
+
+```php
+// Ensure that each comment is linked to an Article during updates.
+$rules->addUpdate($rules->isLinkedTo(
+    'Articles',
+    'article',
+    'Requires an article',
+));
+
+// Ensure that an article has no linked comments during delete.
+$rules->addDelete($rules->isNotLinkedTo(
+    'Comments',
+    'comments',
+    'Must have zero comments before deletion.',
+));
+```
+
+### Using Entity Methods as Rules
+
+You may want to use document methods as domain rules:
+
+```php
+$rules->add(function ($document, $options) {
+    return $document->isOkLooking();
+}, 'ruleName');
+```
+
+### Using Conditional Rules
+
+You may want to conditionally apply rules based on document data:
+
+```php
+$rules->add(function ($document, $options) use($rules) {
+    if ($document->role == 'admin') {
+        $rule = $rules->existsIn('user_id', 'Admins');
+
+        return $rule($document, $options);
+    }
+    if ($document->role == 'user') {
+        $rule = $rules->existsIn('user_id', 'Users');
+
+        return $rule($document, $options);
+    }
+
+    return false;
+}, 'userExists');
+```
+
+### Conditional/Dynamic Error Messages
+
+Rules, being it [custom callables](#creating-a-rules-checker), or
+[rule objects](#creating-custom-rule-objects), can either return a boolean,
+indicating whether they passed, or they can return a string, which means that
+the rule did not pass, and that the returned string should be used as the error
+message.
+
+Possible existing error messages defined via the `message` option will be
+overwritten by the ones returned from the rule:
+
+```php
+$rules->add(
+    function ($document, $options) {
+        if (!$document->length) {
+            return false;
+        }
+
+        if ($document->length < 10) {
+            return 'Error message when value is less than 10';
+        }
+
+        if ($document->length > 20) {
+            return 'Error message when value is greater than 20';
+        }
+
+        return true;
+    },
+    'ruleName',
+    [
+        'errorField' => 'length',
+        'message' => 'Generic error message used when `false` is returned',
+    ]
+);
+```
+
+You can also provide a `Closure` for the `message` key. When the validation rule
+fails, you can create dynamic error messages based on the document and options:
+
+```php
+$rules->add(
+    $rules->existsIn('article_id', 'Articles'),
+    'article_exists',
+    [
+        'message' => function ($document, $options) {
+            return sprintf(
+                'Article with ID %s does not exist',
+                $document->article_id,
+            );
+        }
+    ]
+);
+```
+
+> [!NOTE]
+> Note that in order for the returned message to be actually used, you *must*
+> also supply the `errorField` option, otherwise the rule will just silently
+> fail to pass, ie without an error message being set on the document.
+
+### Creating Custom re-usable Rules
+
+You may want to re-use custom domain rules. You can do so by creating your own
+invokable rule:
+
+```php
+// Using a custom rule of the application
+use App\ODM\Rule\IsUniqueWithNulls;
+// ...
+public function buildRules(RulesChecker $rules): RulesChecker
+{
+    $rules->add(new IsUniqueWithNulls(['parent_id', 'instance_id', 'name']), 'uniqueNamePerParent', [
+        'errorField' => 'name',
+        'message' => 'Name must be unique per parent.',
+    ]);
+
+    return $rules;
+}
+```
+
+See the core rules for examples on how to create such rules.
+
+### Creating Custom Rule Objects
+
+If your application has rules that are commonly reused, it is helpful to package
+those rules into re-usable classes:
+
+```php
+// in src/Model/Rule/CustomRule.php
+namespace App\Model\Rule;
+
+use Cake\Datasource\EntityInterface;
+
+class CustomRule
+{
+    public function __invoke(EntityInterface $document, array $options): bool
+    {
+        // Do work
+        return false;
+    }
+}
+
+// Add the custom rule
+use App\Model\Rule\CustomRule;
+
+$rules->add(new CustomRule(/* ... */), 'ruleName');
+```
+
+By creating custom rule classes you can keep your code DRY and test your domain
+rules in isolation.
+
+### Disabling Rules
+
+When saving a document, you can disable the rules if necessary:
+
+```php
+$articles->save($article, ['checkRules' => false]);
+```
+
+## Validation vs. Application Rules
+
+The Crustum ODM is unique in that it uses a two-layered approach to validation.
+
+The first layer is validation. Validation rules are intended to operate in a
+stateless way. They are best leveraged to ensure that the shape, data types and
+format of data is correct.
+
+The second layer is application rules. Application rules are best leveraged to
+check stateful properties of your documents. For example, validation rules could
+ensure that an email address is valid, while an application rule could ensure
+that the email address is unique.
+
+As you already discovered, the first layer is done through the `Validator`
+objects when calling `newDocument()` or `patchDocument()`:
+
+```php
+$validatedDocument = $articlesCollection->newDocument(
+    $unsafeData,
+    ['validate' => 'customName'],
+);
+$validatedDocument = $articlesCollection->patchDocument(
+    $document,
+    $unsafeData,
+    ['validate' => 'customName'],
+);
+```
+
+In the above example, we'll use a 'custom' validator, which is defined using the
+`validationCustomName()` method:
+
+```php
+public function validationCustomName(Validator $validator): Validator
+{
+    $validator->add(
+        // ...
+    );
+
+    return $validator;
+}
+```
+
+Validation assumes strings or array are passed since that is what is received
+from any request:
+
+```php
+// In src/Model/Collection/UsersCollection.php
+public function validatePasswords(Validator $validator): Validator
+{
+    $validator->add('confirm_password', 'no-misspelling', [
+        'rule' => ['compareWith', 'password'],
+        'message' => 'Passwords are not equal',
+    ]);
+
+    // ...
+
+    return $validator;
+}
+```
+
+Validation is **not** triggered when directly setting properties on your
+documents:
+
+```php
+$userDocument->email = 'not an email!!';
+$usersCollection->save($userDocument);
+```
+
+In the above example the document will be saved as validation is only triggered
+for the `newDocument()` and `patchDocument()` methods. The second level of
+validation is meant to address this situation.
+
+Application rules as explained above will be checked whenever `save()` or
+`delete()` are called:
+
+```php
+// In src/Model/Collection/UsersCollection.php
+public function buildRules(RulesChecker $rules): RulesChecker
+{
+    $rules->add($rules->isUnique(['email']));
+
+    return $rules;
+}
+
+// Elsewhere in your application code
+$userDocument->email = 'a@duplicated.email';
+$usersCollection->save($userDocument); // Returns false
+```
+
+While Validation is meant for direct user input, application rules are specific
+for data transitions generated inside your application:
+
+```php
+// In src/Model/Collection/OrdersCollection.php
+public function buildRules(RulesChecker $rules): RulesChecker
+{
+    $check = function($order) {
+        if ($order->shipping_mode !== 'free') {
+            return true;
+        }
+
+        return $order->price >= 100;
+    };
+    $rules->add($check, [
+        'errorField' => 'shipping_mode',
+        'message' => 'No free shipping for orders under 100!',
+    ]);
+
+    return $rules;
+}
+
+// Elsewhere in application code
+$order->price = 50;
+$order->shipping_mode = 'free';
+$ordersCollection->save($order); // Returns false
+```
+
+### Using Validation as Application Rules
+
+In certain situations you may want to run the same data validation routines for
+data that was both generated by users and inside your application. This could
+come up when running a CLI script that directly sets properties on documents:
+
+```php
+// In src/Model/Collection/UsersCollection.php
+public function validationDefault(Validator $validator): Validator
+{
+    $validator->add('email', 'valid_email', [
+        'rule' => 'email',
+        'message' => 'Invalid email',
+    ]);
+
+    // ...
+
+    return $validator;
+}
+
+public function buildRules(RulesChecker $rules): RulesChecker
+{
+    // Add validation rules
+    $rules->add(function($document) {
+        $data = $document->extract($this->getSchema()->columns(), true);
+        if (!$document->isNew() && !empty($data)) {
+            $data += $document->extract((array)$this->getPrimaryKey());
+        }
+        $validator = $this->getValidator('default');
+        $errors = $validator->validate($data, $document->isNew());
+        $document->setErrors($errors);
+
+        return empty($errors);
+    });
+
+    // ...
+
+    return $rules;
+}
+```
+
+When executed the save will fail thanks to the new application rule that was
+added:
+
+```php
+$userDocument->email = 'not an email!!!';
+$usersCollection->save($userDocument);
+$userDocument->getError('email'); // Invalid email
+```
+
+The same result can be expected when using `newDocument()` or `patchDocument()`:
+
+```php
+$userDocument = $usersCollection->newDocument(['email' => 'not an email!!']);
+$userDocument->getError('email'); // Invalid email
+```
+
+### Removing Rules
+
+If you need to remove rules from a `RulesChecker` use a remove method:
+
+```php
+// Remove a general rule by name
+$rules->remove('ruleName');
+
+// Remove a create rule
+$rules->removeCreate('ruleName');
+
+// Remove an update rule
+$rules->removeUpdate('ruleName');
+
+// Remove a delete rule
+$rules->removeDelete('ruleName');
+```
