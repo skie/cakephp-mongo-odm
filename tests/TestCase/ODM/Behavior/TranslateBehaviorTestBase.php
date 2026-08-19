@@ -1509,7 +1509,6 @@ abstract class TranslateBehaviorTestBase extends TestCase
      */
     public function testLocalePropertyIsSetInMatchingData(): void
     {
-        $this->markTestSkipped('F36 — matching `$lookup` embeds raw docs, target beforeFind never sets `_locale` on `_matchingData`; see docs/reference/42-translate-btm-matching-gap.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->hasMany('Comments');
 
@@ -1534,7 +1533,6 @@ abstract class TranslateBehaviorTestBase extends TestCase
      */
     public function testLocalePropertyIsSetInMatchingDataWhenUsingDeepMatching(): void
     {
-        $this->markTestSkipped('F36 — deep matching `$lookup` embeds raw docs, `_locale` never set on nested `_matchingData`; see docs/reference/42-translate-btm-matching-gap.md.');
         $collection = $this->getCollectionLocator()->get('Articles');
         $collection->hasMany('Comments');
         $collection->Comments->belongsTo('Authors')->setForeignKey('user_id');

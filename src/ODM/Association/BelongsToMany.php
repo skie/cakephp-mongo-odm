@@ -1393,7 +1393,9 @@ class BelongsToMany extends Association
             $match[$field] = $value;
         }
 
-        $builder->match((new QueryBuilder())->parse($match));
+        /** @var array<string, mixed> $parsedMatch */
+        $parsedMatch = (new QueryBuilder())->parse($match);
+        $builder->match($parsedMatch);
 
         $query->pipeline($builder->getPipeline());
     }
@@ -1506,7 +1508,7 @@ class BelongsToMany extends Association
      *
      * @param array<int|string, mixed> $conditions The association conditions.
      * @param string $junctionAlias The junction collection alias.
-     * @return array<int|string, mixed> The junction-prefixed conditions.
+     * @return array<string, mixed> The junction-prefixed conditions.
      */
     protected function extractJunctionConditions(array $conditions, string $junctionAlias): array
     {
@@ -1549,7 +1551,7 @@ class BelongsToMany extends Association
         $extracted = $this->extractJunctionConditions($conditions, $this->junction()->getAlias());
         $filter = [];
         foreach ($extracted as $field => $value) {
-            if (is_string($field) && !QueryBuilder::isLogicalKey($field)) {
+            if (!QueryBuilder::isLogicalKey($field)) {
                 if (str_starts_with($field, $junctionAlias)) {
                     $field = substr($field, strlen($junctionAlias));
                 }
