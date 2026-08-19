@@ -153,4 +153,35 @@ class ObjectIdTypeTest extends TestCase
         $result = $this->type->marshal('');
         $this->assertNull($result);
     }
+
+    /**
+     * Test isHex accepts 24-character hex and rejects other strings.
+     *
+     * @return void
+     */
+    public function testIsHex(): void
+    {
+        $this->assertTrue(ObjectIdType::isHex('507f1f77bcf86cd799439011'));
+        $this->assertTrue(ObjectIdType::isHex('507F1F77BCF86CD799439011'));
+        $this->assertFalse(ObjectIdType::isHex('invalid'));
+        $this->assertFalse(ObjectIdType::isHex('507f1f77bcf86cd79943901'));
+    }
+
+    /**
+     * Test tryFrom converts hex strings and leaves other values unchanged.
+     *
+     * @return void
+     */
+    public function testTryFrom(): void
+    {
+        $hex = '507f1f77bcf86cd799439011';
+        $converted = ObjectIdType::tryFrom($hex);
+        $this->assertInstanceOf(ObjectId::class, $converted);
+        $this->assertSame($hex, (string)$converted);
+
+        $existing = new ObjectId($hex);
+        $this->assertSame($existing, ObjectIdType::tryFrom($existing));
+        $this->assertSame('tag-name', ObjectIdType::tryFrom('tag-name'));
+        $this->assertSame(12, ObjectIdType::tryFrom(12));
+    }
 }

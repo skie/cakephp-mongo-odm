@@ -308,6 +308,32 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     }
 
     /**
+     * LIKE and REGEX on a translated field still require the shadow join.
+     *
+     * @return void
+     */
+    public function testNecessaryJoinsWhereLikeAndRegex(): void
+    {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->addBehavior('Translate');
+        $collection->getBehavior('Translate')->setLocale('eng');
+
+        $like = $collection->find()->select(['id'])->where(['title LIKE' => 'Title%']);
+        $this->assertStringContainsString(
+            'articles_translations',
+            $like->sql(),
+            'LIKE on a translated field still requires the translations join',
+        );
+
+        $regex = $collection->find()->select(['id'])->where(['title REGEX' => '^Title']);
+        $this->assertStringContainsString(
+            'articles_translations',
+            $regex->sql(),
+            'REGEX on a translated field still requires the translations join',
+        );
+    }
+
+    /**
      * Join when translations are necessary
      */
     public function testNecessaryJoinsConfig(): void

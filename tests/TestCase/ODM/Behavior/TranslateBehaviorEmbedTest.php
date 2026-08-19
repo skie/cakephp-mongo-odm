@@ -167,6 +167,37 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     }
 
     /**
+     * LIKE and REGEX on a translated field rewrite to the embedded locale path.
+     *
+     * @return void
+     */
+    public function testLikeAndRegexFilterRewritesToEmbeddedPath(): void
+    {
+        $collection = $this->getCollectionLocator()->get('Articles');
+        $collection->setDocumentClass(TranslateArticle::class);
+        $collection->addBehavior('Translate', ['fields' => ['title', 'body']]);
+        $collection->getBehavior('Translate')->setLocale('eng');
+
+        $likeIds = $collection->find()
+            ->where(['title LIKE' => 'Title%'])
+            ->orderBy(['_id' => 'ASC'])
+            ->enableHydration(false)
+            ->all()
+            ->extract('_id')
+            ->toArray();
+        $this->assertSame(
+            ['000000000000000000000001', '000000000000000000000002', '000000000000000000000003'],
+            $likeIds,
+        );
+
+        $regex = $collection->find()
+            ->where(['title REGEX' => '^Title #2$'])
+            ->enableHydration(false)
+            ->first();
+        $this->assertSame('000000000000000000000002', $regex['_id']);
+    }
+
+    /**
      * Saving an entity fetched for a non-default locale must not overwrite the
      * default-locale root fields with the translated copies.
      */

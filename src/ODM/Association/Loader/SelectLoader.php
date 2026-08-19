@@ -10,6 +10,7 @@ use Cake\Datasource\QueryInterface;
 use Closure;
 use Crustum\Mongo\Database\Expression\TupleInExpression;
 use Crustum\Mongo\Database\Query\Query;
+use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use Traversable;
 
@@ -171,6 +172,7 @@ class SelectLoader implements LoaderInterface
             } elseif ($keyFilter !== []) {
                 $query->where($keyFilter);
             }
+
             if (!empty($options['fields'])) {
                 $fields = $options['fields'];
                 if ($fields instanceof Closure) {
@@ -536,19 +538,16 @@ class SelectLoader implements LoaderInterface
      */
     protected function extractConditionFields(array $conditions): array
     {
-        $fields = [];
-        foreach (array_keys($conditions) as $key) {
-            if (!is_string($key) || $key === '$or' || $key === '$and') {
-                continue;
+        $builder = new QueryBuilder();
+        $builder->setFieldResolver(static function (string $field): string {
+            $dot = strpos($field, '.');
+            if ($dot === false) {
+                return $field;
             }
 
-            $field = preg_replace('/^[^.]+\./', '', $key);
-            $field = preg_replace('/\s+(=|!=|<>|<=|>=|<|>|IN|NOT IN|LIKE|IS|NOT)$/i', '', (string)$field);
-            if ($field !== '') {
-                $fields[] = $field;
-            }
-        }
+            return substr($field, $dot + 1);
+        });
 
-        return $fields;
+        return $builder->conditionFields($conditions);
     }
 }

@@ -459,6 +459,80 @@ class FunctionsBuilder
     }
 
     /**
+     * Builds a `$gt` comparison expression.
+     *
+     * @param mixed $left The left operand.
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function gt(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$gt', [$left, $right]);
+    }
+
+    /**
+     * Builds a `$gte` comparison expression.
+     *
+     * @param mixed $left The left operand.
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function gte(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$gte', [$left, $right]);
+    }
+
+    /**
+     * Builds a `$lt` comparison expression.
+     *
+     * @param mixed $left The left operand.
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function lt(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$lt', [$left, $right]);
+    }
+
+    /**
+     * Builds a `$lte` comparison expression.
+     *
+     * @param mixed $left The left operand.
+     * @param mixed $right The right operand.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function lte(mixed $left, mixed $right): FunctionExpression
+    {
+        return new FunctionExpression('$lte', [$left, $right]);
+    }
+
+    /**
+     * Builds a `$not` expression.
+     *
+     * @param mixed $expression The operand to negate.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function not(mixed $expression): FunctionExpression
+    {
+        return new FunctionExpression('$not', [$expression]);
+    }
+
+    /**
+     * Builds a `$regexMatch` expression.
+     *
+     * @param mixed $input The value to test.
+     * @param string $regex The regex pattern.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function regexMatch(mixed $input, string $regex): FunctionExpression
+    {
+        return new FunctionExpression('$regexMatch', [[
+            'input' => $input,
+            'regex' => $regex,
+        ]]);
+    }
+
+    /**
      * Builds an `$and` group expression.
      *
      * @param list<mixed> $expressions The condition expressions to AND together.

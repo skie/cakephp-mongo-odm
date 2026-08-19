@@ -7,6 +7,7 @@ use ArrayObject;
 use Cake\Collection\CollectionInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
+use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -369,7 +370,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
                     continue;
                 }
 
-                $field = preg_split('/\s+(IS|IN|NOT|!=|>|<|>=|<=|LIKE|REGEX)/', $key, 2)[0] ?? $key;
+                [$field] = QueryBuilder::splitConditionKey($key);
                 if (str_contains($field, '.')) {
                     continue;
                 }

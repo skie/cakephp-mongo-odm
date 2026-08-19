@@ -5,7 +5,6 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Behavior;
 
 use Cake\Collection\Collection;
 use Cake\Collection\CollectionInterface;
-use Cake\Database\Driver\Mysql;
 use Cake\Datasource\ConnectionManager;
 use Cake\Datasource\EntityInterface;
 use Cake\I18n\I18n;

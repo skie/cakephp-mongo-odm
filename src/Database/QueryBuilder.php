@@ -11,6 +11,7 @@ use Crustum\Mongo\Database\Expression\ComparisonExpression;
 use Crustum\Mongo\Database\Expression\ElementMatchExpression;
 use Crustum\Mongo\Database\Expression\ExistsExpression;
 use Crustum\Mongo\Database\Expression\Expression;
+use Crustum\Mongo\Database\Expression\FunctionExpression;
 use Crustum\Mongo\Database\Expression\GeospatialExpression;
 use Crustum\Mongo\Database\Expression\InExpression;
 use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
@@ -63,6 +64,57 @@ class QueryBuilder
         return $this->fieldResolver instanceof Closure
             ? ($this->fieldResolver)($field)
             : $field;
+    }
+
+    /**
+     * Splits a Cake `where()` key into field name and operator.
+     *
+     * `age >` → `['age', '>']`, `name NOT LIKE` → `['name', 'not like']`,
+     * `Authors._id IN` → `['Authors._id', 'in']`.
+     *
+     * @param string $key The condition key, optionally with an operator suffix.
+     * @return array{0: string, 1: string} Field name and lowercase operator.
+     */
+    public static function splitConditionKey(string $key): array
+    {
+        $key = trim($key);
+        $parts = explode(' ', $key, 2);
+        $operator = isset($parts[1]) ? strtolower(trim($parts[1])) : '=';
+
+        return [$parts[0], $operator];
+    }
+
+    /**
+     * Returns the field names referenced by a conditions array.
+     *
+     * Operator suffixes (`>`, `IN`, `LIKE`, …) are stripped. Logical group
+     * keys (`OR`, `$and`, …) are skipped. Alias resolution uses
+     * {@see setFieldResolver()} when configured.
+     *
+     * @param array<int|string, mixed> $conditions The conditions.
+     * @return list<string>
+     */
+    public function conditionFields(array $conditions): array
+    {
+        $fields = [];
+        foreach (array_keys($conditions) as $key) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            $upper = strtoupper(ltrim($key, '$'));
+            if (in_array($upper, ['OR', 'AND', 'NOT', 'XOR'], true)) {
+                continue;
+            }
+
+            [$field] = self::splitConditionKey($key);
+            $resolved = $this->resolveField($field);
+            if ($resolved !== '') {
+                $fields[] = $resolved;
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -397,11 +449,7 @@ class QueryBuilder
                             $nestedConditions = [];
                             foreach ((array)$v as $nk => $nv) {
                                 if (is_string($nk)) {
-                                    $field = $nk;
-                                    if (str_contains($nk, ' ')) {
-                                        $field = explode(' ', $nk)[0];
-                                    }
-
+                                    [$field] = self::splitConditionKey($nk);
                                     $nestedConditions[$this->resolveField($field)] = $this->parseCondition($nk, $nv);
                                 }
                             }
@@ -422,11 +470,7 @@ class QueryBuilder
                         }
 
                         if (is_string($k)) {
-                            $field = $k;
-                            if (str_contains($k, ' ')) {
-                                $field = explode(' ', $k)[0];
-                            }
-
+                            [$field] = self::splitConditionKey($k);
                             $parsed[] = [$this->resolveField($field) => $this->parseCondition($k, $v)];
                         } elseif (is_array($v)) {
                             $parsed[] = $this->parse($v);
@@ -466,10 +510,7 @@ class QueryBuilder
                 continue;
             }
 
-            $field = $key;
-            if (str_contains($key, ' ')) {
-                $field = explode(' ', $key)[0];
-            }
+            [$field] = self::splitConditionKey($key);
 
             $resolvedField = $this->resolveField($field);
             $parsedCondition = $this->parseCondition($key, $value);
@@ -517,7 +558,8 @@ class QueryBuilder
     /**
      * Parses a single condition key/value into a Mongo filter fragment.
      *
-     * Supports operator suffixes in the key (e.g. `name LIKE`, `age >`, `id IN`).
+     * Supports operator suffixes in the key (e.g. `name LIKE`, `age >`, `id IN`,
+     * `title REGEX`).
      *
      * @param string $key The condition key, optionally with an operator.
      * @param mixed $value The condition value.
@@ -525,17 +567,11 @@ class QueryBuilder
      */
     protected function parseCondition(string $key, mixed $value): mixed
     {
-        $operator = '=';
-        $parts = explode(' ', trim($key), 2);
-        if (count($parts) > 1) {
-            [, $operator] = $parts;
-        }
+        [, $operator] = self::splitConditionKey($key);
 
         if (is_array($value) && is_string(key($value)) && str_starts_with(key($value), '$')) {
             return $value;
         }
-
-        $operator = strtolower(trim($operator));
 
         switch ($operator) {
             case '=':
@@ -573,12 +609,56 @@ class QueryBuilder
                 return ['$regex' => $this->likeToRegex($value)];
             case 'not like':
                 return ['$not' => ['$regex' => $this->likeToRegex($value)]];
+            case 'regex':
+                return ['$regex' => $value];
             case 'is not':
                 return $value === null ? ['$exists' => true] : ['$ne' => $value];
             case '!=':
             case '<>':
                 return ['$ne' => $value];
         }
+    }
+
+    /**
+     * Compiles a Cake `where()` key/value into an aggregation comparison.
+     *
+     * Reuses {@see parseCondition()} so `$filter` / `$expr` conds honor `>`,
+     * `<`, `IN`, `LIKE`, … the same way find filters do.
+     *
+     * @param \Crustum\Mongo\Database\FunctionsBuilder $func The aggregation functions factory.
+     * @param string $path The left-hand field path (e.g. `$$item.highlighted`).
+     * @param string $key The condition key, optionally with an operator suffix.
+     * @param mixed $value The condition value.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
+     */
+    public function aggregationCompare(
+        FunctionsBuilder $func,
+        string $path,
+        string $key,
+        mixed $value,
+    ): FunctionExpression {
+        $parsed = $this->parseCondition($key, $value);
+        if (!is_array($parsed) || $parsed === []) {
+            return $func->eq($path, $parsed);
+        }
+
+        $mongoOp = (string)array_key_first($parsed);
+        $rhs = $parsed[$mongoOp];
+
+        return match ($mongoOp) {
+            '$gt' => $func->gt($path, $rhs),
+            '$gte' => $func->gte($path, $rhs),
+            '$lt' => $func->lt($path, $rhs),
+            '$lte' => $func->lte($path, $rhs),
+            '$ne' => $func->ne($path, $rhs),
+            '$in' => $func->inArray($path, is_array($rhs) ? array_values($rhs) : [$rhs]),
+            '$nin' => $func->not($func->inArray($path, is_array($rhs) ? array_values($rhs) : [$rhs])),
+            '$regex' => $func->regexMatch($path, (string)$rhs),
+            '$not' => is_array($rhs) && isset($rhs['$regex'])
+                ? $func->not($func->regexMatch($path, (string)$rhs['$regex']))
+                : $func->ne($path, $value),
+            default => $func->eq($path, $value),
+        };
     }
 
     /**

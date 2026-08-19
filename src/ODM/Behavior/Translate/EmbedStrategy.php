@@ -8,6 +8,7 @@ use Cake\Collection\CollectionInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\ResultSetInterface;
 use Cake\Event\EventInterface;
+use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
@@ -501,11 +502,15 @@ class EmbedStrategy implements TranslateStrategyInterface
     {
         $result = [];
         foreach ($conditions as $key => $value) {
-            $parts = preg_split('/\s+(IS|IN|NOT|!=|>|<|>=|<=|LIKE|REGEX)/', $key, 2);
-            $field = $parts[0] ?? $key;
-            $operator = substr($key, strlen($field));
+            if (!is_string($key)) {
+                $result[$key] = $value;
+                continue;
+            }
 
-            $result[in_array($field, $fields, true) ? $prefix . $field . $operator : $key] = $value;
+            [$field] = QueryBuilder::splitConditionKey($key);
+            $suffix = substr(trim($key), strlen($field));
+
+            $result[in_array($field, $fields, true) ? $prefix . $field . $suffix : $key] = $value;
         }
 
         return $result;

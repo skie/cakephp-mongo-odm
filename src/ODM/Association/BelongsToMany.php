@@ -12,6 +12,9 @@ use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Expression\FunctionExpression;
+use Crustum\Mongo\Database\FunctionsBuilder;
+use Crustum\Mongo\Database\QueryBuilder;
+use Crustum\Mongo\Database\Type\ObjectIdType;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
@@ -19,7 +22,6 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
-use MongoDB\Driver\Exception\InvalidArgumentException as InvalidArgumentExceptionDriver;
 use SplObjectStorage;
 use Throwable;
 use Traversable;
@@ -781,7 +783,7 @@ class BelongsToMany extends Association
      */
     protected function findExistingLinks(BaseCollection $junction, array $foreignKey, array $assocForeignKey, array $primaryValue): array
     {
-        $conditions = array_combine($foreignKey, $primaryValue) ?: [];
+        $conditions = array_combine($foreignKey, $primaryValue);
         $conditions += $this->junctionConditionFilter();
 
         $links = $junction->find()
@@ -1045,6 +1047,7 @@ class BelongsToMany extends Association
                 $type = $schema->getColumnType($name);
                 $fields[$name] = ['type' => $type ?? ($needed[$name] ?? 'string')];
             }
+
             foreach ($missing as $name => $type) {
                 $fields[$name] = ['type' => $type];
             }
@@ -1580,6 +1583,7 @@ class BelongsToMany extends Association
         AggregationBuilder $builder,
     ): FunctionExpression {
         $func = $builder->func();
+        $compiler = new QueryBuilder();
         $parts = [];
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
@@ -1589,8 +1593,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $bare = str_starts_with($field, $junctionAlias) ? substr($field, strlen($junctionAlias)) : $field;
-            $parts[] = $func->eq('$$item.' . $bare, $value);
+            $parts[] = $this->itemCondComparison($compiler, $func, $field, $value, $junctionAlias, false);
         }
 
         return $parts === [] ? $func->literal(true) : $func->and($parts);
@@ -1612,6 +1615,7 @@ class BelongsToMany extends Association
         AggregationBuilder $builder,
     ): FunctionExpression {
         $func = $builder->func();
+        $compiler = new QueryBuilder();
         $parts = [];
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
@@ -1621,8 +1625,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $bare = str_starts_with($field, $junctionAlias) ? substr($field, strlen($junctionAlias)) : $field;
-            $parts[] = $func->eq('$$item.' . $bare, $value);
+            $parts[] = $this->itemCondComparison($compiler, $func, $field, $value, $junctionAlias, false);
         }
 
         return match ($operator) {
@@ -1650,6 +1653,7 @@ class BelongsToMany extends Association
         AggregationBuilder $builder,
     ): FunctionExpression {
         $func = $builder->func();
+        $compiler = new QueryBuilder();
         $parts = [];
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
@@ -1659,9 +1663,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $bare = str_starts_with($field, $targetAlias) ? substr($field, strlen($targetAlias)) : $field;
-            $bare = $bare === 'id' ? '_id' : $bare;
-            $parts[] = $func->eq('$$item.' . $bare, $this->targetCondValue($bare, $value));
+            $parts[] = $this->itemCondComparison($compiler, $func, $field, $value, $targetAlias, true);
         }
 
         return $parts === [] ? $func->literal(true) : $func->and($parts);
@@ -1683,6 +1685,7 @@ class BelongsToMany extends Association
         AggregationBuilder $builder,
     ): FunctionExpression {
         $func = $builder->func();
+        $compiler = new QueryBuilder();
         $parts = [];
         foreach ($conditions as $field => $value) {
             $field = (string)$field;
@@ -1692,9 +1695,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $bare = str_starts_with($field, $targetAlias) ? substr($field, strlen($targetAlias)) : $field;
-            $bare = $bare === 'id' ? '_id' : $bare;
-            $parts[] = $func->eq('$$item.' . $bare, $this->targetCondValue($bare, $value));
+            $parts[] = $this->itemCondComparison($compiler, $func, $field, $value, $targetAlias, true);
         }
 
         return match ($operator) {
@@ -1705,27 +1706,35 @@ class BelongsToMany extends Association
     }
 
     /**
-     * Casts a target condition value to its database representation.
+     * Compiles one `$filter` comparison through the Database condition parser.
      *
-     * @param string $field The resolved target field.
+     * @param \Crustum\Mongo\Database\QueryBuilder $compiler The condition compiler.
+     * @param \Crustum\Mongo\Database\FunctionsBuilder $func The aggregation functions factory.
+     * @param string $field The condition key, possibly alias-prefixed.
      * @param mixed $value The condition value.
-     * @return mixed
+     * @param string $aliasPrefix The alias prefix to strip (`Tags.`).
+     * @param bool $mapIdToPrimaryKey Whether `id` maps to `_id` and ObjectId-casts.
+     * @return \Crustum\Mongo\Database\Expression\FunctionExpression
      */
-    protected function targetCondValue(string $field, mixed $value): mixed
-    {
-        if (
-            $field === '_id'
-            && is_string($value)
-            && preg_match('/^[0-9a-f]{24}$/i', $value) === 1
-        ) {
-            try {
-                return new ObjectId($value);
-            } catch (InvalidArgumentExceptionDriver) {
-                return $value;
-            }
+    protected function itemCondComparison(
+        QueryBuilder $compiler,
+        FunctionsBuilder $func,
+        string $field,
+        mixed $value,
+        string $aliasPrefix,
+        bool $mapIdToPrimaryKey,
+    ): FunctionExpression {
+        $bareKey = str_starts_with($field, $aliasPrefix) ? substr($field, strlen($aliasPrefix)) : $field;
+        [$name] = QueryBuilder::splitConditionKey($bareKey);
+        if ($mapIdToPrimaryKey && $name === 'id') {
+            $name = '_id';
         }
 
-        return $value;
+        if ($mapIdToPrimaryKey && $name === '_id') {
+            $value = ObjectIdType::tryFrom($value);
+        }
+
+        return $compiler->aggregationCompare($func, '$$item.' . $name, $bareKey, $value);
     }
 
     /**
@@ -1835,59 +1844,47 @@ class BelongsToMany extends Association
         $junctionProperty = $this->getJunctionProperty();
 
         $query->formatResults(
-            function (
-                CollectionInterface $results,
-                SelectQuery $sourceQuery,
-            ) use (
+            fn(CollectionInterface $results, SelectQuery $sourceQuery): CollectionInterface => $results->map(function (mixed $row) use (
                 $targetFormatters,
                 $formatterQuery,
                 $junctionFormatters,
                 $junctionQuery,
                 $property,
                 $junctionProperty,
-            ): CollectionInterface {
-                return $results->map(function (mixed $row) use (
+                $sourceQuery,
+            ): mixed {
+                $nested = $this->readAssociationProperty($row, $property);
+                if (!is_array($nested)) {
+                    return $row;
+                }
+
+                if ($junctionFormatters !== [] && $junctionQuery instanceof SelectQuery) {
+                    $this->applyFormattersToJoinData(
+                        $nested,
+                        $junctionFormatters,
+                        $junctionQuery,
+                        $sourceQuery,
+                        $junctionProperty,
+                    );
+                }
+
+                if ($targetFormatters === []) {
+                    return $row;
+                }
+
+                $nested = $this->applyFormattersToList(
+                    $nested,
                     $targetFormatters,
                     $formatterQuery,
-                    $junctionFormatters,
-                    $junctionQuery,
-                    $property,
-                    $junctionProperty,
                     $sourceQuery,
-                ): mixed {
-                    $nested = $this->readAssociationProperty($row, $property);
-                    if (!is_array($nested)) {
-                        return $row;
-                    }
+                );
+                $row = $this->writeAssociationProperty($row, $property, $nested);
+                if ($row instanceof EntityInterface) {
+                    $row->clean();
+                }
 
-                    if ($junctionFormatters !== [] && $junctionQuery instanceof SelectQuery) {
-                        $this->applyFormattersToJoinData(
-                            $nested,
-                            $junctionFormatters,
-                            $junctionQuery,
-                            $sourceQuery,
-                            $junctionProperty,
-                        );
-                    }
-
-                    if ($targetFormatters === []) {
-                        return $row;
-                    }
-
-                    $nested = $this->applyFormattersToList(
-                        $nested,
-                        $targetFormatters,
-                        $formatterQuery,
-                        $sourceQuery,
-                    );
-                    $row = $this->writeAssociationProperty($row, $property, $nested);
-                    if ($row instanceof EntityInterface) {
-                        $row->clean();
-                    }
-
-                    return $row;
-                });
-            },
+                return $row;
+            }),
             SelectQuery::PREPEND,
         );
     }
@@ -2055,12 +2052,12 @@ class BelongsToMany extends Association
                 $value = 1;
             }
 
-            if (str_starts_with((string)$field, $alias . '.')) {
-                $field = substr((string)$field, strlen($alias) + 1);
+            if (str_starts_with($field, $alias . '.')) {
+                $field = substr($field, strlen($alias) + 1);
             }
 
             if (is_array($value)) {
-                $projection[(string)$field] = $value;
+                $projection[$field] = $value;
 
                 continue;
             }
@@ -2069,7 +2066,7 @@ class BelongsToMany extends Association
                 continue;
             }
 
-            $projection[(string)$field] = '$$item.' . $field;
+            $projection[$field] = '$$item.' . $field;
         }
 
         $property = $this->getProperty();
@@ -2279,43 +2276,33 @@ class BelongsToMany extends Association
         $junctionProperty = $this->getJunctionProperty();
 
         $query->formatResults(
-            function (
-                CollectionInterface $results,
-                SelectQuery $sourceQuery,
-            ) use (
+            fn(CollectionInterface $results, SelectQuery $sourceQuery): CollectionInterface => $results->map(function (mixed $row) use (
                 $junctionFormatters,
                 $junctionQuery,
                 $propertyPath,
                 $junctionProperty,
-            ): CollectionInterface {
-                return $results->map(function (mixed $row) use (
-                    $junctionFormatters,
-                    $junctionQuery,
-                    $propertyPath,
-                    $junctionProperty,
-                    $sourceQuery,
-                ): mixed {
-                    $nested = $row;
-                    foreach ($propertyPath as $segment) {
-                        $nested = $this->readAssociationProperty($nested, $segment);
-                        if ($nested === null) {
-                            return $row;
-                        }
+                $sourceQuery,
+            ): mixed {
+                $nested = $row;
+                foreach ($propertyPath as $segment) {
+                    $nested = $this->readAssociationProperty($nested, $segment);
+                    if ($nested === null) {
+                        return $row;
                     }
+                }
 
-                    if (is_array($nested)) {
-                        $this->applyFormattersToJoinData(
-                            $nested,
-                            $junctionFormatters,
-                            $junctionQuery,
-                            $sourceQuery,
-                            $junctionProperty,
-                        );
-                    }
+                if (is_array($nested)) {
+                    $this->applyFormattersToJoinData(
+                        $nested,
+                        $junctionFormatters,
+                        $junctionQuery,
+                        $sourceQuery,
+                        $junctionProperty,
+                    );
+                }
 
-                    return $row;
-                });
-            },
+                return $row;
+            }),
             SelectQuery::PREPEND,
         );
     }
@@ -2328,9 +2315,6 @@ class BelongsToMany extends Association
     protected function junctionFormatterContext(): array
     {
         $surrogate = $this->junction()->find();
-        if (!$surrogate instanceof SelectQuery) {
-            return [[], null];
-        }
 
         $surrogate->eagerLoaded(true);
         $surrogate->triggerBeforeFind();

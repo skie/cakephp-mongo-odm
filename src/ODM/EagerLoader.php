@@ -887,12 +887,9 @@ class EagerLoader
         if ($built instanceof SelectQuery) {
             $query = $built;
         }
-
-        if ($query instanceof SelectQuery) {
-            $config['_hydrate'] = $query->isHydrationEnabled();
-            $config['_resultsCasting'] = $query->isResultsCastingEnabled();
-            $config['_surrogateQuery'] = $query;
-        }
+        $config['_hydrate'] = $query->isHydrationEnabled();
+        $config['_resultsCasting'] = $query->isResultsCastingEnabled();
+        $config['_surrogateQuery'] = $query;
 
         if (!empty($config['matching']) && $query->getEagerLoader()->getContain() !== []) {
             throw new DatabaseException(sprintf(
@@ -925,7 +922,7 @@ class EagerLoader
             $config['fields'] = $projection;
         }
 
-        if ($query instanceof SelectQuery && $query->isAutoFieldsEnabled()) {
+        if ($query->isAutoFieldsEnabled()) {
             $config['autoFields'] = true;
         }
 
@@ -1022,10 +1019,12 @@ class EagerLoader
 
         $matching = $this->matching->normalized($repository);
         foreach ($this->normalized($repository) as $alias => $loadable) {
-            if (!isset($matching[$alias]) || !empty($loadable->getConfig()['matching'])) {
+            if (!isset($matching[$alias])) {
                 continue;
             }
-
+            if (!empty($loadable->getConfig()['matching'])) {
+                continue;
+            }
             $config = $loadable->getConfig();
             $strategy = $config['strategy'] ?? Association::STRATEGY_LOOKUP;
             if ($strategy === Association::STRATEGY_LOOKUP || $strategy === Association::STRATEGY_JOIN) {
@@ -1052,7 +1051,7 @@ class EagerLoader
     {
         $association = $loadable->instance();
         $config = $loadable->getConfig();
-        if ($association === null || empty($config['matching'])) {
+        if (!$association instanceof Association || empty($config['matching'])) {
             return;
         }
 

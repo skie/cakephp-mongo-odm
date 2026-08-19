@@ -32,7 +32,7 @@ class ObjectIdType extends BaseType
             return $value;
         }
 
-        if (is_string($value) && preg_match('/^[0-9a-f]{24}$/i', $value)) {
+        if (is_string($value) && self::isHex($value)) {
             return new ObjectId($value);
         }
 
@@ -91,6 +91,40 @@ class ObjectIdType extends BaseType
         }
 
         return is_scalar($value) ? (string)$value : null;
+    }
+
+    /**
+     * Returns whether a string is a 24-character ObjectId hex value.
+     *
+     * @param string $value The candidate string.
+     * @return bool
+     */
+    public static function isHex(string $value): bool
+    {
+        return preg_match('/^[0-9a-f]{24}$/i', $value) === 1;
+    }
+
+    /**
+     * Converts a 24-character hex string to ObjectId, otherwise returns the value.
+     *
+     * @param mixed $value The raw value.
+     * @return mixed
+     */
+    public static function tryFrom(mixed $value): mixed
+    {
+        if ($value instanceof ObjectId) {
+            return $value;
+        }
+
+        if (!is_string($value) || !self::isHex($value)) {
+            return $value;
+        }
+
+        try {
+            return new ObjectId($value);
+        } catch (Exception) {
+            return $value;
+        }
     }
 
     /**

@@ -334,6 +334,30 @@ class FunctionsBuilderTest extends TestCase
             ]],
             $func->nor([$func->eq('$$item.a', 1)])->getConditions(),
         );
+        $this->assertSame(
+            ['$gt' => ['$$item.age', 18]],
+            $func->gt('$$item.age', 18)->getConditions(),
+        );
+        $this->assertSame(
+            ['$gte' => ['$$item.age', 18]],
+            $func->gte('$$item.age', 18)->getConditions(),
+        );
+        $this->assertSame(
+            ['$lt' => ['$$item.age', 18]],
+            $func->lt('$$item.age', 18)->getConditions(),
+        );
+        $this->assertSame(
+            ['$lte' => ['$$item.age', 18]],
+            $func->lte('$$item.age', 18)->getConditions(),
+        );
+        $this->assertSame(
+            ['$not' => ['$eq' => ['$$item.a', 1]]],
+            $func->not($func->eq('$$item.a', 1))->getConditions(),
+        );
+        $this->assertSame(
+            ['$regexMatch' => ['input' => '$$item.name', 'regex' => '^tag.*$']],
+            $func->regexMatch('$$item.name', '^tag.*$')->getConditions(),
+        );
     }
 
     /**

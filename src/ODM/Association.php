@@ -17,11 +17,10 @@ use Cake\Utility\Inflector;
 use Closure;
 use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\Database\Aggregation\Stage\Lookup;
+use Crustum\Mongo\Database\Type\ObjectIdType;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
-use MongoDB\BSON\ObjectId;
-use MongoDB\Driver\Exception\InvalidArgumentException as InvalidArgumentExceptionDriver;
 use function Cake\Core\pluginSplit;
 use function Cake\Core\triggerWarning;
 
@@ -1448,15 +1447,7 @@ abstract class Association
      */
     protected function castPipelineValue(mixed $value): mixed
     {
-        if (!is_string($value) || preg_match('/^[0-9a-f]{24}$/i', $value) !== 1) {
-            return $value;
-        }
-
-        try {
-            return new ObjectId($value);
-        } catch (InvalidArgumentExceptionDriver) {
-            return $value;
-        }
+        return ObjectIdType::tryFrom($value);
     }
 
     /**
