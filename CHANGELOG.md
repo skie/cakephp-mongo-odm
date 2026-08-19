@@ -91,6 +91,11 @@ Initial release of `crustum/mongo` (`Crustum\Mongo`).
   all `Model.*` event names, and drops same-namespace base-test imports.
 
 ### Fixed
+- **`Database\Aggregation\Stage\Search` emits valid `$search` wire format** —
+  `getExpression()` no longer wraps the Atlas operators under a bogus `search`
+  key; the operator document (`text`, `compound`, …) is emitted directly with
+  `index` as a sibling (correct `{ "$search": { "index": ..., "text": ... } }`).
+  `SearchTest` updated to assert the correct shape (red → green).
 - **Associations fully green (doc 40 RF)** — HasMany/BelongsTo/HasOne/
   BelongsToMany/SelectOrderGroupClause suites:
   - `HasMany` test schemas type `_id`/FKs as `objectid` (not integer) — fixes

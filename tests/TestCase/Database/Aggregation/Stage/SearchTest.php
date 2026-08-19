@@ -27,7 +27,8 @@ class SearchTest extends TestCase
         $this->assertArrayHasKey('$search', $pipeline[0]);
 
         $searchExpr = $pipeline[0]['$search'];
-        $this->assertArrayHasKey('search', $searchExpr);
+        $this->assertSame(['query' => 'test', 'path' => 'title'], $searchExpr['text']);
+        $this->assertArrayNotHasKey('search', $searchExpr);
     }
 
     /**
@@ -42,7 +43,8 @@ class SearchTest extends TestCase
         $pipeline = $builder->getPipeline();
         $searchExpr = $pipeline[0]['$search'];
         $this->assertEquals('default', $searchExpr['index']);
-        $this->assertArrayHasKey('search', $searchExpr);
+        $this->assertSame(['query' => 'test', 'path' => 'title'], $searchExpr['text']);
+        $this->assertArrayNotHasKey('search', $searchExpr);
     }
 
     /**
@@ -58,6 +60,7 @@ class SearchTest extends TestCase
         $this->assertArrayHasKey('$search', $expression);
         $searchExpr = $expression['$search'];
         $this->assertEquals('default', $searchExpr['index']);
-        $this->assertArrayHasKey('search', $searchExpr);
+        $this->assertSame(['query' => 'test'], $searchExpr['text']);
+        $this->assertArrayNotHasKey('search', $searchExpr);
     }
 }

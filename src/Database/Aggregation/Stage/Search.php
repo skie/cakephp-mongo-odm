@@ -58,10 +58,10 @@ class Search extends Stage
      */
     public function getExpression(): array
     {
-        $searchStage = ['search' => $this->search];
+        $searchStage = $this->search;
 
         if ($this->index !== null) {
-            $searchStage['index'] = $this->index;
+            $searchStage = ['index' => $this->index] + $searchStage;
         }
 
         return ['$search' => $searchStage];
