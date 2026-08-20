@@ -69,13 +69,13 @@ return RectorConfig::configure()
             __DIR__ . '/tests/TestCase/ODM/MarshallerTest.php',
         ],
         ForeachToArrayAnyRector::class => [
-            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
+            __DIR__ . '/src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
         ],
         AddArrowFunctionReturnTypeRector::class => [
-            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
+            __DIR__ . '/src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
         ],
         AddArrayAnyAllClosureParamTypeRector::class => [
-            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
+            __DIR__ . '/src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
         ],
     ])
     ->withPreparedSets(
