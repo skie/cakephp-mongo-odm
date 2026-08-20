@@ -20,8 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php-version: '8.2'
-            dependencies: lowest
           - php-version: '8.3'
             dependencies: highest
           - php-version: '8.4'
@@ -67,13 +65,13 @@ jobs:
 
     - name: Wait for MongoDB to be ready
       run: |
-        for i in {1..10}; do
-          if mongosh --eval 'db.runCommand("ping").ok' --quiet; then
+        for i in {1..30}; do
+          if nc -z localhost 27017; then
             echo "MongoDB is ready"
             exit 0
           fi
-          echo "Waiting for MongoDB..."
-          sleep 3
+          echo "Waiting for MongoDB... (attempt $i/30)"
+          sleep 2
         done
         echo "MongoDB did not become ready in time"
         exit 1
@@ -93,8 +91,8 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
-        extensions: mbstring, intl
+        php-version: '8.4'
+        extensions: mbstring, intl, mongodb, sqlite
         coverage: none
 
     - name: Cache composer dependencies
@@ -109,5 +107,11 @@ jobs:
     - name: Run PHP CodeSniffer
       run: composer cs-check
 
+    - name: Run PHP CodeSniffer
+      run: composer rector-check
+
     - name: Run phpstan
       run: composer stan
+
+    - name: Run phpstan
+      run: composer structarmed
