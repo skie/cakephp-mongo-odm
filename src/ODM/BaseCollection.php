@@ -3292,7 +3292,7 @@ class BaseCollection implements RepositoryInterface, EventListenerInterface, Eve
         }
 
         /** @var \Cake\Datasource\EntityInterface|array<\Cake\Datasource\EntityInterface> $result */
-        $result = new LazyEagerLoader()->loadInto($entities, $contain, $this);
+        $result = (new LazyEagerLoader())->loadInto($entities, $contain, $this);
 
         return $result;
     }
