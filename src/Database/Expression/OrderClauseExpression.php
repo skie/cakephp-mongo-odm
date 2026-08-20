@@ -12,6 +12,8 @@ use Closure;
  *
  * Mirrors `Cake\Database\Expression\OrderClauseExpression` (a field + sort
  * direction), but compiles to the Mongo `$sort` shape `{field: 1|-1}`.
+ *
+ * @ported-from \Cake\Database\Expression\OrderClauseExpression
  */
 class OrderClauseExpression implements MongoExpressionInterface
 {

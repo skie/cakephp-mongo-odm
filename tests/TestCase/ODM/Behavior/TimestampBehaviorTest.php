@@ -16,6 +16,8 @@ use UnexpectedValueException;
 
 /**
  * Behavior test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Behavior\TimestampBehaviorTest
  */
 #[CoversClass(TimestampBehavior::class)]
 class TimestampBehaviorTest extends TestCase

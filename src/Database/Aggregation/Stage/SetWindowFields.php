@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $setWindowFields aggregation stage
  *
  * Performs operations on a specified span of documents in a collection
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\SetWindowFields
  */
 class SetWindowFields extends Stage
 {

@@ -18,7 +18,7 @@ use Throwable;
  * Compatible with Cake's `FixtureHelper`/`TruncateStrategy`: `$records` hold
  * documents, `create()`/`drop()` manage the collection, `truncate()` empties it.
  *
- * @see cake50/src/TestSuite/Fixture/TestFixture.php
+ * @rewritten-from \Cake\TestSuite\Fixture\TestFixture
  */
 class TestFixture implements FixtureInterface, MongoFixtureInterface
 {

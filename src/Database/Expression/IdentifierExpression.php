@@ -10,7 +10,7 @@ namespace Crustum\Mongo\Database\Expression;
  * field-to-field comparisons (`equalFields`), the Mongo analog of cake's
  * `IdentifierExpression` in SQL joins.
  *
- * @see cake60/src/Database/Expression/IdentifierExpression.php
+ * @inspired-by \Cake\Database\Expression\IdentifierExpression
  */
 class IdentifierExpression extends AbstractExpression
 {

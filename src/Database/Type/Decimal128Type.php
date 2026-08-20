@@ -10,6 +10,8 @@ use MongoDB\BSON\Decimal128;
  * Decimal128 type converter
  *
  * Use to convert Decimal128 data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\Decimal128Type
  */
 class Decimal128Type extends BaseType
 {

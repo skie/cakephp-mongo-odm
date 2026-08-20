@@ -48,6 +48,8 @@ use OutOfRangeException;
  * stage method creates a stage and appends it to the pipeline, returning the
  * stage it created so setters chain on the stage and so the builder never mixes
  * `stage|$this` return types.
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Builder
  */
 class AggregationBuilder
 {

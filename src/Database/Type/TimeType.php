@@ -14,7 +14,7 @@ use InvalidArgumentException;
  * Use to convert time-of-day values between PHP and MongoDB. MongoDB has no
  * dedicated time-only BSON type, so values are stored as `H:i:s` strings.
  *
- * @see cake60/src/Database/Type/TimeType.php
+ * @inspired-by \Cake\Database\Type\TimeType
  */
 class TimeType extends BaseType implements BatchCastingInterface
 {

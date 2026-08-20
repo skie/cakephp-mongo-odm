@@ -19,7 +19,7 @@ use function Cake\Core\pluginSplit;
 /**
  * A registry for ODM association objects.
  *
- * @see cake60/src/ORM/AssociationCollection.php
+ * @ported-from \Cake\ORM\AssociationCollection
  * @implements \IteratorAggregate<string, \Crustum\Mongo\ODM\Association>
  */
 class AssociationCollection implements Countable, IteratorAggregate

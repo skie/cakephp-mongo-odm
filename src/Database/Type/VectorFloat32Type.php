@@ -11,7 +11,7 @@ use MongoDB\BSON\PackedArray;
  * Converts between a PHP array of floats and its packed float32 BSON
  * representation for vector search.
  *
- * @see mongodb-odm Types/VectorFloat32Type.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\VectorFloat32Type
  */
 class VectorFloat32Type extends AbstractVectorType
 {

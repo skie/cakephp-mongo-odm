@@ -21,6 +21,8 @@ use TestApp\Model\Document\ProtectedArticle;
 
 /**
  * ResultSetFactory test case.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\ResultSetFactoryTest
  */
 #[CoversClass(ResultSetFactory::class)]
 class ResultSetFactoryTest extends TestCase

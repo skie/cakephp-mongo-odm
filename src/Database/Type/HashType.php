@@ -10,6 +10,8 @@ use stdClass;
  * Hash type converter
  *
  * Use to convert hash map (associative array) data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\HashType
  */
 class HashType extends BaseType
 {

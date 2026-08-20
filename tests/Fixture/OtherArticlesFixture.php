@@ -11,6 +11,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
  * The source fixture attaches to a non-test `other` connection; crustum's
  * `TestFixture` requires a connection name starting with `test`, so the port
  * attaches to `test_mongo`.
+ *
+ * @rewritten-from \Cake\Test\Fixture\OtherArticlesFixture
  */
 class OtherArticlesFixture extends TestFixture
 {

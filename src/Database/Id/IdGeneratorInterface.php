@@ -10,7 +10,7 @@ namespace Crustum\Mongo\Database\Id;
  * ODM layer when a collection requires a custom id strategy (sequential
  * counters, UUIDs) instead of the driver-generated `ObjectId`.
  *
- * @see mongodb-odm Id/IdGenerator.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Id\IdGenerator
  */
 interface IdGeneratorInterface
 {

@@ -23,6 +23,8 @@ use RuntimeException;
  * Provides base functionality for migrations to extend. The SQL query builder
  * helpers of cakephp/migrations are replaced by Mongo-native operations:
  * collections, indexes, and validators, executed through the adapter.
+ *
+ * @inspired-by \Migrations\BaseMigration
  */
 class BaseMigration implements MigrationInterface
 {

@@ -12,7 +12,7 @@ use Random\RandomException;
  * time and are BSON-ordering-friendly — the migration-guide convention for
  * sequential-looking ids. Implemented natively (no external uuid dependency).
  *
- * @see mongodb-odm Id/SymfonyUuidGenerator.php
+ * @rewritten-from \Doctrine\ODM\MongoDB\Id\SymfonyUuidGenerator
  */
 class UuidGenerator implements IdGeneratorInterface
 {

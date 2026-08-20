@@ -18,6 +18,8 @@ use stdClass;
 
 /**
  * Port of `Cake\Test\TestCase\ORM\RulesCheckerIntegrationTest` for the ODM layer.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\RulesCheckerIntegrationTest
  */
 class RulesCheckerIntegrationTest extends TestCase
 {

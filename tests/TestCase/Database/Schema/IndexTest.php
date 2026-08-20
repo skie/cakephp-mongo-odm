@@ -16,6 +16,8 @@ use RuntimeException;
  * SQL-specific `length`/`include`/`accessMethod` options are dropped, and
  * Mongo-specific options (`unique`, `sparse`, `expireAfterSeconds`,
  * `partialFilterExpression`, `collation`) are covered instead.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Schema\IndexTest
  */
 #[CoversClass(Index::class)]
 class IndexTest extends TestCase

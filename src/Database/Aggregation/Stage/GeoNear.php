@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $geoNear aggregation stage
  *
  * Returns documents in order of proximity to a geospatial point
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\GeoNear
  */
 class GeoNear extends Stage
 {

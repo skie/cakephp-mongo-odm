@@ -13,6 +13,8 @@ use TestApp\Dto\SimpleArticleDto;
 
 /**
  * DtoMapper test case.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\DtoMapperTest
  */
 class DtoMapperTest extends TestCase
 {

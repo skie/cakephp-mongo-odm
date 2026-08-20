@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $bucketAuto aggregation stage
  *
  * Automatically categorizes documents into a specified number of buckets
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\BucketAuto
  */
 class BucketAuto extends Stage
 {

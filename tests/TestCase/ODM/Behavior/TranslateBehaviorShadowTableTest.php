@@ -17,6 +17,8 @@ use TestApp\Model\Document\TranslateBakedArticle;
 
 /**
  * TranslateBehavior test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Behavior\TranslateBehaviorShadowTableTest
  */
 class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
 {

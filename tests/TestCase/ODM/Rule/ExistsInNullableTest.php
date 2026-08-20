@@ -11,6 +11,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the ExistsInNullable rule
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Rule\ExistsInNullableTest
  */
 #[CoversClass(ExistsInNullable::class)]
 class ExistsInNullableTest extends TestCase

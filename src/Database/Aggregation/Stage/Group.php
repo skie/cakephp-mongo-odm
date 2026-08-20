@@ -11,7 +11,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * Groups input documents by the `_id` expression and applies accumulator
  * expressions to produce output documents.
  *
- * @see mongodb-odm Aggregation/Stage/Group.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Group
  */
 class Group extends Stage
 {

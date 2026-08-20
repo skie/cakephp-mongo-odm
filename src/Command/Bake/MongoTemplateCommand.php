@@ -39,6 +39,8 @@ use RuntimeException;
  * bin/cake bake mongotemplate Articles
  * bin/cake bake mongotemplate Articles --index-columns 5
  * ```
+ *
+ * @ported-from \Bake\Command\TemplateCommand
  */
 class MongoTemplateCommand extends BakeCommand
 {

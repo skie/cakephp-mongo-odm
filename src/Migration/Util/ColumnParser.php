@@ -18,6 +18,8 @@ use Cake\Utility\Inflector;
  * Supports the cake migration column grammar adapted for Mongo types:
  * `name:string`, `age:int?`, `slug:string[100]`, `active:boolean:default[true]`,
  * `email:string:unique`.
+ *
+ * @inspired-by \Migrations\Util\ColumnParser
  */
 class ColumnParser
 {

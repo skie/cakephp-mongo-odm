@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $unset aggregation stage
  *
  * Removes/excludes fields from documents
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\UnsetStage
  */
 class UnsetStage extends Stage
 {

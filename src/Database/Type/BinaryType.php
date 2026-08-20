@@ -11,6 +11,8 @@ use MongoDB\BSON\Binary;
  * Binary type converter
  *
  * Use to convert Binary data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\BinDataType
  */
 class BinaryType extends BaseType
 {

@@ -12,6 +12,8 @@ use InvalidArgumentException;
  * $unionWith aggregation stage
  *
  * Combines documents from multiple collections into a single result set
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\UnionWith
  */
 class UnionWith extends Stage
 {

@@ -10,7 +10,7 @@ use Crustum\Mongo\Database\Connection;
 /**
  * Creates the four query types bound to a connection.
  *
- * @see cake50/src/Database/Query/QueryFactory.php
+ * @ported-from \Cake\Database\Query\QueryFactory
  */
 class QueryFactory
 {

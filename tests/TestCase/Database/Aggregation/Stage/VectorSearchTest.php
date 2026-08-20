@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for VectorSearch stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\VectorSearchTest
  */
 #[CoversClass(VectorSearch::class)]
 class VectorSearchTest extends TestCase

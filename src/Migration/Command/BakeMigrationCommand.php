@@ -29,6 +29,8 @@ use Override;
  * bin/cake bake mongo_migration CreateArticles
  * bin/cake bake mongo_migration CreateArticles name:string age:int? email:string:unique
  * ```
+ *
+ * @inspired-by \Migrations\Command\BakeMigrationCommand
  */
 class BakeMigrationCommand extends BakeSimpleMigrationCommand
 {

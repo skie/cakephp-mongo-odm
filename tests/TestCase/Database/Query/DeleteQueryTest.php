@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake60/tests/TestCase/Database/Query/DeleteQueryTest.php for the
  * Mongo deleteMany semantics.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Query\DeleteQueryTest
  */
 #[CoversClass(DeleteQuery::class)]
 class DeleteQueryTest extends TestCase

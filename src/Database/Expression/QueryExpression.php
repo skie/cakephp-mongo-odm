@@ -15,6 +15,8 @@ use Countable;
  * The public surface mirrors `Cake\Database\Expression\QueryExpression` so
  * callers get the same fluent API (`eq`, `gt`, `in`, `between`, …) while each
  * method builds a Mongo expression object.
+ *
+ * @inspired-by \Cake\Database\Expression\QueryExpression
  */
 class QueryExpression extends AbstractExpression implements Countable
 {

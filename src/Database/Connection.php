@@ -33,7 +33,7 @@ use Throwable;
  * Owns the driver and dispatches compiled queries to the underlying MongoDB
  * collection operations.
  *
- * @see cake50/src/Database/Connection.php
+ * @inspired-by \Cake\Database\Connection
  */
 class Connection implements ConnectionInterface
 {

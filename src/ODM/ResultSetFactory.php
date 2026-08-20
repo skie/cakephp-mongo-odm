@@ -22,8 +22,8 @@ use MongoDB\Model\BSONDocument;
  * nesting: Mongo rows are already nested. Association deconstruction
  * (1-1 / 1-N / N-N) is handled by `EagerLoader::loadExternal()`, not here.
  *
- * @see cake60/src/ORM/ResultSetFactory.php (API surface only)
- * @see elastic-search/src/ResultSet.php (simpler sibling)
+ * @inspired-by \Cake\ORM\ResultSetFactory
+ * @inspired-by \Cake\ORM\ResultSetFactory
  * @template T of array|\Crustum\Mongo\ODM\Document
  */
 class ResultSetFactory

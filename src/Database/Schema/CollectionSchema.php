@@ -19,6 +19,7 @@ use MongoDB\Model\IndexInfo;
  * `Cake\Datasource\SchemaInterface`).
  *
  * @see docs/reference/24-schema-migrations-design.md
+ * @rewritten-from \Cake\Database\Schema\TableSchema
  */
 class CollectionSchema implements CollectionSchemaInterface
 {

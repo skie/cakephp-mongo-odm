@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 /**
  * Tests the type-safe non-hydrated query path: BaseCollection::unhydratedFind() and
  * the UnhydratedSelectQuery class it returns.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Query\UnhydratedSelectQueryTest
  */
 #[CoversClass(UnhydratedSelectQuery::class)]
 class UnhydratedSelectQueryTest extends TestCase

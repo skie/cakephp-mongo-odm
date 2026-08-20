@@ -20,6 +20,8 @@ use TestApp\Model\Document\VirtualUser;
 
 /**
  * Document test case.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\EntityTest
  */
 #[CoversClass(Document::class)]
 class DocumentTest extends TestCase

@@ -13,6 +13,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for IdType
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Types\IdTypeTest
  */
 #[CoversClass(IdType::class)]
 class IdTypeTest extends TestCase

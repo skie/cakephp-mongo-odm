@@ -22,6 +22,8 @@ use Throwable;
 
 /**
  * Rollback command reverts migrations.
+ *
+ * @inspired-by \Migrations\Command\RollbackCommand
  */
 class RollbackCommand extends Command
 {

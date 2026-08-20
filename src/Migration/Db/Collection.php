@@ -37,6 +37,8 @@ use RuntimeException;
  *     ->addIndex(['email'], ['unique' => true])
  *     ->create();
  * ```
+ *
+ * @rewritten-from \Migrations\Db\Table
  */
 class Collection
 {

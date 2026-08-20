@@ -20,7 +20,7 @@ use LogicException;
  * dispatch, and explicit behavior method dispatch for a collection.
  *
  * @extends \Cake\Core\ObjectRegistry<\Crustum\Mongo\ODM\Behavior>
- * @see cake60/src/ORM/BehaviorRegistry.php
+ * @inspired-by \Cake\ORM\BehaviorRegistry
  */
 class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterface
 {

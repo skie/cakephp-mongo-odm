@@ -18,6 +18,8 @@ use TestApp\Model\Document\ProtectedArticle;
 
 /**
  * Marshaller test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\MarshallerTest
  */
 #[CoversClass(Marshaller::class)]
 class MarshallerTest extends TestCase

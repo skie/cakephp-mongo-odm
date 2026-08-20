@@ -13,6 +13,8 @@ use JsonException;
  * Use to convert JSON-encoded string data between PHP and MongoDB. Mirrors
  * `Cake\Database\Type\JsonType`. Prefer `HashType`/`ArrayType` when storing
  * documents natively.
+ *
+ * @ported-from \Cake\Database\Type\JsonType
  */
 class JsonType extends BaseType
 {

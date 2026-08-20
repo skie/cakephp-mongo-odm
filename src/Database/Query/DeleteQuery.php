@@ -8,7 +8,7 @@ namespace Crustum\Mongo\Database\Query;
  *
  * `execute()` returns the number of deleted documents.
  *
- * @see cake50/src/Database/Query/DeleteQuery.php
+ * @inspired-by \Cake\Database\Query\DeleteQuery
  */
 class DeleteQuery extends Query
 {

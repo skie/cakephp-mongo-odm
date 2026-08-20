@@ -10,7 +10,7 @@ use Countable;
 /**
  * Validates the size of an embedded array or countable value.
  *
- * @see cake60/src/ORM/Rule/ValidCount.php
+ * @ported-from \Cake\ORM\Rule\ValidCount
  */
 class ValidCount
 {

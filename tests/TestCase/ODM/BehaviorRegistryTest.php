@@ -15,6 +15,8 @@ use TestPlugin\Model\MongoBehavior\PersisterOneBehavior;
 
 /**
  * Port of `Cake\Test\TestCase\ORM\BehaviorRegistryTest` for the ODM layer.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\BehaviorRegistryTest
  */
 #[CoversClass(BehaviorRegistry::class)]
 class BehaviorRegistryTest extends TestCase

@@ -15,7 +15,7 @@ use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 /**
  * Represents a one-to-one relationship from the source document.
  *
- * @see cake60/src/ORM/Association/HasOne.php
+ * @inspired-by \Cake\ORM\Association\HasOne
  */
 class HasOne extends Association
 {

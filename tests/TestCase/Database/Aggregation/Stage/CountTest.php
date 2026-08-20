@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Count stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\CountTest
  */
 #[CoversClass(Count::class)]
 class CountTest extends TestCase

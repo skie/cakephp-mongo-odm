@@ -9,7 +9,7 @@ use Closure;
 /**
  * Embeds one document in the source document.
  *
- * @see cake60/src/ORM/Association/HasOne.php
+ * @rewritten-from \Cake\ORM\Association\HasOne
  */
 class EmbedOne extends Embedded
 {

@@ -17,6 +17,8 @@ use Traversable;
  *
  * Adapted from cake50/tests/TestCase/Database/QueryTest.php for the Mongo
  * query lifecycle (connection, collection, compile, sql, execute).
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\QueryTest
  */
 class QueryTest extends TestCase
 {

@@ -17,6 +17,8 @@ use Cake\Console\ConsoleIo;
  *
  * DDL commands are written to the console output (verbose level) with a
  * measured duration.
+ *
+ * @rewritten-from \Migrations\Db\Adapter\TimedOutputAdapter
  */
 class TimedOutputAdapter extends AdapterWrapper
 {

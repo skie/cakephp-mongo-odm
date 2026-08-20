@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Database;
 
 /**
  * Trait TypeMapTrait
+ *
+ * @ported-from \Cake\Database\TypeMapTrait
  */
 trait TypeMapTrait
 {

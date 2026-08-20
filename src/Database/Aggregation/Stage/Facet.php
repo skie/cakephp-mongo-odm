@@ -11,6 +11,8 @@ use Crustum\Mongo\Database\Aggregation\Pipeline;
  * $facet aggregation stage
  *
  * Processes multiple aggregation pipelines within a single stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Facet
  */
 class Facet extends Stage
 {

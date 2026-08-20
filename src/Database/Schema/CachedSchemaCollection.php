@@ -8,6 +8,8 @@ use Psr\SimpleCache\CacheInterface;
 
 /**
  * Decorates a schema collection and adds caching
+ *
+ * @ported-from \Cake\Database\Schema\CachedCollection
  */
 class CachedSchemaCollection implements SchemaCollectionInterface
 {

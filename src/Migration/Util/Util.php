@@ -19,6 +19,8 @@ use RuntimeException;
 
 /**
  * Utility helpers for migration file naming and version parsing.
+ *
+ * @ported-from \Migrations\Util\Util
  */
 class Util
 {

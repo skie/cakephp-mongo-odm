@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $sortByCount aggregation stage
  *
  * Groups incoming documents and counts them, then sorts by count in descending order
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\SortByCount
  */
 class SortByCount extends Stage
 {

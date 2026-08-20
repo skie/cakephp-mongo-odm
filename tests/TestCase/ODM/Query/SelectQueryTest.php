@@ -34,6 +34,8 @@ use TestApp\Model\Collection\TagsCollection;
 
 /**
  * Tests SelectQuery class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Query\SelectQueryTest
  */
 #[CoversClass(SelectQuery::class)]
 class SelectQueryTest extends TestCase

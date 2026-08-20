@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for BinaryUuidType
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Types\BinaryUuidTypeTest
  */
 #[CoversClass(BinaryUuidType::class)]
 class BinaryUuidTypeTest extends TestCase

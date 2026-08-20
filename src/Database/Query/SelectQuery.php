@@ -20,7 +20,7 @@ use Traversable;
  * Select query for MongoDB find() and aggregation pipeline operations.
  *
  * @implements \IteratorAggregate<int, array<string, mixed>>
- * @see cake50/src/Database/Query/SelectQuery.php
+ * @inspired-by \Cake\Database\Query\SelectQuery
  */
 class SelectQuery extends Query implements IteratorAggregate
 {

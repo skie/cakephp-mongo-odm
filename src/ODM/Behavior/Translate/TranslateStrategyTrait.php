@@ -15,6 +15,7 @@ use Crustum\Mongo\ODM\Marshaller;
  * Contains common code needed by TranslateBehavior strategy classes.
  *
  * @require-implements \Crustum\Mongo\ODM\Behavior\Translate\TranslateStrategyInterface
+ * @ported-from \Cake\ORM\Behavior\Translate\TranslateStrategyTrait
  */
 trait TranslateStrategyTrait
 {

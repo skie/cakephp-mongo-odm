@@ -30,6 +30,8 @@ use function Cake\Core\namespaceSplit;
 /**
  * Command class for generating Mongo test files (Collection, Document,
  * Controller), mirroring `Bake\Command\TestCommand`.
+ *
+ * @ported-from \Bake\Command\TestCommand
  */
 class MongoTestCommand extends BakeCommand
 {

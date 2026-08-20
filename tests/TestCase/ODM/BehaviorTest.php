@@ -14,6 +14,8 @@ use TestApp\Model\MongoBehavior\TestBehavior;
 
 /**
  * Port of `Cake\Test\TestCase\ORM\BehaviorTest` for the ODM layer.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\BehaviorTest
  */
 #[CoversClass(Behavior::class)]
 class BehaviorTest extends TestCase

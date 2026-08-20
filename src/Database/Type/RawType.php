@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  * Raw type converter
  *
  * Use for raw BSON values (no conversion)
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\RawType
  */
 class RawType extends BaseType
 {

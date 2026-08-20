@@ -14,7 +14,7 @@ use MongoDB\Database;
  * `ConnectionManager`) and adds Mongo-specific collection management, since
  * Cake's `ConnectionHelper` type-asserts `Cake\Database\Connection`.
  *
- * @see cake50/src/TestSuite/ConnectionHelper.php
+ * @inspired-by \Cake\TestSuite\ConnectionHelper
  */
 class ConnectionHelper
 {

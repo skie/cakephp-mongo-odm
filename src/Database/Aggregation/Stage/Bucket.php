@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $bucket aggregation stage
  *
  * Categorizes documents into buckets based on specified boundaries
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Bucket
  */
 class Bucket extends Stage
 {

@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests the FunctionExpression class (aggregation operator expression).
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\Expression\FunctionExpressionTest
  */
 #[CoversClass(FunctionExpression::class)]
 class FunctionExpressionTest extends TestCase

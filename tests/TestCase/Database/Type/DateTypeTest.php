@@ -13,6 +13,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for DateType
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Types\DateTypeTest
  */
 #[CoversClass(DateType::class)]
 class DateTypeTest extends TestCase

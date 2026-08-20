@@ -8,6 +8,8 @@ namespace Crustum\Mongo\Migration\Db\Action;
  *
  * Ported and reduced from cakephp/migrations `Db\Action\Action` for the Mongo
  * operation set (collections, fields, indexes, validators).
+ *
+ * @inspired-by \Migrations\Db\Action\Action
  */
 abstract class Action
 {

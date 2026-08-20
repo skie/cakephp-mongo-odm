@@ -15,6 +15,8 @@ namespace Crustum\Mongo\Migration\Migration;
  *
  * Provides programmatic access to migration/seed operations without the
  * console command layer.
+ *
+ * @ported-from \Migrations\Migration\BackendInterface
  */
 interface BackendInterface
 {

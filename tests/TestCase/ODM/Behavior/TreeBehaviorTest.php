@@ -17,7 +17,7 @@ use Crustum\Mongo\Test\TestCase\ODM\TestCase;
  * asserting the ancestry fields (`ancestors`, `depth`, `sort`) instead of the
  * MPTT `lft`/`rght` bookkeeping.
  *
- * @see cake60/tests/TestCase/ORM/Behavior/TreeBehaviorTest.php
+ * @rewritten-from \Cake\Test\TestCase\ORM\Behavior\TreeBehaviorTest
  */
 class TreeBehaviorTest extends TestCase
 {

@@ -7,6 +7,8 @@ use Cake\Core\Exception\CakeException;
 
 /**
  * Exception raised when a Behavior class cannot be found.
+ *
+ * @ported-from \Cake\ORM\Exception\MissingBehaviorException
  */
 class MissingBehaviorException extends CakeException
 {

@@ -17,6 +17,8 @@ use TestPlugin\Model\Collection\CommentsCollection;
 
 /**
  * Tests Association class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\AssociationTest
  */
 #[CoversClass(Association::class)]
 class AssociationTest extends TestCase

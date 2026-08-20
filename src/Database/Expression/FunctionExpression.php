@@ -16,6 +16,8 @@ use Cake\Database\ValueBinder;
  *
  * Arguments may be nested `FunctionExpression` instances, which are resolved
  * recursively so operators compose the same way Cake functions do.
+ *
+ * @inspired-by \Cake\Database\Expression\FunctionExpression
  */
 class FunctionExpression extends Expression implements MongoExpressionInterface
 {

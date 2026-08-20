@@ -13,6 +13,8 @@ use InvalidArgumentException;
  *
  * Implements `Incrementable` and `Versionable` so integer fields can be
  * diffed into `$inc` updates and bumped for optimistic locking.
+ *
+ * @ported-from \Cake\Database\Type\IntegerType
  */
 class IntegerType extends BaseType implements Incrementable, Versionable
 {

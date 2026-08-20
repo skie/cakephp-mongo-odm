@@ -10,6 +10,8 @@ namespace Crustum\Mongo\Database;
  * so this registry is lightweight: it binds named parameters to values and
  * types so `Expression::sql()` and the query compiler can apply type-aware
  * conversion (e.g. 24-hex strings to `ObjectId`) before execution.
+ *
+ * @inspired-by \Cake\Database\ValueBinder
  */
 class ValueBinder
 {

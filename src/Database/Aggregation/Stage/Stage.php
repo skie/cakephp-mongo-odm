@@ -13,6 +13,8 @@ use Crustum\Mongo\Database\Aggregation\Pipeline;
  * Owns the per-stage configuration and compiles itself via `getExpression()`.
  * Re-exports every `AggregationBuilder` factory so the fluent chain continues
  * off any stage (mirrors Doctrine's `Stage` class).
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage
  */
 abstract class Stage
 {

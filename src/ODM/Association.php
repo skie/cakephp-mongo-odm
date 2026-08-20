@@ -33,7 +33,7 @@ use function Cake\Core\triggerWarning;
  * associations provide the relationship type, eager loader, and MongoDB
  * aggregation pipeline.
  *
- * @see cake60/src/ORM/Association.php
+ * @inspired-by \Cake\ORM\Association
  */
 abstract class Association
 {

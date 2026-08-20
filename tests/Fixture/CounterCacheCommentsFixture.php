@@ -7,6 +7,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
 
 /**
  * Port of `Cake\Test\Fixture\CounterCacheCommentsFixture` for the ODM test harness.
+ *
+ * @ported-from \Cake\Test\Fixture\CounterCacheCommentsFixture
  */
 class CounterCacheCommentsFixture extends TestFixture
 {

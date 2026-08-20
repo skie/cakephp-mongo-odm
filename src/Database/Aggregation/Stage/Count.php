@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $count aggregation stage
  *
  * Returns a count of the number of documents at this stage of the aggregation pipeline
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Count
  */
 class Count extends Stage
 {

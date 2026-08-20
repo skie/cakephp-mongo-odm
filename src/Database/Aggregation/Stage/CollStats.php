@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $collStats aggregation stage
  *
  * Returns statistics regarding a collection or view
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\CollStats
  */
 class CollStats extends Stage
 {

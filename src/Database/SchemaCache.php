@@ -16,6 +16,7 @@ use RuntimeException;
  * requiring updated metadata are required.
  *
  * @link https://en.wikipedia.org/wiki/Thundering_herd_problem About the thundering herd problem
+ * @ported-from \Cake\Database\SchemaCache
  */
 class SchemaCache
 {

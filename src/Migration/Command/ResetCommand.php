@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Reset command rolls back all migrations and migrates again.
+ *
+ * @inspired-by \Migrations\Command\ResetCommand
  */
 class ResetCommand extends Command
 {

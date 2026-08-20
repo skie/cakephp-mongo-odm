@@ -14,6 +14,8 @@ use Crustum\Mongo\Database\Schema\SchemaCollection;
  *
  * Adapted from cake50/tests/TestCase/Database/Schema/CollectionTest.php for
  * Mongo collection introspection.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Schema\CollectionTest
  */
 class CollectionTest extends TestCase
 {

@@ -13,6 +13,8 @@ use MongoDB\BSON\PackedArray;
 
 /**
  * Tests for the vector types
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Types\VectorTypeTest
  */
 class VectorTypeTest extends TestCase
 {

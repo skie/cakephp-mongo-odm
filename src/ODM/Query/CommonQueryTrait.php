@@ -18,7 +18,7 @@ use InvalidArgumentException;
 /**
  * Provides repository binding and schema type defaults for ODM queries.
  *
- * @see cake60/src/ORM/Query/CommonQueryTrait.php
+  * @rewritten-from \Cake\ORM\Query\CommonQueryTrait
  */
 trait CommonQueryTrait
 {

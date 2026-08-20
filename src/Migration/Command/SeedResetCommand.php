@@ -20,6 +20,8 @@ use Crustum\Mongo\Migration\Util\Util;
 
 /**
  * Seed reset command removes seeds from the execution log.
+ *
+ * @ported-from \Migrations\Command\SeedResetCommand
  */
 class SeedResetCommand extends Command
 {

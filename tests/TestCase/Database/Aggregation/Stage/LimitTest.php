@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Limit stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\LimitTest
  */
 #[CoversClass(Limit::class)]
 class LimitTest extends TestCase

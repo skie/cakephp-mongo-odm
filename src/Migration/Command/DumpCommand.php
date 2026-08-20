@@ -27,6 +27,8 @@ use RuntimeException;
  *
  * The dumped file is the "desired" schema used by `mongo migrations diff` and
  * as the file-backed prod schema (avoids per-request introspection).
+ *
+ * @inspired-by \Migrations\Command\DumpCommand
  */
 class DumpCommand extends Command
 {

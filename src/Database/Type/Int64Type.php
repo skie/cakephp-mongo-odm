@@ -14,6 +14,8 @@ use MongoDB\BSON\Int64;
  *
  * Implements `Incrementable` and `Versionable` so int64 fields can be diffed
  * into `$inc` updates and bumped for optimistic locking.
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\Int64Type
  */
 class Int64Type extends BaseType implements Incrementable, Versionable
 {

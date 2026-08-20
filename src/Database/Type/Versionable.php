@@ -10,7 +10,7 @@ namespace Crustum\Mongo\Database\Type;
  * enabling `$inc`-style version counters for optimistic locking (see plan 08
  * §9).
  *
- * @see mongodb-odm Types/Versionable.php
+ * @ported-from \Doctrine\ODM\MongoDB\Types\Versionable
  */
 interface Versionable
 {

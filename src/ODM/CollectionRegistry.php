@@ -21,6 +21,8 @@ use Cake\Datasource\Locator\LocatorInterface;
  * ```
  * CollectionRegistry::getCollectionLocator()->get('Users', $config);
  * ```
+ *
+ * @ported-from \Cake\ORM\TableRegistry
  */
 class CollectionRegistry
 {

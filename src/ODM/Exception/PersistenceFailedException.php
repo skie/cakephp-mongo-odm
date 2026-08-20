@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Used when a strict save or delete fails.
  *
- * @see cake60/src/ORM/Exception/PersistenceFailedException.php
+ * @ported-from \Cake\ORM\Exception\PersistenceFailedException
  */
 class PersistenceFailedException extends CakeException
 {

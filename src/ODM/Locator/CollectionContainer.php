@@ -9,7 +9,7 @@ use Psr\Container\ContainerInterface;
 /**
  * PSR-11 access to ODM collections.
  *
- * @see cake60/src/ORM/Locator/TableContainer.php
+ * @ported-from \Cake\ORM\Locator\TableContainer
  */
 class CollectionContainer implements ContainerInterface
 {

@@ -19,7 +19,7 @@ use function Cake\Core\pluginSplit;
 /**
  * Factory and registry for ODM collections.
  *
- * @see cake60/src/ORM/Locator/TableLocator.php
+ * @ported-from \Cake\ORM\Locator\TableLocator
  * @implements \Cake\Datasource\Locator\LocatorInterface<\Cake\Datasource\RepositoryInterface>
  * @extends \Cake\Datasource\Locator\AbstractLocator<\Cake\Datasource\RepositoryInterface>
  */

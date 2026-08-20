@@ -10,6 +10,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
  *
  * The source SQL `$fields` (column definitions and constraints) are dropped:
  * crustum `TestFixture::$schema` holds Mongo index definitions, not columns.
+ *
+ * @inspired-by \Cake\Test\Fixture\NullableAuthorsFixture
  */
 class NullableAuthorsFixture extends TestFixture
 {

@@ -14,6 +14,8 @@ use Crustum\Mongo\Database\QueryBuilder;
  * Adapted from cake50/tests/TestCase/Database/QueryCompilerTest.php. Instead of
  * SQL strings, the compiled shape is asserted: `['type', 'filter', 'options']`
  * for find and `['type', 'pipeline', 'options']` for aggregate.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\QueryCompilerTest
  */
 class QueryCompilerTest extends TestCase
 {

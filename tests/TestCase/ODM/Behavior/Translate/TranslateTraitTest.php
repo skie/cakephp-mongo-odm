@@ -9,6 +9,8 @@ use TestApp\Model\Document\TranslateTestEntity;
 
 /**
  * Translate behavior test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Behavior\Translate\TranslateTraitTest
  */
 class TranslateTraitTest extends TestCase
 {

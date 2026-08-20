@@ -22,6 +22,8 @@ use MongoDB\Collection;
  * Replaces the SQL `Migrations\Db\Adapter\AdapterInterface`: instead of SQL
  * statements, DDL is executed through the `SchemaManager` and the migration
  * journal lives in a Mongo `cake_migrations` collection.
+ *
+ * @rewritten-from \Migrations\Db\Adapter\AdapterInterface
  */
 interface AdapterInterface
 {

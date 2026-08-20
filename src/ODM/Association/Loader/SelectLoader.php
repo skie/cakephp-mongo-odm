@@ -17,7 +17,7 @@ use Traversable;
 /**
  * Loads referenced documents with one batched query.
  *
- * @see cake60/src/ORM/Association/Loader/SelectLoader.php
+ * @inspired-by \Cake\ORM\Association\Loader\SelectLoader
  */
 class SelectLoader implements LoaderInterface
 {

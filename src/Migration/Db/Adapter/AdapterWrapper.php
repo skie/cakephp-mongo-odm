@@ -22,6 +22,8 @@ use MongoDB\Collection;
  *
  * Proxy commands through to another adapter, allowing modification of
  * parameters during calls.
+ *
+ * @inspired-by \Migrations\Db\Adapter\AdapterWrapper
  */
 abstract class AdapterWrapper implements WrapperInterface
 {

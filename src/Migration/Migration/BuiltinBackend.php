@@ -23,6 +23,7 @@ use InvalidArgumentException;
  * within a non-shell application.
  *
  * @internal
+ * @ported-from \Migrations\Migration\BuiltinBackend
  */
 class BuiltinBackend implements BackendInterface
 {

@@ -9,6 +9,8 @@ use MongoDB\BSON\Binary;
  * Binary byte array type converter
  *
  * Use to convert byte array binary data between PHP and MongoDB.
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Types\BinDataByteArrayType
  */
 class BinaryByteArrayType extends BinaryType
 {

@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\Stage\UnsetStage;
 
 /**
  * Test case for Unset aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\UnsetTest
  */
 class UnsetTest extends TestCase
 {

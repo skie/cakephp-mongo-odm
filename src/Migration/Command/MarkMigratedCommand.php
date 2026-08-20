@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * MarkMigrated command marks migrations as migrated without running them.
+ *
+ * @ported-from \Migrations\Command\MarkMigratedCommand
  */
 class MarkMigratedCommand extends Command
 {

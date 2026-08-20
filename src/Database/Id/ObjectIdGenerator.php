@@ -10,7 +10,7 @@ use MongoDB\BSON\ObjectId;
  *
  * Mirrors the driver default: each generated id is a fresh `MongoDB\BSON\ObjectId`.
  *
- * @see mongodb-odm Id/ObjectIdGenerator.php
+ * @ported-from \Doctrine\ODM\MongoDB\Id\ObjectIdGenerator
  */
 class ObjectIdGenerator implements IdGeneratorInterface
 {

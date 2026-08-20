@@ -16,6 +16,8 @@ use UnexpectedValueException;
 
 /**
  * Migrations configuration class.
+ *
+ * @ported-from \Migrations\Config\Config
  */
 class Config implements ConfigInterface
 {

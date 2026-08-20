@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Upgrades the migration journal to the unified-ledger shape.
+ *
+ * @rewritten-from \Migrations\Command\UpgradeCommand
  */
 class UpgradeCommand extends Command
 {

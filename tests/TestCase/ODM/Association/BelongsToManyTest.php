@@ -30,6 +30,8 @@ use function Cake\Collection\collection;
 
 /**
  * Tests BelongsToMany class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Association\BelongsToManyTest
  */
 #[CoversClass(BelongsToMany::class)]
 class BelongsToManyTest extends TestCase

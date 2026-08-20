@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests BelongsTo class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Association\BelongsToTest
  */
 #[CoversClass(BelongsTo::class)]
 class BelongsToTest extends TestCase

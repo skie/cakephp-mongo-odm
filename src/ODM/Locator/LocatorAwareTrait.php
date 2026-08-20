@@ -11,7 +11,7 @@ use UnexpectedValueException;
 /**
  * Provides access to the application ODM collection locator.
  *
- * @see cake50/src/ORM/Locator/LocatorAwareTrait.php
+  * @ported-from \Cake\ORM\Locator\LocatorAwareTrait
  * @see REF: src/ODM/Locator/LocatorAwareTrait.php
  */
 trait LocatorAwareTrait

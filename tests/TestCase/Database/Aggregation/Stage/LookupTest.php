@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Lookup stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\LookupTest
  */
 #[CoversClass(Lookup::class)]
 class LookupTest extends TestCase

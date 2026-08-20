@@ -13,6 +13,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests EagerLoader
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\EagerLoaderTest
  */
 #[CoversClass(EagerLoader::class)]
 class EagerLoaderTest extends TestCase

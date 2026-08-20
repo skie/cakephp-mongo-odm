@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $limit aggregation stage
  *
  * Limits the number of documents passed to the next stage
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Limit
  */
 class Limit extends Stage
 {

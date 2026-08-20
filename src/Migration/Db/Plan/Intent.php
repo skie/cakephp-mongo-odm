@@ -9,6 +9,8 @@ use Crustum\Mongo\Migration\Db\Action\Action;
  * An intent is a collection of actions for one migration operation.
  *
  * Ported from cakephp/migrations `Db\Plan\Intent`.
+ *
+ * @ported-from \Migrations\Db\Plan\Intent
  */
 class Intent
 {

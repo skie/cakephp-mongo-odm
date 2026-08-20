@@ -10,6 +10,7 @@ use Cake\Datasource\EntityInterface;
  * for an entity.
  *
  * @require-implements \Cake\Datasource\EntityInterface
+ * @ported-from \Cake\ORM\Behavior\Translate\TranslateTrait
  */
 trait TranslateTrait
 {

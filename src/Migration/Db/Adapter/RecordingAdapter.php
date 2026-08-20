@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\IrreversibleMigrationException;
  * records DDL commands so `change()` migrations can be reversed for the `down`
  * direction. Inverse commands are executed in reverse order; all other methods
  * are delegated to the wrapped adapter.
+ *
+ * @inspired-by \Migrations\Db\Adapter\RecordingAdapter
  */
 class RecordingAdapter extends AdapterWrapper
 {

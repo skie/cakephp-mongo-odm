@@ -15,7 +15,7 @@ use UnexpectedValueException;
 /**
  * Automatically updates configured timestamp fields with BSON UTC dates.
  *
- * @see cake60/src/ORM/Behavior/TimestampBehavior.php
+ * @ported-from \Cake\ORM\Behavior\TimestampBehavior
  */
 class TimestampBehavior extends Behavior
 {

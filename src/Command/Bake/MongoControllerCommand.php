@@ -34,6 +34,8 @@ use Override;
  * bin/cake bake mongocontroller Articles
  * bin/cake bake mongocontroller Articles --no-test
  * ```
+ *
+ * @ported-from \Bake\Command\ControllerCommand
  */
 class MongoControllerCommand extends BakeCommand
 {

@@ -18,6 +18,8 @@ use ValueError;
  *
  * Use to convert backed enum instances to their scalar values and back.
  * Mirrors `Cake\Database\Type\EnumType`.
+ *
+ * @ported-from \Cake\Database\Type\EnumType
  */
 class EnumType extends BaseType
 {

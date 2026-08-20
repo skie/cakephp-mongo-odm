@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $fill aggregation stage
  *
  * Populates null and missing field values within documents
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Fill
  */
 class Fill extends Stage
 {

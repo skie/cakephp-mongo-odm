@@ -14,7 +14,7 @@ use InvalidArgumentException;
 /**
  * Checks whether links to a given association exist / do not exist.
  *
- * @see cake60/src/ORM/Rule/LinkConstraint.php
+ * @ported-from \Cake\ORM\Rule\LinkConstraint
  */
 class LinkConstraint
 {

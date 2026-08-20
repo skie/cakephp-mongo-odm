@@ -9,7 +9,7 @@ use Crustum\Mongo\ODM\Association;
 /**
  * ExistsIn rule with nullable foreign keys enabled by default.
  *
- * @see cake60/src/ORM/Rule/ExistsInNullable.php
+ * @ported-from \Cake\ORM\Rule\ExistsInNullable
  */
 class ExistsInNullable extends ExistsIn
 {

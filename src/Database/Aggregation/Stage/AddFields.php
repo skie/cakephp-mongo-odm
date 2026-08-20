@@ -10,6 +10,8 @@ use Crustum\Mongo\Database\Expression\MongoExpressionInterface;
  * $addFields aggregation stage
  *
  * Adds new fields to documents without removing existing fields
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\AddFields
  */
 class AddFields extends Stage
 {

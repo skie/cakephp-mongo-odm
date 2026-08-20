@@ -10,7 +10,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  *
  * Reorders documents by a specified sort specification.
  *
- * @see mongodb-odm Aggregation/Stage/Sort.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Sort
  */
 class Sort extends Stage
 {

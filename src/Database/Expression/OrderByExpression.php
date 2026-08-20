@@ -13,6 +13,8 @@ use Closure;
  * Mirrors `Cake\Database\Expression\OrderByExpression` (a list of
  * `OrderClauseExpression`), but compiles to the Mongo `$sort` object
  * `{field: 1|-1, ...}`.
+ *
+ * @inspired-by \Cake\Database\Expression\OrderByExpression
  */
 class OrderByExpression implements MongoExpressionInterface
 {

@@ -8,7 +8,7 @@ use Cake\Core\Exception\CakeException;
 /**
  * Used when a transaction was rolled back from a callback event.
  *
- * @see cake60/src/ORM/Exception/RolledbackTransactionException.php
+ * @ported-from \Cake\ORM\Exception\RolledbackTransactionException
  */
 class RolledbackTransactionException extends CakeException
 {

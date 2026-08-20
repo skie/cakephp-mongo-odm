@@ -16,7 +16,7 @@ use Crustum\Mongo\ODM\BaseCollection;
  * the database query, and a generated `_id` is back-filled into source
  * Documents so they reflect the persisted identifier.
  *
- * @see cake60/src/ORM/Query/InsertQuery.php
+ * @inspired-by \Cake\ORM\Query\InsertQuery
  */
 class InsertQuery extends DatabaseInsertQuery
 {

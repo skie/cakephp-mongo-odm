@@ -31,6 +31,8 @@ use RuntimeException;
  *
  * Mirrors the reference `BakeSimpleMigrationCommand` for the Mongo migration
  * shape (a `change()` method).
+ *
+ * @ported-from \Migrations\Command\BakeSimpleMigrationCommand
  */
 class BakeSimpleMigrationCommand extends SimpleBakeCommand
 {

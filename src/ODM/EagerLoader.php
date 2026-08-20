@@ -19,7 +19,7 @@ use InvalidArgumentException;
  * MongoDB associations use embedded, external select, and aggregation lookup
  * strategies.
  *
- * @see cake60/src/ORM/EagerLoader.php
+ * @inspired-by \Cake\ORM\EagerLoader
  */
 class EagerLoader
 {

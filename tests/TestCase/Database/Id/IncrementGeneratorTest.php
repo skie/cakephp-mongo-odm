@@ -11,6 +11,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for IncrementGenerator against a real Mongo connection.
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Id\IncrementGeneratorTest
  */
 #[CoversClass(IncrementGenerator::class)]
 class IncrementGeneratorTest extends TestCase

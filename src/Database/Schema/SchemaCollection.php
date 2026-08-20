@@ -15,7 +15,7 @@ use MongoDB\Exception\RuntimeException;
  * Datasource layer stays free of Database imports — this concrete lives in the
  * Database layer where the connection is available).
  *
- * @see cake50/src/Database/Schema/Collection.php
+ * @inspired-by \Cake\Database\Schema\Collection
  */
 class SchemaCollection implements SchemaCollectionInterface
 {

@@ -14,6 +14,8 @@ use RuntimeException;
  * special index type such as `'text'` or `'2dsphere'`.
  *
  * The remaining attributes map onto `MongoDB\Collection::createIndex()` options.
+ *
+ * @inspired-by \Cake\Database\Schema\Index
  */
 class Index
 {

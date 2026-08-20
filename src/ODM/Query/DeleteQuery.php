@@ -10,7 +10,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 /**
  * ODM delete query bound to a repository.
  *
- * @see cake60/src/ORM/Query/DeleteQuery.php
+ * @inspired-by \Cake\ORM\Query\DeleteQuery
  */
 class DeleteQuery extends DatabaseDeleteQuery
 {

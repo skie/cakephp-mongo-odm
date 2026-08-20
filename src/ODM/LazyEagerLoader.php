@@ -11,7 +11,7 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
  * documents or lists of documents by using the same syntax as the EagerLoader.
  *
  * @internal
- * @see cake60/src/ORM/LazyEagerLoader.php
+ * @ported-from \Cake\ORM\LazyEagerLoader
  */
 class LazyEagerLoader
 {

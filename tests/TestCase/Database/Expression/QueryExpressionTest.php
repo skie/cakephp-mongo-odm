@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake50/tests/TestCase/Database/Expression/QueryExpressionTest.php
  * for the Mongo conjunction semantics (`$and` / `$or`).
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Expression\QueryExpressionTest
  */
 #[CoversClass(QueryExpression::class)]
 class QueryExpressionTest extends TestCase

@@ -11,7 +11,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * Passes along documents with only the specified fields, or computes new
  * fields, depending on the projection specification.
  *
- * @see mongodb-odm Aggregation/Stage/Project.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Project
  */
 class Project extends Stage
 {

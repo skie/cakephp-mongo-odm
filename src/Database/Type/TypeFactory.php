@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Database\Type;
 
 /**
  * Factory for building MongoDB type classes
+ *
+ * @ported-from \Cake\Database\TypeFactory
  */
 class TypeFactory
 {

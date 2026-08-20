@@ -12,7 +12,7 @@ use InvalidArgumentException;
  *
  * MongoDB updates exclude the current document by `_id`.
  *
- * @see cake60/src/ORM/Rule/IsUnique.php
+ * @inspired-by \Cake\ORM\Rule\IsUnique
  */
 class IsUnique
 {

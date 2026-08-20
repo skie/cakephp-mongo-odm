@@ -16,6 +16,7 @@ use ArrayAccess;
  * Configuration interface.
  *
  * @extends \ArrayAccess<string, mixed>
+ * @ported-from \Migrations\Config\ConfigInterface
  */
 interface ConfigInterface extends ArrayAccess
 {

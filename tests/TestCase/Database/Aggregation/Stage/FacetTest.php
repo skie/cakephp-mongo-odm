@@ -11,6 +11,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Facet aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\FacetTest
  */
 #[CoversClass(Facet::class)]
 class FacetTest extends TestCase

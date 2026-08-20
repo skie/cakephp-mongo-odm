@@ -11,6 +11,8 @@ use TestApp\Database\ColumnSchemaAwareTypeValueObject;
  *
  * The value objects come from the test_app port and are serialized verbatim;
  * a custom Mongo type would be needed to process them during read/write.
+ *
+ * @ported-from \Cake\Test\Fixture\ColumnSchemaAwareTypeValuesFixture
  */
 class ColumnSchemaAwareTypeValuesFixture extends TestFixture
 {

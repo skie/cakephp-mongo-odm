@@ -28,6 +28,8 @@ use RuntimeException;
  * Ported from cakephp/migrations `Migration\Manager` with the SQL layer
  * replaced by the Mongo adapter. Storage-agnostic: works on `MigrationInterface`
  * and `SeedInterface` objects, tracked in the environment's journal.
+ *
+ * @ported-from \Migrations\Migration\Manager
  */
 class Manager
 {

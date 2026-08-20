@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Migration\Db\Action;
 
 /**
  * Drops an index from a collection.
+ *
+ * @inspired-by \Migrations\Db\Action\DropIndex
  */
 class DropIndex extends Action
 {

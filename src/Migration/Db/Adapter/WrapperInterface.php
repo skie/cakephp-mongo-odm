@@ -12,6 +12,8 @@ namespace Crustum\Mongo\Migration\Db\Adapter;
 
 /**
  * Wrapper interface for adapters that proxy another adapter.
+ *
+ * @ported-from \Migrations\Db\Adapter\WrapperInterface
  */
 interface WrapperInterface extends AdapterInterface
 {

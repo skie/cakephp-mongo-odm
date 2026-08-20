@@ -14,7 +14,7 @@ use Crustum\Mongo\ODM\Behavior;
 /**
  * Updates configured parent counters after saves and deletes.
  *
- * @see cake60/src/ORM/Behavior/CounterCacheBehavior.php
+ * @ported-from \Cake\ORM\Behavior\CounterCacheBehavior
  */
 class CounterCacheBehavior extends Behavior
 {

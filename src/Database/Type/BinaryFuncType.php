@@ -9,6 +9,8 @@ use MongoDB\BSON\Binary;
  * Binary function type converter
  *
  * Use to convert function binary data between PHP and MongoDB.
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Types\BinDataFuncType
  */
 class BinaryFuncType extends BinaryType
 {

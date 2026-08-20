@@ -7,6 +7,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Integration tests for using the bindingKey in associations
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\BindingKeyTest
  */
 class BindingKeyTest extends TestCase
 {

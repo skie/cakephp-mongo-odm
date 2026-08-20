@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for IndexStats aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\IndexStatsTest
  */
 #[CoversClass(IndexStats::class)]
 class IndexStatsTest extends TestCase

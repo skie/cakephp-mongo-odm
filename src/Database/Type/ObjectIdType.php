@@ -12,6 +12,8 @@ use MongoDB\BSON\ObjectId;
  * ObjectId type converter
  *
  * Use to convert ObjectId data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\ObjectIdType
  */
 class ObjectIdType extends BaseType
 {

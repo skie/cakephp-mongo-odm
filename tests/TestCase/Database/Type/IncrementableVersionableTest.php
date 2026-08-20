@@ -12,6 +12,8 @@ use Crustum\Mongo\Database\Type\Versionable;
 
 /**
  * Tests for the Incrementable and Versionable marker interfaces
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Types\VersionableTest
  */
 class IncrementableVersionableTest extends TestCase
 {

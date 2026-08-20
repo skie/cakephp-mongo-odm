@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for AddFields stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\AddFieldsTest
  */
 #[CoversClass(AddFields::class)]
 class AddFieldsTest extends TestCase

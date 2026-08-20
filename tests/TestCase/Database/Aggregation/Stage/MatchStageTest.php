@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for MatchStage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\MatchStageTest
  */
 #[CoversClass(MatchStage::class)]
 class MatchStageTest extends TestCase

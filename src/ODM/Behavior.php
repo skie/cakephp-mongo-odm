@@ -18,7 +18,7 @@ use ReflectionMethod;
  * collections. Method dispatch is explicit through {@see BehaviorRegistry};
  * this class intentionally does not provide a magic `__call()` bridge.
  *
- * @see cake60/src/ORM/Behavior.php
+ * @inspired-by \Cake\ORM\Behavior
  */
 abstract class Behavior implements EventListenerInterface
 {

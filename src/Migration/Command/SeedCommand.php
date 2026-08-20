@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Seed command runs seeders.
+ *
+ * @inspired-by \Migrations\Command\SeedCommand
  */
 class SeedCommand extends Command
 {

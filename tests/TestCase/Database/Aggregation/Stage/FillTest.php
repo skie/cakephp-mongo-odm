@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Fill aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\FillTest
  */
 #[CoversClass(Fill::class)]
 class FillTest extends TestCase

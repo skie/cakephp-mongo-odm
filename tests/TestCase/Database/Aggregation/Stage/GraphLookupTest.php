@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for GraphLookup aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\GraphLookupTest
  */
 #[CoversClass(GraphLookup::class)]
 class GraphLookupTest extends TestCase

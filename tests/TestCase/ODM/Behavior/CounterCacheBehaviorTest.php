@@ -18,6 +18,8 @@ use TestApp\Model\Collection\PublishedPostsCollection;
 
 /**
  * CounterCacheBehavior test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Behavior\CounterCacheBehaviorTest
  */
 #[CoversClass(CounterCacheBehavior::class)]
 class CounterCacheBehaviorTest extends TestCase

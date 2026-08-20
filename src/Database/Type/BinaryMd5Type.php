@@ -9,6 +9,8 @@ use MongoDB\BSON\Binary;
  * Binary MD5 type converter
  *
  * Use to convert MD5 binary data between PHP and MongoDB
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Types\BinDataMD5Type
  */
 class BinaryMd5Type extends BinaryType
 {

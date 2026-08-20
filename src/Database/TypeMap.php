@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Database;
 
 /**
  * Implements default and single-use mappings for columns to their associated types
+ *
+ * @ported-from \Cake\Database\TypeMap
  */
 class TypeMap
 {

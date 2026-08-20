@@ -7,6 +7,8 @@ namespace Crustum\Mongo\Database\Type;
  * Base type class
  *
  * Provides default implementations for TypeInterface
+ *
+ * @ported-from \Cake\Database\Type\BaseType
  */
 abstract class BaseType implements TypeInterface
 {

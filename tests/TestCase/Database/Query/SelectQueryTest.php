@@ -20,6 +20,8 @@ use Traversable;
  *
  * Adapted from cake60/tests/TestCase/Database/Query/SelectQueryTest.php for the
  * Mongo find/aggregate semantics.
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\Query\SelectQueryTest
  */
 #[CoversClass(SelectQuery::class)]
 class SelectQueryTest extends TestCase

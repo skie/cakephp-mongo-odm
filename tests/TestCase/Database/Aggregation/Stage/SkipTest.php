@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Skip stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\SkipTest
  */
 #[CoversClass(Skip::class)]
 class SkipTest extends TestCase

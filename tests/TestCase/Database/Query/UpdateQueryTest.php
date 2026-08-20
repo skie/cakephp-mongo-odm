@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake60/tests/TestCase/Database/Query/UpdateQueryTest.php for the
  * Mongo update operators (`$set`, `$unset`, `$inc`, `$push`, `$pull`, ...).
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\Query\UpdateQueryTest
  */
 #[CoversClass(UpdateQuery::class)]
 class UpdateQueryTest extends TestCase

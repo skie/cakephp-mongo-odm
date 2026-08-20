@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests HasOne class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Association\HasOneTest
  */
 #[CoversClass(HasOne::class)]
 class HasOneTest extends TestCase

@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for CollStats aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\CollStatsTest
  */
 #[CoversClass(CollStats::class)]
 class CollStatsTest extends TestCase

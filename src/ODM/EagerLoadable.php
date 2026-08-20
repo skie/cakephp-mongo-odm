@@ -9,7 +9,7 @@ namespace Crustum\Mongo\ODM;
  * Each node contains the association instance, loading configuration, and
  * the paths used when nesting the hydrated result.
  *
- * @see cake60/src/ORM/EagerLoadable.php
+ * @inspired-by \Cake\ORM\EagerLoadable
  */
 class EagerLoadable
 {

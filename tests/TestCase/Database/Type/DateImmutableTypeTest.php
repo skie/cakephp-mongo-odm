@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for DateImmutableType
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Types\DateImmutableTypeTest
  */
 #[CoversClass(DateImmutableType::class)]
 class DateImmutableTypeTest extends TestCase

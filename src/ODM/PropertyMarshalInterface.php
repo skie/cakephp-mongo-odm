@@ -9,7 +9,7 @@ namespace Crustum\Mongo\ODM;
  * This enables behaviors to define how the properties they provide/manage
  * should be marshaled.
  *
- * @see cake60/src/ORM/PropertyMarshalInterface.php
+ * @ported-from \Cake\ORM\PropertyMarshalInterface
  */
 interface PropertyMarshalInterface
 {

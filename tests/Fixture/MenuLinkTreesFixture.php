@@ -7,6 +7,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
 
 /**
  * Port of `Cake\Test\Fixture\MenuLinkTreesFixture` for the ODM test harness.
+ *
+ * @ported-from \Cake\Test\Fixture\MenuLinkTreesFixture
  */
 class MenuLinkTreesFixture extends TestFixture
 {

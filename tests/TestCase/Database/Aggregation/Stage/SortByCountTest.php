@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for SortByCount aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\SortByCountTest
  */
 #[CoversClass(SortByCount::class)]
 class SortByCountTest extends TestCase

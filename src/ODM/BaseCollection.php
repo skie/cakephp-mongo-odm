@@ -77,7 +77,7 @@ use function Cake\Core\namespaceSplit;
  * schema readers, document-class assertions) are placed next to their closest
  * cake analog and marked with "ODM extension".
  *
- * @see cake60/src/ORM/Table.php
+ * @ported-from \Cake\ORM\Table
  * @template TDocument of \Cake\Datasource\EntityInterface = \Cake\Datasource\EntityInterface
  */
 class BaseCollection implements RepositoryInterface, EventListenerInterface, EventDispatcherInterface, ValidatorAwareInterface

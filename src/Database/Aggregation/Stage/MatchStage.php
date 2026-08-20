@@ -11,7 +11,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * Filters documents to pass only those matching the given conditions to the
  * next stage.
  *
- * @see mongodb-odm Aggregation/Stage/MatchStage.php
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\MatchStage
  */
 class MatchStage extends Stage
 {

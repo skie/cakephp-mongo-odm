@@ -9,6 +9,8 @@ use MongoDB\BSON\Binary;
  * Binary custom (user-defined) type converter
  *
  * Use to convert user-defined custom binary data between PHP and MongoDB.
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Types\BinDataCustomType
  */
 class BinaryCustomType extends BinaryType
 {

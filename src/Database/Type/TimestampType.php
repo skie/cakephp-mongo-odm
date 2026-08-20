@@ -11,6 +11,8 @@ use MongoDB\BSON\Timestamp;
  * Timestamp type converter
  *
  * Use to convert Timestamp data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\TimestampType
  */
 class TimestampType extends BaseType
 {

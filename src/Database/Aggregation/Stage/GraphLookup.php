@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $graphLookup aggregation stage
  *
  * Performs recursive document traversal for hierarchical data
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\GraphLookup
  */
 class GraphLookup extends Stage
 {

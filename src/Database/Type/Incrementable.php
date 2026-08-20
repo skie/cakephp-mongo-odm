@@ -10,7 +10,7 @@ namespace Crustum\Mongo\Database\Type;
  * expressed as an atomic `$inc` operator instead of a full document rewrite
  * (used by the ODM's dirty-checking path).
  *
- * @see mongodb-odm Types/Incrementable.php
+ * @ported-from \Doctrine\ODM\MongoDB\Types\Incrementable
  */
 interface Incrementable
 {

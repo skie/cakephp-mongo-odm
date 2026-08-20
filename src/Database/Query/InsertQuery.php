@@ -10,7 +10,7 @@ use InvalidArgumentException;
  *
  * `execute()` returns the inserted identifiers as strings.
  *
- * @see cake50/src/Database/Query/InsertQuery.php
+ * @inspired-by \Cake\Database\Query\InsertQuery
  */
 class InsertQuery extends Query
 {

@@ -15,6 +15,8 @@ use Crustum\Mongo\Database\Expression\FunctionExpression;
  * `__call()`.
  *
  * Access it through `AggregationBuilder::func()` (mirrors `$query->func()`).
+ *
+ * @inspired-by \Cake\Database\FunctionsBuilder
  */
 class FunctionsBuilder
 {

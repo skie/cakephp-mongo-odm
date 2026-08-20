@@ -33,6 +33,8 @@ use Traversable;
  *
  * Adapted from cake50/tests/TestCase/Database/ConnectionTest.php for the Mongo
  * driver/run/schema-cache lifecycle.
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\ConnectionTest
  */
 #[CoversClass(Connection::class)]
 class ConnectionTest extends TestCase

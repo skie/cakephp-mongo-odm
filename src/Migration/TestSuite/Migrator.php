@@ -21,6 +21,8 @@ use Throwable;
 /**
  * Test-suite helper that runs migrations against the test connection and
  * truncates the resulting collections between tests.
+ *
+ * @ported-from \Migrations\TestSuite\Migrator
  */
 class Migrator
 {

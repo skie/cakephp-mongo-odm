@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for Unwind stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\UnwindTest
  */
 #[CoversClass(Unwind::class)]
 class UnwindTest extends TestCase

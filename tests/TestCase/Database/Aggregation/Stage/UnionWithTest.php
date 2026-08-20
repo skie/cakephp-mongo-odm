@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for UnionWith aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\UnionWithTest
  */
 #[CoversClass(UnionWith::class)]
 class UnionWithTest extends TestCase

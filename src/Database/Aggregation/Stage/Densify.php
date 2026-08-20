@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $densify aggregation stage
  *
  * Creates new documents in a sequence of documents where certain values are missing
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Densify
  */
 class Densify extends Stage
 {

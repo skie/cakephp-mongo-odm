@@ -28,6 +28,8 @@ use TestPluginTwo\Model\Collection\CommentsCollection as PluginTwoCommentsCollec
 
 /**
  * Test case for CollectionLocator
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Locator\TableLocatorTest
  */
 #[AllowMockObjectsWithoutExpectations]
 #[CoversClass(CollectionLocator::class)]

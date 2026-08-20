@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $skip aggregation stage
  *
  * Skips a specified number of documents and passes the remaining documents to the next stage
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Skip
  */
 class Skip extends Stage
 {

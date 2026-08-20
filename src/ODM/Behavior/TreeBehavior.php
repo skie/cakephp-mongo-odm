@@ -39,7 +39,7 @@ use Crustum\Mongo\ODM\Query\UpdateQuery;
  * - `cascadeCallbacks`: whether `beforeDelete` deletes descendants one-by-one
  *   (firing callbacks) instead of a bulk delete
  *
- * @see cake60/src/ORM/Behavior/TreeBehavior.php
+ * @inspired-by \Cake\ORM\Behavior\TreeBehavior
  */
 class TreeBehavior extends Behavior
 {

@@ -14,7 +14,7 @@ use Crustum\Mongo\ODM\Association;
  * document through the collection (firing events) instead of a bulk delete.
  *
  * @internal
- * @see cake60/src/ORM/Association/DependentDeleteHelper.php
+ * @ported-from \Cake\ORM\Association\DependentDeleteHelper
  */
 class DependentDeleteHelper
 {

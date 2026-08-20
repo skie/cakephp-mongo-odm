@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for ReplaceRoot stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\ReplaceRootTest
  */
 #[CoversClass(ReplaceRoot::class)]
 class ReplaceRootTest extends TestCase

@@ -32,7 +32,7 @@ use Traversable;
  * The database query remains responsible for MongoDB clauses. This layer
  * wraps its executed rows in Documents and applies ODM result formatters.
  *
- * @see cake60/src/ORM/Query/SelectQuery.php
+ * @inspired-by \Cake\ORM\Query\SelectQuery
  */
 class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, QueryInterface
 {

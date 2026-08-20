@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Bucket aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\BucketTest
  */
 #[CoversClass(Bucket::class)]
 class BucketTest extends TestCase

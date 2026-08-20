@@ -27,6 +27,8 @@ use function Cake\Core\namespaceSplit;
  *
  * If you want to bring all or certain languages for each of the fetched records,
  * you can use the custom `translations` finders that is exposed to the collection.
+ *
+ * @ported-from \Cake\ORM\Behavior\TranslateBehavior
  */
 class TranslateBehavior extends Behavior implements PropertyMarshalInterface
 {
@@ -257,8 +259,6 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
      * globally configured locale.
      * @return $this
      * @see \Crustum\Mongo\ODM\Behavior\TranslateBehavior::getLocale()
-     * @link https://book.cakephp.org/5/en/orm/behaviors/translate.html#retrieving-one-language-without-using-i18n-setlocale
-     * @link https://book.cakephp.org/5/en/orm/behaviors/translate.html#saving-in-another-language
      */
     public function setLocale(?string $locale): static
     {

@@ -8,7 +8,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 /**
  * Creates ODM queries bound to a repository.
  *
- * @see cake60/src/ORM/Query/QueryFactory.php
+ * @ported-from \Cake\ORM\Query\QueryFactory
  */
 class QueryFactory
 {

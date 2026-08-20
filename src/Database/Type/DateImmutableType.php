@@ -11,6 +11,8 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  *
  * Use to convert date data between PHP and MongoDB. `Cake\I18n\DateTime`
  * extends `DateTimeImmutable`, so all instances are immutable.
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\DateImmutableType
  */
 class DateImmutableType extends DateType
 {

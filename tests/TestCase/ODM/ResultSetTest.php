@@ -9,6 +9,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * ResultSet test case.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\ResultSetTest
  */
 #[CoversClass(ResultSet::class)]
 class ResultSetTest extends TestCase

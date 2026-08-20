@@ -26,6 +26,7 @@ use RuntimeException;
  * Used by console commands.
  *
  * @internal
+ * @inspired-by \Migrations\Migration\ManagerFactory
  */
 class ManagerFactory
 {

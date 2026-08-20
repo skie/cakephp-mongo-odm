@@ -9,6 +9,8 @@ namespace Crustum\Mongo\ODM;
 /**
  * Contains methods for parsing the associated collections array that is
  * typically passed to a save or marshalling operation.
+ *
+ * @ported-from \Cake\ORM\AssociationsNormalizerTrait
  */
 trait AssociationsNormalizerTrait
 {

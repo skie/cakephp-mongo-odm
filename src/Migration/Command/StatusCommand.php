@@ -19,6 +19,8 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 
 /**
  * Status command prints the migration status.
+ *
+ * @rewritten-from \Migrations\Command\StatusCommand
  */
 class StatusCommand extends Command
 {

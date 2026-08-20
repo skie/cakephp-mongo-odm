@@ -17,7 +17,7 @@ use InvalidArgumentException;
 /**
  * Represents a one-to-many relationship from the source document.
  *
- * @see cake60/src/ORM/Association/HasMany.php
+ * @inspired-by \Cake\ORM\Association\HasMany
  */
 class HasMany extends Association
 {

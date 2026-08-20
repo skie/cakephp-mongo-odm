@@ -9,6 +9,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Tests AssociationsNormalizerTrait.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\AssociationsNormalizerTraitTest
  */
 #[CoversClass(AssociationsNormalizerTrait::class)]
 class AssociationsNormalizerTraitTest extends TestCase

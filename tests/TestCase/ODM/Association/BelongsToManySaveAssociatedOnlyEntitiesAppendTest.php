@@ -12,6 +12,8 @@ use Mockery;
 
 /**
  * Tests BelongsToManySaveAssociatedOnlyEntitiesAppendTest class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Association\BelongsToManySaveAssociatedOnlyEntitiesAppendTest
  */
 class BelongsToManySaveAssociatedOnlyEntitiesAppendTest extends TestCase
 {

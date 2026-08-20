@@ -11,6 +11,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
  * The source fixture aliases the `articles` table via `$tableAlias`; crustum's
  * `TestFixture` has no alias property, so the alias resolves to the `articles`
  * collection directly.
+ *
+ * @ported-from \Cake\Test\Fixture\AliasedArticlesFixture
  */
 class AliasedArticlesFixture extends TestFixture
 {

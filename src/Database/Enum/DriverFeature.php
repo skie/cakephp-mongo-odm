@@ -8,6 +8,8 @@ namespace Crustum\Mongo\Database\Enum;
  *
  * Named without an `Enum` suffix per the Cake-6 convention (`Enum\` subnamespace
  * conveys it). Consumed via `DriverInterface::supports(DriverFeature $feature)`.
+ *
+ * @inspired-by \Cake\Database\Enum\DriverFeature
  */
 enum DriverFeature: string
 {

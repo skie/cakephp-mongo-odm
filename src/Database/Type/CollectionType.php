@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  * Collection type converter
  *
  * Use to convert collection (indexed array) data between PHP and MongoDB
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\CollectionType
  */
 class CollectionType extends BaseType
 {

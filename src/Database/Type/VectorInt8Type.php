@@ -11,7 +11,7 @@ use MongoDB\BSON\PackedArray;
  * Converts between a PHP array of ints and its packed int8 BSON
  * representation for vector search.
  *
- * @see mongodb-odm Types/VectorInt8Type.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\VectorInt8Type
  */
 class VectorInt8Type extends AbstractVectorType
 {

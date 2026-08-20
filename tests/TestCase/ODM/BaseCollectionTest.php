@@ -68,6 +68,8 @@ use TestPlugin\Model\Collection\CommentsCollection;
 
 /**
  * Tests BaseCollection class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\TableTest
  */
 #[AllowMockObjectsWithoutExpectations]
 #[CoversClass(BaseCollection::class)]

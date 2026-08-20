@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $sample aggregation stage
  *
  * Randomly selects the specified number of documents
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Sample
  */
 class Sample extends Stage
 {

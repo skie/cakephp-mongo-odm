@@ -15,6 +15,8 @@ use RuntimeException;
 /**
  * Thrown when a `change()` migration records a command that cannot be
  * reversed automatically for the `down` direction.
+ *
+ * @ported-from \Migrations\Migration\IrreversibleMigrationException
  */
 class IrreversibleMigrationException extends RuntimeException
 {

@@ -13,7 +13,7 @@ use InvalidArgumentException;
  *
  * `execute()` returns the number of modified documents.
  *
- * @see cake50/src/Database/Query/UpdateQuery.php
+ * @rewritten-from \Cake\Database\Query\UpdateQuery
  */
 class UpdateQuery extends Query
 {

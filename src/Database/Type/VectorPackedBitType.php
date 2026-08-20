@@ -11,7 +11,7 @@ use MongoDB\BSON\Binary;
  * Converts between a PHP array of 0/1 bits and a packed-byte `Binary` payload
  * for bit-level vector search encodings.
  *
- * @see mongodb-odm Types/VectorPackedBitType.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Types\VectorPackedBitType
  */
 class VectorPackedBitType extends AbstractVectorType
 {

@@ -17,7 +17,7 @@ use MongoDB\BSON\PackedArray;
  * stored either as a `PackedArray` (float32/int8 encoding) or, for packed-bit
  * vectors, as a `Binary` of packed bytes.
  *
- * @see mongodb-odm Types/AbstractVectorType.php
+ * @rewritten-from \Doctrine\ODM\MongoDB\Types\AbstractVectorType
  */
 abstract class AbstractVectorType extends BaseType
 {

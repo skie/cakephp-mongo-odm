@@ -20,6 +20,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for AggregationBuilder
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\BuilderTest
  */
 #[CoversClass(AggregationBuilder::class)]
 class AggregationBuilderTest extends TestCase

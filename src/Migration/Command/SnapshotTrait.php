@@ -20,6 +20,8 @@ use Cake\Console\ConsoleIo;
  * bake-task `createFile()` hook; our bake commands write files directly, so the
  * commands call `markSnapshotApplied()` / `refreshDump()` explicitly after a
  * successful write.
+ *
+ * @inspired-by \Migrations\Command\SnapshotTrait
  */
 trait SnapshotTrait
 {

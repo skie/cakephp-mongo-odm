@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for SetWindowFields aggregation stage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\SetWindowFieldsTest
  */
 #[CoversClass(SetWindowFields::class)]
 class SetWindowFieldsTest extends TestCase

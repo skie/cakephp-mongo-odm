@@ -12,6 +12,8 @@ use InvalidArgumentException;
  * $lookup aggregation stage
  *
  * Performs a left outer join to another collection
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Lookup
  */
 class Lookup extends Stage
 {

@@ -21,7 +21,7 @@ use RuntimeException;
  * identifiers remain in the canonical `_id` property.
  *
  * @template TDocument of \Cake\Datasource\EntityInterface
- * @see cake60/src/ORM/Marshaller.php
+ * @inspired-by \Cake\ORM\Marshaller
  */
 class Marshaller
 {

@@ -17,7 +17,7 @@ use InvalidArgumentException;
  *
  * Values passed to `set()` are converted through the repository schema type map.
  *
- * @see cake60/src/ORM/Query/UpdateQuery.php
+ * @rewritten-from \Cake\ORM\Query\UpdateQuery
  */
 class UpdateQuery extends DatabaseUpdateQuery
 {

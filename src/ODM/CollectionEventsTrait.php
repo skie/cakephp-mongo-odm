@@ -17,6 +17,8 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 
 /**
  * Provides model callbacks.
+ *
+ * @ported-from \Cake\ORM\TableEventsTrait
  */
 trait CollectionEventsTrait
 {

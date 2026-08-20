@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $search aggregation stage
  *
  * Performs full-text search using Atlas Search
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Search
  */
 class Search extends Stage
 {

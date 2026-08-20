@@ -6,7 +6,7 @@ namespace Crustum\Mongo\ODM\Query;
 /**
  * Select query variant that always returns unhydrated rows.
  *
- * @see cake60/src/ORM/Query/UnhydratedSelectQuery.php
+ * @ported-from \Cake\ORM\Query\UnhydratedSelectQuery
  */
 class UnhydratedSelectQuery extends SelectQuery
 {

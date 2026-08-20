@@ -15,6 +15,8 @@ use UnexpectedValueException;
 
 /**
  * LocatorAwareTrait test case
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Locator\LocatorAwareTraitTest
  */
 #[CoversClass(LocatorAwareTrait::class)]
 class LocatorAwareTraitTest extends TestCase

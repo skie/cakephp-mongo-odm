@@ -26,6 +26,8 @@ use RuntimeException;
  * ```
  * bin/cake bake mongo_seed Users
  * ```
+ *
+ * @rewritten-from \Migrations\Command\BakeSeedCommand
  */
 class BakeSeedCommand extends Command
 {

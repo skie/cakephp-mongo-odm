@@ -18,7 +18,7 @@ use Crustum\Mongo\ODM\Rule\ValidCount;
  *
  * Adds MongoDB-specific integrity rules to the datasource rules checker.
  *
- * @see cake60/src/ORM/RulesChecker.php
+ * @inspired-by \Cake\ORM\RulesChecker
  */
 class RulesChecker extends BaseRulesChecker
 {

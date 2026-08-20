@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $redact aggregation stage
  *
  * Conditionally excludes or includes fields at all document levels
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Redact
  */
 class Redact extends Stage
 {

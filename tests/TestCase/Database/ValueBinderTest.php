@@ -13,6 +13,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  * Adapted from cake50/tests/TestCase/Database/ValueBinderTest.php for the
  * Mongo-specific binding shape (no positional `?` placeholders, no `placeholder`
  * metadata key).
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\ValueBinderTest
  */
 #[CoversClass(ValueBinder::class)]
 class ValueBinderTest extends TestCase

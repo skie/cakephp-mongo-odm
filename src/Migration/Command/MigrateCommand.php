@@ -23,6 +23,8 @@ use Throwable;
 
 /**
  * Migrate command runs migrations.
+ *
+ * @ported-from \Migrations\Command\MigrateCommand
  */
 class MigrateCommand extends Command
 {

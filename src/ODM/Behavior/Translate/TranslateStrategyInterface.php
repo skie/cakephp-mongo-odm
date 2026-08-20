@@ -14,6 +14,8 @@ use Crustum\Mongo\ODM\Query\SelectQuery;
 
 /**
  * This interface describes the methods for translate behavior strategies.
+ *
+ * @ported-from \Cake\ORM\Behavior\Translate\TranslateStrategyInterface
  */
 interface TranslateStrategyInterface extends PropertyMarshalInterface
 {

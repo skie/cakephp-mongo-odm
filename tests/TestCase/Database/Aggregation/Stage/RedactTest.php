@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Redact aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\RedactTest
  */
 #[CoversClass(Redact::class)]
 class RedactTest extends TestCase

@@ -16,6 +16,8 @@ use Crustum\Mongo\Migration\Migration\BuiltinBackend;
 /**
  * The Migrations class is responsible for handling migration operations
  * within a non-shell application.
+ *
+ * @ported-from \Migrations\Migrations
  */
 class Migrations
 {

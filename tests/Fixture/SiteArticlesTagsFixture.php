@@ -7,6 +7,8 @@ use Crustum\Mongo\TestSuite\TestFixture;
 
 /**
  * Port of `Cake\Test\Fixture\SiteArticlesTagsFixture` for the ODM test harness.
+ *
+ * @inspired-by \Cake\Test\Fixture\SiteArticlesTagsFixture
  */
 class SiteArticlesTagsFixture extends TestFixture
 {

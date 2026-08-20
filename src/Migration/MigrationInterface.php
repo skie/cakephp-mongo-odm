@@ -21,6 +21,8 @@ use Crustum\Mongo\Migration\Db\Collection;
  * Implements the same methods as cakephp/migrations but the SQL query
  * builders are replaced by Mongo-native operations (collections, indexes,
  * validators) executed through the adapter.
+ *
+ * @inspired-by \Migrations\MigrationInterface
  */
 interface MigrationInterface
 {

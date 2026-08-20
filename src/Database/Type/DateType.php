@@ -16,7 +16,7 @@ use MongoDB\BSON\UTCDateTime;
  *
  * Use to convert date data between PHP and MongoDB.
  *
- * @see cake60/src/Database/Type/DateType.php
+ * @inspired-by \Cake\Database\Type\DateType
  */
 class DateType extends BaseType implements BatchCastingInterface
 {

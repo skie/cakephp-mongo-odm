@@ -37,7 +37,7 @@ use function Cake\Core\namespaceSplit;
  * - `validator` The validator to use, or the name of the validation method to
  *   call on the collection. Defaults to `default`.
  *
- * @see cake60/src/View/Form/EntityContext.php
+ * @ported-from \Cake\View\Form\EntityContext
  */
 class DocumentContext implements ContextInterface
 {

@@ -9,7 +9,7 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  * Denotes type objects capable of converting many values from their original
  * database representation to PHP values.
  *
- * @see cake60/src/Database/Type/BatchCastingInterface.php
+ * @ported-from \Cake\Database\Type\BatchCastingInterface
  */
 interface BatchCastingInterface
 {

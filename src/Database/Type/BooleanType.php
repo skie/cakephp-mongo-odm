@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  * Boolean type converter
  *
  * Use to convert boolean data between PHP and MongoDB
+ *
+ * @inspired-by \Cake\Database\Type\BoolType
  */
 class BooleanType extends BaseType
 {

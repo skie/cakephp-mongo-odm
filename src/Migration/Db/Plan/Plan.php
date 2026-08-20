@@ -21,6 +21,8 @@ use Crustum\Mongo\Migration\Db\Adapter\AdapterInterface;
  * no "add column" DDL — fields are `$jsonSchema` validator properties — so
  * `AddField`/`RemoveField` actions are folded into a `setValidator` call built
  * from the declared fields (merged with the live validator for updates).
+ *
+ * @rewritten-from \Migrations\Db\Plan\Plan
  */
 class Plan
 {

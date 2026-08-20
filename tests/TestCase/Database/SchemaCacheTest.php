@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for SchemaCache
+ *
+ * @ported-from \Cake\Test\TestCase\Database\SchemaCacheTest
  */
 #[CoversClass(SchemaCache::class)]
 class SchemaCacheTest extends TestCase

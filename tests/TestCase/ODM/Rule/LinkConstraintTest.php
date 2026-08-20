@@ -23,6 +23,8 @@ use TestApp\Model\Collection\ArticlesCollection;
 
 /**
  * Tests the LinkConstraint rule.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Rule\LinkConstraintTest
  */
 #[AllowMockObjectsWithoutExpectations]
 #[CoversClass(LinkConstraint::class)]

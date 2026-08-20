@@ -25,6 +25,8 @@ use Throwable;
  * ```
  * bin/cake bake mongofixture Articles
  * ```
+ *
+ * @rewritten-from \Bake\Command\FixtureCommand
  */
 class MongoFixtureCommand extends BakeCommand
 {

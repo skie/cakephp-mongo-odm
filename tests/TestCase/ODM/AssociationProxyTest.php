@@ -10,6 +10,8 @@ use Mockery;
 /**
  * Tests the features related to proxying methods from the Association
  * class to the BaseCollection class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\AssociationProxyTest
  */
 class AssociationProxyTest extends TestCase
 {

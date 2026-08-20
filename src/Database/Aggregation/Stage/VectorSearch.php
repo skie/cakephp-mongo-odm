@@ -12,7 +12,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * Vector Search. The `queryVector` is typically the packed binary or float32
  * representation of the embedding.
  *
- * @see mongodb-odm Aggregation/Stage/VectorSearch.php
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\VectorSearch
  */
 class VectorSearch extends Stage
 {

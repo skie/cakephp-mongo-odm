@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $out aggregation stage
  *
  * Writes the results of the aggregation pipeline to a collection
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Aggregation\Stage\Out
  */
 class Out extends Stage
 {

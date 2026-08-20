@@ -25,6 +25,8 @@ use function Cake\I18n\__;
 
 /**
  * Tests HasMany class
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\Association\HasManyTest
  */
 #[CoversClass(HasMany::class)]
 class HasManyTest extends TestCase

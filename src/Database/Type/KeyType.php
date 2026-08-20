@@ -11,7 +11,7 @@ namespace Crustum\Mongo\Database\Type;
  * `KeyType`; conversion is identical to `HashType` (array ⇄ `stdClass`) since
  * BSON documents are the native map representation.
  *
- * @see mongodb-odm Types/KeyType.php
+ * @rewritten-from \Doctrine\ODM\MongoDB\Types\KeyType
  */
 class KeyType extends HashType
 {

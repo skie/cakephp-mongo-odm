@@ -47,6 +47,8 @@ use function Cake\Core\pluginSplit;
  * bin/cake bake mongo_model Articles --no-entity
  * bin/cake bake mongo_model --no-associations Articles
  * ```
+ *
+ * @inspired-by \Bake\Command\ModelCommand
  */
 class MongoModelCommand extends BakeCommand
 {

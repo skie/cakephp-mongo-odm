@@ -14,7 +14,7 @@ use MongoDB\Operation\FindOneAndUpdate;
  * document defaults to `$key` (typically the target collection name), the
  * counter value lives in `$counterField`.
  *
- * @see mongodb-odm Id/IncrementGenerator.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Id\IncrementGenerator
  */
 class IncrementGenerator implements IdGeneratorInterface
 {

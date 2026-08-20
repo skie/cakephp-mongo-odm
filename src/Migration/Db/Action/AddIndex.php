@@ -5,6 +5,8 @@ namespace Crustum\Mongo\Migration\Db\Action;
 
 /**
  * Creates an index on a collection.
+ *
+ * @inspired-by \Migrations\Db\Action\AddIndex
  */
 class AddIndex extends Action
 {

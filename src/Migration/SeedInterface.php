@@ -17,6 +17,8 @@ use MongoDB\Collection;
 
 /**
  * Seed interface.
+ *
+ * @ported-from \Migrations\SeedInterface
  */
 interface SeedInterface
 {

@@ -23,6 +23,8 @@ use RuntimeException;
  *
  * Executes migrations and seeds against an adapter, handling transactions and
  * the `change()`/`up()`/`down()` dispatch.
+ *
+ * @ported-from \Migrations\Migration\Environment
  */
 class Environment
 {

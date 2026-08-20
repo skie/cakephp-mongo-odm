@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Tests for RawStage
+ *
+ * @rewritten-from \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\OperatorTest
  */
 #[CoversClass(RawStage::class)]
 class RawStageTest extends TestCase

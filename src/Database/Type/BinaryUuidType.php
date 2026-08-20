@@ -9,6 +9,8 @@ use MongoDB\BSON\Binary;
  * Binary UUID type converter
  *
  * Use to convert UUID binary data between PHP and MongoDB
+ *
+ * @ported-from \Doctrine\ODM\MongoDB\Types\BinDataUUIDType
  */
 class BinaryUuidType extends BinaryType
 {

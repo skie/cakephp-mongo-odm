@@ -22,6 +22,8 @@ use RuntimeException;
  *
  * Provides base functionality for seeds to extend. Data operations go through
  * the Mongo collection API instead of SQL statements.
+ *
+ * @ported-from \Migrations\BaseSeed
  */
 class BaseSeed implements SeedInterface
 {

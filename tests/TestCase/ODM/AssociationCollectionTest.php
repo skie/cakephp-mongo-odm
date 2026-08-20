@@ -19,6 +19,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * AssociationCollection test case.
+ *
+ * @ported-from \Cake\Test\TestCase\ORM\AssociationCollectionTest
  */
 #[CoversClass(AssociationCollection::class)]
 class AssociationCollectionTest extends TestCase

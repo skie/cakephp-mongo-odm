@@ -11,6 +11,8 @@ use MongoDB\BSON\ObjectId;
  * Adapted from cake50/tests/TestCase/Database/QueryAssertsTrait.php. SQL string
  * assertions are replaced with structural assertions against the compiled
  * Mongo query array (`['type' => ..., 'filter' => ..., 'options' => ...]`).
+ *
+ * @rewritten-from \Cake\Test\TestCase\Database\QueryAssertsTrait
  */
 trait QueryAssertsTrait
 {

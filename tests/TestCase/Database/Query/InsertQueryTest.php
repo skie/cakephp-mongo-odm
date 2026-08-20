@@ -17,6 +17,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake60/tests/TestCase/Database/Query/InsertQueryTest.php for the
  * Mongo insertOne/insertMany semantics.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Query\InsertQueryTest
  */
 #[CoversClass(InsertQuery::class)]
 class InsertQueryTest extends TestCase

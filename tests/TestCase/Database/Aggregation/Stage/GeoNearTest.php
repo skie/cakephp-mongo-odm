@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for GeoNear aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\GeoNearTest
  */
 #[CoversClass(GeoNear::class)]
 class GeoNearTest extends TestCase

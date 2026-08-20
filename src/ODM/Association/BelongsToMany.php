@@ -32,7 +32,7 @@ use Throwable;
  * stored as an `_ids` array on the source document, which is the idiomatic
  * MongoDB shape. A join collection is supported for lookup pipelines.
  *
- * @see cake60/src/ORM/Association/BelongsToMany.php
+ * @inspired-by \Cake\ORM\Association\BelongsToMany
  */
 class BelongsToMany extends Association
 {

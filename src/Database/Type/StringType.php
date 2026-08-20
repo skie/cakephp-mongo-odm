@@ -11,6 +11,8 @@ use Stringable;
  * String type converter
  *
  * Use to convert string data between PHP and MongoDB
+ *
+ * @ported-from \Cake\Database\Type\StringType
  */
 class StringType extends BaseType
 {

@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $replaceWith aggregation stage
  *
  * Alias for $replaceRoot - replaces the input document with the specified document
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\ReplaceWith
  */
 class ReplaceWith extends Stage
 {

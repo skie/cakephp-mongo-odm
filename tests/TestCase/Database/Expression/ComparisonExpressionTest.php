@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake50/tests/TestCase/Database/Expression/ComparisonExpressionTest.php
  * for the Mongo operator mapping.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Expression\ComparisonExpressionTest
  */
 #[CoversClass(ComparisonExpression::class)]
 class ComparisonExpressionTest extends TestCase

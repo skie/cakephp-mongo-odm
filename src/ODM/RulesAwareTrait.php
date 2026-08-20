@@ -13,7 +13,7 @@ use Cake\Event\EventDispatcherInterface;
  * Migrated from Cake core `Cake\Datasource\RulesAwareTrait`; the model events
  * use the `Collection.*` prefix instead of `Model.*`.
  *
- * @see cake60/src/Datasource/RulesAwareTrait.php
+  * @ported-from \Cake\Datasource\RulesAwareTrait
  */
 trait RulesAwareTrait
 {

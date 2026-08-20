@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Test case for Densify aggregation stage
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Tests\Aggregation\Stage\DensifyTest
  */
 #[CoversClass(Densify::class)]
 class DensifyTest extends TestCase

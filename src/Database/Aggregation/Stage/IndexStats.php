@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $indexStats aggregation stage
  *
  * Returns statistics regarding the use of each index for a collection
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\IndexStats
  */
 class IndexStats extends Stage
 {

@@ -11,7 +11,7 @@ use Crustum\Mongo\ODM\Association;
 /**
  * Checks that referenced MongoDB documents exist.
  *
- * @see cake60/src/ORM/Rule/ExistsIn.php
+ * @ported-from \Cake\ORM\Rule\ExistsIn
  */
 class ExistsIn
 {

@@ -15,6 +15,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
  *
  * Adapted from cake50/tests/TestCase/Database/Expression/BetweenExpressionTest.php
  * for the Mongo `$gte` / `$lte` range compilation.
+ *
+ * @inspired-by \Cake\Test\TestCase\Database\Expression\BetweenExpressionTest
  */
 #[CoversClass(BetweenExpression::class)]
 class BetweenExpressionTest extends TestCase

@@ -29,6 +29,8 @@ use RuntimeException;
  *
  * The generated migration captures every collection (validator + indexes) so
  * it can be applied to an empty database to reproduce the current state.
+ *
+ * @inspired-by \Migrations\Command\BakeMigrationSnapshotCommand
  */
 class BakeMigrationSnapshotCommand extends Command
 {

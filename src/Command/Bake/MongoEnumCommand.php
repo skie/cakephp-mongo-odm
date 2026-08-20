@@ -25,6 +25,8 @@ use InvalidArgumentException;
  * bin/cake bake mongo_enum ArticleStatus draft,published,archived
  * bin/cake bake mongo_enum Priority low:0,medium:1,high:2 --int
  * ```
+ *
+ * @ported-from \Bake\Command\EnumCommand
  */
 class MongoEnumCommand extends SimpleBakeCommand
 {

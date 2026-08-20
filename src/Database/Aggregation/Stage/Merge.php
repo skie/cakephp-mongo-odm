@@ -9,6 +9,8 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * $merge aggregation stage
  *
  * Writes the results of the aggregation pipeline to a collection
+ *
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Merge
  */
 class Merge extends Stage
 {

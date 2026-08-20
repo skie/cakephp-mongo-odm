@@ -23,7 +23,7 @@ use MongoDB\Model\BSONDocument;
  * `_id` field is the canonical primary key; `getId()`/`setId()` are thin
  * sugar over it. There is no `id` alias field.
  *
- * @see cake60/src/Datasource/EntityTrait.php
+ * @rewritten-from \Cake\ORM\Entity
  * @implements \ArrayAccess<string, mixed>
  */
 class Document implements EntityInterface, InvalidPropertyInterface, ArrayAccess

@@ -11,7 +11,7 @@ namespace Crustum\Mongo\Database\Type;
  * generation (via `BaseCollection::newId()`) without polluting the generic
  * integer converter with id-generation responsibilities.
  *
- * @see mongodb-odm Types/IntType.php (id semantics)
+ * @rewritten-from \Doctrine\ODM\MongoDB\Types\IntType
  */
 class AutoIncrementType extends IntegerType
 {

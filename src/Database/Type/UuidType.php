@@ -12,6 +12,8 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
  * Use to convert string-form UUIDs between PHP and MongoDB. Mirrors
  * `Cake\Database\Type\UuidType`; the binary form is handled by
  * `BinaryUuidType`.
+ *
+ * @ported-from \Cake\Database\Type\UuidType
  */
 class UuidType extends StringType
 {

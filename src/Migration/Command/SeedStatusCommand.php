@@ -20,6 +20,8 @@ use Crustum\Mongo\Migration\Util\Util;
 
 /**
  * Seed status command shows which seeds have been executed.
+ *
+ * @ported-from \Migrations\Command\SeedStatusCommand
  */
 class SeedStatusCommand extends Command
 {

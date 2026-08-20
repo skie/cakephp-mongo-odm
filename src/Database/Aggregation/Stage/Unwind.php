@@ -11,7 +11,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
  * Deconstructs an array field from the input documents to output one document
  * per element.
  *
- * @see mongodb-odm Aggregation/Stage/Unwind.php
+ * @inspired-by \Doctrine\ODM\MongoDB\Aggregation\Stage\Unwind
  */
 class Unwind extends Stage
 {

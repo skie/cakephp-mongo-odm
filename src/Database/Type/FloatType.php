@@ -13,6 +13,8 @@ use InvalidArgumentException;
  *
  * Implements `Incrementable` so float fields can be diffed into `$inc`
  * updates.
+ *
+ * @inspired-by \Cake\Database\Type\FloatType
  */
 class FloatType extends BaseType implements Incrementable
 {
