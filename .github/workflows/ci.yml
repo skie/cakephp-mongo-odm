@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'main'
-      - '1.x'
+      - '5.x'
   pull_request:
     branches:
       - '*'
@@ -29,6 +29,17 @@ jobs:
           - php-version: '8.5'
             dependencies: highest
 
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -36,7 +47,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-version }}
-        extensions: mbstring, intl
+        extensions: mbstring, intl, mongodb, sqlite
         coverage: pcov
         ini-values: apc.enable_cli = 1, zend.assertions = 1, pcov.directory = src
 
@@ -54,8 +65,23 @@ jobs:
           composer install --prefer-dist --no-progress
         fi
 
+    - name: Wait for MongoDB to be ready
+      run: |
+        for i in {1..10}; do
+          if mongosh --eval 'db.runCommand("ping").ok' --quiet; then
+            echo "MongoDB is ready"
+            exit 0
+          fi
+          echo "Waiting for MongoDB..."
+          sleep 3
+        done
+        echo "MongoDB did not become ready in time"
+        exit 1
+
     - name: Run PHPUnit
       run: vendor/bin/phpunit --configuration=phpunit.xml.dist
+      env:
+        TEST_MONGO_HOST: localhost
 
   cs-stan:
     name: Coding Standard & Static Analysis

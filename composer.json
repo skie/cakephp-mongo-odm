@@ -1,6 +1,6 @@
 {
-    "name": "crustum/mongo",
-    "description": "Mongo plugin for CakePHP",
+    "name": "crustum/cakephp-mongo-odm",
+    "description": "Mongo ODM layer for CakePHP",
     "type": "cakephp-plugin",
     "license": "MIT",
     "keywords": [
