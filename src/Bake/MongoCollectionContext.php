@@ -284,7 +284,9 @@ class MongoCollectionContext
             $rules['decimal'] = ['rule' => 'decimal', 'args' => []];
         } elseif ($type === 'boolean') {
             $rules['boolean'] = ['rule' => 'boolean', 'args' => []];
-        } elseif (in_array($type, ['date', 'datetime', 'timestamp'], true)) {
+        } elseif ($type === 'date') {
+            $rules['date'] = ['rule' => 'date', 'provider' => 'mongo', 'args' => []];
+        } elseif ($type === 'datetime' || $type === 'timestamp') {
             $rules['dateTime'] = ['rule' => 'dateTime', 'args' => []];
         } elseif ($type === 'string' || $type === 'text') {
             $rules['scalar'] = ['rule' => 'scalar', 'args' => []];

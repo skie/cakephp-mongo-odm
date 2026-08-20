@@ -788,17 +788,20 @@ class CollectionSchema implements CollectionSchemaInterface
      */
     public function isNullable(string $name): bool
     {
-        if (isset($this->fields[$name])) {
-            $null = $this->fields[$name]->getNull();
-
-            return $null === true;
-        }
-
-        $property = $this->resolvePropertyPath($name);
-        if ($property !== null && isset($property['bsonType'])) {
-            $types = is_array($property['bsonType']) ? $property['bsonType'] : [$property['bsonType']];
+        // A field is nullable when the validator's own definition allows `null`
+        // (bsonType `['type', 'null']`) — i.e. the migration/schema declared it
+        // nullable. Falling back to the field's explicit null flag.
+        $properties = $this->validator()->getProperties();
+        if (isset($properties[$name]['bsonType'])) {
+            $types = is_array($properties[$name]['bsonType'])
+                ? $properties[$name]['bsonType']
+                : [$properties[$name]['bsonType']];
 
             return in_array('null', $types, true);
+        }
+
+        if (isset($this->fields[$name])) {
+            return $this->fields[$name]->getNull() === true;
         }
 
         return false;

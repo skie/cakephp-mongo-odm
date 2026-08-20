@@ -24,7 +24,6 @@ use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
 use SplObjectStorage;
 use Throwable;
-use Traversable;
 
 /**
  * Represents a many-to-many relationship.

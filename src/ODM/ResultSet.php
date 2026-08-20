@@ -363,7 +363,7 @@ class ResultSet extends IteratorIterator implements ResultSetInterface
             } elseif (is_string($value) && str_starts_with($value, '$')) {
                 $keep[] = (string)$key;
             } elseif (is_string($value) && !str_starts_with($value, '$')) {
-                $keep[] = is_string($key) ? (string)$key : $value;
+                $keep[] = is_string($key) ? $key : $value;
             }
         }
 

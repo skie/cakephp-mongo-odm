@@ -215,8 +215,13 @@ class Plan
         }
 
         foreach ($this->fields[$collection] ?? [] as $field) {
-            $definition = ['bsonType' => $this->bsonType($field->getType())];
+            $bsonType = $this->bsonType($field->getType());
             $options = $field->getOptions();
+            if (($options['null'] ?? false) === true) {
+                $bsonType = [$bsonType, 'null'];
+            }
+
+            $definition = ['bsonType' => $bsonType];
 
             // Nested shape: `items` (array of objects → embedMany) and
             // `properties` (object → embedOne) are carried through verbatim so
@@ -314,7 +319,7 @@ class Plan
             'float' => 'double',
             'decimal128' => 'decimal',
             'boolean', 'bool' => 'bool',
-            'date', 'datetime' => 'date',
+            'date', 'datetime', 'time' => 'date',
             'timestamp' => 'timestamp',
             'binary' => 'binData',
             'hash', 'object' => 'object',

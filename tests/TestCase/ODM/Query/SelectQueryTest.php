@@ -3643,6 +3643,7 @@ class SelectQueryTest extends TestCase
         foreach ($results as $row) {
             $this->assertIsString($row['article_title']);
         }
+
         $this->assertSame(
             ['First Article', 'Third Article', 'Second Article'],
             array_column($results, 'article_title'),

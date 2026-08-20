@@ -1,0 +1,135 @@
+---
+name: writing-migrations
+description: "Crustum Mongo migrations: BaseMigration / collection() DSL (addColumn/addIndex/setValidator), Mongo field types (objectid/int64/decimal128/date), bake mongo_migration column grammar, change()/up()/down() reversibility, snapshot/diff/dump, journal (cake_migrations) and seed (_seeds) tracking. Activates when writing, baking, running, or reviewing Mongo migrations."
+license: MIT
+metadata:
+  author: crustum
+---
+# Crustum Mongo Migrations
+
+## Documentation First
+
+Prefer the migrations docs (`docs/ODM/migrations/**`) — especially [Creating
+Migrations](docs/ODM/migrations/getting-started/creating-migrations), [Writing
+Migrations](docs/ODM/migrations/guides/writing-migrations), and [Snapshots and
+Diffs](docs/ODM/migrations/getting-started/snapshots-and-diffs) — as the full
+reference. This skill is the fast orientation. Use the `bake-development` skill
+for `bake mongo_model` / `bake document` etc.
+
+## Command Names (Mongo, not cake)
+
+```bash
+{{ assist.cakeCommand('mongo migrations migrate') }}
+{{ assist.cakeCommand('mongo migrations rollback') }}
+{{ assist.cakeCommand('mongo migrations status') }}
+{{ assist.cakeCommand('mongo migrations mark_migrated') }}
+{{ assist.cakeCommand('mongo migrations reset') }}
+{{ assist.cakeCommand('mongo schema dump') }}
+{{ assist.cakeCommand('bake mongo_migration CreateProducts') }}
+{{ assist.cakeCommand('bake mongo_migration_diff Name') }}
+{{ assist.cakeCommand('bake mongo_migration_snapshot Initial') }}
+{{ assist.cakeCommand('bake mongo_seed Users') }}
+```
+
+There is no `bin/cake migrations ...` or `bake migration` here — the commands
+are namespaced `mongo` / `mongo_*`. Migration files live in `config/MongoMigrations/`
+(`YYYYMMDDHHMMSS_Name.php`), seeds in `config/MongoSeeds/`.
+
+## Migration Class
+
+Extend `Crustum\Mongo\Migration\BaseMigration`. Prefer `change()` for
+reversible migrations; use `up()`/`down()` for irreversible steps.
+
+```php
+<?php
+declare(strict_types=1);
+
+use Crustum\Mongo\Migration\BaseMigration;
+
+class CreateProducts extends BaseMigration
+{
+    public function change(): void
+    {
+        $collection = $this->collection('products');
+        $collection->addColumn('name', 'string', ['length' => 255]);
+        $collection->addColumn('user_id', 'objectid');
+        $collection->addColumn('price', 'decimal128');
+        $collection->addColumn('created', 'date');
+        $collection->addColumn('modified', 'date');
+        $collection->addIndex(['slug' => 1], ['unique' => true]);
+        $collection->create();
+    }
+}
+```
+
+### Collection builder (`Db\Collection`)
+
+- Terminators: `create()` (new collection), `update()` (existing), `drop()` →
+  `create()` (drop a collection).
+- Fields: `addColumn()` / `addField()` (alias), `removeField()`, `hasField()`.
+- Indexes: `addIndex(['field' => 1], ['unique' => true])`, `removeIndex($name)`.
+  Keys are Mongo key maps (`['field' => 1]`), not cake arrays.
+- Validator: `setValidator(['$jsonSchema' => [...]])` (fields/constraints on a
+  collection are expressed via the `$jsonSchema` validator, not SQL DDL).
+- BaseMigration helpers: `collection()`, `hasCollection()`, `listCollections()`,
+  `createCollection()`, `dropCollection()`, `renameCollection()`, `index()`,
+  `uniqueIndex()`, `dropIndex()`, `setValidator()`.
+
+## Field Types (Mongo canonical)
+
+`objectid` (any `*_id`/`id`), `string`, `text`, `integer`, `int64`,
+`decimal128`, `boolean`, `date`, `timestamp`, `binary`, `uuid`, `hash`, `array`,
+`collection`, `raw`. `created`/`modified`/`updated` infer to `date` (not
+`datetime`). There is no SQL `varchar`/`int(11)`; use the Mongo spellings.
+
+## Bake Column Grammar
+
+`fieldName:fieldType?[length]:default[value]:unique`
+
+- `?` = nullable; `[length]` = length or `[precision,scale]` for decimals;
+- `default[value]` = default (bool/int/float/string/null);
+- `:unique` = unique index.
+- Inferred: `*_id`→`objectid`, `created/modified/updated`→`date`,
+  `lat/lng/latitude/longitude`→`decimal128`, else `string`.
+
+Name prefixes drive generated code: `Create*`, `Drop*`, `Add*To*`,
+`Remove*From*`, `Alter*On*`, `Alter*`. `Add*To*` / `Alter*On*` emit
+`addColumn(...)->update()`; there is **no** `changeColumn` (alter = re-add the
+field + `update()`). `Remove*From*` emits `removeField()` (irreversible → use
+`up()`/`down()`).
+
+## Reversibility
+
+`change()` is reversed automatically via a `RecordingAdapter` that inverts the
+recorded actions. `removeField()` is not reversible — put it in `up()` and add a
+matching `addColumn()` in `down()`. Anonymous migration classes are **not**
+supported (named classes only).
+
+## Snapshot / Diff / Dump
+
+- `bake mongo_migration_snapshot Initial` — snapshot current DB into a
+  migration; auto-marks migrated unless `--generate-only`.
+- `bake mongo_migration_diff Name` — diff live schema vs dump file → migration.
+- `mongo schema dump` — writes `config/MongoMigrations/schema-dump-mongo.lock`.
+  Diff cannot detect field renames.
+- Common options: `-p/--plugin`, `-c/--connection`, `-s/--source`;
+  `--generate-only`, `--no-lock` on snapshot/diff.
+
+## Tracking
+
+- Migration journal: `cake_migrations` collection (unique `(version, plugin)`
+  index; plugin-tagged so app + plugin migrations coexist).
+- Seeds tracked in `_seeds` (unique `(seed_name, plugin)` index); idempotent
+  seeds re-run, non-idempotent run once.
+- `bake mongo_model` and schema listing skip `cake_migrations` / `_seeds`.
+
+## Common Pitfalls
+
+- Using cake commands (`migrations migrate`, `bake migration`) — use the `mongo`
+  / `mongo_*` variants.
+- `integer`/`varchar`/`datetime` SQL types — use `int64`/`string`/`date`.
+- Foreign-key-style columns typed `int` — an `*_id` field must be `objectid`.
+- Indexes as cake arrays (`['slug']`) — use key maps (`['slug' => 1]`).
+- Forgetting a terminator (`create()`/`update()`/`drop()->create()`).
+- `removeField()` inside `change()` (irreversible).
+- Not running `mongo migrations migrate` after baking.

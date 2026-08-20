@@ -289,7 +289,9 @@ class ColumnParserTest extends TestCase
         $this->assertSame('decimal128', $this->columnParser->mapType('decimal'));
         $this->assertSame('decimal128', $this->columnParser->mapType('decimal128'));
         $this->assertSame('boolean', $this->columnParser->mapType('boolean'));
-        $this->assertSame('date', $this->columnParser->mapType('datetime'));
+        $this->assertSame('date', $this->columnParser->mapType('date'));
+        $this->assertSame('datetime', $this->columnParser->mapType('datetime'));
+        $this->assertSame('time', $this->columnParser->mapType('time'));
         $this->assertSame('timestamp', $this->columnParser->mapType('timestamp'));
         $this->assertSame('binary', $this->columnParser->mapType('binary'));
         $this->assertSame('hash', $this->columnParser->mapType('json'));

@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Validation;
 
+use Cake\I18n\Date as I18nDate;
+use Cake\Validation\Validation;
+use DateTimeInterface;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Driver\Exception\InvalidArgumentException;
 
@@ -45,5 +48,28 @@ class MongoValidation
         } catch (InvalidArgumentException) {
             return false;
         }
+    }
+
+    /**
+     * Checks that the value is a valid date.
+     *
+     * Accepts the ODM's own `Cake\I18n\Date` (a `ChronosDate` that is not a
+     * `DateTimeInterface`) plus `DateTimeInterface` instances, and falls back to
+     * `Validation::date()` for date strings.
+     *
+     * @param mixed $check The value to validate.
+     * @return bool
+     */
+    public static function date(mixed $check): bool
+    {
+        if ($check instanceof I18nDate || $check instanceof DateTimeInterface) {
+            return true;
+        }
+
+        if (!is_string($check)) {
+            return false;
+        }
+
+        return Validation::date($check, 'ymd');
     }
 }
