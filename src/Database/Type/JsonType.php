@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Type;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
 use JsonException;
+use Override;
 
 /**
  * JSON type converter
@@ -83,6 +84,7 @@ class JsonType extends BaseType
      * @param mixed $value The value to convert
      * @return mixed Converted value
      */
+    #[Override]
     public function marshal(mixed $value): mixed
     {
         return $value;

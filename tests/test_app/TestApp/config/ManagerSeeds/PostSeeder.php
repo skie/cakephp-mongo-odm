@@ -13,6 +13,7 @@ class PostSeeder extends BaseSeed
         ]);
     }
 
+    #[\Override]
     public function getDependencies(): array
     {
         return [

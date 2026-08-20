@@ -118,6 +118,7 @@ class CollectionCommand extends BakeCommand
      *
      * @return \Bake\Utility\TemplateRenderer
      */
+    #[Override]
     public function createTemplateRenderer(): TemplateRenderer
     {
         $renderer = parent::createTemplateRenderer();
@@ -132,6 +133,7 @@ class CollectionCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -181,6 +183,7 @@ class CollectionCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake collection';

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Type;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
 use MongoDB\BSON\Timestamp;
+use Override;
 
 /**
  * Timestamp type converter
@@ -76,6 +77,7 @@ class TimestampType extends BaseType
      * @param mixed $value The value to convert
      * @return array<int, int>|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?array
     {
         if ($value === null || $value === '') {

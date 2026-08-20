@@ -14,6 +14,7 @@ use Crustum\Mongo\Database\ResultSet;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\Database\TypeMap;
 use IteratorAggregate;
+use Override;
 use Traversable;
 
 /**
@@ -369,6 +370,7 @@ class SelectQuery extends Query implements IteratorAggregate
     /**
      * Deep-clones the query so the clone owns an independent compiler and type map.
      */
+    #[Override]
     public function __clone()
     {
         parent::__clone();
@@ -383,6 +385,7 @@ class SelectQuery extends Query implements IteratorAggregate
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function __debugInfo(): array
     {
         $info = parent::__debugInfo();

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Orm\Bridge;
 
 use Cake\Datasource\EntityInterface;
 use Cake\Utility\Inflector;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -65,6 +66,7 @@ class DBRef extends Association
      * @param mixed $value The dirty association value.
      * @return bool Whether the write succeeded.
      */
+    #[Override]
     public function save(EntityInterface $entity, mixed $value): bool
     {
         return true;
@@ -88,6 +90,7 @@ class DBRef extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function injectRow(EntityInterface|array $row, array $map, ?string $nestKey = null): EntityInterface|array
     {
         $id = $this->extractSourceKey($row);
@@ -100,6 +103,7 @@ class DBRef extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function extractSourceKey(EntityInterface|array $row): mixed
     {
         $value = $this->extractField($row, $this->sourceKeyField());
@@ -144,6 +148,7 @@ class DBRef extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function defaultProperty(): string
     {
         [, $name] = pluginSplit($this->getName());
@@ -156,6 +161,7 @@ class DBRef extends Association
      *
      * @return string
      */
+    #[Override]
     protected function foreignKey(): string
     {
         $key = $this->getForeignKey();
@@ -168,6 +174,7 @@ class DBRef extends Association
      *
      * @return string
      */
+    #[Override]
     protected function bindingKey(): string
     {
         $key = $this->getBindingKey();

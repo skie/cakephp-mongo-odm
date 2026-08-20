@@ -16,6 +16,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Enum code generator for the Mongo ODM.
@@ -40,6 +41,7 @@ class MongoEnumCommand extends SimpleBakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Create a model Enum for the Mongo ODM';
@@ -75,6 +77,7 @@ class MongoEnumCommand extends SimpleBakeCommand
      * @param \Cake\Console\Arguments $arguments The arguments for the command.
      * @return array<string, mixed>
      */
+    #[Override]
     public function templateData(Arguments $arguments): array
     {
         $cases = $this->parseCases($arguments->getArgument('cases') ?? '', (bool)$arguments->getOption('int'));
@@ -136,13 +139,7 @@ class MongoEnumCommand extends SimpleBakeCommand
             return false;
         }
 
-        foreach ($definition as $value) {
-            if (!is_int($value)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($definition, fn($value): bool => is_int($value));
     }
 
     /**
@@ -172,6 +169,7 @@ class MongoEnumCommand extends SimpleBakeCommand
      * @param \Cake\Console\ConsoleIo $io The console io.
      * @return void
      */
+    #[Override]
     protected function bake(string $name, Arguments $args, ConsoleIo $io): void
     {
         parent::bake($name, $args, $io);
@@ -191,6 +189,7 @@ class MongoEnumCommand extends SimpleBakeCommand
      * @param \Cake\Console\ConsoleIo $io The console io.
      * @return int|null The exit code or null for success.
      */
+    #[Override]
     public function execute(Arguments $args, ConsoleIo $io): ?int
     {
         $this->extractCommonProperties($args);
@@ -210,6 +209,7 @@ class MongoEnumCommand extends SimpleBakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -236,6 +236,7 @@ class MongoEnumCommand extends SimpleBakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongo_enum';

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Type;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use MongoDB\BSON\Binary;
 use MongoDB\BSON\PackedArray;
+use Override;
 
 /**
  * Base vector type converter.
@@ -141,6 +142,7 @@ abstract class AbstractVectorType extends BaseType
     /**
      * @inheritDoc
      */
+    #[Override]
     public function marshal(mixed $value): mixed
     {
         return $this->toVector($value);

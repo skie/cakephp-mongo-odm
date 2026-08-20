@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Override;
 
 /**
  * Raw type converter
@@ -44,6 +45,7 @@ class RawType extends BaseType
      * @param mixed $value The value to convert
      * @return mixed Converted value
      */
+    #[Override]
     public function marshal(mixed $value): mixed
     {
         return $value;

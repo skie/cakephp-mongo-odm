@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Orm\Bridge;
 
 use Cake\Datasource\EntityInterface;
+use Override;
 
 /**
  * HasMany cross-boundary association (Direction 1).
@@ -61,6 +62,7 @@ class HasMany extends Association
      * @param mixed $value List of document data rows.
      * @return bool
      */
+    #[Override]
     public function save(EntityInterface $entity, mixed $value): bool
     {
         $fkValue = $entity->get($this->bindingKey());
@@ -90,6 +92,7 @@ class HasMany extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $entity, array $options = []): bool
     {
         if (!$this->getDependent()) {
@@ -137,6 +140,7 @@ class HasMany extends Association
      *
      * @return string
      */
+    #[Override]
     protected function foreignKey(): string
     {
         $key = $this->getForeignKey();
@@ -149,6 +153,7 @@ class HasMany extends Association
      *
      * @return string
      */
+    #[Override]
     protected function bindingKey(): string
     {
         $key = $this->getBindingKey();

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Orm\Bridge;
 
 use Cake\Datasource\EntityInterface;
 use Cake\Utility\Inflector;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -58,6 +59,7 @@ class BelongsTo extends Association
      * @param mixed $value The dirty association value.
      * @return bool Whether the write succeeded.
      */
+    #[Override]
     public function save(EntityInterface $entity, mixed $value): bool
     {
         return true;
@@ -98,6 +100,7 @@ class BelongsTo extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function defaultProperty(): string
     {
         [, $name] = pluginSplit($this->name);
@@ -110,6 +113,7 @@ class BelongsTo extends Association
      *
      * @return string
      */
+    #[Override]
     protected function bindingKey(): string
     {
         $key = $this->getBindingKey();
@@ -122,6 +126,7 @@ class BelongsTo extends Association
      *
      * @return string
      */
+    #[Override]
     protected function foreignKey(): string
     {
         $key = $this->getForeignKey();

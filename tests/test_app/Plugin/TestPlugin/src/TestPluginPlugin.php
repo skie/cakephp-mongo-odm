@@ -9,6 +9,7 @@ use Cake\Http\MiddlewareQueue;
 
 class TestPluginPlugin extends BasePlugin
 {
+    #[\Override]
     public function events(EventManagerInterface $event): EventManagerInterface
     {
         $event->on('TestPlugin.load', function (): void {
@@ -17,6 +18,7 @@ class TestPluginPlugin extends BasePlugin
         return $event;
     }
 
+    #[\Override]
     public function middleware(MiddlewareQueue $middlewareQueue): MiddlewareQueue
     {
         $middlewareQueue->add(fn($request, $handler) => $handler->handle($request));

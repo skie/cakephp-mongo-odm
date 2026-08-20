@@ -18,6 +18,7 @@ use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use DateTime;
 use LogicException;
+use Override;
 use Throwable;
 
 /**
@@ -30,6 +31,7 @@ class RollbackCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Rollback migrations.';
@@ -40,6 +42,7 @@ class RollbackCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo migrations rollback';
@@ -51,6 +54,7 @@ class RollbackCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

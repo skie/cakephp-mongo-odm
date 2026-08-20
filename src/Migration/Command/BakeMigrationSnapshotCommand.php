@@ -22,6 +22,7 @@ use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Migration\SchemaDumper;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use Crustum\Mongo\Migration\Util\Util;
+use Override;
 use RuntimeException;
 
 /**
@@ -39,6 +40,7 @@ class BakeMigrationSnapshotCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Bake a Mongo migration snapshot of the current schema.';
@@ -49,6 +51,7 @@ class BakeMigrationSnapshotCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongo_migration_snapshot';
@@ -60,6 +63,7 @@ class BakeMigrationSnapshotCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

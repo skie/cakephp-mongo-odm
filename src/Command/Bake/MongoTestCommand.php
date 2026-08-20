@@ -23,6 +23,7 @@ use Cake\Http\ServerRequest as Request;
 use Cake\Utility\Inflector;
 use Cake\View\View;
 use Crustum\Mongo\ODM\BaseCollection;
+use Override;
 use ReflectionClass;
 use UnexpectedValueException;
 use function Cake\Core\namespaceSplit;
@@ -96,6 +97,7 @@ class MongoTestCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Create a test case skeleton for a Mongo class.';
@@ -714,6 +716,7 @@ class MongoTestCommand extends BakeCommand
      * @param \Cake\Console\ConsoleOptionParser $parser Option parser to update.
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -770,6 +773,7 @@ class MongoTestCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongotest';

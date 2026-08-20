@@ -15,6 +15,7 @@ use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Model\BSONArray;
 use MongoDB\Model\BSONDocument;
+use Override;
 
 /**
  * Base class for associations stored inside the source document.
@@ -115,6 +116,7 @@ abstract class Embedded extends Association
      *
      * @return \Crustum\Mongo\ODM\BaseCollection
      */
+    #[Override]
     public function getTarget(): BaseCollection
     {
         return $this->getSource();
@@ -125,6 +127,7 @@ abstract class Embedded extends Association
      *
      * @return string
      */
+    #[Override]
     public function getStrategy(): string
     {
         return self::STRATEGY_EMBED;
@@ -137,6 +140,7 @@ abstract class Embedded extends Association
      * @return $this
      * @throws \InvalidArgumentException If the strategy is not `embed`.
      */
+    #[Override]
     public function setStrategy(string $strategy): static
     {
         if ($strategy !== self::STRATEGY_EMBED) {
@@ -393,6 +397,7 @@ abstract class Embedded extends Association
      * @param array<string, mixed> $options Delete options.
      * @return bool
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         return true;

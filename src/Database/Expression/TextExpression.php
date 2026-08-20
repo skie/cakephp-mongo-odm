@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Expression;
 
 use Closure;
+use Override;
 
 class TextExpression extends AbstractExpression
 {
@@ -39,6 +40,7 @@ class TextExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
+    #[Override]
     public function traverse(Closure $callback): static
     {
         $callback($this);
@@ -75,6 +77,7 @@ class TextExpression extends AbstractExpression
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function getConditions(): array
     {
         return $this->compile();

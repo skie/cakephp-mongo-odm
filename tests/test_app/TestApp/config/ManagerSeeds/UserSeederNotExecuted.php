@@ -13,6 +13,7 @@ class UserSeederNotExecuted extends BaseSeed
         ]);
     }
 
+    #[\Override]
     public function shouldExecute(): bool
     {
         return false;

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Cake\I18n\DateTime as CakeDateTime;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Override;
 
 /**
  * Date immutable type converter
@@ -23,6 +24,7 @@ class DateImmutableType extends DateType
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
      * @return \Cake\I18n\DateTime|null
      */
+    #[Override]
     public function toPHP(mixed $value, MongoDriver $driver): ?CakeDateTime
     {
         return parent::toPHP($value, $driver);
@@ -34,6 +36,7 @@ class DateImmutableType extends DateType
      * @param mixed $value The value to convert
      * @return \Cake\I18n\DateTime|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?CakeDateTime
     {
         return parent::marshal($value);

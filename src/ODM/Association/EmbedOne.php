@@ -5,6 +5,7 @@ namespace Crustum\Mongo\ODM\Association;
 
 use Cake\Datasource\EntityInterface;
 use Closure;
+use Override;
 
 /**
  * Embeds one document in the source document.
@@ -33,6 +34,7 @@ class EmbedOne extends Embedded
     /**
      * @inheritDoc
      */
+    #[Override]
     public function hydrateEmbedded(mixed $raw, EntityInterface $parent, array $options = []): mixed
     {
         $value = $this->normalize($raw);

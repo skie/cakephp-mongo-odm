@@ -51,6 +51,7 @@ class BakeMigrationCommand extends BakeSimpleMigrationCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Bake a Mongo migration class.';
@@ -59,6 +60,7 @@ class BakeMigrationCommand extends BakeSimpleMigrationCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongo_migration';

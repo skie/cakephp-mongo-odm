@@ -11,6 +11,7 @@ use Crustum\Mongo\Database\Aggregation\AggregationBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\LookupLoader;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
+use Override;
 
 /**
  * Represents a one-to-one relationship from the source document.
@@ -40,6 +41,7 @@ class HasOne extends Association
      *
      * @return string
      */
+    #[Override]
     protected function defaultStrategy(): string
     {
         return self::STRATEGY_LOOKUP;
@@ -50,6 +52,7 @@ class HasOne extends Association
      *
      * @return bool
      */
+    #[Override]
     public function isOwningSide(): bool
     {
         return true;
@@ -62,6 +65,7 @@ class HasOne extends Association
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
+    #[Override]
     public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
         $targetEntity = $document->get($this->getProperty());
@@ -93,6 +97,7 @@ class HasOne extends Association
      *
      * @return array<string>|string|null
      */
+    #[Override]
     public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getSource()));
@@ -103,6 +108,7 @@ class HasOne extends Association
      *
      * @return string
      */
+    #[Override]
     public function getProperty(): string
     {
         return $this->propertyName ??= Inflector::underscore(Inflector::singularize($this->name));
@@ -188,6 +194,7 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         return (new DependentDeleteHelper())->cascadeDelete($this, $document, $options);

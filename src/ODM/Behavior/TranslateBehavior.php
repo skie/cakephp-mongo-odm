@@ -14,6 +14,7 @@ use Crustum\Mongo\ODM\Behavior\Translate\TranslateStrategyInterface;
 use Crustum\Mongo\ODM\Marshaller;
 use Crustum\Mongo\ODM\PropertyMarshalInterface;
 use Crustum\Mongo\ODM\Query\SelectQuery;
+use Override;
 use function Cake\Core\namespaceSplit;
 
 /**
@@ -185,6 +186,7 @@ class TranslateBehavior extends Behavior implements PropertyMarshalInterface
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function implementedEvents(): array
     {
         return [

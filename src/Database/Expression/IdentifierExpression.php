@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Expression;
 
+use Override;
+
 /**
  * Represents a reference to a document field inside a comparison.
  *
@@ -46,6 +48,7 @@ class IdentifierExpression extends AbstractExpression
      *
      * @return array<string, string>
      */
+    #[Override]
     public function getConditions(): array
     {
         return ['$field' => $this->identifier];

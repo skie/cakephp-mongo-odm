@@ -8,6 +8,7 @@ use Cake\ORM\Table;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -322,6 +323,7 @@ class BelongsToMany extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $entity, array $options = []): bool
     {
         if (!$this->getDependent()) {
@@ -370,6 +372,7 @@ class BelongsToMany extends Association
      *
      * @return string
      */
+    #[Override]
     protected function bindingKey(): string
     {
         $key = $this->getBindingKey();

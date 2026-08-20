@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Orm\Bridge\Orm;
 
 use Cake\Utility\Inflector;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -80,6 +81,7 @@ class HasOneOrm extends OrmAssociation
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function defaultProperty(): string
     {
         [, $name] = pluginSplit($this->name);

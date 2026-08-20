@@ -15,6 +15,7 @@ use Cake\Core\App;
 use Cake\I18n\DateTime;
 use Cake\Utility\Inflector;
 use MongoDB\BSON\ObjectId;
+use Override;
 
 /**
  * Mongo-aware DocBlock helper.
@@ -31,6 +32,7 @@ class MongoDocBlockHelper extends DocBlockHelper
      * @param string $type The field type.
      * @return string The DocBlock type.
      */
+    #[Override]
     public function columnTypeToHintType(string $type): ?string
     {
         return match ($type) {
@@ -53,6 +55,7 @@ class MongoDocBlockHelper extends DocBlockHelper
      * @param array<string, array<string, mixed>> $propertySchema The property schema.
      * @return array<string, string> The property DocType map.
      */
+    #[Override]
     public function buildEntityAssociationHintTypeMap(array $propertySchema): array
     {
         $properties = [];

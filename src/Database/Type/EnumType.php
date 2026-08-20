@@ -7,6 +7,7 @@ use BackedEnum;
 use Cake\Utility\Text;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
+use Override;
 use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
@@ -140,6 +141,7 @@ class EnumType extends BaseType
      * @param mixed $value The value to convert
      * @return \BackedEnum|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?BackedEnum
     {
         if ($value === null) {

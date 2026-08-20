@@ -7,6 +7,7 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use Exception;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
+use Override;
 
 /**
  * ObjectId type converter
@@ -72,6 +73,7 @@ class ObjectIdType extends BaseType
      * @param mixed $value The value to convert
      * @return string|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?string
     {
         if ($value === null || $value === '') {

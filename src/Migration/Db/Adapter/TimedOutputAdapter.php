@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Db\Adapter;
 
 use Cake\Console\ConsoleIo;
+use Override;
 
 /**
  * Wraps any adapter to record the time spent executing its commands.
@@ -74,6 +75,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function createCollection(string $name, array $options = []): void
     {
         $end = $this->startCommandTimer();
@@ -85,6 +87,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function dropCollection(string $name): void
     {
         $end = $this->startCommandTimer();
@@ -96,6 +99,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function renameCollection(string $from, string $to, bool $dropTarget = false): void
     {
         $end = $this->startCommandTimer();
@@ -107,6 +111,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function createIndex(string $name, array|string $key, array $options = []): string
     {
         $end = $this->startCommandTimer();
@@ -120,6 +125,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function dropIndex(string $name, string $indexName): void
     {
         $end = $this->startCommandTimer();
@@ -131,6 +137,7 @@ class TimedOutputAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function setValidator(
         string $name,
         ?array $validator,

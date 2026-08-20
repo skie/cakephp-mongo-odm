@@ -26,6 +26,9 @@ use Rector\TypeDeclaration\Rector\FuncCall\AddArrayFunctionClosureParamTypeRecto
 use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayMapRector;
 use Rector\TypeDeclaration\Rector\FunctionLike\AddClosureParamTypeForArrayReduceRector;
 use Rector\TypeDeclaration\Rector\StmtsAwareInterface\SafeDeclareStrictTypesRector;
+use Rector\Php84\Rector\Foreach_\ForeachToArrayAnyRector;
+use Rector\TypeDeclaration\Rector\ArrowFunction\AddArrowFunctionReturnTypeRector;
+use Rector\TypeDeclaration\Rector\FuncCall\AddArrayAnyAllClosureParamTypeRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -64,6 +67,15 @@ return RectorConfig::configure()
         ],
         \Rector\TypeDeclaration\Rector\ClassMethod\StrictArrayParamDimFetchRector::class => [
             __DIR__ . '/tests/TestCase/ODM/MarshallerTest.php',
+        ],
+        ForeachToArrayAnyRector::class => [
+            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
+        ],
+        AddArrowFunctionReturnTypeRector::class => [
+            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
+        ],
+        AddArrayAnyAllClosureParamTypeRector::class => [
+            __DIR__ . ' src/ODM/Behavior/Translate/ShadowCollectionStrategy.php',
         ],
     ])
     ->withPreparedSets(

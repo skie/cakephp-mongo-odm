@@ -27,6 +27,7 @@ class BakeTestApplication extends BaseApplication
     /**
      * @inheritDoc
      */
+    #[\Override]
     public function routes(RouteBuilder $routes): void
     {
     }
@@ -34,6 +35,7 @@ class BakeTestApplication extends BaseApplication
     /**
      * @inheritDoc
      */
+    #[\Override]
     public function bootstrap(): void
     {
         $this->addPlugin('Cake/TwigView');

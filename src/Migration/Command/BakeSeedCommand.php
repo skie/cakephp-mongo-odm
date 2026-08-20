@@ -17,6 +17,7 @@ use Cake\Console\ConsoleOptionParser;
 use Cake\Utility\Inflector;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
+use Override;
 use RuntimeException;
 
 /**
@@ -34,6 +35,7 @@ class BakeSeedCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Bake a Mongo seeder class.';
@@ -44,6 +46,7 @@ class BakeSeedCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongo_seed';
@@ -55,6 +58,7 @@ class BakeSeedCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

@@ -19,6 +19,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Migration\SchemaDumper;
+use Override;
 use RuntimeException;
 
 /**
@@ -40,6 +41,7 @@ class DumpCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Dump the current Mongo schema to schema-dump-mongo.lock.';
@@ -50,6 +52,7 @@ class DumpCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo schema dump';
@@ -61,6 +64,7 @@ class DumpCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\ODM\Association;
 
 use Cake\Datasource\EntityInterface;
 use Closure;
+use Override;
 
 /**
  * Embeds many documents in an array property of the source document.
@@ -33,6 +34,7 @@ class EmbedMany extends Embedded
     /**
      * @inheritDoc
      */
+    #[Override]
     public function hydrateEmbedded(mixed $raw, EntityInterface $parent, array $options = []): mixed
     {
         $values = $this->normalize($raw);

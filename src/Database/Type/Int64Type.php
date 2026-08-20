@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Type;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
 use MongoDB\BSON\Int64;
+use Override;
 
 /**
  * Int64 type converter
@@ -91,6 +92,7 @@ class Int64Type extends BaseType implements Incrementable, Versionable
      * @param mixed $value The value to convert
      * @return int|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?int
     {
         if ($value === '' || !is_numeric($value)) {

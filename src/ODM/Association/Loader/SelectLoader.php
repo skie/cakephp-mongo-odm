@@ -521,13 +521,8 @@ class SelectLoader implements LoaderInterface
         }
 
         $conditionFields = $this->extractConditionFields($conditions);
-        foreach ($targetKeyFields as $field) {
-            if (in_array($field, $conditionFields, true)) {
-                return true;
-            }
-        }
 
-        return false;
+        return array_any($targetKeyFields, fn($field): bool => in_array($field, $conditionFields, true));
     }
 
     /**

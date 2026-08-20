@@ -10,6 +10,7 @@ use DateTimeInterface;
 use Exception;
 use InvalidArgumentException;
 use MongoDB\BSON\UTCDateTime;
+use Override;
 
 /**
  * Date type converter
@@ -156,6 +157,7 @@ class DateType extends BaseType implements BatchCastingInterface
      * @param mixed $value The value to convert
      * @return \Cake\I18n\DateTime|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?DateTimeInterface
     {
         if ($value === null || $value === '') {

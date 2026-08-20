@@ -11,6 +11,7 @@ use Crustum\Mongo\Database\Query\SelectQuery;
 use Crustum\Mongo\Database\Query\UpdateQuery as DatabaseUpdateQuery;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
+use Override;
 
 /**
  * ODM update query bound to a repository schema.
@@ -62,6 +63,7 @@ class UpdateQuery extends DatabaseUpdateQuery
      * @param mixed $value The value (when `$field` is a single name).
      * @return $this
      */
+    #[Override]
     public function set(array|string|EntityInterface $field, mixed $value = null): static
     {
         if ($field instanceof EntityInterface) {

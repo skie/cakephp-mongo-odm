@@ -16,6 +16,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
+use Override;
 
 /**
  * Reset command rolls back all migrations and migrates again.
@@ -27,6 +28,7 @@ class ResetCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Rollback all migrations and migrate again.';
@@ -37,6 +39,7 @@ class ResetCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo migrations reset';
@@ -48,6 +51,7 @@ class ResetCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

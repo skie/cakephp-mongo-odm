@@ -30,6 +30,7 @@ class BridgeOrdersTable extends Table implements MongoCollectionAwareInterface
      *
      * @return array<string>|string
      */
+    #[\Override]
     public function getPrimaryKey(): array|string
     {
         return 'id';

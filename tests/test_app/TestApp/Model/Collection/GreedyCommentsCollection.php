@@ -14,6 +14,7 @@ class GreedyCommentsCollection extends BaseCollection
         $this->setAlias('Comments');
     }
 
+    #[\Override]
     public function find(string $type = 'all', mixed ...$args): SelectQuery
     {
         $options = &$args[0];

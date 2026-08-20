@@ -8,6 +8,7 @@ use Crustum\Mongo\Database\Connection;
 use Crustum\Mongo\Database\Query\InsertQuery as DatabaseInsertQuery;
 use Crustum\Mongo\Database\Type\TypeFactory;
 use Crustum\Mongo\ODM\BaseCollection;
+use Override;
 
 /**
  * ODM insert query that accepts Documents and arrays.
@@ -61,6 +62,7 @@ class InsertQuery extends DatabaseInsertQuery
      * @param bool $overwrite Whether to replace queued values.
      * @return $this
      */
+    #[Override]
     public function values(array|EntityInterface $values, bool $overwrite = false): static
     {
         return parent::values($this->prepareDocument($values), $overwrite);
@@ -72,6 +74,7 @@ class InsertQuery extends DatabaseInsertQuery
      * @param array<int, array<string, mixed>|\Cake\Datasource\EntityInterface> $values Documents.
      * @return $this
      */
+    #[Override]
     public function valuesMany(array $values): static
     {
         $values = array_values(array_map(

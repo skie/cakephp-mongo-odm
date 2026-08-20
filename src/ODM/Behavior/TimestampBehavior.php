@@ -10,6 +10,7 @@ use Cake\Event\EventInterface;
 use Cake\I18n\DateTime as CakeDateTime;
 use Crustum\Mongo\ODM\Behavior;
 use DateTimeInterface;
+use Override;
 use UnexpectedValueException;
 
 /**
@@ -54,6 +55,7 @@ class TimestampBehavior extends Behavior
      *
      * @return array<string, string>
      */
+    #[Override]
     public function implementedEvents(): array
     {
         $events = $this->getConfig('events');

@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Integer type converter
@@ -98,6 +99,7 @@ class IntegerType extends BaseType implements Incrementable, Versionable
      * @param mixed $value The value to convert
      * @return int|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?int
     {
         if ($value === '' || !is_numeric($value)) {

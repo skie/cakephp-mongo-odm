@@ -1425,13 +1425,7 @@ class MongoModelCommand extends BakeCommand
      */
     protected function isSkippedCollection(string $name): bool
     {
-        foreach ($this->skipCollections as $prefix) {
-            if (str_starts_with($name, $prefix)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->skipCollections, fn(string $prefix): bool => str_starts_with($name, $prefix));
     }
 
     /**
@@ -1522,6 +1516,7 @@ class MongoModelCommand extends BakeCommand
      *
      * @return \Bake\Utility\TemplateRenderer
      */
+    #[Override]
     public function createTemplateRenderer(): TemplateRenderer
     {
         $renderer = parent::createTemplateRenderer();
@@ -1536,6 +1531,7 @@ class MongoModelCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -1600,6 +1596,7 @@ class MongoModelCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongo_model';

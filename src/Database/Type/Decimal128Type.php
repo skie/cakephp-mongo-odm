@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use MongoDB\BSON\Decimal128;
+use Override;
 
 /**
  * Decimal128 type converter
@@ -57,6 +58,7 @@ class Decimal128Type extends BaseType
      * @param mixed $value The value to convert
      * @return string|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?string
     {
         if ($value === null || $value === '') {

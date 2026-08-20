@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
+use Override;
 use Stringable;
 
 /**
@@ -68,6 +69,7 @@ class StringType extends BaseType
      * @param mixed $value The value to convert
      * @return string|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?string
     {
         if ($value === null || is_array($value)) {

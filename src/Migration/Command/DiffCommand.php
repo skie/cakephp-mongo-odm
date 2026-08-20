@@ -15,6 +15,7 @@ use Crustum\Mongo\Migration\Migration\SchemaDiff;
 use Crustum\Mongo\Migration\Migration\SchemaDumper;
 use Crustum\Mongo\Migration\Util\PhpArrayPrinter;
 use Crustum\Mongo\Migration\Util\Util;
+use Override;
 use RuntimeException;
 
 /**
@@ -28,6 +29,7 @@ class DiffCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Generate a migration from the schema diff (lock file vs live).';
@@ -38,6 +40,7 @@ class DiffCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo migrations diff';
@@ -49,6 +52,7 @@ class DiffCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

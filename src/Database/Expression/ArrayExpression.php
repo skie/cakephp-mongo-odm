@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Expression;
 
+use Override;
+
 class ArrayExpression extends AbstractExpression
 {
     /**
@@ -59,6 +61,7 @@ class ArrayExpression extends AbstractExpression
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function getConditions(): array
     {
         return $this->compile();

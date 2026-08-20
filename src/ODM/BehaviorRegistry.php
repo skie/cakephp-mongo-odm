@@ -12,6 +12,7 @@ use Closure;
 use Crustum\Mongo\ODM\Exception\MissingBehaviorException;
 use InvalidArgumentException;
 use LogicException;
+use Override;
 
 /**
  * Registry and event dispatcher for ODM behaviors.
@@ -153,6 +154,7 @@ class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterfac
      * @param object $object The behavior instance.
      * @return $this
      */
+    #[Override]
     public function set(string $name, object $object): static
     {
         if (!$object instanceof Behavior) {
@@ -171,6 +173,7 @@ class BehaviorRegistry extends ObjectRegistry implements EventDispatcherInterfac
      * @param string $name The behavior alias.
      * @return $this
      */
+    #[Override]
     public function unload(string $name): static
     {
         $behavior = $this->get($name);

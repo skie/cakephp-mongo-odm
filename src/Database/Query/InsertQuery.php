@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Query;
 
 use InvalidArgumentException;
+use Override;
 
 /**
  * Insert query for MongoDB insertOne/insertMany operations.
@@ -127,6 +128,7 @@ class InsertQuery extends Query
     /**
      * @inheritDoc
      */
+    #[Override]
     public function compile(): array
     {
         return [

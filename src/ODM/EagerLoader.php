@@ -1387,13 +1387,7 @@ class EagerLoader
      */
     private function hasMatchingChildren(EagerLoadable $loadable): bool
     {
-        foreach ($loadable->associations() as $child) {
-            if (!empty($child->getConfig()['matching'])) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($loadable->associations(), fn(EagerLoadable $child): bool => !empty($child->getConfig()['matching']));
     }
 
     /**

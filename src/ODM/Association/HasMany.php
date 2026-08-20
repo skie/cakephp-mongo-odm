@@ -13,6 +13,7 @@ use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\Loader\SelectLoader;
 use Crustum\Mongo\ODM\BaseCollection;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Represents a one-to-many relationship from the source document.
@@ -88,6 +89,7 @@ class HasMany extends Association
      *
      * @return string
      */
+    #[Override]
     protected function defaultStrategy(): string
     {
         return self::STRATEGY_SUBQUERY;
@@ -100,6 +102,7 @@ class HasMany extends Association
      * @return $this
      * @throws \InvalidArgumentException If the strategy is unsupported.
      */
+    #[Override]
     public function setStrategy(string $strategy): static
     {
         if (!in_array($strategy, $this->validStrategies, true)) {
@@ -120,6 +123,7 @@ class HasMany extends Association
      * @param array<string, mixed> $options Loader options.
      * @return bool
      */
+    #[Override]
     public function requiresKeys(array $options = []): bool
     {
         $strategy = $options['strategy'] ?? $this->strategy ?? $this->defaultStrategy();
@@ -132,6 +136,7 @@ class HasMany extends Association
      *
      * @return array<string>|string|null
      */
+    #[Override]
     public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getSource()));
@@ -142,6 +147,7 @@ class HasMany extends Association
      *
      * @return string
      */
+    #[Override]
     public function getProperty(): string
     {
         return $this->propertyName ??= Inflector::underscore($this->name);
@@ -182,6 +188,7 @@ class HasMany extends Association
      *
      * @return bool
      */
+    #[Override]
     public function isOwningSide(): bool
     {
         return true;
@@ -195,6 +202,7 @@ class HasMany extends Association
      * @param array<string, mixed> $options Containment options.
      * @return bool
      */
+    #[Override]
     public function canBeJoined(array $options = []): bool
     {
         return !empty($options['matching']);
@@ -210,6 +218,7 @@ class HasMany extends Association
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
+    #[Override]
     public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
         $targetEntities = $document->get($this->getProperty());
@@ -374,13 +383,8 @@ class HasMany extends Association
     protected function foreignKeyAcceptsNull(BaseCollection $target, array $foreignKey): bool
     {
         $schema = $target->describeSchema();
-        foreach ($foreignKey as $field) {
-            if (!$schema->isNullable($field)) {
-                return false;
-            }
-        }
 
-        return true;
+        return array_all($foreignKey, fn(string $field): bool => $schema->isNullable($field));
     }
 
     /**
@@ -669,6 +673,7 @@ class HasMany extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         return (new DependentDeleteHelper())->cascadeDelete($this, $document, $options);

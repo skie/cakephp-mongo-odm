@@ -393,6 +393,7 @@ class MongoTemplateCommand extends BakeCommand
      *
      * @return \Bake\Utility\TemplateRenderer
      */
+    #[Override]
     public function createTemplateRenderer(): TemplateRenderer
     {
         $renderer = parent::createTemplateRenderer();
@@ -406,6 +407,7 @@ class MongoTemplateCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getTemplatePath(Arguments $args, ?string $container = null): string
     {
         $paths = (array)Configure::read('App.paths.templates');
@@ -435,6 +437,7 @@ class MongoTemplateCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -466,6 +469,7 @@ class MongoTemplateCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongotemplate';

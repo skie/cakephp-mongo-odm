@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Test\TestCase\ODM\Behavior;
 use Crustum\Mongo\ODM\Behavior\Translate\EmbedStrategy;
 use Crustum\Mongo\ODM\Behavior\Translate\ShadowCollectionStrategy;
 use Crustum\Mongo\ODM\Behavior\TranslateBehavior;
+use Override;
 use TestApp\Model\Document\TranslateArticle;
 
 /**
@@ -42,6 +43,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * setUpBeforeClass
      */
+    #[Override]
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -52,6 +54,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * tearDownAfterClass
      */
+    #[Override]
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
@@ -72,6 +75,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * "translation collection" is the source collection itself (there is no
      * custom translation collection/datasource).
      */
+    #[Override]
     public function testCustomTranslationCollection(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -85,6 +89,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * The strategy is fixed to `embed`; no `_i18n` association is created.
      */
+    #[Override]
     public function testStrategy(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -245,6 +250,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * The active locale's translated fields override the root document.
      */
+    #[Override]
     public function testFindSingleLocale(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -272,6 +278,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * Translations survive iteration of a translated find.
      */
+    #[Override]
     public function testFindTranslationsFormatResultsIteration(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -323,6 +330,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * The `onlyTranslated` filter and per-find `filterByCurrentLocale` work on
      * the embedded translations.
      */
+    #[Override]
     public function testFilterUntranslatedWithFinder(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -441,6 +449,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * Associated collections load normally with the embed strategy; only the
      * translated source document is merged.
      */
+    #[Override]
     public function testFindSingleLocaleBelongsto(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -458,6 +467,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * The embed strategy resolves the translation collection to the source
      * collection; a custom locator is irrelevant.
      */
+    #[Override]
     public function testDefaultTableLocator(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -470,6 +480,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * A custom locator does not change the embedded storage.
      */
+    #[Override]
     public function testCustomTableLocator(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -482,6 +493,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * Translated documents load their hasMany associations.
      */
+    #[Override]
     public function testFindSingleLocaleHasMany(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -499,6 +511,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * Translated documents load their associated collections in a translated
      * environment.
      */
+    #[Override]
     public function testFindSingleLocaleAssociatedEnv(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -516,6 +529,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * `find('translations')` works on collections whose documents have no
      * embedded translations (empty maps).
      */
+    #[Override]
     public function testTranslationsHasMany(): void
     {
         $collection = $this->getCollectionLocator()->get('Comments');
@@ -529,6 +543,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * `find('translations')` with an association still returns documents.
      */
+    #[Override]
     public function testTranslationsHasManyWithOverride(): void
     {
         $collection = $this->getCollectionLocator()->get('Comments');
@@ -542,6 +557,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * Translated documents load their belongsToMany associations.
      */
+    #[Override]
     public function testFindSingleLocaleBelongsToMany(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -559,6 +575,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * Saving a new record with translations for non-default locales only.
      */
+    #[Override]
     public function testSaveNewRecordWithOnlyTranslationsNotDefaultLocale(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -590,6 +607,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * Saving an existing record with only translation changes keeps the other
      * locales intact.
      */
+    #[Override]
     public function testSaveExistingRecordOnlyTranslations(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -689,6 +707,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * `matching()` works on the source document with the embed strategy.
      */
+    #[Override]
     public function testLocalePropertyIsSetInMatchingData(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -702,6 +721,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
     /**
      * Matching still works on the translated source document.
      */
+    #[Override]
     public function testLocalePropertyIsSetInMatchingDataWhenUsingDeepMatching(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -716,6 +736,7 @@ class TranslateBehaviorEmbedTest extends TranslateBehaviorTestBase
      * Matching through a contained association still loads the translated
      * document.
      */
+    #[Override]
     public function testLocalePropertyIsSetInMatchingDataWhenUsingContainedMatching(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');

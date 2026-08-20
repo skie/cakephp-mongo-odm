@@ -11,6 +11,7 @@ use Crustum\Mongo\Database\QueryBuilder;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Query\SelectQuery;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -587,6 +588,7 @@ class ShadowCollectionStrategy extends AbstractStrategy
      * @param array<string> $locales A list of locales or options with the `locales` key defined
      * @return \Crustum\Mongo\ODM\Query\SelectQuery<\Cake\Datasource\EntityInterface|array>
      */
+    #[Override]
     public function findTranslations(SelectQuery $query, array $locales = []): SelectQuery
     {
         $query->lookup($this->translationCollection->getCollection(), [

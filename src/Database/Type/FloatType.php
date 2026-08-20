@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Float type converter
@@ -90,6 +91,7 @@ class FloatType extends BaseType implements Incrementable
      * @param mixed $value The value to convert
      * @return float|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?float
     {
         if ($value === '' || !is_numeric($value)) {

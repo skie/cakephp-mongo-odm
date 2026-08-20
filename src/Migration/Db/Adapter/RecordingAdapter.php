@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Migration\Db\Adapter;
 
 use Crustum\Mongo\Migration\Migration\IrreversibleMigrationException;
+use Override;
 
 /**
  * Recording proxy adapter.
@@ -34,6 +35,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function createCollection(string $name, array $options = []): void
     {
         $this->commands[] = ['createCollection', [$name, $options]];
@@ -42,6 +44,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function dropCollection(string $name): void
     {
         $this->commands[] = ['dropCollection', [$name]];
@@ -50,6 +53,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function renameCollection(string $from, string $to, bool $dropTarget = false): void
     {
         $this->commands[] = ['renameCollection', [$from, $to, $dropTarget]];
@@ -58,6 +62,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function createIndex(string $name, array|string $key, array $options = []): string
     {
         $indexName = $options['name'] ?? $this->defaultIndexName($key);
@@ -69,6 +74,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function dropIndex(string $name, string $indexName): void
     {
         $this->commands[] = ['dropIndex', [$name, $indexName]];
@@ -77,6 +83,7 @@ class RecordingAdapter extends AdapterWrapper
     /**
      * @inheritDoc
      */
+    #[Override]
     public function setValidator(
         string $name,
         ?array $validator,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Override;
 
 /**
  * Collection type converter
@@ -60,6 +61,7 @@ class CollectionType extends BaseType
      * @param mixed $value The value to convert
      * @return array<int, mixed>|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?array
     {
         if ($value === null) {

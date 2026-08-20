@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Type;
 
 use Cake\Utility\Text;
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Override;
 
 /**
  * UUID type converter
@@ -26,6 +27,7 @@ class UuidType extends StringType
      * @param \Crustum\Mongo\Database\Driver\MongoDriver $driver The driver instance to convert with
      * @return string|null
      */
+    #[Override]
     public function toDatabase(mixed $value, MongoDriver $driver): ?string
     {
         if (in_array($value, [null, '', false], true)) {
@@ -51,6 +53,7 @@ class UuidType extends StringType
      * @param mixed $value The value to convert
      * @return string|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?string
     {
         if ($value === null || $value === '' || is_array($value)) {

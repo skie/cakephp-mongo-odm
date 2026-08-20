@@ -177,13 +177,7 @@ class MongoLogger extends AbstractLogger
      */
     public function isSchemaCommand(array $command): bool
     {
-        foreach (self::SCHEMA_COMMANDS as $name) {
-            if (array_key_exists($name, $command)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(self::SCHEMA_COMMANDS, fn(string $name): bool => array_key_exists($name, $command));
     }
 
     /**

@@ -22,6 +22,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Query\SelectQuery;
 use InvalidArgumentException;
 use MongoDB\BSON\ObjectId;
+use Override;
 use SplObjectStorage;
 use Throwable;
 
@@ -165,6 +166,7 @@ class BelongsToMany extends Association
      * @return $this
      * @throws \InvalidArgumentException If the strategy is unsupported.
      */
+    #[Override]
     public function setStrategy(string $strategy): static
     {
         if (!in_array($strategy, $this->validStrategies, true)) {
@@ -184,6 +186,7 @@ class BelongsToMany extends Association
      *
      * @return string
      */
+    #[Override]
     public function getStrategy(): string
     {
         $strategy = $this->strategy ??= $this->defaultStrategy();
@@ -200,6 +203,7 @@ class BelongsToMany extends Association
      * @param array<string, mixed> $options Loader options.
      * @return bool
      */
+    #[Override]
     public function requiresKeys(array $options = []): bool
     {
         $strategy = $this->strategy ?? $this->defaultStrategy();
@@ -216,6 +220,7 @@ class BelongsToMany extends Association
      * @param array<string, mixed> $options Containment options.
      * @return bool
      */
+    #[Override]
     public function canBeJoined(array $options = []): bool
     {
         return !empty($options['matching']);
@@ -226,6 +231,7 @@ class BelongsToMany extends Association
      *
      * @return string
      */
+    #[Override]
     protected function defaultStrategy(): string
     {
         return self::STRATEGY_SUBQUERY;
@@ -236,6 +242,7 @@ class BelongsToMany extends Association
      *
      * @return bool
      */
+    #[Override]
     public function isOwningSide(): bool
     {
         return true;
@@ -251,6 +258,7 @@ class BelongsToMany extends Association
      * @param array<string, mixed> $options Save options.
      * @return \Cake\Datasource\EntityInterface|false
      */
+    #[Override]
     public function saveAssociated(EntityInterface $document, array $options = []): EntityInterface|false
     {
         $targetEntity = $document->get($this->getProperty());
@@ -287,6 +295,7 @@ class BelongsToMany extends Association
      * @param array<string, mixed> $options Delete options.
      * @return bool
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $document, array $options = []): bool
     {
         if (!$this->getDependent()) {
@@ -676,13 +685,7 @@ class BelongsToMany extends Association
             }
         }
 
-        foreach ($right as $field => $value) {
-            if (!array_key_exists($field, $left) && !$this->associationKeyEquals(null, $value)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($right, fn($value, $field): bool => !array_key_exists($field, $left) && !$this->associationKeyEquals(null, $value));
     }
 
     /**
@@ -873,14 +876,7 @@ class BelongsToMany extends Association
             $existingKeys = $existingLink->extract($keys);
             $found = false;
             foreach ($unmatchedEntityKeys as $i => $unmatchedKeys) {
-                $matched = true;
-                foreach ($keys as $key) {
-                    if ($existingKeys[$key] != $unmatchedKeys[$key]) {
-                        $matched = false;
-                        break;
-                    }
-                }
-
+                $matched = array_all($keys, fn(string $key): bool => $existingKeys[$key] == $unmatchedKeys[$key]);
                 if ($matched) {
                     unset($unmatchedEntityKeys[$i]);
                     $found = true;
@@ -917,6 +913,7 @@ class BelongsToMany extends Association
      *
      * @return array<string>|string|null
      */
+    #[Override]
     public function getForeignKey(): string|array|false|null
     {
         return $this->foreignKey ??= $this->_modelKey($this->repositoryAlias($this->getSource()));
@@ -927,6 +924,7 @@ class BelongsToMany extends Association
      *
      * @return string
      */
+    #[Override]
     public function getProperty(): string
     {
         return $this->propertyName ??= Inflector::underscore($this->name);
@@ -1276,6 +1274,7 @@ class BelongsToMany extends Association
      * @param mixed ...$args Finder arguments.
      * @return \Cake\Datasource\QueryInterface
      */
+    #[Override]
     public function find(array|string|null $type = null, mixed ...$args): QueryInterface
     {
         $type = $type ?: $this->getFinder();
@@ -1409,6 +1408,7 @@ class BelongsToMany extends Association
      * @param string $property The association property.
      * @return array<int|string, mixed>
      */
+    #[Override]
     protected function prefixMatchConditions(array $conditions, string $property): array
     {
         $prefixed = [];
@@ -1822,6 +1822,7 @@ class BelongsToMany extends Association
      * @param array<string, mixed> $options Options including `propertyPath`.
      * @return void
      */
+    #[Override]
     public function formatAssociationResults(SelectQuery $query, SelectQuery $surrogate, array $options): void
     {
         $property = (string)($options['propertyPath'] ?? '');

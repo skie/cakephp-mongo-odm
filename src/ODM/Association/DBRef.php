@@ -7,6 +7,7 @@ use Closure;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Document;
 use MongoDB\Model\BSONDocument;
+use Override;
 
 /**
  * Represents a MongoDB DBRef-style embedded value.
@@ -143,6 +144,7 @@ class DBRef extends Embedded
      * @param array<string, mixed> $options Pipeline options.
      * @return list<array<string, mixed>>
      */
+    #[Override]
     public function buildPipeline(array $options = []): array
     {
         return [];

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Type;
 use Crustum\Mongo\Database\Driver\MongoDriver;
 use InvalidArgumentException;
 use MongoDB\BSON\Binary;
+use Override;
 
 /**
  * Binary type converter
@@ -73,6 +74,7 @@ class BinaryType extends BaseType
      * @param mixed $value The value to convert
      * @return string|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?string
     {
         if ($value === null || $value === '') {

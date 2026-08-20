@@ -183,6 +183,7 @@ class MongoFixtureCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public function getPath(Arguments $args): string
     {
         $path = ROOT . DS . 'tests' . DS . 'Fixture' . DS;
@@ -196,6 +197,7 @@ class MongoFixtureCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser = $this->_setCommonOptions($parser);
@@ -220,6 +222,7 @@ class MongoFixtureCommand extends BakeCommand
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'bake mongofixture';

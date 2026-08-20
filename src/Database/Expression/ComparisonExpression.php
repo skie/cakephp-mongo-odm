@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Expression;
 use Cake\Database\ExpressionInterface;
 use Cake\Database\ValueBinder;
 use Closure;
+use Override;
 
 class ComparisonExpression extends AbstractExpression
 {
@@ -87,6 +88,7 @@ class ComparisonExpression extends AbstractExpression
      * @param \Closure $callback Callback function
      * @return $this
      */
+    #[Override]
     public function traverse(Closure $callback): static
     {
         $callback($this);
@@ -175,6 +177,7 @@ class ComparisonExpression extends AbstractExpression
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function getConditions(): array
     {
         return $this->compile();

@@ -6,6 +6,7 @@ namespace Crustum\Mongo\Database\Expression;
 use Cake\Database\ExpressionInterface;
 use Closure;
 use Countable;
+use Override;
 
 /**
  * Represents a MongoDB query expression. Internally it stores a tree of
@@ -394,6 +395,7 @@ class QueryExpression extends AbstractExpression implements Countable
      * @param \Closure $callback Callback function
      * @return $this
      */
+    #[Override]
     public function traverse(Closure $callback): static
     {
         $callback($this);
@@ -476,6 +478,7 @@ class QueryExpression extends AbstractExpression implements Countable
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function getConditions(): array
     {
         $result = $this->compile();

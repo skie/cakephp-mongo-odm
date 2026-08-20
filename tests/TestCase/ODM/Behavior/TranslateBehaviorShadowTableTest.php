@@ -12,6 +12,7 @@ use Cake\Utility\Hash;
 use Crustum\Mongo\ODM\Behavior\Translate\ShadowCollectionStrategy;
 use Crustum\Mongo\ODM\Behavior\TranslateBehavior;
 use Crustum\Mongo\ODM\Document;
+use Override;
 use TestApp\Model\Document\TranslateArticle;
 use TestApp\Model\Document\TranslateBakedArticle;
 
@@ -43,6 +44,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * setUpBeforeClass
      */
+    #[Override]
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -53,6 +55,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * tearDownAfterClass
      */
+    #[Override]
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
@@ -763,6 +766,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * Tests that allowEmptyTranslations takes effect
      */
+    #[Override]
     public function testEmptyTranslations(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -1005,6 +1009,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * Tests adding new translation to a record
      */
+    #[Override]
     public function testInsertNewTranslations(): void
     {
         parent::testInsertNewTranslations();
@@ -1171,6 +1176,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * Test buildMarshalMap() builds new entities.
      */
+    #[Override]
     public function testBuildMarshalMapBuildEntities(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');
@@ -1231,6 +1237,7 @@ class TranslateBehaviorShadowTableTest extends TranslateBehaviorTestBase
     /**
      * Tests that modified entities aren't marked as clean after ShadowCollectionStrategy::rowMapper
      */
+    #[Override]
     public function testModifiedDocumentNotCleanAfterTranslationMapping(): void
     {
         $collection = $this->getCollectionLocator()->get('Articles');

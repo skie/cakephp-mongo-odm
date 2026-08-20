@@ -36,6 +36,7 @@ class Test3Behavior extends Behavior
     /**
      * Test method to ensure it is ignored as a callable method.
      */
+    #[\Override]
     public function verifyConfig(): void
     {
         parent::verifyConfig();
@@ -48,6 +49,7 @@ class Test3Behavior extends Behavior
      *
      * @return array<string, mixed>
      */
+    #[\Override]
     public function implementedEvents(): array
     {
         return ['Model.beforeFind' => 'beforeFind'];
@@ -58,6 +60,7 @@ class Test3Behavior extends Behavior
      *
      * @return array<string, string>
      */
+    #[\Override]
     public function implementedFinders(): array
     {
         return [];
@@ -68,6 +71,7 @@ class Test3Behavior extends Behavior
      *
      * @return array<string, string>
      */
+    #[\Override]
     public function implementedMethods(): array
     {
         return [];

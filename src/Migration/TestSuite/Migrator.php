@@ -244,15 +244,7 @@ class Migrator
 
         return array_values(array_filter(
             $manager->listCollections(),
-            function (string $name) use ($skip): bool {
-                foreach ($skip as $pattern) {
-                    if (fnmatch($pattern, $name)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            },
+            fn(string $name): bool => array_all($skip, fn($pattern): bool => !fnmatch($pattern, $name)),
         ));
     }
 }

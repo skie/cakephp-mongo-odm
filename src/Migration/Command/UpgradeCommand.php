@@ -16,6 +16,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Crustum\Mongo\Migration\Db\Adapter\CakeMongoAdapter;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
+use Override;
 
 /**
  * Upgrades the migration journal to the unified-ledger shape.
@@ -27,6 +28,7 @@ class UpgradeCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Upgrade the migration journal to the unified-ledger shape.';
@@ -37,6 +39,7 @@ class UpgradeCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo migrations upgrade';
@@ -48,6 +51,7 @@ class UpgradeCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

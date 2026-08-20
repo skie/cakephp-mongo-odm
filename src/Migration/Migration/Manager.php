@@ -217,13 +217,7 @@ class Manager
         $plugin = Util::getSeedPlugin($seed);
         $seedName = $seed->getName();
 
-        foreach ($seedLog as $entry) {
-            if ($entry['seed_name'] === $seedName && Util::matchesSeedPlugin($entry['plugin'] ?? null, $plugin)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($seedLog, fn(array $entry): bool => $entry['seed_name'] === $seedName && Util::matchesSeedPlugin($entry['plugin'] ?? null, $plugin));
     }
 
     /**

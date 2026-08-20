@@ -14,6 +14,7 @@ use Crustum\Mongo\ODM\AssociationCollection;
 use Crustum\Mongo\ODM\BaseCollection;
 use Crustum\Mongo\ODM\Exception\MissingCollectionException;
 use Crustum\Mongo\ODM\Query\QueryFactory;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -173,6 +174,7 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
      * @param array<string, mixed> $options Construction options.
      * @return \Cake\Datasource\RepositoryInterface
      */
+    #[Override]
     public function get(string $alias, array $options = []): RepositoryInterface
     {
         return parent::get($alias, $options);
@@ -295,6 +297,7 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function clear(): void
     {
         parent::clear();
@@ -319,6 +322,7 @@ class CollectionLocator extends AbstractLocator implements LocatorInterface
     /**
      * @inheritDoc
      */
+    #[Override]
     public function remove(string $alias): void
     {
         parent::remove($alias);

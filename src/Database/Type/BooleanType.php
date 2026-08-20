@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\Mongo\Database\Type;
 
 use Crustum\Mongo\Database\Driver\MongoDriver;
+use Override;
 
 /**
  * Boolean type converter
@@ -52,6 +53,7 @@ class BooleanType extends BaseType
      * @param mixed $value The value to convert
      * @return bool|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?bool
     {
         if ($value === null || $value === '') {

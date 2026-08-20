@@ -7,6 +7,7 @@ use Crustum\Mongo\Database\Expression\UpdateOperatorExpression;
 use Crustum\Mongo\Database\FunctionsBuilder;
 use Crustum\Mongo\Database\UpdateFunctionsBuilder;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Update query for MongoDB updateMany operations.
@@ -38,6 +39,7 @@ class UpdateQuery extends Query
      *
      * @return \Crustum\Mongo\Database\UpdateFunctionsBuilder
      */
+    #[Override]
     public function func(): FunctionsBuilder
     {
         return $this->updateFunctionsBuilder ??= new UpdateFunctionsBuilder();
@@ -343,6 +345,7 @@ class UpdateQuery extends Query
     /**
      * @inheritDoc
      */
+    #[Override]
     public function compile(): array
     {
         return [

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Crustum\Mongo\Database\Query;
 
+use Override;
+
 /**
  * Delete query for MongoDB deleteMany operations.
  *
@@ -60,6 +62,7 @@ class DeleteQuery extends Query
     /**
      * @inheritDoc
      */
+    #[Override]
     public function compile(): array
     {
         return [

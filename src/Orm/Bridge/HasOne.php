@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Orm\Bridge;
 
 use Cake\Datasource\EntityInterface;
 use Cake\Utility\Inflector;
+use Override;
 use function Cake\Core\pluginSplit;
 
 /**
@@ -65,6 +66,7 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     public function cascadeDelete(EntityInterface $entity, array $options = []): bool
     {
         if (!$this->getDependent()) {
@@ -103,6 +105,7 @@ class HasOne extends Association
     /**
      * @inheritDoc
      */
+    #[Override]
     protected function defaultProperty(): string
     {
         [, $name] = pluginSplit($this->name);
@@ -115,6 +118,7 @@ class HasOne extends Association
      *
      * @return string
      */
+    #[Override]
     protected function foreignKey(): string
     {
         $key = $this->getForeignKey();
@@ -127,6 +131,7 @@ class HasOne extends Association
      *
      * @return string
      */
+    #[Override]
     protected function bindingKey(): string
     {
         $key = $this->getBindingKey();

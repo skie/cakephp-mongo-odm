@@ -5,6 +5,7 @@ use Crustum\Mongo\Migration\BaseMigration;
 
 class ShouldExecuteMigration extends BaseMigration
 {
+    #[\Override]
     public function shouldExecute(): bool
     {
         return true;

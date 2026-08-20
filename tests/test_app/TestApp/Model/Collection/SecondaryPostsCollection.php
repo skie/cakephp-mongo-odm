@@ -7,6 +7,7 @@ use Crustum\Mongo\ODM\BaseCollection;
 
 class SecondaryPostsCollection extends BaseCollection
 {
+    #[\Override]
     public static function defaultConnectionName(): string
     {
         return 'secondary';

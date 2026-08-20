@@ -5,6 +5,7 @@ namespace Crustum\Mongo\Database\Expression;
 
 use Closure;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Matches documents whose field tuple is one of several value tuples.
@@ -66,6 +67,7 @@ class TupleInExpression extends AbstractExpression
      * @param \Closure $callback Callback function.
      * @return $this
      */
+    #[Override]
     public function traverse(Closure $callback): static
     {
         $callback($this);
@@ -116,6 +118,7 @@ class TupleInExpression extends AbstractExpression
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function getConditions(): array
     {
         return $this->compile();

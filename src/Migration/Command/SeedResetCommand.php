@@ -17,6 +17,7 @@ use Cake\Console\ConsoleOptionParser;
 use Crustum\Mongo\Migration\Config\ConfigInterface;
 use Crustum\Mongo\Migration\Migration\ManagerFactory;
 use Crustum\Mongo\Migration\Util\Util;
+use Override;
 
 /**
  * Seed reset command removes seeds from the execution log.
@@ -28,6 +29,7 @@ class SeedResetCommand extends Command
     /**
      * @inheritDoc
      */
+    #[Override]
     public static function getDescription(): string
     {
         return 'Reset the seed execution state.';
@@ -38,6 +40,7 @@ class SeedResetCommand extends Command
      *
      * @return string
      */
+    #[Override]
     public static function defaultName(): string
     {
         return 'mongo migrations seed_reset';
@@ -49,6 +52,7 @@ class SeedResetCommand extends Command
      * @param \Cake\Console\ConsoleOptionParser $parser The option parser to configure
      * @return \Cake\Console\ConsoleOptionParser
      */
+    #[Override]
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser->setDescription([

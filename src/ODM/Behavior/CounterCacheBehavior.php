@@ -10,6 +10,7 @@ use Closure;
 use Crustum\Mongo\ODM\Association;
 use Crustum\Mongo\ODM\Association\BelongsTo;
 use Crustum\Mongo\ODM\Behavior;
+use Override;
 
 /**
  * Updates configured parent counters after saves and deletes.
@@ -34,6 +35,7 @@ class CounterCacheBehavior extends Behavior
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function implementedEvents(): array
     {
         return parent::implementedEvents() + [

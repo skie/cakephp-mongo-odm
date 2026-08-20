@@ -11,6 +11,7 @@ use Cake\TestSuite\TestCase as BaseTestCase;
 use Crustum\Mongo\ODM\Locator\LocatorAwareTrait;
 use Crustum\Mongo\Test\TestSuite\PipelineAssertsTrait;
 use Crustum\Mongo\TestSuite\MongoTestTrait;
+use Override;
 
 /**
  * Base test case for ODM unit and integration tests.
@@ -39,6 +40,7 @@ abstract class TestCase extends BaseTestCase
      *
      * @return \Cake\TestSuite\Fixture\FixtureStrategyInterface
      */
+    #[Override]
     protected function getFixtureStrategy(): FixtureStrategyInterface
     {
         return new TruncateStrategy();

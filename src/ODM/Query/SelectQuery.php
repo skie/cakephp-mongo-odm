@@ -22,6 +22,7 @@ use Crustum\Mongo\ODM\ResultSet;
 use Crustum\Mongo\ODM\ResultSetFactory;
 use InvalidArgumentException;
 use JsonSerializable;
+use Override;
 use Psr\SimpleCache\CacheInterface;
 use Throwable;
 use Traversable;
@@ -322,6 +323,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      *
      * @return void
      */
+    #[Override]
     protected function dirty(): void
     {
         $this->results = null;
@@ -441,6 +443,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * @param bool $overwrite Whether to overwrite the existing projection.
      * @return $this
      */
+    #[Override]
     public function select(
         ExpressionInterface|BaseCollection|Association|Closure|array|string|float|int $fields = [],
         bool $overwrite = false,
@@ -515,6 +518,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * @param bool $overwrite Whether to overwrite the existing group fields.
      * @return $this
      */
+    #[Override]
     public function groupBy(ExpressionInterface|Closure|array|string $fields, bool $overwrite = false): static
     {
         if ($fields instanceof Closure) {
@@ -797,6 +801,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * Clones the eager loader so cloned queries never share mutable
      * containment normalization state.
      */
+    #[Override]
     public function __clone()
     {
         parent::__clone();
@@ -1145,6 +1150,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      * @param \Cake\Database\ValueBinder|null $binder Ignored (Mongo has no bound values); kept for signature parity.
      * @return string
      */
+    #[Override]
     public function sql(?ValueBinder $binder = null): string
     {
         $this->triggerBeforeFind();
@@ -1175,6 +1181,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      *
      * @return \Cake\Datasource\ResultSetInterface<array-key, mixed>
      */
+    #[Override]
     public function execute(): mixed
     {
         $this->triggerBeforeFind();
@@ -1237,6 +1244,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function compile(): array
     {
         $this->addDefaultFields();
@@ -1365,6 +1373,7 @@ class SelectQuery extends DatabaseSelectQuery implements JsonSerializable, Query
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function __debugInfo(): array
     {
         $eagerLoader = $this->getEagerLoader();

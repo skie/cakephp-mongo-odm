@@ -7,6 +7,7 @@ use Crustum\Mongo\Database\Driver\MongoDriver;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
+use Override;
 
 /**
  * Time type converter
@@ -125,6 +126,7 @@ class TimeType extends BaseType implements BatchCastingInterface
      * @param mixed $value The value to convert
      * @return \DateTimeInterface|null Converted value
      */
+    #[Override]
     public function marshal(mixed $value): ?DateTimeInterface
     {
         if ($value === null || $value === '') {
