@@ -19,7 +19,7 @@
 > (see `docs/working-memory-docs/55-validation-diffs.md`).
 
 Before you [save your data](../ODM/saving-data) you will probably want to ensure
-the data is correct and consistent. In Crustum we have two stages of validation:
+the data is correct and consistent. In ODM we have two stages of validation:
 
 1. Before request data is converted into documents, validation rules around
     data types and formatting can be applied.
@@ -249,7 +249,7 @@ class UsersCollection extends BaseCollection
 ```
 
 > [!NOTE]
-> The provider name is `collection` in Crustum (not `table`). This differs from
+> The provider name is `collection` in ODM (not `table`). This differs from
 > the Cake ORM convention.
 
 ### Using Provider Methods Directly
@@ -330,7 +330,7 @@ Where validation ensures the form or syntax of your data is correct, rules focus
 on comparing data against the existing state of your application and/or network.
 
 These types of rules are often referred to as 'domain rules' or 'application
-rules'. Crustum exposes this concept through 'RulesCheckers' which are applied
+rules'. Crustum ODM exposes this concept through 'RulesCheckers' which are applied
 before documents are persisted. Some example application rules are:
 
 - Ensuring email uniqueness
@@ -412,7 +412,7 @@ $document->getErrors(); // Contains the domain rules error messages
 
 ### Creating Unique Field Rules
 
-Because unique rules are quite common, Crustum includes a simple rule class that
+Because unique rules are quite common, Crustum ODM includes a simple rule class that
 allows you to define unique field sets:
 
 ```php
@@ -446,7 +446,7 @@ $rules->add($rules->isUnique(
 ### Foreign Key Rules
 
 While you could rely on database errors to enforce constraints, using rules code
-can help provide a nicer user experience. Because of this Crustum includes an
+can help provide a nicer user experience. Because of this Crustum ODM includes an
 `ExistsIn` rule class:
 
 ```php

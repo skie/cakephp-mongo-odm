@@ -86,10 +86,10 @@ The `save()` method is also able to create new records for associations:
 
 ```php
 $firstComment = $articlesCollection->Comments->newEmptyDocument();
-$firstComment->body = 'The Crustum features are outstanding';
+$firstComment->body = 'The Crustum ODM features are outstanding';
 
 $secondComment = $articlesCollection->Comments->newEmptyDocument();
-$secondComment->body = 'Crustum performance is terrific!';
+$secondComment->body = 'Crustum ODM performance is terrific!';
 
 $tag1 = $articlesCollection->Tags->findByName('crustum')->first();
 $tag2 = $articlesCollection->Tags->newEmptyDocument();
@@ -166,15 +166,15 @@ request data should resemble:
 
 ```php
 $data = [
-    'title' => 'Crustum For the Win',
-    'body' => 'Working with Crustum makes web development fun!',
+    'title' => 'Crustum ODM For the Win',
+    'body' => 'Working with Crustum ODM makes web development fun!',
     'user_id' => '000000000000000000000001',
     'user' => [
         'username' => 'mark',
     ],
     'comments' => [
-        ['body' => 'The Crustum features are outstanding'],
-        ['body' => 'Crustum performance is terrific!'],
+        ['body' => 'The Crustum ODM features are outstanding'],
+        ['body' => 'Crustum ODM performance is terrific!'],
     ]
 ];
 ```
@@ -773,7 +773,7 @@ public function afterMarshal(
 ### Validating Data Before Building Documents
 
 The [Validating Data](../ODM/validation) chapter has more information on how to use the
-validation features of Crustum to ensure your data stays correct and consistent.
+validation features of ODM to ensure your data stays correct and consistent.
 
 ### Avoiding Property Mass Assignment Attacks
 
@@ -867,7 +867,7 @@ $articles->save($article, ['checkExisting' => false]);
 ```
 
 Once you've loaded some documents you'll probably want to modify them and update
-your database. This is a pretty simple exercise in Crustum:
+your database. This is a pretty simple exercise in ODM:
 
 ```php
 $articles = $this->fetchCollection('Articles');
@@ -877,7 +877,7 @@ $article->title = 'My new title';
 $articles->save($article);
 ```
 
-When saving, Crustum will [apply your rules](../ODM/validation#application-rules), and wrap the save
+When saving, ODM will [apply your rules](../ODM/validation#application-rules), and wrap the save
 operation in a database transaction (a Mongo session). It will also only update
 properties that have changed. The above `save()` call would generate an update
 operation like:
@@ -1166,7 +1166,7 @@ $this->Articles->Users->link($article, [$user]);
 ### Saving Additional Data to the Join Collection
 
 In some situations the collection joining your BelongsToMany association, will
-have additional fields on it. Crustum makes it simple to save properties into
+have additional fields on it. ODM makes it simple to save properties into
 these fields. Each document in a belongsToMany association has a `_joinData`
 property that contains the additional fields on the junction collection. This
 data can be either an array or a Document instance. For example if Students

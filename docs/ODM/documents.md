@@ -590,7 +590,7 @@ result set returned by a query; see
 
 You may find yourself needing the same logic in multiple document classes.
 PHP's traits are a great fit for this. You can put your application's traits in
-**src/Model/Document**. By convention traits in Crustum are suffixed with
+**src/Model/Document**. By convention traits in ODM are suffixed with
 `Trait` so they can be discernible from classes or interfaces. Traits are
 often a good complement to behaviors, allowing you to provide functionality for
 the collection and document objects.

@@ -8,7 +8,7 @@ implemented as separate classes. This allows them to hook into the life-cycle
 callbacks that collections emit, while providing trait-like features.
 
 Behaviors provide a convenient way to package up behavior that is common across
-many collections. For example, Crustum includes a `TimestampBehavior`. Many
+many collections. For example, ODM includes a `TimestampBehavior`. Many
 collections will want timestamp fields, and the logic to manage these fields is
 not specific to any one collection. It is these kinds of scenarios that behaviors
 are a perfect fit for.
@@ -85,7 +85,7 @@ For callback priorities see [Lifecycle Callbacks](../ODM/collections#lifecycle-c
 
 ## Core Behaviors
 
-Crustum bundles these behaviors:
+ODM bundles these behaviors:
 
 - [CounterCache](../ODM/behaviors/counter-cache)
 - [Timestamp](../ODM/behaviors/timestamp)

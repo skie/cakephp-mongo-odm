@@ -13,7 +13,7 @@ See [Versions.md](docs/Versions.md) for the supported CakePHP versions.
 You can install this plugin into your CakePHP application using [composer](https://getcomposer.org):
 
 ```
-composer require crustum/mongo
+composer require crustum/cakephp-mongo-odm
 ```
 
 Load the plugin:

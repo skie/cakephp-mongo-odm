@@ -233,7 +233,7 @@ modifying and re-evaluating a query will result in additional work being run.
 Calling the same query without modification multiple times will return the same
 reference.
 
-If you want to take a look at what pipeline/filter Crustum is generating, you
+If you want to take a look at what pipeline/filter ODM is generating, you
 can turn database [query logging](../ODM/Database-basics#database-query-logging)
 on.
 
@@ -607,9 +607,9 @@ $articles = $articlesCollection->find()
 
 #### DTO Creation Methods
 
-Crustum supports two approaches for creating DTOs:
+ODM supports two approaches for creating DTOs:
 
-**Reflection-based constructor mapping** - Crustum will use reflection to map
+**Reflection-based constructor mapping** - ODM will use reflection to map
 database columns to constructor parameters:
 
 ```php
@@ -625,7 +625,7 @@ readonly class ArticleDto
 ```
 
 **Factory method pattern** - If your DTO class has a `createFromArray()`
-static method, Crustum will use that instead:
+static method, ODM will use that instead:
 
 ```php
 class ArticleDto
@@ -767,7 +767,7 @@ traversed and modified as necessary.
 Result formatters are required to return an iterator object, which will be used
 as the return value for the query. Formatter functions are applied after all the
 Map/Reduce routines have been executed. Result formatters can be applied from
-within contained associations as well. Crustum will ensure that your formatters
+within contained associations as well. ODM will ensure that your formatters
 are properly scoped. For example, doing the following would work as you may
 expect:
 
@@ -791,7 +791,7 @@ echo $results->first()->author->age;
 ```
 
 As seen above, the formatters attached to associated query builders are scoped
-to operate only on the data in the association. Crustum will ensure that
+to operate only on the data in the association. ODM will ensure that
 computed values are inserted into the correct document.
 
 If you want to replace the results of an association finder with
@@ -1210,7 +1210,7 @@ feature. There is no per-expression collation on identifiers — the SQL
 ### Automatically Creating IN Clauses
 
 When building queries using the ODM, you will generally not have to indicate the
-data types of the columns you are interacting with, as Crustum can infer the
+data types of the columns you are interacting with, as ODM can infer the
 types based on the schema data. To force an `$in` comparison, use an explicit
 `IN` key or the `whereInList()` method:
 
@@ -1257,7 +1257,7 @@ depending on the type of `$parentId`.
 
 ### Raw Expressions
 
-There is no raw SQL in Crustum — expressions are built from typed values and
+There is no raw SQL in ODM — expressions are built from typed values and
 operators only. Field-to-field comparisons use `equalFields()`, conditional
 values use `func()->cond()`. Building a raw pipeline fragment is only possible
 through the Database-layer `AggregationBuilder` / `RawStage` escape hatch (see
@@ -1653,7 +1653,7 @@ $expr = $query->func()->expr($userData);
 $query->select(['two' => $expr]);
 ```
 
-Unlike SQL, there are no query bindings in Crustum — values are passed as
+Unlike SQL, there are no query bindings in ODM — values are passed as
 native typed values. The safe way to include user data is to use it as a
 *value* in condition arrays, `whereInList()`, or function arguments:
 

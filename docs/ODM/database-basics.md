@@ -1042,10 +1042,10 @@ field names are used verbatim.
 
 ## Metadata Caching
 
-Crustum uses database reflection to determine the schema and indexes your
+ODM uses database reflection to determine the schema and indexes your
 application contains. Because this metadata changes infrequently and can be
 expensive to access, it is typically cached. By default, metadata is stored in
-the `_cake_model_` cache configuration. You can define a custom cache
+the `_crustum_model_` cache configuration. You can define a custom cache
 configuration using the `cacheMetadata` option in your datasource
 configuration:
 
